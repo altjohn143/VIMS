@@ -1,0 +1,691 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  RefreshControl,
+  FlatList,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { themeColors, shadows } from '../../utils/theme';
+import api from '../../utils/api';
+import { format } from 'date-fns';
+import LogoutButton from '../../components/LogoutButton';
+
+const AdminApprovalsScreen = ({ navigation }) => {
+  const [pendingUsers, setPendingUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    fetchPendingApprovals();
+  }, []);
+
+  const fetchPendingApprovals = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/users/pending-approvals');
+      if (response.data.success) {
+        setPendingUsers(response.data.data);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch pending approvals');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPendingApprovals();
+  };
+
+  const handleApprove = async (userId) => {
+    Alert.alert(
+      'Approve User',
+      'Are you sure you want to approve this resident?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Approve',
+          onPress: async () => {
+            setProcessing(true);
+            try {
+              const response = await api.put(`/users/${userId}/approve`);
+              if (response.data.success) {
+                Alert.alert('Success', 'User approved successfully');
+                setPendingUsers(prev => prev.filter(user => user._id !== userId));
+                setShowDetailsModal(false);
+              }
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.error || 'Failed to approve user');
+            } finally {
+              setProcessing(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReject = async () => {
+    if (!selectedUser) return;
+
+    setProcessing(true);
+    try {
+      const response = await api.delete(`/users/${selectedUser._id}`, {
+        data: { reason: rejectReason }
+      });
+      
+      if (response.data.success) {
+        Alert.alert('Success', 'User rejected successfully');
+        setPendingUsers(prev => prev.filter(user => user._id !== selectedUser._id));
+        setShowRejectModal(false);
+        setShowDetailsModal(false);
+        setSelectedUser(null);
+        setRejectReason('');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to reject user');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy hh:mm a');
+    } catch {
+      return 'Invalid Date';
+    }
+  };
+
+  const renderUserCard = ({ item }) => {
+    return (
+      <TouchableOpacity
+        style={[styles.userCard, shadows.small]}
+        onPress={() => {
+          setSelectedUser(item);
+          setShowDetailsModal(true);
+        }}
+      >
+        <View style={styles.userHeader}>
+          <View style={[styles.userAvatar, { backgroundColor: themeColors.primary }]}>
+            <Text style={styles.avatarText}>
+              {item.firstName?.charAt(0)}{item.lastName?.charAt(0)}
+            </Text>
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{item.firstName} {item.lastName}</Text>
+            <Text style={styles.userEmail}>{item.email}</Text>
+          </View>
+        </View>
+
+        <View style={styles.userDetails}>
+          <View style={styles.detailRow}>
+            <Ionicons name="call" size={16} color={themeColors.textSecondary} />
+            <Text style={styles.detailText}>{item.phone || 'No phone'}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="home" size={16} color={themeColors.textSecondary} />
+            <Text style={styles.detailText}>House {item.houseNumber || 'N/A'}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="time" size={16} color={themeColors.textSecondary} />
+            <Text style={styles.detailText}>Registered: {formatDate(item.createdAt)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.userActions}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.approveButton]}
+            onPress={() => handleApprove(item._id)}
+          >
+            <Ionicons name="checkmark-circle" size={20} color="white" />
+            <Text style={styles.actionButtonText}>Approve</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.rejectButton]}
+            onPress={() => {
+              setSelectedUser(item);
+              setShowRejectModal(true);
+            }}
+          >
+            <Ionicons name="close-circle" size={20} color="white" />
+            <Text style={styles.actionButtonText}>Reject</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+<View style={styles.header}>
+  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+    <Ionicons name="arrow-back" size={24} color="white" />
+  </TouchableOpacity>
+  <Text style={styles.headerTitle}>Pending Approvals</Text>
+  <View style={styles.headerRight}>
+    <TouchableOpacity onPress={fetchPendingApprovals} style={styles.refreshButton}>
+      <Ionicons name="refresh" size={24} color="white" />
+    </TouchableOpacity>
+    <LogoutButton navigation={navigation} color="white" size={24} />
+  </View>
+</View>
+
+      <View style={styles.statsCard}>
+        <Text style={styles.statsLabel}>Pending Approvals</Text>
+        <Text style={styles.statsValue}>{pendingUsers.length}</Text>
+      </View>
+
+      <FlatList
+        data={pendingUsers}
+        renderItem={renderUserCard}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="checkmark-done-circle" size={64} color={themeColors.textSecondary} />
+            <Text style={styles.emptyTitle}>No Pending Approvals</Text>
+            <Text style={styles.emptyText}>All resident registrations have been processed</Text>
+          </View>
+        }
+      />
+
+      {/* Details Modal */}
+      <Modal
+        visible={showDetailsModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDetailsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Resident Details</Text>
+              <TouchableOpacity onPress={() => setShowDetailsModal(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedUser && (
+              <ScrollView>
+                <View style={styles.detailAvatar}>
+                  <View style={[styles.largeAvatar, { backgroundColor: themeColors.primary }]}>
+                    <Text style={styles.largeAvatarText}>
+                      {selectedUser.firstName?.charAt(0)}{selectedUser.lastName?.charAt(0)}
+                    </Text>
+                  </View>
+                  <Text style={styles.detailName}>{selectedUser.firstName} {selectedUser.lastName}</Text>
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingBadgeText}>PENDING APPROVAL</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Personal Information</Text>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailItemLabel}>Full Name</Text>
+                    <Text style={styles.detailItemValue}>{selectedUser.firstName} {selectedUser.lastName}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailItemLabel}>Role</Text>
+                    <Text style={styles.detailItemValue}>{selectedUser.role}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Residence Information</Text>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailItemLabel}>House Number</Text>
+                    <Text style={styles.detailItemValue}>{selectedUser.houseNumber || 'N/A'}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Contact Information</Text>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailItemLabel}>Email</Text>
+                    <Text style={styles.detailItemValue}>{selectedUser.email}</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailItemLabel}>Phone</Text>
+                    <Text style={styles.detailItemValue}>{selectedUser.phone}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Registration Details</Text>
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailItemLabel}>Registered On</Text>
+                    <Text style={styles.detailItemValue}>{formatDate(selectedUser.createdAt)}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalActionButton, styles.approveButton]}
+                    onPress={() => handleApprove(selectedUser._id)}
+                    disabled={processing}
+                  >
+                    {processing ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark-circle" size={20} color="white" />
+                        <Text style={styles.modalActionText}>Approve</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalActionButton, styles.rejectButton]}
+                    onPress={() => {
+                      setShowDetailsModal(false);
+                      setShowRejectModal(true);
+                    }}
+                  >
+                    <Ionicons name="close-circle" size={20} color="white" />
+                    <Text style={styles.modalActionText}>Reject</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reject Modal */}
+      <Modal
+        visible={showRejectModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowRejectModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Reject Registration</Text>
+              <TouchableOpacity onPress={() => setShowRejectModal(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.rejectContent}>
+              <View style={styles.warningBox}>
+                <Ionicons name="warning" size={24} color={themeColors.warning} />
+                <Text style={styles.warningText}>
+                  This action cannot be undone. The resident will be permanently removed.
+                </Text>
+              </View>
+
+              {selectedUser && (
+                <View style={styles.userPreview}>
+                  <View style={[styles.userAvatar, { backgroundColor: themeColors.primary }]}>
+                    <Text style={styles.avatarText}>
+                      {selectedUser.firstName?.charAt(0)}{selectedUser.lastName?.charAt(0)}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text style={styles.previewName}>{selectedUser.firstName} {selectedUser.lastName}</Text>
+                    <Text style={styles.previewEmail}>{selectedUser.email}</Text>
+                  </View>
+                </View>
+              )}
+
+              <TextInput
+                style={styles.rejectInput}
+                placeholder="Reason for rejection (optional)"
+                value={rejectReason}
+                onChangeText={setRejectReason}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.cancelButton]}
+                  onPress={() => {
+                    setShowRejectModal(false);
+                    setRejectReason('');
+                  }}
+                  disabled={processing}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.rejectButton]}
+                  onPress={handleReject}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.modalActionText}>Reject</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: themeColors.background,
+  },
+  header: {
+    backgroundColor: themeColors.primary,
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerRight: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  refreshButton: {
+    padding: 8,
+  },
+  statsCard: {
+    backgroundColor: 'white',
+    margin: 16,
+    padding: 20,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+  },
+  statsLabel: {
+    fontSize: 16,
+    color: themeColors.textSecondary,
+  },
+  statsValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: themeColors.primary,
+  },
+  listContainer: {
+    padding: 16,
+  },
+  userCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+  },
+  userHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  userAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: themeColors.textSecondary,
+  },
+  userDetails: {
+    marginBottom: 16,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  detailText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: themeColors.textPrimary,
+  },
+  userActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  approveButton: {
+    backgroundColor: themeColors.success,
+  },
+  rejectButton: {
+    backgroundColor: themeColors.error,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: themeColors.textSecondary,
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+  },
+  detailAvatar: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  largeAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  largeAvatarText: {
+    color: 'white',
+    fontSize: 32,
+    fontWeight: '600',
+  },
+  detailName: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+    marginBottom: 8,
+  },
+  pendingBadge: {
+    backgroundColor: themeColors.warning + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  pendingBadgeText: {
+    color: themeColors.warning,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  detailSection: {
+    marginBottom: 20,
+  },
+  detailSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+    marginBottom: 12,
+  },
+  detailItem: {
+    marginBottom: 8,
+  },
+  detailItemLabel: {
+    fontSize: 12,
+    color: themeColors.textSecondary,
+    marginBottom: 2,
+  },
+  detailItemValue: {
+    fontSize: 14,
+    color: themeColors.textPrimary,
+    fontWeight: '500',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  modalActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  modalActionText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  rejectContent: {
+    paddingVertical: 10,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    backgroundColor: themeColors.warning + '15',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: themeColors.warning + '30',
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 14,
+    color: themeColors.warning,
+    marginLeft: 8,
+  },
+  userPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  previewName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+  },
+  previewEmail: {
+    fontSize: 14,
+    color: themeColors.textSecondary,
+  },
+  rejectInput: {
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 80,
+    marginBottom: 16,
+    backgroundColor: '#f8fafc',
+  },
+  cancelButton: {
+    backgroundColor: '#f1f5f9',
+  },
+  cancelButtonText: {
+    color: themeColors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+export default AdminApprovalsScreen;

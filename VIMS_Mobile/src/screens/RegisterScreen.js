@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../utils/theme';
@@ -31,6 +32,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [availability, setAvailability] = useState({
     email: null,
     phone: null,
@@ -217,14 +219,28 @@ const RegisterScreen = ({ navigation, route }) => {
       const response = await api.post('/auth/register', registrationData);
       
       if (response.data.success) {
-        Alert.alert(
-          'Registration Successful',
-          'Your account has been created. Please wait for admin approval.',
-          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-        );
+        // Clear the form
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          password: '',
+          confirmPassword: '',
+          houseLot: '',
+          houseBlock: '',
+        });
+        
+        // Show success modal
+        setShowSuccessModal(true);
       }
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Registration failed');
+      const errorMessage = error.response?.data?.error || 'Registration failed. Please try again.';
+      Alert.alert(
+        'Registration Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
     } finally {
       setLoading(false);
     }
@@ -403,6 +419,43 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.successIconContainer}>
+              <Ionicons name="checkmark" size={50} color="white" />
+            </View>
+            
+            <Text style={styles.modalTitle}>
+              Registration Successful!
+            </Text>
+            
+            <Text style={styles.modalMessage}>
+              Your account has been created successfully.{'\n\n'}
+              Please wait for admin approval before you can log in.
+            </Text>
+            
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowSuccessModal(false);
+                navigation.navigate('Login');
+              }}
+            >
+              <Text style={styles.modalButtonText}>
+                Go to Login
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -544,6 +597,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 4,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 30,
+    width: '85%',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  successIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  modalButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    width: '100%',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

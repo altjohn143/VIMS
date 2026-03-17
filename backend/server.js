@@ -30,7 +30,7 @@ app.use(cors({
     'exp://192.168.*.*:8081',
     `http://${localIP}:3000`,
     `http://${localIP}:8081`,
-    '*',
+     'https://vims-one.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],

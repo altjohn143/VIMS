@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Alert,
   ActivityIndicator,
   Modal,
@@ -173,18 +174,18 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-<View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="white" />
-  </TouchableOpacity>
-  <Text style={styles.headerTitle}>Pending Approvals</Text>
-  <View style={styles.headerRight}>
-    <TouchableOpacity onPress={fetchPendingApprovals} style={styles.refreshButton}>
-      <Ionicons name="refresh" size={24} color="white" />
-    </TouchableOpacity>
-    <LogoutButton navigation={navigation} color="white" size={24} />
-  </View>
-</View>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Pending Approvals</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={fetchPendingApprovals} style={styles.refreshButton}>
+            <Ionicons name="refresh" size={24} color="white" />
+          </TouchableOpacity>
+          <LogoutButton navigation={navigation} color="white" size={24} />
+        </View>
+      </View>
 
       <View style={styles.statsCard}>
         <Text style={styles.statsLabel}>Pending Approvals</Text>
@@ -402,9 +403,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerRight: {
-  flexDirection: 'row',
-  alignItems: 'center',
-},
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   backButton: {
     padding: 8,
   },

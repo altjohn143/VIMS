@@ -104,11 +104,11 @@ const DashboardScreen = ({ navigation }) => {
         { label: 'Active Requests', key: 'activeRequests', value: stats.activeRequests || 0 },
         { label: 'Total Visitors', key: 'totalVisitors', value: stats.totalVisitors || 0 },
       ],
-      quickActions: [
-        { title: 'User Management', icon: 'people', screen: 'UsersTab', color: '#8b5cf6' },
-        { title: 'Approvals', icon: 'checkmark-circle', screen: 'AdminApprovals', color: '#f59e0b' },
-        { title: 'Visitor Logs', icon: 'qr-code', screen: 'VisitorsTab', color: '#10b981' },
-      ],
+quickActions: [
+  { title: 'User Management', icon: 'people', screen: 'UsersTab', color: '#8b5cf6' },
+  { title: 'Approvals', icon: 'checkmark-circle', screen: 'AdminApprovals', color: '#f59e0b' },
+  { title: 'Visitor Logs', icon: 'qr-code', screen: 'VisitorsTab', color: '#10b981' },
+],
     },
     security: {
       title: 'Security Dashboard',

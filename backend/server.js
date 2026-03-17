@@ -23,14 +23,14 @@ for (const name of Object.keys(networkInterfaces)) {
 
 app.use(cors({
   origin: [
-    'http://localhost:3000',
-    'http://localhost:8081',
-    'http://localhost:19006',
-    'exp://localhost:19000',
-    'exp://192.168.*.*:8081',
-    `http://${localIP}:3000`,
-    `http://${localIP}:8081`,
-     'https://vims-one.vercel.app'
+  'http://localhost:3000',
+  'http://localhost:8081',
+  'http://localhost:19006',
+  'exp://localhost:19000',
+  'exp://192.168.*.*:8081',
+  `http://${localIP}:3000`,
+  `http://${localIP}:8081`,
+  'https://vims-one.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],

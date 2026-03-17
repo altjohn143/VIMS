@@ -34,7 +34,8 @@
         {
           "cameraPermission": "Allow VIMS to access your camera to scan QR codes."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

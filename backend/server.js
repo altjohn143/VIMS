@@ -78,50 +78,48 @@ async function autoSeedDatabase() {
     const bcrypt = require('bcryptjs');
     const User = require('./models/User');
     
-    const adminExists = await User.findOne({ email: 'admin@vims.com' });
-    const securityExists = await User.findOne({ email: 'security@vims.com' });
+    console.log('Checking/creating admin and security accounts...');
     
-    if (!adminExists || !securityExists) {
-      console.log('Creating pre-registered accounts...');
-      
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123!', salt);
-      console.log('Hashed password created:', hashedPassword);  // ADD THIS
-      
-      if (!adminExists) {
-        await User.create({
-          firstName: 'System',
-          lastName: 'Administrator',
-          email: 'admin@vims.com',
-          phone: '9876543210',
-          password: hashedPassword,
-          role: 'admin',
-          isApproved: true,
-          isActive: true
-        });
-        console.log('Admin account created');
-      }
-      
-      if (!securityExists) {
-        await User.create({
-          firstName: 'Security',
-          lastName: 'Officer',
-          email: 'security@vims.com',
-          phone: '9876543211',
-          password: hashedPassword,
-          role: 'security',
-          isApproved: true,
-          isActive: true
-        });
-        console.log('Security account created');
-      }
-      
-      console.log('Login credentials:');
-      console.log('   Admin: admin@vims.com / SecurePass123!');
-      console.log('   Security: security@vims.com / SecurePass123!');
-    } else {
-      console.log('Pre-registered accounts already exist');
-    }
+    // Force delete existing accounts to ensure clean slate
+    await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
+    console.log('Removed existing admin/security accounts');
+    
+    // Create fresh accounts with admin123 password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('admin123', salt);
+    
+    // Create Admin
+    const adminUser = new User({
+      firstName: 'System',
+      lastName: 'Administrator',
+      email: 'admin@vims.com',
+      phone: '9876543210',
+      password: hashedPassword,
+      role: 'admin',
+      isApproved: true,
+      isActive: true
+    });
+    await adminUser.save();
+    console.log('✅ Admin account created with password: admin123');
+
+    // Create Security
+    const securityUser = new User({
+      firstName: 'Security',
+      lastName: 'Officer',
+      email: 'security@vims.com',
+      phone: '9876543211',
+      password: hashedPassword,
+      role: 'security',
+      isApproved: true,
+      isActive: true
+    });
+    await securityUser.save();
+    console.log('✅ Security account created with password: admin123');
+    
+    console.log('\n✅ Login credentials:');
+    console.log('   Admin: admin@vims.com / admin123');
+    console.log('   Security: security@vims.com / admin123');
+    
   } catch (error) {
     console.error('Auto-seed error:', error.message);
   }

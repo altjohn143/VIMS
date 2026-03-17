@@ -73,51 +73,52 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
     }
   };
 
-  const login = async (email, password) => {
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API_URL}/auth/login`, { 
-        email, 
-        password 
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.data.success) {
-        const { token, user } = response.data;
- 
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+ const login = async (email, password) => {
+  setLoading(true);
+  try {
+    const response = await axios.post(`${API_URL}/auth/login`, { 
+      email, 
+      password 
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.data.success) {
+      const { token, user } = response.data;
 
-axios.defaults.baseURL = 'https://vims-backend.onrender.com';  
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        axios.defaults.headers.common['x-user-data'] = JSON.stringify(user);
-        
-        toast.success('Login successful!');
-        return { success: true, user };
-      }
-    } catch (error) {
-      console.error('Login error:', error);
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      // ✅ FIXED: Use live backend URL
+      axios.defaults.baseURL = 'https://vims-backend.onrender.com';
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.headers.common['x-user-data'] = JSON.stringify(user);
       
-      // Check for pending approval error (403 status)
-      if (error.response?.status === 403 && error.response?.data?.requiresApproval) {
-        toast.error(error.response?.data?.error || 'Account pending approval');
-        return { 
-          success: false, 
-          error: error.response?.data?.error || 'Account pending approval',
-          requiresApproval: true 
-        };
-      }
-      
-      const message = error.response?.data?.error || 'Login failed';
-      toast.error(message);
-      return { success: false, error: message };
-    } finally {
-      setLoading(false);
+      toast.success('Login successful!');
+      return { success: true, user };
     }
-  };
+  } catch (error) {
+    console.error('Login error:', error);
+    
+    // Check for pending approval error (403 status)
+    if (error.response?.status === 403 && error.response?.data?.requiresApproval) {
+      toast.error(error.response?.data?.error || 'Account pending approval');
+      return { 
+        success: false, 
+        error: error.response?.data?.error || 'Account pending approval',
+        requiresApproval: true 
+      };
+    }
+    
+    const message = error.response?.data?.error || 'Login failed';
+    toast.error(message);
+    return { success: false, error: message };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const logout = () => {
     localStorage.removeItem('token');

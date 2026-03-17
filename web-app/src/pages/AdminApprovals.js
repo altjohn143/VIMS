@@ -72,7 +72,7 @@ const AdminApprovals = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await axios.get('http://localhost:5000/api/users/pending-approvals', {
+      const response = await axios.get('/api/users/pending-approvals', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -108,7 +108,7 @@ const AdminApprovals = () => {
       setProcessing(true);
       const token = localStorage.getItem('token');
       
-      const response = await axios.put(`http://localhost:5000/api/users/${userId}/approve`, {}, {
+      const response = await axios.put(`/api/users/${userId}/approve`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -132,7 +132,7 @@ const AdminApprovals = () => {
       setProcessing(true);
       const token = localStorage.getItem('token');
       
-      const response = await axios.delete(`http://localhost:5000/api/users/${selectedUser._id}`, {
+      const response = await axios.delete(`/api/users/${selectedUser._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },

@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_URL = 'http://localhost:5000/api'; 
+const API_URL = 'https://vims-backend.onrender.com/api';
 
 const AuthContext = createContext();
 
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = 'https://vims-backend.onrender.com';
     
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
 
-        axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = 'https://vims-backend.onrender.com';  
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         axios.defaults.headers.common['x-user-data'] = JSON.stringify(user);
         

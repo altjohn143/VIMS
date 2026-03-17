@@ -208,7 +208,7 @@ const AdminUserManagement = () => {
       setProcessing(true);
       const token = localStorage.getItem('token');
       
-      const response = await axios.delete(`http://localhost:5000/api/users/${selectedUser._id}`, {
+      const response = await axios.delete(`/api/users/${selectedUser._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },
@@ -237,7 +237,7 @@ const AdminUserManagement = () => {
       const token = localStorage.getItem('token');
       const newStatus = !user.isActive;
       
-      const response = await axios.put(`http://localhost:5000/api/users/${user._id}/status`, 
+      const response = await axios.put(`/api/users/${user._id}/status`, 
         { isActive: newStatus },
         {
           headers: {
@@ -277,7 +277,7 @@ const AdminUserManagement = () => {
         return;
       }
       
-      const response = await axios.put(`http://localhost:5000/api/users/${user._id}/approve`, 
+      const response = await axios.put(`/api/users/{user._id}/approve`, 
         {},
         {
           headers: {

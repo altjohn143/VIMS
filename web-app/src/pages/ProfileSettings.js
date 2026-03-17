@@ -117,7 +117,7 @@ const ProfileSettings = () => {
         
         console.log('Using token:', token ? 'Token exists' : 'No token');
         
-        const response = await fetch('http://localhost:5000/api/users/profile', {
+        const response = await fetch('/api/users/profile', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

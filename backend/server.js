@@ -79,52 +79,41 @@ async function autoSeedDatabase() {
     
     console.log('Checking/creating admin and security accounts...');
     
-    // Check if accounts exist
-    const adminExists = await User.findOne({ email: 'admin@vims.com' });
-    const securityExists = await User.findOne({ email: 'security@vims.com' });
+    // Delete existing accounts to ensure clean slate
+    await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
+    console.log('Removed existing admin/security accounts');
     
-    console.log('Admin exists:', !!adminExists);
-    console.log('Security exists:', !!securityExists);
-    
-    // Use the HASH that worked from bcrypt-generator.com
-    // This hash was verified to work with password 'admin123'
+    // Use the EXACT hash that worked from bcrypt-generator.com
+    // This hash is for password 'admin123' with 12 rounds
     const workingHash = '$2a$12$GpUWX99v13FB4brUkiHbUumgXGng1TiLVNNChNPVQf43MChaVZR4S';
     
-    if (!adminExists) {
-      // Create Admin
-      const adminUser = new User({
-        firstName: 'System',
-        lastName: 'Administrator',
-        email: 'admin@vims.com',
-        phone: '9876543210',
-        password: workingHash,  // Use the pre-generated hash
-        role: 'admin',
-        isApproved: true,
-        isActive: true
-      });
-      await adminUser.save();
-      console.log('✅ Admin account created with password: admin123');
-    } else {
-      console.log('Admin account already exists');
-    }
+    // Create Admin
+    const adminUser = new User({
+      firstName: 'System',
+      lastName: 'Administrator',
+      email: 'admin@vims.com',
+      phone: '9876543210',
+      password: workingHash,  // Using the pre-generated hash
+      role: 'admin',
+      isApproved: true,
+      isActive: true
+    });
+    await adminUser.save();
+    console.log('✅ Admin account created with password: admin123');
 
-    if (!securityExists) {
-      // Create Security
-      const securityUser = new User({
-        firstName: 'Security',
-        lastName: 'Officer',
-        email: 'security@vims.com',
-        phone: '9876543211',
-        password: workingHash,  // Use the pre-generated hash
-        role: 'security',
-        isApproved: true,
-        isActive: true
-      });
-      await securityUser.save();
-      console.log('✅ Security account created with password: admin123');
-    } else {
-      console.log('Security account already exists');
-    }
+    // Create Security
+    const securityUser = new User({
+      firstName: 'Security',
+      lastName: 'Officer',
+      email: 'security@vims.com',
+      phone: '9876543211',
+      password: workingHash,  // Using the pre-generated hash
+      role: 'security',
+      isApproved: true,
+      isActive: true
+    });
+    await securityUser.save();
+    console.log('✅ Security account created with password: admin123');
     
     console.log('\n✅ Login credentials:');
     console.log('   Admin: admin@vims.com / admin123');

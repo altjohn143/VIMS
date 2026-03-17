@@ -75,6 +75,7 @@ mongoose.connect(MONGODB_URI, {
 // Auto-seed function
 async function autoSeedDatabase() {
   try {
+    const bcrypt = require('bcryptjs');
     const User = require('./models/User');
     
     console.log('Checking/creating admin and security accounts...');
@@ -83,17 +84,16 @@ async function autoSeedDatabase() {
     await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
     console.log('Removed existing admin/security accounts');
     
-    // Use the EXACT hash that worked from bcrypt-generator.com
-    // This hash is for password 'admin123' with 12 rounds
-    const workingHash = '$2a$12$GpUWX99v13FB4brUkiHbUumgXGng1TiLVNNChNPVQf43MChaVZR4S';
+    // Use plain text password - let the User model's pre-save hook hash it
+    const plainPassword = 'admin123';
     
-    // Create Admin
+    // Create Admin with plain password
     const adminUser = new User({
       firstName: 'System',
       lastName: 'Administrator',
       email: 'admin@vims.com',
       phone: '9876543210',
-      password: workingHash,  // Using the pre-generated hash
+      password: plainPassword,  // Plain text password - will be hashed by User model
       role: 'admin',
       isApproved: true,
       isActive: true
@@ -101,13 +101,13 @@ async function autoSeedDatabase() {
     await adminUser.save();
     console.log('✅ Admin account created with password: admin123');
 
-    // Create Security
+    // Create Security with plain password
     const securityUser = new User({
       firstName: 'Security',
       lastName: 'Officer',
       email: 'security@vims.com',
       phone: '9876543211',
-      password: workingHash,  // Using the pre-generated hash
+      password: plainPassword,  // Plain text password - will be hashed by User model
       role: 'security',
       isApproved: true,
       isActive: true

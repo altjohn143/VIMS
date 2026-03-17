@@ -80,13 +80,25 @@ async function autoSeedDatabase() {
     
     console.log('Checking/creating admin and security accounts...');
     
+    // Check if accounts exist
+    const adminExists = await User.findOne({ email: 'admin@vims.com' }).select('+password');
+    const securityExists = await User.findOne({ email: 'security@vims.com' }).select('+password');
+    
+    console.log('Admin exists:', !!adminExists);
+    console.log('Security exists:', !!securityExists);
+    
     // Force delete existing accounts to ensure clean slate
-    await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
-    console.log('Removed existing admin/security accounts');
+    if (adminExists || securityExists) {
+      console.log('Removing existing admin/security accounts...');
+      await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
+      console.log('Removed existing admin/security accounts');
+    }
     
     // Create fresh accounts with admin123 password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('admin123', salt);
+    
+    console.log('Generated hash for admin123:', hashedPassword);
     
     // Create Admin
     const adminUser = new User({
@@ -115,6 +127,11 @@ async function autoSeedDatabase() {
     });
     await securityUser.save();
     console.log('✅ Security account created with password: admin123');
+    
+    // Verify the passwords work
+    const testAdmin = await User.findOne({ email: 'admin@vims.com' }).select('+password');
+    const testMatch = await testAdmin.comparePassword('admin123');
+    console.log('Admin password verification test:', testMatch ? '✅ PASSED' : '❌ FAILED');
     
     console.log('\n✅ Login credentials:');
     console.log('   Admin: admin@vims.com / admin123');

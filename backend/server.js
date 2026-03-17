@@ -86,6 +86,7 @@ async function autoSeedDatabase() {
       
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('SecurePass123!', salt);
+      console.log('Hashed password created:', hashedPassword);  // ADD THIS
       
       if (!adminExists) {
         await User.create({

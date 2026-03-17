@@ -234,6 +234,55 @@ app.get('/api/test-connection', (req, res) => {
   });
 });
 
+
+// TEMPORARY TEST ENDPOINT - Direct password test
+app.post('/api/test-password-direct', async (req, res) => {
+  try {
+    const bcrypt = require('bcryptjs');
+    const { email, password } = req.body;
+    const User = require('./models/User');
+    
+    console.log('Direct password test for:', email);
+    
+    // Find user with password
+    const user = await User.findOne({ email }).select('+password');
+    
+    if (!user) {
+      return res.json({ success: false, error: 'User not found' });
+    }
+    
+    console.log('User found, stored hash:', user.password);
+    console.log('Test password:', password);
+    
+    // Test 1: Direct bcrypt compare
+    const directCompare = await bcrypt.compare(password, user.password);
+    console.log('Direct bcrypt.compare result:', directCompare);
+    
+    // Test 2: Using the model method
+    const modelCompare = await user.comparePassword(password);
+    console.log('Model compare result:', modelCompare);
+    
+    // Test 3: Create a fresh hash and compare
+    const salt = await bcrypt.genSalt(10);
+    const freshHash = await bcrypt.hash(password, salt);
+    const testCompare = await bcrypt.compare(password, freshHash);
+    console.log('Fresh hash test (should be true):', testCompare);
+    
+    res.json({
+      success: true,
+      email: user.email,
+      directCompare,
+      modelCompare,
+      hashLength: user.password.length,
+      freshHashTest: testCompare
+    });
+    
+  } catch (error) {
+    console.error('Test error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 404 handler
 app.use('/api/*', (req, res) => {
   console.log(`Route not found: ${req.originalUrl}`);

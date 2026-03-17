@@ -102,7 +102,21 @@ userSchema.pre('save', async function(next) {
 });
 
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  try {
+    // Make sure we have the password
+    if (!this.password) {
+      console.error('No password found in user object');
+      return false;
+    }
+    
+    // Use bcrypt to compare
+    const isMatch = await bcrypt.compare(candidatePassword, this.password);
+    console.log('Password comparison result:', isMatch ? '✅ MATCH' : '❌ NO MATCH');
+    return isMatch;
+  } catch (error) {
+    console.error('Error comparing passwords:', error);
+    return false;
+  }
 };
 
 userSchema.virtual('fullName').get(function() {

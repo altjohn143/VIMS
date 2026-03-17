@@ -56,7 +56,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
-mongoose.connect('mongodb://127.0.0.1:27017/vims_system', {
+// mongoose.connect('mongodb://127.0.0.1:27017/vims_system', {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+// })
+// Database connection - USE ENVIRONMENT VARIABLE
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vims_system';
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })

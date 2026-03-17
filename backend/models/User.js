@@ -53,10 +53,9 @@ const userSchema = new mongoose.Schema({
     default: true
   },
   
-  // FIXED: Change default to false for residents
   isApproved: {
     type: Boolean,
-    default: false  // Changed from true to false
+    default: false
   },
 
   profileComplete: {
@@ -89,25 +88,36 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// Hash password before saving
 userSchema.pre('save', async function(next) {
+  // Only hash if password is modified
   if (!this.isModified('password')) return next();
   
   try {
+    console.log('Hashing password for user:', this.email);
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    console.log('Password hashed successfully');
     next();
   } catch (error) {
+    console.error('Error hashing password:', error);
     next(error);
   }
 });
 
+// Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   try {
+    console.log('Comparing password for user:', this.email);
+    
     // Make sure we have the password
     if (!this.password) {
       console.error('No password found in user object');
       return false;
     }
+    
+    console.log('Stored hash length:', this.password.length);
+    console.log('Candidate password length:', candidatePassword.length);
     
     // Use bcrypt to compare
     const isMatch = await bcrypt.compare(candidatePassword, this.password);

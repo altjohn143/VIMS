@@ -21,6 +21,8 @@ import PublicLotMap from './pages/PublicLotMap';
 import AdminApprovals from './pages/AdminApprovals';
 import PendingApproval from './pages/PendingApproval';
 import AdminUserManagement from './pages/AdminUserManagement';
+import Payments from './pages/Payments';
+import AdminPayments from './pages/AdminPayments';
 
 import { AuthProvider } from './context/AuthContext';
 
@@ -145,6 +147,8 @@ function App() {
             {/* ADD THIS LINE - Admin approvals route */}
             <Route path="/admin/approvals" element={<AdminRoute><AdminApprovals /></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><AdminUserManagement /></AdminRoute>} />
+            <Route path="/payments" element={<ResidentRoute><Payments /></ResidentRoute>} />
+            <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
 
             {/* Security-only routes */}
             <Route path="/security/visitor-approval" element={<SecurityRoute><SecurityVisitorApproval /></SecurityRoute>} />

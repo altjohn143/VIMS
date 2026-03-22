@@ -128,6 +128,7 @@ console.log('\n🔗 Registering routes...');
 
 // Import routes
 try {
+  const paymentRoutes = require('./routes/payments');
   const authRoutes = require('./routes/auth');
   console.log('/api/auth routes imported');
   
@@ -141,6 +142,9 @@ try {
   console.log('/api/service-requests routes imported');
   
   // Register routes
+  app.use('/api/payments', paymentRoutes);
+ console.log('/api/payments routes registered');
+
   app.use('/api/auth', authRoutes);
   console.log('/api/auth routes registered');
   

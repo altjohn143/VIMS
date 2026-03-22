@@ -191,8 +191,9 @@ const Dashboard = () => {
         services: [
           { title: 'Service Requests', icon: <BuildIcon />, link: '/admin/service-requests' },
         ],
-        finance: [
-          { title: 'Financial Overview', icon: <ReceiptIcon />, link: '/admin/finance' }
+         finance: [
+          { title: 'Payment Management', icon: <ReceiptIcon />, link: '/admin/payments' },
+          { title: 'Financial Reports', icon: <ReceiptIcon />, link: '/admin/payments' }   
         ],
         announcements: [
           { title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/admin/announcements' }

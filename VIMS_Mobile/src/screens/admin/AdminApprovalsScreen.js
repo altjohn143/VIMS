@@ -17,6 +17,7 @@ import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import LogoutButton from '../../components/LogoutButton';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AdminApprovalsScreen = ({ navigation }) => {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -27,6 +28,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [approvingUserId, setApprovingUserId] = useState(null);
 
   useEffect(() => {
     fetchPendingApprovals();
@@ -35,11 +37,16 @@ const AdminApprovalsScreen = ({ navigation }) => {
   const fetchPendingApprovals = async () => {
     setLoading(true);
     try {
+      console.log('🔍 Fetching pending approvals...');
       const response = await api.get('/users/pending-approvals');
+      console.log('📦 Response:', response.data);
+      
       if (response.data.success) {
         setPendingUsers(response.data.data);
+        console.log(`✅ Found ${response.data.data.length} pending users`);
       }
     } catch (error) {
+      console.error('❌ Fetch error:', error);
       Alert.alert('Error', 'Failed to fetch pending approvals');
     } finally {
       setLoading(false);
@@ -52,28 +59,59 @@ const AdminApprovalsScreen = ({ navigation }) => {
     fetchPendingApprovals();
   };
 
+  // Direct approve without confirmation
+  const directApprove = async (userId) => {
+    console.log('🔘 DIRECT APPROVE for user:', userId);
+    setApprovingUserId(userId);
+    setProcessing(true);
+    try {
+      console.log('📡 Sending approve request to:', `/users/${userId}/approve`);
+      const response = await api.put(`/users/${userId}/approve`);
+      console.log('📡 Response received:', response.data);
+      
+      if (response.data.success) {
+        Alert.alert('Success', 'User approved successfully');
+        setPendingUsers(prev => prev.filter(user => user._id !== userId));
+        setShowDetailsModal(false);
+        setSelectedUser(null);
+        await fetchPendingApprovals();
+      } else {
+        Alert.alert('Error', response.data.error || 'Failed to approve user');
+      }
+    } catch (error) {
+      console.error('❌ Approval error:', error);
+      Alert.alert('Error', error.response?.data?.error || error.message || 'Failed to approve user');
+    } finally {
+      setProcessing(false);
+      setApprovingUserId(null);
+    }
+  };
+
+  // Approve with confirmation
   const handleApprove = async (userId) => {
+    console.log('🔘 Approve button clicked for user:', userId);
+    
+    const userToApprove = pendingUsers.find(u => u._id === userId);
+    console.log('👤 User to approve:', {
+      id: userToApprove?._id,
+      name: userToApprove ? `${userToApprove.firstName} ${userToApprove.lastName}` : 'Unknown',
+      email: userToApprove?.email
+    });
+    
     Alert.alert(
       'Approve User',
-      'Are you sure you want to approve this resident?',
+      `Approve ${userToApprove?.firstName} ${userToApprove?.lastName}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Cancel', 
+          style: 'cancel',
+          onPress: () => console.log('❌ User cancelled approval')
+        },
         {
           text: 'Approve',
-          onPress: async () => {
-            setProcessing(true);
-            try {
-              const response = await api.put(`/users/${userId}/approve`);
-              if (response.data.success) {
-                Alert.alert('Success', 'User approved successfully');
-                setPendingUsers(prev => prev.filter(user => user._id !== userId));
-                setShowDetailsModal(false);
-              }
-            } catch (error) {
-              Alert.alert('Error', error.response?.data?.error || 'Failed to approve user');
-            } finally {
-              setProcessing(false);
-            }
+          onPress: () => {
+            console.log('✅ User confirmed approval, calling API...');
+            directApprove(userId);
           },
         },
       ]
@@ -83,25 +121,40 @@ const AdminApprovalsScreen = ({ navigation }) => {
   const handleReject = async () => {
     if (!selectedUser) return;
 
-    setProcessing(true);
-    try {
-      const response = await api.delete(`/users/${selectedUser._id}`, {
-        data: { reason: rejectReason }
-      });
-      
-      if (response.data.success) {
-        Alert.alert('Success', 'User rejected successfully');
-        setPendingUsers(prev => prev.filter(user => user._id !== selectedUser._id));
-        setShowRejectModal(false);
-        setShowDetailsModal(false);
-        setSelectedUser(null);
-        setRejectReason('');
-      }
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to reject user');
-    } finally {
-      setProcessing(false);
-    }
+    Alert.alert(
+      'Reject User',
+      `Reject ${selectedUser.firstName} ${selectedUser.lastName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async () => {
+            setProcessing(true);
+            try {
+              const response = await api.delete(`/users/${selectedUser._id}`, {
+                data: { reason: rejectReason || 'No reason provided' }
+              });
+              
+              if (response.data.success) {
+                Alert.alert('Success', 'User rejected successfully');
+                setPendingUsers(prev => prev.filter(user => user._id !== selectedUser._id));
+                setShowRejectModal(false);
+                setShowDetailsModal(false);
+                setSelectedUser(null);
+                setRejectReason('');
+                await fetchPendingApprovals();
+              }
+            } catch (error) {
+              console.error('Reject error:', error);
+              Alert.alert('Error', error.response?.data?.error || 'Failed to reject user');
+            } finally {
+              setProcessing(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatDate = (dateString) => {
@@ -114,14 +167,10 @@ const AdminApprovalsScreen = ({ navigation }) => {
   };
 
   const renderUserCard = ({ item }) => {
+    const isApproving = approvingUserId === item._id;
+    
     return (
-      <TouchableOpacity
-        style={[styles.userCard, shadows.small]}
-        onPress={() => {
-          setSelectedUser(item);
-          setShowDetailsModal(true);
-        }}
-      >
+      <View style={[styles.userCard, shadows.small]}>
         <View style={styles.userHeader}>
           <View style={[styles.userAvatar, { backgroundColor: themeColors.primary }]}>
             <Text style={styles.avatarText}>
@@ -152,10 +201,17 @@ const AdminApprovalsScreen = ({ navigation }) => {
         <View style={styles.userActions}>
           <TouchableOpacity
             style={[styles.actionButton, styles.approveButton]}
-            onPress={() => handleApprove(item._id)}
+            onPress={() => directApprove(item._id)}
+            disabled={processing}
           >
-            <Ionicons name="checkmark-circle" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Approve</Text>
+            {isApproving ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={20} color="white" />
+                <Text style={styles.actionButtonText}>Approve</Text>
+              </>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.rejectButton]}
@@ -163,14 +219,24 @@ const AdminApprovalsScreen = ({ navigation }) => {
               setSelectedUser(item);
               setShowRejectModal(true);
             }}
+            disabled={processing}
           >
             <Ionicons name="close-circle" size={20} color="white" />
             <Text style={styles.actionButtonText}>Reject</Text>
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={themeColors.primary} />
+        <Text style={styles.loadingText}>Loading pending approvals...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -224,7 +290,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
             </View>
 
             {selectedUser && (
-              <ScrollView>
+              <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.detailAvatar}>
                   <View style={[styles.largeAvatar, { backgroundColor: themeColors.primary }]}>
                     <Text style={styles.largeAvatarText}>
@@ -280,10 +346,10 @@ const AdminApprovalsScreen = ({ navigation }) => {
                 <View style={styles.modalActions}>
                   <TouchableOpacity
                     style={[styles.modalActionButton, styles.approveButton]}
-                    onPress={() => handleApprove(selectedUser._id)}
+                    onPress={() => directApprove(selectedUser._id)}
                     disabled={processing}
                   >
-                    {processing ? (
+                    {processing && approvingUserId === selectedUser._id ? (
                       <ActivityIndicator color="white" />
                     ) : (
                       <>
@@ -298,6 +364,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
                       setShowDetailsModal(false);
                       setShowRejectModal(true);
                     }}
+                    disabled={processing}
                   >
                     <Ionicons name="close-circle" size={20} color="white" />
                     <Text style={styles.modalActionText}>Reject</Text>
@@ -314,13 +381,19 @@ const AdminApprovalsScreen = ({ navigation }) => {
         visible={showRejectModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowRejectModal(false)}
+        onRequestClose={() => {
+          setShowRejectModal(false);
+          setRejectReason('');
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Reject Registration</Text>
-              <TouchableOpacity onPress={() => setShowRejectModal(false)}>
+              <TouchableOpacity onPress={() => {
+                setShowRejectModal(false);
+                setRejectReason('');
+              }}>
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
             </View>
@@ -392,6 +465,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: themeColors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: themeColors.background,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: themeColors.textSecondary,
   },
   header: {
     backgroundColor: themeColors.primary,

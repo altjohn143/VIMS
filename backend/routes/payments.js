@@ -154,11 +154,12 @@ router.post('/:id/pay', protect, authorize('resident'), async (req, res) => {
 // Upload QRPh payment receipt
 const multer = require('multer');
 const fs = require('fs');
+const path = require('path');
 
 // Create uploads directory if it doesn't exist
-const uploadDir = 'uploads/receipts';
+const uploadDir = path.join(__dirname, '../uploads/receipts');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(uploadDir, { recursive: true, mode: 0o755 });
 }
 
 const storage = multer.diskStorage({
@@ -171,7 +172,10 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
+const upload = multer({ 
+  storage: storage, 
+  limits: { fileSize: 10 * 1024 * 1024 } // Increase to 10MB
+});
 
 router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.single('receipt'), async (req, res) => {
   try {

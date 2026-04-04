@@ -1,201 +1,11 @@
-// backend/routes/payments.js
 const express = require('express');
 const router = express.Router();
 const Payment = require('../models/Payment');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
-const paymongoService = require('../services/paymongoService');
 
-// ========== PAYMONGO PAYMENT INTEGRATION ==========
-
-// Create PayMongo checkout session
-router.post('/create-paymongo-session', protect, authorize('resident'), async (req, res) => {
-  try {
-    const { paymentId, paymentMethod } = req.body;
-    
-    const payment = await Payment.findById(paymentId);
-    if (!payment) {
-      return res.status(404).json({ success: false, error: 'Payment not found' });
-    }
-    
-    if (payment.status === 'paid') {
-      return res.status(400).json({ success: false, error: 'Payment already completed' });
-    }
-    
-    const resident = await User.findById(req.user.id);
-    const baseUrl = process.env.FRONTEND_URL || 'https://vims-one.vercel.app';
-    
-    const successUrl = `${baseUrl}/payment-success?payment_id=${paymentId}`;
-    const cancelUrl = `${baseUrl}/payment-cancelled?payment_id=${paymentId}`;
-    
-    const session = await paymongoService.createPaymentSession(
-      payment.amount,
-      payment.description || `VIMS Payment - ${payment.invoiceNumber}`,
-      successUrl,
-      cancelUrl,
-      {
-        payment_id: paymentId,
-        resident_id: req.user.id,
-        invoice_number: payment.invoiceNumber,
-        resident_email: resident.email
-      }
-    );
-    
-    if (!session.success) {
-      return res.status(400).json({ success: false, error: session.error });
-    }
-    
-    payment.paymongoSessionId = session.sessionId;
-    payment.paymentMethod = paymentMethod;
-    await payment.save();
-    
-    res.json({
-      success: true,
-      checkoutUrl: session.checkoutUrl,
-      sessionId: session.sessionId
-    });
-    
-  } catch (error) {
-    console.error('Create PayMongo session error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Verify payment status (called from success page)
-router.get('/verify-paymongo-payment/:paymentId', protect, async (req, res) => {
-  try {
-    const payment = await Payment.findById(req.params.paymentId);
-    
-    if (!payment) {
-      return res.status(404).json({ success: false, error: 'Payment not found' });
-    }
-    
-    // If payment is already marked as paid in our database
-    if (payment.status === 'paid') {
-      return res.json({
-        success: true,
-        status: 'paid',
-        payment: payment
-      });
-    }
-    
-    // If we have a session ID, check with PayMongo API
-    if (payment.paymongoSessionId) {
-      const session = await paymongoService.getCheckoutSession(payment.paymongoSessionId);
-      
-      if (session.success && session.status === 'paid') {
-        payment.status = 'paid';
-        payment.paymentDate = new Date();
-        payment.referenceNumber = payment.referenceNumber || `PAYMONGO-${Date.now()}`;
-        payment.receiptNumber = payment.receiptNumber || `RC-${Date.now()}`;
-        await payment.save();
-        
-        console.log(`✅ Payment verified via API for: ${payment.invoiceNumber}`);
-        
-        return res.json({
-          success: true,
-          status: 'paid',
-          payment: payment
-        });
-      }
-    }
-    
-    res.json({
-      success: true,
-      status: payment.status,
-      payment: payment
-    });
-    
-  } catch (error) {
-    console.error('Verify payment error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Webhook endpoint for PayMongo
-router.post('/paymongo-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    console.log('📨 Webhook received at:', new Date().toISOString());
-    
-    const signature = req.headers['paymongo-signature'];
-    const isValid = paymongoService.verifyWebhookSignature(req.body, signature);
-    
-    if (!isValid) {
-      console.log('⚠️ Invalid webhook signature - rejecting');
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-    
-    console.log('✅ Webhook signature verified');
-    
-    const event = req.body;
-    const eventType = event.data?.attributes?.type;
-    
-    console.log(`📌 Event type: ${eventType}`);
-    
-    if (eventType === 'checkout_session.payment.paid') {
-      const checkoutSessionId = event.data.id;
-      const metadata = event.data.attributes?.metadata || {};
-      const paymentId = metadata.payment_id;
-      
-      console.log(`✅ Payment succeeded for session: ${checkoutSessionId}`);
-      console.log(`📝 Payment ID from metadata: ${paymentId}`);
-      
-      if (paymentId) {
-        const payment = await Payment.findById(paymentId);
-        
-        if (payment) {
-          if (payment.status !== 'paid') {
-            payment.status = 'paid';
-            payment.paymentDate = new Date();
-            payment.referenceNumber = `PAYMONGO-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-            payment.receiptNumber = `RC-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-            payment.paymongoSessionId = checkoutSessionId;
-            await payment.save();
-            
-            console.log(`✅✅✅ PAYMENT CONFIRMED!`);
-            console.log(`   Invoice: ${payment.invoiceNumber}`);
-            console.log(`   Amount: PHP ${payment.amount}`);
-            console.log(`   Resident ID: ${payment.residentId}`);
-          } else {
-            console.log(`⚠️ Payment ${paymentId} already marked as paid`);
-          }
-        } else {
-          console.log(`❌ Payment not found for ID: ${paymentId}`);
-        }
-      } else {
-        console.log(`⚠️ No payment_id in metadata`);
-      }
-    }
-    
-    if (eventType === 'payment.failed') {
-      console.log(`❌ Payment failed event received`);
-      const metadata = event.data.attributes?.metadata || {};
-      const paymentId = metadata.payment_id;
-      
-      if (paymentId) {
-        const payment = await Payment.findById(paymentId);
-        if (payment && payment.status !== 'paid') {
-          payment.status = 'failed';
-          await payment.save();
-          console.log(`❌ Payment marked as failed for invoice: ${payment.invoiceNumber}`);
-        }
-      }
-    }
-    
-    if (eventType === 'source.chargeable') {
-      console.log(`💰 Source chargeable event received`);
-    }
-    
-    res.json({ received: true });
-    
-  } catch (error) {
-    console.error('❌ Webhook error:', error);
-    res.status(200).json({ received: true, error: error.message });
-  }
-});
-
-// ========== EXISTING PAYMENT ROUTES ==========
+// ========== PAYMENT ROUTES ==========
 
 // Test route to verify payments API is working
 router.get('/test', (req, res) => {
@@ -234,6 +44,8 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
     
+    console.log(`Fetching current dues for user ${req.user.id}, month: ${currentMonth}, year: ${currentYear}`);
+    
     let existingDues = await Payment.findOne({
       residentId: req.user.id,
       paymentType: 'monthly_dues',
@@ -245,6 +57,7 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
       return res.json({ success: true, data: existingDues });
     }
     
+    // Create new dues if none exists
     const dues = await Payment.create({
       residentId: req.user.id,
       amount: 1500,
@@ -253,8 +66,11 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
       dueDate: new Date(currentYear, currentMonth - 1, 10),
       billingPeriod: { month: currentMonth, year: currentYear },
       description: `Monthly Association Dues - ${new Date(currentYear, currentMonth - 1).toLocaleString('default', { month: 'long' })} ${currentYear}`,
-      notes: ''
+      notes: '',
+      invoiceNumber: `INV-${currentYear}${String(currentMonth).padStart(2, '0')}-${Math.floor(Math.random() * 10000)}`
     });
+    
+    console.log(`Created new dues for user ${req.user.id}: ${dues.invoiceNumber}`);
     
     res.json({ success: true, data: dues });
   } catch (error) {
@@ -305,23 +121,94 @@ router.post('/:id/pay', protect, authorize('resident'), async (req, res) => {
       await payment.save();
       return res.json({ 
         success: true, 
-        message: 'Cash payment submitted. Please pay at the admin office.', 
+        message: 'Cash payment selected. Please pay at the admin office.', 
         data: payment 
       });
     }
     
-    // For online payments (GCash, PayMaya) - requires redirect to PayMongo
+    // For QRPh payments - mark as pending with QRPh method
+    if (paymentMethod === 'qrph') {
+      payment.paymentMethod = 'qrph';
+      payment.referenceNumber = referenceNumber;
+      payment.status = 'pending';
+      await payment.save();
+      
+      return res.json({
+        success: true,
+        message: 'QRPh payment initiated. Please complete the payment by scanning the QR code.',
+        data: payment
+      });
+    }
+    
     res.json({
       success: true,
-      requiresRedirect: true,
-      paymentMethod: paymentMethod,
-      paymentId: payment._id,
-      message: `Please complete payment via ${paymentMethod.toUpperCase()}`
+      data: payment
     });
     
   } catch (error) {
     console.error('Process payment error:', error);
     res.status(500).json({ success: false, error: 'Failed to process payment' });
+  }
+});
+
+// Upload QRPh payment receipt
+const multer = require('multer');
+const fs = require('fs');
+
+// Create uploads directory if it doesn't exist
+const uploadDir = 'uploads/receipts';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'receipt-' + uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
+
+router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.single('receipt'), async (req, res) => {
+  try {
+    const { referenceNumber, paymentId, amount } = req.body;
+    const receiptFile = req.file;
+    
+    if (!referenceNumber || !paymentId) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+    
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment not found' });
+    }
+    
+    if (payment.status === 'paid') {
+      return res.status(400).json({ success: false, error: 'Payment already completed' });
+    }
+    
+    // Update payment with QRPh payment details
+    payment.paymentMethod = 'qrph';
+    payment.referenceNumber = referenceNumber;
+    payment.status = 'pending';
+    payment.notes = `QRPh payment submitted. Receipt: ${receiptFile ? receiptFile.filename : 'No receipt uploaded'}`;
+    await payment.save();
+    
+    console.log(`QRPh payment submitted for invoice ${payment.invoiceNumber}. Reference: ${referenceNumber}`);
+    
+    res.json({
+      success: true,
+      message: 'Payment receipt submitted. Admin will verify your payment.',
+      data: payment
+    });
+    
+  } catch (error) {
+    console.error('Upload receipt error:', error);
+    res.status(500).json({ success: false, error: 'Failed to submit payment' });
   }
 });
 
@@ -381,7 +268,8 @@ router.post('/generate-monthly', protect, authorize('admin'), async (req, res) =
           status: 'pending',
           dueDate: new Date(targetYear, targetMonth - 1, 10),
           billingPeriod: { month: targetMonth, year: targetYear },
-          description: `Monthly Association Dues - ${new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })} ${targetYear}`
+          description: `Monthly Association Dues - ${new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })} ${targetYear}`,
+          invoiceNumber: `INV-${targetYear}${String(targetMonth).padStart(2, '0')}-${String(created + 1).padStart(4, '0')}`
         });
         created++;
       }

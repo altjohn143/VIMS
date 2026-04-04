@@ -1,4 +1,3 @@
-// src/pages/PaymentRedirect.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -29,7 +28,6 @@ const PaymentRedirect = () => {
   const paymentId = new URLSearchParams(location.search).get('payment_id');
   const paymentMethod = new URLSearchParams(location.search).get('method');
   
-  // Define initPayMongoPayment as useCallback to use in useEffect
   const initPayMongoPayment = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -41,7 +39,6 @@ const PaymentRedirect = () => {
       );
       
       if (response.data.success && response.data.checkoutUrl) {
-        // Redirect to PayMongo checkout page
         window.location.href = response.data.checkoutUrl;
       } else {
         setError(response.data.error || 'Failed to create payment session');
@@ -52,7 +49,7 @@ const PaymentRedirect = () => {
       setError(error.response?.data?.error || 'Failed to initialize payment');
       setLoading(false);
     }
-  }, [paymentId, paymentMethod]); // Added dependencies
+  }, [paymentId, paymentMethod]);
   
   useEffect(() => {
     if (paymentId && paymentMethod) {
@@ -61,7 +58,7 @@ const PaymentRedirect = () => {
       setError('Missing payment information');
       setLoading(false);
     }
-  }, [paymentId, paymentMethod, initPayMongoPayment]); // Added initPayMongoPayment to dependencies
+  }, [paymentId, paymentMethod, initPayMongoPayment]);
   
   useEffect(() => {
     let timer;

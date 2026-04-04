@@ -52,6 +52,8 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
+
 const Payments = () => {
   const themeColors = {
     primary: '#2224be',
@@ -75,7 +77,6 @@ const Payments = () => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [paymentMethodsOpen, setPaymentMethodsOpen] = useState(false);
-  // Remove unused anchorEl
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
@@ -94,8 +95,11 @@ const Payments = () => {
     try {
       const token = localStorage.getItem('token');
       
+      console.log('Fetching data from:', API_URL);
+      console.log('Token exists:', !!token);
+      
       // Fetch current dues
-      const duesResponse = await axios.get('/api/payments/current-dues', {
+      const duesResponse = await axios.get(`${API_URL}/payments/current-dues`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (duesResponse.data.success) {
@@ -103,7 +107,7 @@ const Payments = () => {
       }
       
       // Fetch all payments
-      const paymentsResponse = await axios.get('/api/payments/my', {
+      const paymentsResponse = await axios.get(`${API_URL}/payments/my`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (paymentsResponse.data.success) {
@@ -123,37 +127,34 @@ const Payments = () => {
     setPaymentMethodsOpen(true);
   };
 
-const handlePaymentMethodSelect = async (method) => {
-  setSelectedMethod(method);
-  setPaymentMethodsOpen(false);
-  
-  // For GCash and PayMaya, redirect to PayMongo
-  if (method === 'gcash' || method === 'paymaya') {
+  const handleProceedToPayment = async (method) => {
+    setSelectedMethod(method);
+    setPaymentMethodsOpen(false);
     setProcessing(true);
+    
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `/api/payments/${selectedPayment._id}/pay`,
+        `${API_URL}/payments/${selectedPayment._id}/pay`,
         { paymentMethod: method },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      if (response.data.success && response.data.requiresRedirect) {
-        // Redirect to payment redirect page
-        navigate(`/payment-redirect?payment_id=${selectedPayment._id}&method=${method}`);
-      } else if (response.data.success && !response.data.requiresRedirect) {
-        setPaymentDialogOpen(true);
+      if (response.data.success) {
+        if (response.data.requiresRedirect) {
+          // Redirect to payment redirect page for online payments
+          navigate(`/payment-redirect?payment_id=${selectedPayment._id}&method=${method}`);
+        } else {
+          // For cash payments, show confirmation dialog
+          setPaymentDialogOpen(true);
+        }
       }
     } catch (error) {
+      console.error('Payment error:', error);
       toast.error(error.response?.data?.error || 'Failed to initialize payment');
-    } finally {
       setProcessing(false);
     }
-  } else {
-    // For cash payments
-    setPaymentDialogOpen(true);
-  }
-};
+  };
 
   const confirmPayment = async () => {
     if (!selectedPayment) return;
@@ -162,7 +163,7 @@ const handlePaymentMethodSelect = async (method) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `/api/payments/${selectedPayment._id}/pay`,
+        `${API_URL}/payments/${selectedPayment._id}/pay`,
         { paymentMethod: selectedMethod },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -171,7 +172,7 @@ const handlePaymentMethodSelect = async (method) => {
         toast.success(response.data.message);
         
         // Show receipt if available
-        if (response.data.data.receipt) {
+        if (response.data.data?.receipt) {
           setReceiptData(response.data.data.receipt);
           setReceiptDialogOpen(true);
         }
@@ -488,7 +489,7 @@ const handlePaymentMethodSelect = async (method) => {
                   fullWidth
                   variant="outlined"
                   startIcon={<WalletIcon />}
-                  onClick={() => handlePaymentMethodSelect('gcash')}
+                  onClick={() => handleProceedToPayment('gcash')}
                   sx={{ py: 2, justifyContent: 'flex-start', borderColor: themeColors.primary }}
                 >
                   <Box sx={{ ml: 2 }}>
@@ -502,7 +503,7 @@ const handlePaymentMethodSelect = async (method) => {
                   fullWidth
                   variant="outlined"
                   startIcon={<CreditCardIcon />}
-                  onClick={() => handlePaymentMethodSelect('paymaya')}
+                  onClick={() => handleProceedToPayment('paymaya')}
                   sx={{ py: 2, justifyContent: 'flex-start', borderColor: themeColors.primary }}
                 >
                   <Box sx={{ ml: 2 }}>
@@ -516,7 +517,7 @@ const handlePaymentMethodSelect = async (method) => {
                   fullWidth
                   variant="outlined"
                   startIcon={<CashIcon />}
-                  onClick={() => handlePaymentMethodSelect('cash')}
+                  onClick={() => handleProceedToPayment('cash')}
                   sx={{ py: 2, justifyContent: 'flex-start', borderColor: themeColors.primary }}
                 >
                   <Box sx={{ ml: 2 }}>

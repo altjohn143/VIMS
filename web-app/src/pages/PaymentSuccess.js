@@ -1,4 +1,3 @@
-// src/pages/PaymentSuccess.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -30,7 +29,6 @@ const PaymentSuccess = () => {
   
   const paymentId = new URLSearchParams(location.search).get('payment_id');
   
-  // Define verifyPayment as useCallback to use in useEffect
   const verifyPayment = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -48,7 +46,7 @@ const PaymentSuccess = () => {
     } finally {
       setLoading(false);
     }
-  }, [paymentId]); // Added paymentId dependency
+  }, [paymentId]);
   
   useEffect(() => {
     if (paymentId) {
@@ -56,7 +54,7 @@ const PaymentSuccess = () => {
     } else {
       setLoading(false);
     }
-  }, [paymentId, verifyPayment]); // Added verifyPayment to dependencies
+  }, [paymentId, verifyPayment]);
   
   const handleGoToPayments = () => {
     navigate('/payments');

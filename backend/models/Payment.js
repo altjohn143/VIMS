@@ -1,3 +1,4 @@
+// backend/models/Payment.js
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
@@ -17,7 +18,10 @@ const paymentSchema = new mongoose.Schema({
   notes: { type: String },
   processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   processedAt: { type: Date },
-  overdueReminderSent: { type: Boolean, default: false }
+  overdueReminderSent: { type: Boolean, default: false },
+  // PayMongo integration fields
+  paymongoSessionId: { type: String, sparse: true },
+  paymongoSourceId: { type: String, sparse: true }
 }, { timestamps: true });
 
 paymentSchema.pre('save', async function(next) {

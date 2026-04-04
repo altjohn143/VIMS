@@ -1,3 +1,4 @@
+// src/App.js - Complete updated file with all routes
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
@@ -16,17 +17,21 @@ import SecurityVisitorLogs from './pages/SecurityVisitorLogs';
 import AdminServiceRequests from './pages/AdminServiceRequests';
 import ProfileSettings from './pages/ProfileSettings';
 import PublicLotMap from './pages/PublicLotMap';
-
-// IMPORT THE NEW PAGES
 import AdminApprovals from './pages/AdminApprovals';
 import PendingApproval from './pages/PendingApproval';
 import AdminUserManagement from './pages/AdminUserManagement';
 import Payments from './pages/Payments';
 import AdminPayments from './pages/AdminPayments';
 
+// NEW PAYMENT PAGES
+import PaymentRedirect from './pages/PaymentRedirect';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentCancelled from './pages/PaymentCancelled';
+
 import { AuthProvider } from './context/AuthContext';
 
-axios.defaults.baseURL = 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
+axios.defaults.baseURL = API_URL;
 
 const theme = createTheme({
   palette: {
@@ -50,7 +55,6 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
           const parsedUser = JSON.parse(userStr);
           setUser(parsedUser);
           
-          // IMPORTANT: Check if user is approved (for residents)
           if (parsedUser.role === 'resident' && !parsedUser.isApproved) {
             console.log('User not approved, redirecting to pending');
             setIsAuthenticated(false);
@@ -128,26 +132,18 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-
-            {/* Public lot map — no login required */}
             <Route path="/lots" element={<PublicLotMap />} />
-
-            {/* Pending approval page - for residents not yet approved */}
             <Route path="/pending-approval" element={<PendingApproval />} />
 
             {/* Main dashboard */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-
-            {/* Profile */}
             <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
 
             {/* Admin-only routes */}
             <Route path="/admin/service-requests" element={<AdminRoute><AdminServiceRequests /></AdminRoute>} />
             <Route path="/admin/visitor-management" element={<AdminRoute><AdminVisitorManagement /></AdminRoute>} />
-            {/* ADD THIS LINE - Admin approvals route */}
             <Route path="/admin/approvals" element={<AdminRoute><AdminApprovals /></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><AdminUserManagement /></AdminRoute>} />
-            <Route path="/payments" element={<ResidentRoute><Payments /></ResidentRoute>} />
             <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
 
             {/* Security-only routes */}
@@ -157,6 +153,12 @@ function App() {
             {/* Resident-only routes */}
             <Route path="/visitors" element={<ResidentRoute><VisitorManagement /></ResidentRoute>} />
             <Route path="/service-requests" element={<ResidentRoute><ServiceRequests /></ResidentRoute>} />
+            <Route path="/payments" element={<ResidentRoute><Payments /></ResidentRoute>} />
+
+            {/* NEW PAYMENT ROUTES */}
+            <Route path="/payment-redirect" element={<ProtectedRoute><PaymentRedirect /></ProtectedRoute>} />
+            <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+            <Route path="/payment-cancelled" element={<ProtectedRoute><PaymentCancelled /></ProtectedRoute>} />
 
             {/* Default redirect */}
             <Route path="/" element={<Navigate to="/login" />} />

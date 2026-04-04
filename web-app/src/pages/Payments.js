@@ -123,11 +123,37 @@ const Payments = () => {
     setPaymentMethodsOpen(true);
   };
 
-  const handlePaymentMethodSelect = async (method) => {
-    setSelectedMethod(method);
-    setPaymentMethodsOpen(false);
+const handlePaymentMethodSelect = async (method) => {
+  setSelectedMethod(method);
+  setPaymentMethodsOpen(false);
+  
+  // For GCash and PayMaya, redirect to PayMongo
+  if (method === 'gcash' || method === 'paymaya') {
+    setProcessing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `/api/payments/${selectedPayment._id}/pay`,
+        { paymentMethod: method },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success && response.data.requiresRedirect) {
+        // Redirect to payment redirect page
+        navigate(`/payment-redirect?payment_id=${selectedPayment._id}&method=${method}`);
+      } else if (response.data.success && !response.data.requiresRedirect) {
+        setPaymentDialogOpen(true);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to initialize payment');
+    } finally {
+      setProcessing(false);
+    }
+  } else {
+    // For cash payments
     setPaymentDialogOpen(true);
-  };
+  }
+};
 
   const confirmPayment = async () => {
     if (!selectedPayment) return;

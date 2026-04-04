@@ -1,9 +1,201 @@
+// backend/routes/payments.js
 const express = require('express');
 const router = express.Router();
 const Payment = require('../models/Payment');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
+const paymongoService = require('../services/paymongoService');
+
+// ========== PAYMONGO PAYMENT INTEGRATION ==========
+
+// Create PayMongo checkout session
+router.post('/create-paymongo-session', protect, authorize('resident'), async (req, res) => {
+  try {
+    const { paymentId, paymentMethod } = req.body;
+    
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment not found' });
+    }
+    
+    if (payment.status === 'paid') {
+      return res.status(400).json({ success: false, error: 'Payment already completed' });
+    }
+    
+    const resident = await User.findById(req.user.id);
+    const baseUrl = process.env.FRONTEND_URL || 'https://vims-one.vercel.app';
+    
+    const successUrl = `${baseUrl}/payment-success?payment_id=${paymentId}`;
+    const cancelUrl = `${baseUrl}/payment-cancelled?payment_id=${paymentId}`;
+    
+    const session = await paymongoService.createPaymentSession(
+      payment.amount,
+      payment.description || `VIMS Payment - ${payment.invoiceNumber}`,
+      successUrl,
+      cancelUrl,
+      {
+        payment_id: paymentId,
+        resident_id: req.user.id,
+        invoice_number: payment.invoiceNumber,
+        resident_email: resident.email
+      }
+    );
+    
+    if (!session.success) {
+      return res.status(400).json({ success: false, error: session.error });
+    }
+    
+    payment.paymongoSessionId = session.sessionId;
+    payment.paymentMethod = paymentMethod;
+    await payment.save();
+    
+    res.json({
+      success: true,
+      checkoutUrl: session.checkoutUrl,
+      sessionId: session.sessionId
+    });
+    
+  } catch (error) {
+    console.error('Create PayMongo session error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Verify payment status (called from success page)
+router.get('/verify-paymongo-payment/:paymentId', protect, async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.paymentId);
+    
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment not found' });
+    }
+    
+    // If payment is already marked as paid in our database
+    if (payment.status === 'paid') {
+      return res.json({
+        success: true,
+        status: 'paid',
+        payment: payment
+      });
+    }
+    
+    // If we have a session ID, check with PayMongo API
+    if (payment.paymongoSessionId) {
+      const session = await paymongoService.getCheckoutSession(payment.paymongoSessionId);
+      
+      if (session.success && session.status === 'paid') {
+        payment.status = 'paid';
+        payment.paymentDate = new Date();
+        payment.referenceNumber = payment.referenceNumber || `PAYMONGO-${Date.now()}`;
+        payment.receiptNumber = payment.receiptNumber || `RC-${Date.now()}`;
+        await payment.save();
+        
+        console.log(`✅ Payment verified via API for: ${payment.invoiceNumber}`);
+        
+        return res.json({
+          success: true,
+          status: 'paid',
+          payment: payment
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      status: payment.status,
+      payment: payment
+    });
+    
+  } catch (error) {
+    console.error('Verify payment error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Webhook endpoint for PayMongo
+router.post('/paymongo-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    console.log('📨 Webhook received at:', new Date().toISOString());
+    
+    const signature = req.headers['paymongo-signature'];
+    const isValid = paymongoService.verifyWebhookSignature(req.body, signature);
+    
+    if (!isValid) {
+      console.log('⚠️ Invalid webhook signature - rejecting');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+    
+    console.log('✅ Webhook signature verified');
+    
+    const event = req.body;
+    const eventType = event.data?.attributes?.type;
+    
+    console.log(`📌 Event type: ${eventType}`);
+    
+    if (eventType === 'checkout_session.payment.paid') {
+      const checkoutSessionId = event.data.id;
+      const metadata = event.data.attributes?.metadata || {};
+      const paymentId = metadata.payment_id;
+      
+      console.log(`✅ Payment succeeded for session: ${checkoutSessionId}`);
+      console.log(`📝 Payment ID from metadata: ${paymentId}`);
+      
+      if (paymentId) {
+        const payment = await Payment.findById(paymentId);
+        
+        if (payment) {
+          if (payment.status !== 'paid') {
+            payment.status = 'paid';
+            payment.paymentDate = new Date();
+            payment.referenceNumber = `PAYMONGO-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+            payment.receiptNumber = `RC-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+            payment.paymongoSessionId = checkoutSessionId;
+            await payment.save();
+            
+            console.log(`✅✅✅ PAYMENT CONFIRMED!`);
+            console.log(`   Invoice: ${payment.invoiceNumber}`);
+            console.log(`   Amount: PHP ${payment.amount}`);
+            console.log(`   Resident ID: ${payment.residentId}`);
+          } else {
+            console.log(`⚠️ Payment ${paymentId} already marked as paid`);
+          }
+        } else {
+          console.log(`❌ Payment not found for ID: ${paymentId}`);
+        }
+      } else {
+        console.log(`⚠️ No payment_id in metadata`);
+      }
+    }
+    
+    if (eventType === 'payment.failed') {
+      console.log(`❌ Payment failed event received`);
+      const metadata = event.data.attributes?.metadata || {};
+      const paymentId = metadata.payment_id;
+      
+      if (paymentId) {
+        const payment = await Payment.findById(paymentId);
+        if (payment && payment.status !== 'paid') {
+          payment.status = 'failed';
+          await payment.save();
+          console.log(`❌ Payment marked as failed for invoice: ${payment.invoiceNumber}`);
+        }
+      }
+    }
+    
+    if (eventType === 'source.chargeable') {
+      console.log(`💰 Source chargeable event received`);
+    }
+    
+    res.json({ received: true });
+    
+  } catch (error) {
+    console.error('❌ Webhook error:', error);
+    res.status(200).json({ received: true, error: error.message });
+  }
+});
+
+// ========== EXISTING PAYMENT ROUTES ==========
 
 // Test route to verify payments API is working
 router.get('/test', (req, res) => {
@@ -89,49 +281,44 @@ router.get('/:id', protect, async (req, res) => {
 router.post('/:id/pay', protect, authorize('resident'), async (req, res) => {
   try {
     const { paymentMethod } = req.body;
-    if (!paymentMethod) return res.status(400).json({ success: false, error: 'Payment method required' });
+    
+    if (!paymentMethod) {
+      return res.status(400).json({ success: false, error: 'Payment method required' });
+    }
     
     const payment = await Payment.findById(req.params.id);
-    if (!payment) return res.status(404).json({ success: false, error: 'Payment not found' });
-    if (payment.status === 'paid') return res.status(400).json({ success: false, error: 'Already paid' });
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment not found' });
+    }
+    
+    if (payment.status === 'paid') {
+      return res.status(400).json({ success: false, error: 'Already paid' });
+    }
     
     const referenceNumber = `PAY-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     
+    // Handle cash payment
     if (paymentMethod === 'cash') {
       payment.status = 'pending';
       payment.paymentMethod = 'cash';
       payment.referenceNumber = referenceNumber;
       await payment.save();
-      return res.json({ success: true, message: 'Cash payment submitted', data: payment });
+      return res.json({ 
+        success: true, 
+        message: 'Cash payment submitted. Please pay at the admin office.', 
+        data: payment 
+      });
     }
     
-    // Simulate successful payment
-    payment.status = 'paid';
-    payment.paymentMethod = paymentMethod;
-    payment.referenceNumber = referenceNumber;
-    payment.transactionId = `TXN-${uuidv4()}`;
-    payment.paymentDate = new Date();
-    payment.receiptNumber = `RC-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-    await payment.save();
-    
-    const resident = await User.findById(req.user.id);
+    // For online payments (GCash, PayMaya) - requires redirect to PayMongo
     res.json({
       success: true,
-      message: `Payment successful via ${paymentMethod.toUpperCase()}`,
-      data: {
-        payment,
-        receipt: {
-          receiptNumber: payment.receiptNumber,
-          amount: payment.amount,
-          paymentDate: payment.paymentDate,
-          paymentMethod: payment.paymentMethod,
-          residentName: `${resident.firstName} ${resident.lastName}`,
-          houseNumber: resident.houseNumber,
-          invoiceNumber: payment.invoiceNumber,
-          description: payment.description
-        }
-      }
+      requiresRedirect: true,
+      paymentMethod: paymentMethod,
+      paymentId: payment._id,
+      message: `Please complete payment via ${paymentMethod.toUpperCase()}`
     });
+    
   } catch (error) {
     console.error('Process payment error:', error);
     res.status(500).json({ success: false, error: 'Failed to process payment' });

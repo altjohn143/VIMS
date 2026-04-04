@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -30,7 +30,9 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  Avatar
+  Avatar,
+  TextField,
+  InputAdornment
 } from '@mui/material';
 import {
   Payment as PaymentIcon,
@@ -41,22 +43,24 @@ import {
   Print as PrintIcon,
   ArrowBack as ArrowBackIcon,
   Logout as LogoutIcon,
-  AccountBalanceWallet as WalletIcon,
+  QrCode as QrCodeIcon,
   Settings as SettingsIcon,
   History as HistoryIcon,
-  CreditCard as CreditCardIcon,
-  AttachMoney as CashIcon
+  AttachMoney as CashIcon,
+  CloudUpload as UploadIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
+// QRPh QR code image - place your downloaded QR code in src/assets/qrph.png
+import qrphImage from '../assets/qrph.jpg';
 
 const Payments = () => {
   const themeColors = {
     primary: '#2224be',
+    primaryDark: '#1a1c9e',
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
@@ -69,141 +73,162 @@ const Payments = () => {
   };
 
   const [payments, setPayments] = useState([]);
-  const [summary, setSummary] = useState({ totalPaid: 0, totalPending: 0, pendingCount: 0, overdueCount: 0, overdueAmount: 0 });
+  const [summary, setSummary] = useState({ 
+    totalPaid: 0, 
+    totalPending: 0, 
+    pendingCount: 0, 
+    overdueCount: 0, 
+    overdueAmount: 0 
+  });
   const [currentDues, setCurrentDues] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState(null);
-  const [paymentMethodsOpen, setPaymentMethodsOpen] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [cashDialogOpen, setCashDialogOpen] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [uploadedReceipt, setUploadedReceipt] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
+  const [paymentMethodOpen, setPaymentMethodOpen] = useState(false);
 
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
   const user = getCurrentUser();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  // Define fetchData with useCallback to prevent infinite loops
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
       
-      console.log('Fetching data from:', API_URL);
-      console.log('Token exists:', !!token);
+      if (!token) {
+        toast.error('Please login again');
+        navigate('/login');
+        return;
+      }
       
-      // Fetch current dues
-      const duesResponse = await axios.get(`${API_URL}/payments/current-dues`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      console.log('Fetching current dues...');
+      const duesResponse = await axios.get('/payments/current-dues');
       if (duesResponse.data.success) {
         setCurrentDues(duesResponse.data.data);
       }
       
-      // Fetch all payments
-      const paymentsResponse = await axios.get(`${API_URL}/payments/my`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      console.log('Fetching payment history...');
+      const paymentsResponse = await axios.get('/payments/my');
       if (paymentsResponse.data.success) {
         setPayments(paymentsResponse.data.data);
         setSummary(paymentsResponse.data.summary);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to load payment data');
+      toast.error(error.response?.data?.error || 'Failed to load payment data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const handlePayClick = (payment) => {
+  // Now useEffect with proper dependency
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handlePayClick = useCallback((payment) => {
     setSelectedPayment(payment);
-    setPaymentMethodsOpen(true);
-  };
+    setPaymentMethodOpen(true);
+  }, []);
 
-  const handleProceedToPayment = async (method) => {
-    setSelectedMethod(method);
-    setPaymentMethodsOpen(false);
-    setProcessing(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_URL}/payments/${selectedPayment._id}/pay`,
-        { paymentMethod: method },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      if (response.data.success) {
-        if (response.data.requiresRedirect) {
-          // Redirect to payment redirect page for online payments
-          navigate(`/payment-redirect?payment_id=${selectedPayment._id}&method=${method}`);
-        } else {
-          // For cash payments, show confirmation dialog
-          setPaymentDialogOpen(true);
-        }
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast.error(error.response?.data?.error || 'Failed to initialize payment');
-      setProcessing(false);
-    }
-  };
+  const handleQRPhPayment = useCallback(() => {
+    setPaymentMethodOpen(false);
+    setQrDialogOpen(true);
+  }, []);
 
-  const confirmPayment = async () => {
-    if (!selectedPayment) return;
-    
+  const handleCashPayment = useCallback(async () => {
+    setPaymentMethodOpen(false);
     setProcessing(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_URL}/payments/${selectedPayment._id}/pay`,
-        { paymentMethod: selectedMethod },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await axios.post(`/payments/${selectedPayment._id}/pay`, {
+        paymentMethod: 'cash'
+      });
       
       if (response.data.success) {
-        toast.success(response.data.message);
-        
-        // Show receipt if available
-        if (response.data.data?.receipt) {
-          setReceiptData(response.data.data.receipt);
-          setReceiptDialogOpen(true);
-        }
-        
-        // Refresh data
+        toast.success('Cash payment selected. Please pay at the admin office.');
+        setCashDialogOpen(true);
         fetchData();
-        setPaymentDialogOpen(false);
-        setSelectedPayment(null);
-        setSelectedMethod(null);
       }
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Payment failed');
+      console.error('Cash payment error:', error);
+      toast.error(error.response?.data?.error || 'Failed to process cash payment');
     } finally {
       setProcessing(false);
     }
-  };
+  }, [selectedPayment, fetchData]);
 
-  const handlePrintReceipt = () => {
+  const handleUploadReceipt = useCallback(async () => {
+    if (!referenceNumber.trim()) {
+      toast.error('Please enter your reference number');
+      return;
+    }
+    
+    if (!uploadedReceipt) {
+      toast.error('Please upload your payment receipt/screenshot');
+      return;
+    }
+    
+    setProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append('referenceNumber', referenceNumber);
+      formData.append('receipt', uploadedReceipt);
+      formData.append('paymentId', selectedPayment._id);
+      formData.append('amount', selectedPayment.amount);
+      
+      const response = await axios.post('/payments/upload-qrph-receipt', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      if (response.data.success) {
+        toast.success('Payment receipt submitted! Admin will verify your payment within 24 hours.');
+        setQrDialogOpen(false);
+        setReferenceNumber('');
+        setUploadedReceipt(null);
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(error.response?.data?.error || 'Failed to submit payment');
+    } finally {
+      setProcessing(false);
+    }
+  }, [referenceNumber, uploadedReceipt, selectedPayment, fetchData]);
+
+  const handlePrintReceipt = useCallback(() => {
     const printContent = document.getElementById('receipt-content');
+    if (!printContent) return;
+    
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
         <head>
-          <title>Payment Receipt</title>
+          <title>Payment Receipt - VIMS</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .receipt { max-width: 400px; margin: 0 auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+            body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+            .receipt { 
+              max-width: 400px; 
+              margin: 0 auto; 
+              border: 1px solid #ddd; 
+              padding: 20px; 
+              border-radius: 8px;
+              background: white;
+            }
             .header { text-align: center; margin-bottom: 20px; }
+            .header h2 { color: #2224be; margin: 0; }
             .divider { border-top: 1px dashed #ddd; margin: 15px 0; }
             .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
             .total { font-weight: bold; font-size: 1.2em; margin-top: 10px; }
+            .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; }
             @media print {
               body { padding: 0; }
               .no-print { display: none; }
@@ -215,21 +240,26 @@ const Payments = () => {
             ${printContent.innerHTML}
           </div>
           <div style="text-align: center; margin-top: 20px;" class="no-print">
-            <button onclick="window.print()">Print</button>
-            <button onclick="window.close()">Close</button>
+            <button onclick="window.print()" style="padding: 10px 20px; margin: 5px; cursor: pointer;">Print</button>
+            <button onclick="window.close()" style="padding: 10px 20px; margin: 5px; cursor: pointer;">Close</button>
           </div>
         </body>
       </html>
     `);
     printWindow.document.close();
-  };
+  }, []);
 
-  const handleBack = () => navigate(-1);
-  const handleLogout = () => { logout(); navigate('/login'); };
-  const handleProfileMenuOpen = (e) => setProfileAnchorEl(e.currentTarget);
-  const handleProfileMenuClose = () => setProfileAnchorEl(null);
+  const handleBack = useCallback(() => navigate(-1), [navigate]);
+  
+  const handleLogout = useCallback(() => { 
+    logout(); 
+    navigate('/login'); 
+  }, [logout, navigate]);
+  
+  const handleProfileMenuOpen = useCallback((e) => setProfileAnchorEl(e.currentTarget), []);
+  const handleProfileMenuClose = useCallback(() => setProfileAnchorEl(null), []);
 
-  const getStatusChip = (status, dueDate) => {
+  const getStatusChip = useCallback((status, dueDate) => {
     if (status === 'paid') {
       return <Chip icon={<CheckCircleIcon />} label="Paid" color="success" size="small" />;
     }
@@ -237,29 +267,29 @@ const Payments = () => {
       return <Chip icon={<WarningIcon />} label="Overdue" color="error" size="small" />;
     }
     return <Chip icon={<PendingIcon />} label="Pending" color="warning" size="small" />;
-  };
+  }, []);
 
-  const formatDate = (date) => {
+  const formatDate = useCallback((date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-PH', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-  };
+  }, []);
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = useCallback((amount) => {
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
       currency: 'PHP',
       minimumFractionDigits: 2
-    }).format(amount);
-  };
+    }).format(amount || 0);
+  }, []);
 
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+        <CircularProgress sx={{ color: themeColors.primary }} />
       </Box>
     );
   }
@@ -298,13 +328,21 @@ const Payments = () => {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        {/* Header */}
-        <Paper sx={{ p: 3, mb: 4, borderRadius: 3, background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.primaryDark})`, color: 'white' }}>
+        {/* Header Banner */}
+        <Paper sx={{ 
+          p: 3, 
+          mb: 4, 
+          borderRadius: 3, 
+          background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.primaryDark})`, 
+          color: 'white' 
+        }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <PaymentIcon sx={{ fontSize: 48 }} />
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>Payments & Dues</Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>Manage your association dues and payments</Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Pay using QRPh - Scan with GCash, PayMaya, or any banking app
+              </Typography>
             </Box>
           </Box>
         </Paper>
@@ -357,7 +395,7 @@ const Payments = () => {
           </Grid>
         </Grid>
 
-        {/* Current Month Dues */}
+        {/* Current Month Dues Banner */}
         {currentDues && currentDues.status !== 'paid' && (
           <Paper sx={{ p: 3, mb: 4, borderRadius: 3, border: `2px solid ${themeColors.warning}`, bgcolor: '#fffbeb' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
@@ -377,8 +415,9 @@ const Payments = () => {
               </Box>
               <Button
                 variant="contained"
+                startIcon={<QrCodeIcon />}
                 onClick={() => handlePayClick(currentDues)}
-                sx={{ bgcolor: themeColors.success, '&:hover': { bgcolor: '#0da271' } }}
+                sx={{ bgcolor: themeColors.success, '&:hover': { bgcolor: '#0da271' }, px: 4, py: 1.5 }}
               >
                 Pay Now
               </Button>
@@ -386,7 +425,7 @@ const Payments = () => {
           </Paper>
         )}
 
-        {/* Payment History */}
+        {/* Payment History Table */}
         <Paper sx={{ p: 3, borderRadius: 3, border: `1px solid ${themeColors.border}` }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>Payment History</Typography>
@@ -411,13 +450,13 @@ const Payments = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: themeColors.background }}>
-                    <TableCell>Invoice #</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell align="right">Amount</TableCell>
-                    <TableCell>Due Date</TableCell>
-                    <TableCell>Payment Date</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell align="center">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Amount</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Payment Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -479,36 +518,34 @@ const Payments = () => {
           )}
         </Paper>
 
-        {/* Payment Methods Dialog */}
-        <Dialog open={paymentMethodsOpen} onClose={() => setPaymentMethodsOpen(false)} maxWidth="xs" fullWidth>
-          <DialogTitle>Select Payment Method</DialogTitle>
+        {/* Payment Method Selection Dialog */}
+        <Dialog open={paymentMethodOpen} onClose={() => setPaymentMethodOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+            Select Payment Method
+          </DialogTitle>
           <DialogContent>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Amount to pay: <strong>{formatCurrency(selectedPayment?.amount)}</strong>
+            </Typography>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12}>
                 <Button
                   fullWidth
-                  variant="outlined"
-                  startIcon={<WalletIcon />}
-                  onClick={() => handleProceedToPayment('gcash')}
-                  sx={{ py: 2, justifyContent: 'flex-start', borderColor: themeColors.primary }}
+                  variant="contained"
+                  startIcon={<QrCodeIcon />}
+                  onClick={handleQRPhPayment}
+                  sx={{ 
+                    py: 2, 
+                    justifyContent: 'flex-start', 
+                    bgcolor: themeColors.primary,
+                    '&:hover': { bgcolor: themeColors.primaryDark }
+                  }}
                 >
-                  <Box sx={{ ml: 2 }}>
-                    <Typography variant="subtitle1">GCash</Typography>
-                    <Typography variant="caption" color="textSecondary">Pay via GCash wallet</Typography>
-                  </Box>
-                </Button>
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<CreditCardIcon />}
-                  onClick={() => handleProceedToPayment('paymaya')}
-                  sx={{ py: 2, justifyContent: 'flex-start', borderColor: themeColors.primary }}
-                >
-                  <Box sx={{ ml: 2 }}>
-                    <Typography variant="subtitle1">PayMaya</Typography>
-                    <Typography variant="caption" color="textSecondary">Pay via PayMaya wallet</Typography>
+                  <Box sx={{ ml: 2, textAlign: 'left' }}>
+                    <Typography variant="subtitle1">QRPh</Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      Scan with GCash, PayMaya, or any bank app
+                    </Typography>
                   </Box>
                 </Button>
               </Grid>
@@ -517,81 +554,163 @@ const Payments = () => {
                   fullWidth
                   variant="outlined"
                   startIcon={<CashIcon />}
-                  onClick={() => handleProceedToPayment('cash')}
-                  sx={{ py: 2, justifyContent: 'flex-start', borderColor: themeColors.primary }}
+                  onClick={handleCashPayment}
+                  sx={{ 
+                    py: 2, 
+                    justifyContent: 'flex-start',
+                    borderColor: themeColors.border,
+                    color: themeColors.textPrimary
+                  }}
                 >
-                  <Box sx={{ ml: 2 }}>
+                  <Box sx={{ ml: 2, textAlign: 'left' }}>
                     <Typography variant="subtitle1">Cash</Typography>
-                    <Typography variant="caption" color="textSecondary">Pay at admin office</Typography>
+                    <Typography variant="caption" color="textSecondary">
+                      Pay at the admin office
+                    </Typography>
                   </Box>
                 </Button>
               </Grid>
             </Grid>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setPaymentMethodsOpen(false)}>Cancel</Button>
+            <Button onClick={() => setPaymentMethodOpen(false)}>Cancel</Button>
           </DialogActions>
         </Dialog>
 
-        {/* Confirm Payment Dialog */}
-        <Dialog open={paymentDialogOpen} onClose={() => !processing && setPaymentDialogOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Confirm Payment</DialogTitle>
+        {/* QRPh Payment Dialog */}
+        <Dialog open={qrDialogOpen} onClose={() => setQrDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary, borderBottom: `1px solid ${themeColors.border}` }}>
+            Pay with QRPh
+          </DialogTitle>
           <DialogContent>
-            {selectedPayment && (
-              <Box>
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  You are about to pay via <strong>{selectedMethod?.toUpperCase()}</strong>
-                </Alert>
-                <Paper sx={{ p: 2, bgcolor: themeColors.background }}>
-                  <Typography variant="subtitle2">Invoice: {selectedPayment.invoiceNumber}</Typography>
-                  <Typography variant="subtitle2">Description: {selectedPayment.description}</Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    Amount: {formatCurrency(selectedPayment.amount)}
-                  </Typography>
-                </Paper>
-                {selectedMethod === 'cash' && (
-                  <Alert severity="warning" sx={{ mt: 2 }}>
-                    Cash payments must be made at the admin office. Your payment will be marked as pending until confirmed by admin.
-                  </Alert>
-                )}
-                {(selectedMethod === 'gcash' || selectedMethod === 'paymaya') && (
-                  <Alert severity="success" sx={{ mt: 2 }}>
-                    You will be redirected to {selectedMethod?.toUpperCase()} to complete your payment.
-                  </Alert>
-                )}
+            <Box sx={{ textAlign: 'center', py: 3 }}>
+              {/* QR Code Image */}
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: 'white', 
+                display: 'inline-block', 
+                borderRadius: 2,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                mb: 2
+              }}>
+                <img 
+                  src={qrphImage} 
+                  alt="QRPh Payment Code" 
+                  style={{ width: '220px', height: '220px' }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/220x220?text=QR+Code';
+                  }}
+                />
               </Box>
-            )}
+              
+              <Typography variant="h6" sx={{ fontWeight: 700, color: themeColors.textPrimary, mb: 1 }}>
+                {formatCurrency(selectedPayment?.amount)}
+              </Typography>
+              
+              <Alert severity="info" sx={{ mb: 3, borderRadius: 2, textAlign: 'left' }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>How to pay:</Typography>
+                <Typography variant="caption" component="div">
+                  1. Open GCash, PayMaya, or any banking app<br/>
+                  2. Tap "Scan to Pay" or "QR Payment"<br/>
+                  3. Scan the QR code above<br/>
+                  4. Enter amount: {formatCurrency(selectedPayment?.amount)}<br/>
+                  5. Complete the payment and save the reference number
+                </Typography>
+              </Alert>
+
+              <TextField
+                fullWidth
+                label="Payment Reference Number"
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+                placeholder="Enter the reference number from your payment app"
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <ReceiptIcon sx={{ color: themeColors.textSecondary }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<UploadIcon />}
+                onClick={() => document.getElementById('receipt-upload').click()}
+                sx={{ mb: 2 }}
+              >
+                Upload Receipt/Screenshot
+              </Button>
+              
+              <input
+                id="receipt-upload"
+                type="file"
+                accept="image/*,.pdf"
+                style={{ display: 'none' }}
+                onChange={(e) => setUploadedReceipt(e.target.files[0])}
+              />
+              
+              {uploadedReceipt && (
+                <Alert severity="success" sx={{ borderRadius: 2 }}>
+                  File selected: {uploadedReceipt.name}
+                </Alert>
+              )}
+            </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setPaymentDialogOpen(false)} disabled={processing}>Cancel</Button>
-            <Button
-              variant="contained"
-              onClick={confirmPayment}
-              disabled={processing}
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
+            <Button onClick={() => setQrDialogOpen(false)}>Cancel</Button>
+            <Button 
+              variant="contained" 
+              onClick={handleUploadReceipt}
+              disabled={!referenceNumber || !uploadedReceipt || processing}
               sx={{ bgcolor: themeColors.success }}
             >
-              {processing ? <CircularProgress size={20} /> : 'Confirm Payment'}
+              {processing ? <CircularProgress size={20} /> : 'Submit Payment'}
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Cash Payment Confirmation Dialog */}
+        <Dialog open={cashDialogOpen} onClose={() => setCashDialogOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+            Cash Payment Selected
+          </DialogTitle>
+          <DialogContent>
+            <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+              Please visit the admin office to complete your cash payment.
+            </Alert>
+            <Typography variant="body2" color="textSecondary">
+              Your payment will be marked as pending until confirmed by the admin.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCashDialogOpen(false)}>Close</Button>
           </DialogActions>
         </Dialog>
 
         {/* Receipt Dialog */}
         <Dialog open={receiptDialogOpen} onClose={() => setReceiptDialogOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle sx={{ bgcolor: themeColors.primary, color: 'white' }}>
+          <DialogTitle sx={{ bgcolor: themeColors.primary, color: 'white', fontWeight: 600 }}>
             Payment Receipt
           </DialogTitle>
           <DialogContent>
             <div id="receipt-content">
               <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Typography variant="h6">WESTVILLE CASIMIRO HOMES</Typography>
-                <Typography variant="caption" color="textSecondary">Village Information Management System</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: themeColors.primary }}>
+                  WESTVILLE CASIMIRO HOMES
+                </Typography>
+                <Typography variant="caption" color="textSecondary">
+                  Village Information Management System
+                </Typography>
                 <Divider sx={{ my: 2 }} />
               </Box>
               
               {receiptData && (
                 <Box>
-                  <Grid container spacing={1}>
+                  <Grid container spacing={1.5}>
                     <Grid item xs={6}>
                       <Typography variant="caption" color="textSecondary">Receipt Number:</Typography>
                     </Grid>
@@ -614,7 +733,9 @@ const Payments = () => {
                       <Typography variant="caption" color="textSecondary">Payment Method:</Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="body2" sx={{ textTransform: 'uppercase' }}>{receiptData.paymentMethod}</Typography>
+                      <Typography variant="body2" sx={{ textTransform: 'uppercase', fontWeight: 600 }}>
+                        {receiptData.paymentMethod || 'QRPh'}
+                      </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Divider sx={{ my: 1 }} />
@@ -642,9 +763,11 @@ const Payments = () => {
               </Typography>
             </div>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
             <Button onClick={() => setReceiptDialogOpen(false)}>Close</Button>
-            <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrintReceipt}>Print</Button>
+            <Button variant="contained" startIcon={<PrintIcon />} onClick={handlePrintReceipt}>
+              Print Receipt
+            </Button>
           </DialogActions>
         </Dialog>
       </Container>

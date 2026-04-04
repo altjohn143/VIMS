@@ -6,7 +6,11 @@ const paymentSchema = new mongoose.Schema({
   invoiceNumber: { type: String, unique: true, sparse: true },
   amount: { type: Number, required: true, min: 0 },
   paymentType: { type: String, enum: ['monthly_dues', 'special_assessment', 'service_fee', 'penalty', 'other'], default: 'monthly_dues' },
-  paymentMethod: { type: String, enum: ['gcash', 'paymaya', 'cash', 'bank_transfer', 'check'], default: null },
+  paymentMethod: { 
+  type: String, 
+  enum: ['gcash', 'paymaya', 'qrph', 'cash', 'bank_transfer', 'check'], 
+  default: null 
+},
   status: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
   referenceNumber: { type: String, unique: true, sparse: true },
   transactionId: { type: String, sparse: true },

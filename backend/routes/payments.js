@@ -168,13 +168,14 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'receipt-' + uniqueSuffix + '-' + file.originalname);
+    const ext = path.extname(file.originalname);
+    cb(null, 'receipt-' + uniqueSuffix + ext);
   }
 });
 
 const upload = multer({ 
   storage: storage, 
-  limits: { fileSize: 10 * 1024 * 1024 } // Increase to 10MB
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.single('receipt'), async (req, res) => {
@@ -182,23 +183,29 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
     const { referenceNumber, paymentId, amount } = req.body;
     const receiptFile = req.file;
     
-    if (!referenceNumber || !paymentId) {
-      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    console.log('=== DEBUG UPLOAD ===');
+    console.log('Payment ID received:', paymentId);
+    console.log('Reference number:', referenceNumber);
+    console.log('File received:', receiptFile ? `Yes (${receiptFile.filename})` : 'No');
+    
+    // Validate paymentId format
+    if (!paymentId || paymentId === 'undefined' || paymentId === 'null') {
+      console.error('Invalid payment ID:', paymentId);
+      return res.status(400).json({ success: false, error: 'Invalid payment ID' });
     }
     
     const payment = await Payment.findById(paymentId);
-    if (!payment) {
-      return res.status(404).json({ success: false, error: 'Payment not found' });
-    }
+    console.log('Payment found:', payment ? 'Yes' : 'No');
     
-    if (payment.status === 'paid') {
-      return res.status(400).json({ success: false, error: 'Payment already completed' });
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment not found. Please refresh and try again.' });
     }
     
     // Update payment with QRPh payment details
     payment.paymentMethod = 'qrph';
     payment.referenceNumber = referenceNumber;
     payment.status = 'pending';
+    payment.receiptImage = receiptFile ? receiptFile.filename : null; // Store the filename
     payment.notes = `QRPh payment submitted. Receipt: ${receiptFile ? receiptFile.filename : 'No receipt uploaded'}`;
     await payment.save();
     
@@ -213,6 +220,35 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
   } catch (error) {
     console.error('Upload receipt error:', error);
     res.status(500).json({ success: false, error: 'Failed to submit payment' });
+  }
+});
+
+// Serve uploaded receipt images (Admin only)
+router.get('/receipt-image/:filename', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { filename } = req.params;
+    
+    // Security: Prevent directory traversal
+    const safeFilename = path.basename(filename);
+    const imagePath = path.join(__dirname, '../uploads/receipts', safeFilename);
+    
+    // Check if file exists
+    if (!fs.existsSync(imagePath)) {
+      return res.status(404).json({ success: false, error: 'Image not found' });
+    }
+    
+    // Get file extension to set correct content type
+    const ext = path.extname(imagePath).toLowerCase();
+    let contentType = 'image/jpeg';
+    if (ext === '.png') contentType = 'image/png';
+    if (ext === '.gif') contentType = 'image/gif';
+    if (ext === '.pdf') contentType = 'application/pdf';
+    
+    res.setHeader('Content-Type', contentType);
+    res.sendFile(imagePath);
+  } catch (error) {
+    console.error('Error serving receipt image:', error);
+    res.status(500).json({ success: false, error: 'Failed to serve image' });
   }
 });
 
@@ -284,15 +320,22 @@ router.post('/generate-monthly', protect, authorize('admin'), async (req, res) =
   }
 });
 
-// Admin: Confirm cash payment
+// Admin: Confirm payment (for cash or QRPh)
 router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id);
     if (!payment) return res.status(404).json({ success: false, error: 'Payment not found' });
+    
     payment.status = 'paid';
     payment.paymentDate = new Date();
     payment.processedBy = req.user.id;
     payment.receiptNumber = `RC-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    
+    // Add verification notes if provided
+    if (req.body.verificationNotes) {
+      payment.notes = (payment.notes || '') + `\n[Admin Verification: ${req.body.verificationNotes}]`;
+    }
+    
     await payment.save();
     res.json({ success: true, message: 'Payment confirmed' });
   } catch (error) {

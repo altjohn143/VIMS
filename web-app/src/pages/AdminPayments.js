@@ -34,7 +34,7 @@ import {
   Avatar,
   Menu,
   ListItemIcon,
-  Divider,
+  Divider
 } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
@@ -52,7 +52,10 @@ import {
   AdminPanelSettings as AdminIcon,
   Settings as SettingsIcon,
   VerifiedUser as VerifyIcon,
-  QrCode as QrCodeIcon
+  QrCode as QrCodeIcon,
+  Image as ImageIcon,
+  Close as CloseIcon,
+  ZoomIn as ZoomInIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -94,6 +97,11 @@ const AdminPayments = () => {
   const [generateForm, setGenerateForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [processing, setProcessing] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  
+  // Image viewer state
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImagePayment, setSelectedImagePayment] = useState(null);
 
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -270,6 +278,7 @@ const AdminPayments = () => {
       'Due Date': p.dueDate ? new Date(p.dueDate).toLocaleDateString() : '',
       'Payment Date': p.paymentDate ? new Date(p.paymentDate).toLocaleDateString() : '',
       'Receipt #': p.receiptNumber || '',
+      'Receipt Image': p.receiptImage || '',
       'Notes': p.notes || ''
     }));
     
@@ -279,6 +288,16 @@ const AdminPayments = () => {
     XLSX.writeFile(wb, `payments_export_${new Date().toISOString().split('T')[0]}.xlsx`);
     
     toast.success(`Exported ${exportData.length} records`);
+  };
+
+  const handleViewReceiptImage = (payment) => {
+    if (payment.receiptImage) {
+      setSelectedImage(payment.receiptImage);
+      setSelectedImagePayment(payment);
+      setImageViewerOpen(true);
+    } else {
+      toast.error('No receipt image available for this payment');
+    }
   };
 
   const handleBack = () => navigate('/dashboard');
@@ -586,8 +605,23 @@ const AdminPayments = () => {
                             </Button>
                           )}
                           
-                          {/* View Receipt Button for QRPh payments */}
-                          {payment.paymentMethod === 'qrph' && payment.notes && (
+                          {/* View Receipt Image Button */}
+                          {payment.receiptImage && (
+                            <IconButton 
+                              size="small" 
+                              onClick={() => handleViewReceiptImage(payment)}
+                              title="View Receipt Image"
+                              sx={{
+                                color: themeColors.info,
+                                '&:hover': { backgroundColor: themeColors.info + '20' }
+                              }}
+                            >
+                              <ImageIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                          
+                          {/* View Receipt Info Button (for text notes) */}
+                          {payment.notes && payment.notes.includes('QRPh payment submitted') && !payment.receiptImage && (
                             <IconButton 
                               size="small" 
                               onClick={() => {
@@ -739,6 +773,23 @@ const AdminPayments = () => {
                         {formatDate(selectedQRPhPayment.createdAt)}
                       </Typography>
                     </Grid>
+                    {selectedQRPhPayment.receiptImage && (
+                      <Grid item xs={12}>
+                        <Divider sx={{ my: 1 }} />
+                        <Typography variant="caption" color="textSecondary">Receipt Image:</Typography>
+                        <Box sx={{ mt: 1, textAlign: 'center' }}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<ImageIcon />}
+                            onClick={() => handleViewReceiptImage(selectedQRPhPayment)}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            View Receipt Image
+                          </Button>
+                        </Box>
+                      </Grid>
+                    )}
                     <Grid item xs={12}>
                       <Divider sx={{ my: 1 }} />
                       <Typography variant="caption" color="textSecondary">Resident's Notes:</Typography>
@@ -791,6 +842,143 @@ const AdminPayments = () => {
             >
               {processing ? 'Verifying...' : 'Verify & Confirm Payment'}
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Receipt Image Viewer Dialog */}
+        <Dialog 
+          open={imageViewerOpen} 
+          onClose={() => setImageViewerOpen(false)} 
+          maxWidth="md" 
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              backgroundColor: themeColors.cardBackground,
+              maxWidth: '600px'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            fontWeight: 600, 
+            color: themeColors.textPrimary,
+            borderBottom: `1px solid ${themeColors.border}`,
+            pb: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ImageIcon sx={{ color: themeColors.info }} />
+              Payment Receipt
+            </Box>
+            <IconButton onClick={() => setImageViewerOpen(false)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ p: 3 }}>
+            {selectedImage && (
+              <Box>
+                <Paper sx={{ p: 2, mb: 2, bgcolor: themeColors.background, borderRadius: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Payment Information:
+                  </Typography>
+                  <Grid container spacing={1}>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">Invoice:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2" fontWeight={500}>
+                        {selectedImagePayment?.invoiceNumber}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">Resident:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2">
+                        {selectedImagePayment?.residentId?.firstName} {selectedImagePayment?.residentId?.lastName}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">Amount:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2" fontWeight={700} color={themeColors.success}>
+                        {formatCurrency(selectedImagePayment?.amount)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">Reference #:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2" fontFamily="monospace">
+                        {selectedImagePayment?.referenceNumber}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+                
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Receipt Image:
+                </Typography>
+                <Paper sx={{ 
+                  p: 2, 
+                  borderRadius: 2, 
+                  bgcolor: '#f8fafc',
+                  textAlign: 'center'
+                }}>
+                  <img
+                    src={`/api/payments/receipt-image/${selectedImage}`}
+                    alt="Payment Receipt"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '400px',
+                      objectFit: 'contain',
+                      borderRadius: '8px',
+                      border: `1px solid ${themeColors.border}`
+                    }}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
+                      toast.error('Failed to load receipt image');
+                    }}
+                  />
+                </Paper>
+                
+                <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<ZoomInIcon />}
+                    onClick={() => window.open(`/api/payments/receipt-image/${selectedImage}`, '_blank')}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Open Full Size
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = `/api/payments/receipt-image/${selectedImage}`;
+                      link.download = selectedImage;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      toast.success('Download started');
+                    }}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Download Image
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
+            <Button onClick={() => setImageViewerOpen(false)}>Close</Button>
           </DialogActions>
         </Dialog>
 

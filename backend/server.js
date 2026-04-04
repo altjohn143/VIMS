@@ -192,6 +192,16 @@ app.get('/api/debug/routes', (req, res) => {
   });
 });
 
+app.get('/api/debug/env-check', (req, res) => {
+  res.json({
+    hasPaymongoSecret: !!process.env.PAYMONGO_SECRET_KEY,
+    hasPaymongoPublic: !!process.env.PAYMONGO_PUBLIC_KEY,
+    hasWebhookSecret: !!process.env.PAYMONGO_WEBHOOK_SECRET,
+    frontendUrl: process.env.FRONTEND_URL,
+    nodeEnv: process.env.NODE_ENV
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 

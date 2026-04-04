@@ -596,7 +596,7 @@ const Payments = () => {
                 <img 
                   src={qrphImage} 
                   alt="QRPh Payment Code" 
-                  style={{ width: '220px', height: '220px' }}
+                  style={{ width: '220px', height: '250px' }}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = 'https://via.placeholder.com/220x220?text=QR+Code';

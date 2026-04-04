@@ -76,8 +76,6 @@ const themeColors = {
 };
 
 const APPBAR_HEIGHT = 64;
-const SIDEBAR_HEADER_HEIGHT = 130; // avatar + name + chip + padding
-const SIDEBAR_FOOTER_HEIGHT = 72;  // chip + version text + padding
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -229,7 +227,7 @@ const Dashboard = () => {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      pt: `${APPBAR_HEIGHT}px`, // push content below fixed AppBar
+      pt: `${APPBAR_HEIGHT}px`,
       pb: 2,
       overflowY: 'auto',
       overflowX: 'hidden'
@@ -289,7 +287,7 @@ const Dashboard = () => {
       color: 'white',
       display: 'flex',
       flexDirection: 'column',
-      pt: `${APPBAR_HEIGHT}px` // push content below fixed AppBar
+      pt: `${APPBAR_HEIGHT}px`
     }}>
       {/* Sidebar Header */}
       <Box sx={{ p: 3, borderBottom: '1px solid #374151', flexShrink: 0 }}>
@@ -484,7 +482,7 @@ const Dashboard = () => {
         variant={isMobile ? 'temporary' : 'persistent'}
         open={sidebarOpen}
         onClose={handleCloseSidebar}
-        ModalProps={{ keepMounted: true }} // better mobile performance
+        ModalProps={{ keepMounted: true }}
         sx={{
           width: sidebarOpen ? 280 : 64,
           flexShrink: 0,
@@ -494,7 +492,6 @@ const Dashboard = () => {
             bgcolor: '#1e293b',
             borderRight: '1px solid #374151',
             overflowX: 'hidden',
-            // DO NOT set overflow: hidden on the paper — the inner Box handles scrolling
             transition: theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
@@ -511,7 +508,6 @@ const Dashboard = () => {
         sx={{
           flexGrow: 1,
           p: { xs: 2, md: 3 },
-          // On desktop, offset by sidebar width; on mobile sidebar is overlay so no offset
           ml: { xs: 0, md: sidebarOpen ? '280px' : '64px' },
           transition: theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
@@ -521,7 +517,7 @@ const Dashboard = () => {
           minHeight: '100vh'
         }}
       >
-        <Toolbar /> {/* Spacer for fixed AppBar */}
+        <Toolbar />
 
         <Container maxWidth="lg" sx={{ py: 4 }}>
           {/* HEADER */}

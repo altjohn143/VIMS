@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -33,7 +33,8 @@ import {
   InputAdornment,
   Avatar,
   Menu,
-  ListItemIcon
+  ListItemIcon,
+  Divider,
 } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
@@ -50,9 +51,11 @@ import {
   FilterList as FilterIcon,
   AdminPanelSettings as AdminIcon,
   Settings as SettingsIcon,
+  VerifiedUser as VerifyIcon,
+  QrCode as QrCodeIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -80,26 +83,24 @@ const AdminPayments = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [generateInvoiceDialogOpen, setGenerateInvoiceDialogOpen] = useState(false);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [qrphDialogOpen, setQrphDialogOpen] = useState(false);
+  const [selectedQRPhPayment, setSelectedQRPhPayment] = useState(null);
+  const [verificationNotes, setVerificationNotes] = useState('');
   const [generateForm, setGenerateForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [processing, setProcessing] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
-  // Remove unused activeTab variable
 
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
   const user = getCurrentUser();
 
-  useEffect(() => {
-    fetchPayments();
-    fetchStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, rowsPerPage, statusFilter, paymentTypeFilter, searchTerm]); // Added proper dependency array
-
-  const fetchPayments = async () => {
+  // Define fetchPayments with useCallback
+  const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -109,6 +110,7 @@ const AdminPayments = () => {
       };
       if (statusFilter !== 'all') params.status = statusFilter;
       if (paymentTypeFilter !== 'all') params.paymentType = paymentTypeFilter;
+      if (paymentMethodFilter !== 'all') params.paymentMethod = paymentMethodFilter;
       
       const response = await axios.get('/api/payments', {
         params,
@@ -126,9 +128,10 @@ const AdminPayments = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, rowsPerPage, statusFilter, paymentTypeFilter, paymentMethodFilter]);
 
-  const fetchStats = async () => {
+  // Define fetchStats with useCallback
+  const fetchStats = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get('/api/payments/admin/stats', {
@@ -140,9 +143,15 @@ const AdminPayments = () => {
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  };
+  }, []);
 
-  const handleConfirmPayment = async () => {
+  // Now useEffect with proper dependencies
+  useEffect(() => {
+    fetchPayments();
+    fetchStats();
+  }, [fetchPayments, fetchStats]);
+
+  const handleConfirmCashPayment = async () => {
     if (!selectedPayment) return;
     setProcessing(true);
     try {
@@ -154,7 +163,7 @@ const AdminPayments = () => {
       );
       
       if (response.data.success) {
-        toast.success('Payment confirmed successfully');
+        toast.success('Cash payment confirmed successfully');
         fetchPayments();
         fetchStats();
         setConfirmDialogOpen(false);
@@ -162,6 +171,38 @@ const AdminPayments = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to confirm payment');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleVerifyQRPhPayment = async () => {
+    if (!selectedQRPhPayment) return;
+    
+    setProcessing(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.put(
+        `/api/payments/${selectedQRPhPayment._id}/confirm`,
+        { 
+          verificationNotes: verificationNotes,
+          verifiedBy: user?.id,
+          paymentMethod: 'qrph'
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        toast.success('QRPh payment verified and confirmed successfully!');
+        fetchPayments();
+        fetchStats();
+        setQrphDialogOpen(false);
+        setSelectedQRPhPayment(null);
+        setVerificationNotes('');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to verify payment');
     } finally {
       setProcessing(false);
     }
@@ -224,10 +265,12 @@ const AdminPayments = () => {
       'Description': p.description,
       'Amount': p.amount,
       'Status': p.status,
+      'Payment Method': p.paymentMethod || '',
+      'Reference #': p.referenceNumber || '',
       'Due Date': p.dueDate ? new Date(p.dueDate).toLocaleDateString() : '',
       'Payment Date': p.paymentDate ? new Date(p.paymentDate).toLocaleDateString() : '',
-      'Payment Method': p.paymentMethod || '',
-      'Receipt #': p.receiptNumber || ''
+      'Receipt #': p.receiptNumber || '',
+      'Notes': p.notes || ''
     }));
     
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -239,7 +282,12 @@ const AdminPayments = () => {
   };
 
   const handleBack = () => navigate('/dashboard');
-  const handleLogout = () => { logout(); navigate('/login'); };
+  
+  const handleLogout = () => { 
+    logout(); 
+    navigate('/login'); 
+  };
+  
   const handleProfileMenuOpen = (e) => setProfileAnchorEl(e.currentTarget);
   const handleProfileMenuClose = () => setProfileAnchorEl(null);
 
@@ -266,6 +314,34 @@ const AdminPayments = () => {
     return <Chip icon={<PendingIcon />} label="Pending" color="warning" size="small" />;
   };
 
+  const getPaymentMethodChip = (method) => {
+    if (!method) return <Chip label="N/A" size="small" variant="outlined" />;
+    
+    const methodConfig = {
+      cash: { label: 'Cash', color: themeColors.success },
+      qrph: { label: 'QRPh', color: themeColors.info },
+      gcash: { label: 'GCash', color: themeColors.primary },
+      paymaya: { label: 'PayMaya', color: themeColors.primary },
+      bank_transfer: { label: 'Bank Transfer', color: themeColors.warning },
+      check: { label: 'Check', color: themeColors.textSecondary }
+    };
+    
+    const config = methodConfig[method] || { label: method.toUpperCase(), color: themeColors.textSecondary };
+    
+    return (
+      <Chip 
+        icon={method === 'qrph' ? <QrCodeIcon /> : null}
+        label={config.label} 
+        size="small" 
+        sx={{ 
+          bgcolor: `${config.color}20`,
+          color: config.color,
+          fontWeight: 500
+        }} 
+      />
+    );
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: themeColors.background }}>
       {/* Navigation Bar */}
@@ -284,7 +360,7 @@ const AdminPayments = () => {
             </Avatar>
           </IconButton>
           <Menu anchorEl={profileAnchorEl} open={Boolean(profileAnchorEl)} onClose={handleProfileMenuClose}>
-            <MenuItem component={RouterLink} to="/profile" onClick={handleProfileMenuClose}>
+            <MenuItem component={Link} to="/profile" onClick={handleProfileMenuClose}>
               <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
               Profile Settings
             </MenuItem>
@@ -360,7 +436,7 @@ const AdminPayments = () => {
         {/* Filters */}
         <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <TextField
                 fullWidth
                 placeholder="Search by resident name, invoice #..."
@@ -372,7 +448,7 @@ const AdminPayments = () => {
                 size="small"
               />
             </Grid>
-            <Grid item xs={6} sm={3}>
+            <Grid item xs={6} sm={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
                 <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status">
@@ -383,7 +459,7 @@ const AdminPayments = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={6} sm={3}>
+            <Grid item xs={6} sm={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Payment Type</InputLabel>
                 <Select value={paymentTypeFilter} onChange={(e) => setPaymentTypeFilter(e.target.value)} label="Payment Type">
@@ -395,9 +471,23 @@ const AdminPayments = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={2}>
+            <Grid item xs={6} sm={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Payment Method</InputLabel>
+                <Select value={paymentMethodFilter} onChange={(e) => setPaymentMethodFilter(e.target.value)} label="Payment Method">
+                  <MenuItem value="all">All</MenuItem>
+                  <MenuItem value="cash">Cash</MenuItem>
+                  <MenuItem value="qrph">QRPh</MenuItem>
+                  <MenuItem value="gcash">GCash</MenuItem>
+                  <MenuItem value="paymaya">PayMaya</MenuItem>
+                  <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
+                  <MenuItem value="check">Check</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
               <Button fullWidth variant="outlined" startIcon={<FilterIcon />} onClick={fetchPayments}>
-                Filter
+                Apply Filters
               </Button>
             </Grid>
           </Grid>
@@ -409,27 +499,28 @@ const AdminPayments = () => {
             <Table>
               <TableHead sx={{ bgcolor: themeColors.background }}>
                 <TableRow>
-                  <TableCell>Invoice #</TableCell>
-                  <TableCell>Resident</TableCell>
-                  <TableCell>House</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell align="right">Amount</TableCell>
-                  <TableCell>Due Date</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Payment Method</TableCell>
-                  <TableCell align="center">Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Resident</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>House</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>Amount</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Payment Method</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Reference #</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={9} align="center"><CircularProgress /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} align="center"><CircularProgress /></TableCell></TableRow>
                 ) : payments.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} align="center">No payments found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} align="center">No payments found</TableCell></TableRow>
                 ) : (
                   payments.map((payment) => (
                     <TableRow key={payment._id} hover>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
                           {payment.invoiceNumber}
                         </Typography>
                       </TableCell>
@@ -440,7 +531,9 @@ const AdminPayments = () => {
                       <TableCell>
                         <Typography variant="body2">{payment.description}</Typography>
                         {payment.notes && (
-                          <Typography variant="caption" color="textSecondary">{payment.notes}</Typography>
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                            {payment.notes}
+                          </Typography>
                         )}
                       </TableCell>
                       <TableCell align="right">
@@ -450,28 +543,79 @@ const AdminPayments = () => {
                       </TableCell>
                       <TableCell>{formatDate(payment.dueDate)}</TableCell>
                       <TableCell>{getStatusChip(payment.status, payment.dueDate)}</TableCell>
+                      <TableCell>{getPaymentMethodChip(payment.paymentMethod)}</TableCell>
                       <TableCell>
-                        {payment.paymentMethod ? payment.paymentMethod.toUpperCase() : '-'}
+                        {payment.referenceNumber ? (
+                          <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                            {payment.referenceNumber}
+                          </Typography>
+                        ) : '-'}
                       </TableCell>
                       <TableCell align="center">
-                        {payment.status === 'pending' && payment.paymentMethod === 'cash' && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
-                            onClick={() => {
-                              setSelectedPayment(payment);
-                              setConfirmDialogOpen(true);
-                            }}
-                          >
-                            Confirm
-                          </Button>
-                        )}
-                        {payment.receiptNumber && (
-                          <IconButton size="small" title="View Receipt">
-                            <ReceiptIcon />
-                          </IconButton>
-                        )}
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                          {/* Cash Payment Confirmation */}
+                          {payment.status === 'pending' && payment.paymentMethod === 'cash' && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              onClick={() => {
+                                setSelectedPayment(payment);
+                                setConfirmDialogOpen(true);
+                              }}
+                              sx={{ fontSize: '0.7rem', minWidth: '80px' }}
+                            >
+                              Confirm Cash
+                            </Button>
+                          )}
+                          
+                          {/* QRPh Payment Verification */}
+                          {payment.status === 'pending' && payment.paymentMethod === 'qrph' && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="info"
+                              onClick={() => {
+                                setSelectedQRPhPayment(payment);
+                                setQrphDialogOpen(true);
+                              }}
+                              startIcon={<VerifyIcon />}
+                              sx={{ fontSize: '0.7rem', minWidth: '80px' }}
+                            >
+                              Verify QRPh
+                            </Button>
+                          )}
+                          
+                          {/* View Receipt Button for QRPh payments */}
+                          {payment.paymentMethod === 'qrph' && payment.notes && (
+                            <IconButton 
+                              size="small" 
+                              onClick={() => {
+                                toast((t) => (
+                                  <Box>
+                                    <Typography variant="subtitle2" fontWeight="bold">Payment Notes:</Typography>
+                                    <Typography variant="body2">{payment.notes}</Typography>
+                                    {payment.referenceNumber && (
+                                      <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+                                        Ref: {payment.referenceNumber}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                ), { duration: 5000 });
+                              }}
+                              title="View Receipt Info"
+                            >
+                              <ReceiptIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                          
+                          {/* View Receipt for paid payments */}
+                          {payment.receiptNumber && (
+                            <IconButton size="small" title="View Receipt">
+                              <ReceiptIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))
@@ -492,34 +636,169 @@ const AdminPayments = () => {
           />
         </Paper>
 
-        {/* Confirm Payment Dialog */}
+        {/* Confirm Cash Payment Dialog */}
         <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Confirm Cash Payment</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+            Confirm Cash Payment
+          </DialogTitle>
           <DialogContent>
             {selectedPayment && (
               <Box>
-                <Alert severity="info" sx={{ mb: 2 }}>
+                <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
                   Confirm that you have received cash payment for this invoice.
                 </Alert>
-                <Paper sx={{ p: 2, bgcolor: themeColors.background }}>
+                <Paper sx={{ p: 2, bgcolor: themeColors.background, borderRadius: 2 }}>
                   <Typography><strong>Invoice:</strong> {selectedPayment.invoiceNumber}</Typography>
                   <Typography><strong>Resident:</strong> {selectedPayment.residentId?.firstName} {selectedPayment.residentId?.lastName}</Typography>
+                  <Typography><strong>House:</strong> {selectedPayment.residentId?.houseNumber || 'N/A'}</Typography>
                   <Typography><strong>Amount:</strong> {formatCurrency(selectedPayment.amount)}</Typography>
                 </Paper>
               </Box>
             )}
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
             <Button onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
-            <Button variant="contained" color="success" onClick={handleConfirmPayment} disabled={processing}>
+            <Button variant="contained" color="success" onClick={handleConfirmCashPayment} disabled={processing}>
               {processing ? <CircularProgress size={20} /> : 'Confirm Payment'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* QRPh Payment Verification Dialog */}
+        <Dialog open={qrphDialogOpen} onClose={() => setQrphDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ 
+            fontWeight: 600, 
+            color: themeColors.textPrimary,
+            borderBottom: `1px solid ${themeColors.border}`,
+            pb: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}>
+            <QrCodeIcon sx={{ color: themeColors.info }} />
+            Verify QRPh Payment
+          </DialogTitle>
+          <DialogContent>
+            {selectedQRPhPayment && (
+              <Box sx={{ mt: 2 }}>
+                <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+                  Please verify that the resident has completed the QRPh payment before confirming.
+                </Alert>
+                
+                <Paper sx={{ p: 2, mb: 3, bgcolor: themeColors.background, borderRadius: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: themeColors.textPrimary }}>
+                    Payment Details:
+                  </Typography>
+                  <Divider sx={{ mb: 1.5 }} />
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">Invoice:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2" sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                        {selectedQRPhPayment.invoiceNumber}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">Resident:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2">
+                        {selectedQRPhPayment.residentId?.firstName} {selectedQRPhPayment.residentId?.lastName}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">House:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2">
+                        {selectedQRPhPayment.residentId?.houseNumber || 'N/A'}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">Amount:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: themeColors.success }}>
+                        {formatCurrency(selectedQRPhPayment.amount)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">Reference #:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                        {selectedQRPhPayment.referenceNumber || 'N/A'}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">Submitted:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2">
+                        {formatDate(selectedQRPhPayment.createdAt)}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Divider sx={{ my: 1 }} />
+                      <Typography variant="caption" color="textSecondary">Resident's Notes:</Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, p: 1, bgcolor: '#f1f5f9', borderRadius: 1 }}>
+                        {selectedQRPhPayment.notes || 'No notes provided'}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Verification Notes (Optional)"
+                  value={verificationNotes}
+                  onChange={(e) => setVerificationNotes(e.target.value)}
+                  placeholder="Add any notes about the verification (e.g., receipt checked, payment confirmed)..."
+                  InputProps={{
+                    sx: {
+                      borderRadius: 2,
+                      backgroundColor: '#f8fafc'
+                    }
+                  }}
+                  InputLabelProps={{
+                    sx: {
+                      color: themeColors.textSecondary,
+                      '&.Mui-focused': { color: themeColors.primary }
+                    }
+                  }}
+                />
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
+            <Button onClick={() => {
+              setQrphDialogOpen(false);
+              setSelectedQRPhPayment(null);
+              setVerificationNotes('');
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              variant="contained" 
+              color="success" 
+              onClick={handleVerifyQRPhPayment} 
+              disabled={processing}
+              startIcon={processing ? <CircularProgress size={20} /> : <VerifyIcon />}
+              sx={{ bgcolor: themeColors.success, '&:hover': { bgcolor: '#0da271' } }}
+            >
+              {processing ? 'Verifying...' : 'Verify & Confirm Payment'}
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* Generate Invoices Dialog */}
         <Dialog open={generateInvoiceDialogOpen} onClose={() => setGenerateInvoiceDialogOpen(false)} maxWidth="xs" fullWidth>
-          <DialogTitle>Generate Monthly Invoices</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+            Generate Monthly Invoices
+          </DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={6}>
@@ -544,11 +823,11 @@ const AdminPayments = () => {
                 />
               </Grid>
             </Grid>
-            <Alert severity="warning" sx={{ mt: 2 }}>
+            <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
               This will generate invoices for all active residents. Existing invoices for this month will be skipped.
             </Alert>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
             <Button onClick={() => setGenerateInvoiceDialogOpen(false)}>Cancel</Button>
             <Button variant="contained" onClick={handleGenerateInvoices} disabled={processing}>
               {processing ? <CircularProgress size={20} /> : 'Generate'}
@@ -558,13 +837,15 @@ const AdminPayments = () => {
 
         {/* Send Reminders Dialog */}
         <Dialog open={reminderDialogOpen} onClose={() => setReminderDialogOpen(false)} maxWidth="xs" fullWidth>
-          <DialogTitle>Send Overdue Reminders</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+            Send Overdue Reminders
+          </DialogTitle>
           <DialogContent>
-            <Alert severity="info">
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
               This will send SMS/Email reminders to all residents with overdue payments.
             </Alert>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
             <Button onClick={() => setReminderDialogOpen(false)}>Cancel</Button>
             <Button variant="contained" color="warning" onClick={handleSendReminders} disabled={processing}>
               {processing ? <CircularProgress size={20} /> : 'Send Reminders'}

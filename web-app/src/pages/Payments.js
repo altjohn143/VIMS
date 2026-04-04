@@ -111,13 +111,13 @@ const Payments = () => {
       }
       
       console.log('Fetching current dues...');
-      const duesResponse = await axios.get('/payments/current-dues');
+      const duesResponse = await axios.get('/api/payments/current-dues');
       if (duesResponse.data.success) {
         setCurrentDues(duesResponse.data.data);
       }
       
       console.log('Fetching payment history...');
-      const paymentsResponse = await axios.get('/payments/my');
+      const paymentsResponse = await axios.get('/api/payments/my');
       if (paymentsResponse.data.success) {
         setPayments(paymentsResponse.data.data);
         setSummary(paymentsResponse.data.summary);
@@ -149,7 +149,7 @@ const Payments = () => {
     setPaymentMethodOpen(false);
     setProcessing(true);
     try {
-      const response = await axios.post(`/payments/${selectedPayment._id}/pay`, {
+        const response = await axios.post(`/api/payments/${selectedPayment._id}/pay`, {
         paymentMethod: 'cash'
       });
       
@@ -185,7 +185,7 @@ const Payments = () => {
       formData.append('paymentId', selectedPayment._id);
       formData.append('amount', selectedPayment.amount);
       
-      const response = await axios.post('/payments/upload-qrph-receipt', formData, {
+        const response = await axios.post('/api/payments/upload-qrph-receipt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       

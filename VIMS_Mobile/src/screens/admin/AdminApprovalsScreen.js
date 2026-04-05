@@ -770,7 +770,7 @@ const styles = StyleSheet.create({
     color: themeColors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
-  },w
+  },
 });
 
 export default AdminApprovalsScreen;

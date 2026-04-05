@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "VIMS Mobile",
-    "slug": "vims-mobile",
+    "slug": "vims-mobile-7euufkub27o94cpv6tbz",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -23,7 +23,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2224be"
       },
-      "package": "com.yourcompany.vims"
+      "package": "com.yourcompany.vims",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,8 +43,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "75c1df03-5fb1-45ad-80c4-40d34a99d340"
       }
-    }
+    },
+    "owner": "altjohn143"
   }
 }

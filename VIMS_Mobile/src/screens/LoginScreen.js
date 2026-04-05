@@ -47,24 +47,62 @@ const LoginScreen = ({ navigation }) => {
     },
   ];
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
+const handleLogin = async () => {
+  if (!email || !password) {
+    Alert.alert('Error', 'Please fill in all fields');
+    return;
+  }
 
-    setLoading(true);
-    try {
-      const result = await login(email, password);
-      if (!result.success) {
+  setLoading(true);
+  try {
+    const result = await login(email, password);
+    
+    if (!result.success) {
+      // Check if the error indicates pending approval
+      if (result.error?.includes('pending admin approval') || result.requiresApproval) {
+        Alert.alert(
+          'Account Pending Approval',
+          'Your account is waiting for admin approval. You will be notified once approved.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Navigate to pending approval screen
+                navigation.replace('PendingApproval');
+              }
+            }
+          ]
+        );
+      } else {
         Alert.alert('Login Failed', result.error || 'Invalid credentials');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Something went wrong');
-    } finally {
-      setLoading(false);
+    } else {
+      // Check if user is approved after successful login
+      const userData = result.user;
+      if (userData?.role === 'resident' && !userData.isApproved) {
+        Alert.alert(
+          'Account Pending Approval',
+          'Your account is waiting for admin approval. Please wait for approval before logging in.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation.replace('PendingApproval');
+              }
+            }
+          ]
+        );
+        return;
+      }
+      // Login successful and approved
+      navigation.replace('DashboardTab');
     }
-  };
+  } catch (error) {
+    Alert.alert('Error', 'Something went wrong');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleBrowseLots = () => {
     navigation.navigate('PublicLots');

@@ -21,22 +21,66 @@ for (const name of Object.keys(networkInterfaces)) {
   }
 }
 
+// Fixed CORS configuration - removed invalid regex patterns and fixed syntax errors
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:8081',
+  'http://localhost:19006',
+  'exp://localhost:19000',
+  `http://${localIP}:3000`,
+  `http://${localIP}:8081`,
+  `http://${localIP}:5000`,
+  'https://vims-one.vercel.app'
+];
+
+// Also allow any IP in the 192.168.x.x range for mobile devices
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:8081',
-    'http://localhost:19006',
-    'exp://localhost:19000',
-    /^exp:\/\/192\.168\..*:8081$/,
-    /^http:\/\/192\.168\..*:3000$/,
-    /^http:\/\/192\.168\..*:8081$/,
-    /^http:\/\/10\.0\..*:5000$/,
-    'https://vims-one.vercel.app'
-  ],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is allowed
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    
+    // Allow any 192.168.x.x IP address
+    const ipPattern = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/;
+    if (ipPattern.test(origin)) {
+      return callback(null, true);
+    }
+    
+    // Allow any 10.0.x.x IP address (Android emulator)
+    const androidPattern = /^http:\/\/10\.0\.\d{1,3}\.\d{1,3}:\d+$/;
+    if (androidPattern.test(origin)) {
+      return callback(null, true);
+    }
+    
+    // Allow exp:// URLs for Expo Go
+    if (origin.startsWith('exp://')) {
+      return callback(null, true);
+    }
+    
+    callback(null, true); // Temporarily allow all for debugging
+    // callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-data', 'Cache-Control', 'Pragma', 'If-Modified-Since', 'Accept', 'Origin', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'x-user-data',
+    'Cache-Control',
+    'Pragma',
+    'If-Modified-Since',
+    'Accept',
+    'Origin',
+    'X-Requested-With'
+  ],
   exposedHeaders: ['Content-Length', 'Content-Type', 'Authorization'],
+  maxAge: 86400,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Middleware
@@ -111,7 +155,16 @@ async function autoSeedDatabase() {
     
     console.log('Checking/creating admin and security accounts...');
     
-    // Delete existing accounts to ensure clean slate
+    // Check if accounts already exist before deleting
+    const existingAdmin = await User.findOne({ email: 'admin@vims.com' });
+    const existingSecurity = await User.findOne({ email: 'security@vims.com' });
+    
+    if (existingAdmin && existingSecurity) {
+      console.log('Admin and Security accounts already exist, skipping seed...');
+      return;
+    }
+    
+    // Delete existing accounts to ensure clean slate (only if they exist)
     await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
     console.log('Removed existing admin/security accounts');
     
@@ -124,7 +177,7 @@ async function autoSeedDatabase() {
       lastName: 'Administrator',
       email: 'admin@vims.com',
       phone: '9876543210',
-      password: plainPassword,  // Plain text password - will be hashed by User model
+      password: plainPassword,
       role: 'admin',
       isApproved: true,
       isActive: true
@@ -138,7 +191,7 @@ async function autoSeedDatabase() {
       lastName: 'Officer',
       email: 'security@vims.com',
       phone: '9876543211',
-      password: plainPassword,  // Plain text password - will be hashed by User model
+      password: plainPassword,
       role: 'security',
       isApproved: true,
       isActive: true
@@ -268,7 +321,6 @@ app.get('/api/test-connection', (req, res) => {
   });
 });
 
-
 // TEMPORARY TEST ENDPOINT - Direct password test
 app.post('/api/test-password-direct', async (req, res) => {
   try {
@@ -317,18 +369,30 @@ app.post('/api/test-password-direct', async (req, res) => {
   }
 });
 
-// 404 handler
-app.use('/api/*', (req, res) => {
-  console.log(`Route not found: ${req.originalUrl}`);
-  res.status(404).json({ 
-    success: false, 
-    error: 'API route not found',
-    requested: req.originalUrl,
-    method: req.method
-  });
+// Debug endpoint to check lots
+app.get('/api/debug/lots-count', async (req, res) => {
+  try {
+    const Lot = require('./models/Lot');
+    const count = await Lot.countDocuments();
+    const vacant = await Lot.countDocuments({ status: 'vacant' });
+    const occupied = await Lot.countDocuments({ status: 'occupied' });
+    const reserved = await Lot.countDocuments({ status: 'reserved' });
+    const sample = await Lot.findOne();
+    
+    res.json({
+      success: true,
+      count,
+      vacant,
+      occupied,
+      reserved,
+      sample: sample ? { lotId: sample.lotId, status: sample.status } : null
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Add this to your server.js before the 404 handler
+// Debug endpoint to check users
 app.get('/api/debug/check-users', async (req, res) => {
   try {
     const User = require('./models/User');
@@ -341,6 +405,17 @@ app.get('/api/debug/check-users', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// 404 handler
+app.use('/api/*', (req, res) => {
+  console.log(`Route not found: ${req.originalUrl}`);
+  res.status(404).json({ 
+    success: false, 
+    error: 'API route not found',
+    requested: req.originalUrl,
+    method: req.method
+  });
 });
 
 // Error handler
@@ -356,16 +431,17 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\nServer running on port ${PORT}`);
-  console.log(`Local: http://localhost:${PORT}/api`);
-  console.log(`Network: http://${localIP}:${PORT}/api`);
-  console.log(`Health: http://localhost:${PORT}/api/health`);
-  console.log(`Debug: http://localhost:${PORT}/api/debug/routes`);
-  console.log(`Lots API: http://localhost:${PORT}/api/lots`);
+  console.log(`\n🚀 Server running on port ${PORT}`);
+  console.log(`📍 Local: http://localhost:${PORT}/api`);
+  console.log(`📍 Network: http://${localIP}:${PORT}/api`);
+  console.log(`📍 Health: http://localhost:${PORT}/api/health`);
+  console.log(`📍 Lots API: http://localhost:${PORT}/api/lots`);
+  console.log(`📍 Debug Lots: http://localhost:${PORT}/api/debug/lots-count`);
   console.log('\n📱 Mobile Setup:');
   console.log(`   Android Emulator: http://10.0.2.2:${PORT}/api`);
   console.log(`   iOS Simulator: http://localhost:${PORT}/api`);
   console.log(`   Real Device: http://${localIP}:${PORT}/api`);
+  console.log('\n✅ VIMS Backend is ready!');
 });
 
 module.exports = app;

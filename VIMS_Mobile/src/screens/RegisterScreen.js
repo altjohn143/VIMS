@@ -20,12 +20,35 @@ import api from '../utils/api';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+// Country codes data
+const COUNTRY_CODES = [
+  { code: '+63', country: 'Philippines', flag: '🇵🇭', prefix: '63', example: '9662342234' },
+  { code: '+1', country: 'USA/Canada', flag: '🇺🇸', prefix: '1', example: '2125551234' },
+  { code: '+44', country: 'United Kingdom', flag: '🇬🇧', prefix: '44', example: '7911123456' },
+  { code: '+61', country: 'Australia', flag: '🇦🇺', prefix: '61', example: '412345678' },
+  { code: '+81', country: 'Japan', flag: '🇯🇵', prefix: '81', example: '9012345678' },
+  { code: '+82', country: 'South Korea', flag: '🇰🇷', prefix: '82', example: '1012345678' },
+  { code: '+86', country: 'China', flag: '🇨🇳', prefix: '86', example: '13812345678' },
+  { code: '+65', country: 'Singapore', flag: '🇸🇬', prefix: '65', example: '91234567' },
+  { code: '+60', country: 'Malaysia', flag: '🇲🇾', prefix: '60', example: '123456789' },
+  { code: '+66', country: 'Thailand', flag: '🇹🇭', prefix: '66', example: '812345678' },
+  { code: '+84', country: 'Vietnam', flag: '🇻🇳', prefix: '84', example: '901234567' },
+  { code: '+62', country: 'Indonesia', flag: '🇮🇩', prefix: '62', example: '8123456789' },
+  { code: '+971', country: 'UAE', flag: '🇦🇪', prefix: '971', example: '501234567' },
+  { code: '+966', country: 'Saudi Arabia', flag: '🇸🇦', prefix: '966', example: '501234567' },
+  { code: '+49', country: 'Germany', flag: '🇩🇪', prefix: '49', example: '15123456789' },
+  { code: '+33', country: 'France', flag: '🇫🇷', prefix: '33', example: '612345678' },
+  { code: '+39', country: 'Italy', flag: '🇮🇹', prefix: '39', example: '3123456789' },
+  { code: '+34', country: 'Spain', flag: '🇪🇸', prefix: '34', example: '612345678' },
+];
+
 const RegisterScreen = ({ navigation, route }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
+    countryCode: '+63',
     password: '',
     confirmPassword: '',
     selectedLot: ''
@@ -46,6 +69,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [mapViewMode, setMapViewMode] = useState('available');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showLotDropdown, setShowLotDropdown] = useState(false);
+  const [showCountryCodeDropdown, setShowCountryCodeDropdown] = useState(false);
   const [mapZoom, setMapZoom] = useState(1);
   const [selectedMapLot, setSelectedMapLot] = useState(null);
   const [showLotInfo, setShowLotInfo] = useState(false);
@@ -98,6 +122,8 @@ const RegisterScreen = ({ navigation, route }) => {
       filteredValue = value.replace(/[^a-zA-Z\s-]/g, '');
     } else if (field === 'phone') {
       filteredValue = value.replace(/\D/g, '').slice(0, 10);
+    } else if (field === 'countryCode') {
+      filteredValue = value;
     }
 
     setFormData(prev => ({ ...prev, [field]: filteredValue }));
@@ -123,6 +149,10 @@ const RegisterScreen = ({ navigation, route }) => {
     } else {
       Alert.alert('Not Available', `Lot ${lot.lotId} is not available for registration.`);
     }
+  };
+
+  const getSelectedCountry = () => {
+    return COUNTRY_CODES.find(c => c.code === formData.countryCode) || COUNTRY_CODES[0];
   };
 
   useEffect(() => {
@@ -177,9 +207,15 @@ const RegisterScreen = ({ navigation, route }) => {
     else if (!isValidEmail(formData.email)) newErrors.email = 'Please enter a valid email';
     else if (availability.email === false) newErrors.email = 'This email is already registered';
 
-    if (!formData.phone) newErrors.phone = 'Phone number is required';
-    else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Phone number must be exactly 10 digits';
-    else if (availability.phone === false) newErrors.phone = 'This phone number is already registered';
+    if (!formData.phone) {
+      newErrors.phone = 'Phone number is required';
+    } else {
+      const phoneRegex = /^9\d{9}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        newErrors.phone = 'Phone number must be 10 digits starting with 9 (e.g., 9662342234)';
+      }
+    }
+    if (availability.phone === false) newErrors.phone = 'This phone number is already registered';
 
     if (!formData.password) newErrors.password = 'Password is required';
     else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
@@ -212,7 +248,8 @@ const RegisterScreen = ({ navigation, route }) => {
         phone: formData.phone,
         password: formData.password,
         role: 'resident',
-        selectedLot: formData.selectedLot
+        selectedLot: formData.selectedLot,
+        countryCode: formData.countryCode
       };
 
       const response = await api.post('/auth/register', registrationData);
@@ -269,6 +306,7 @@ const RegisterScreen = ({ navigation, route }) => {
   });
 
   const sortedBlocks = Object.keys(lotsByBlock).sort();
+  const selectedCountry = getSelectedCountry();
 
   return (
     <View style={styles.container}>
@@ -315,12 +353,35 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
           {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="call" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
-            <TextInput style={styles.input} placeholder="Phone Number" value={formData.phone} onChangeText={(text) => handleChange('phone', text)} keyboardType="phone-pad" maxLength={10} />
-            {getAvailabilityIcon('phone')}
+          {/* Phone Number with Country Code */}
+          <View>
+            <View style={styles.phoneRow}>
+              {/* Country Code Dropdown Button */}
+              <TouchableOpacity style={styles.countryCodeButton} onPress={() => setShowCountryCodeDropdown(true)}>
+                <Text style={styles.countryCodeFlag}>{selectedCountry.flag}</Text>
+                <Text style={styles.countryCodeText}>{selectedCountry.code}</Text>
+                <Ionicons name="chevron-down" size={16} color={themeColors.textSecondary} />
+              </TouchableOpacity>
+
+              {/* Phone Number Input */}
+              <View style={styles.phoneInputContainer}>
+                <Ionicons name="call" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.phoneInput}
+                  placeholder="9662342234"
+                  value={formData.phone}
+                  onChangeText={(text) => handleChange('phone', text)}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                />
+                {getAvailabilityIcon('phone')}
+              </View>
+            </View>
+            <Text style={styles.phoneHelperText}>
+              {selectedCountry.flag} {selectedCountry.code} - {selectedCountry.country}: {selectedCountry.example}
+            </Text>
+            {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
           </View>
-          {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
@@ -421,6 +482,42 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Country Code Dropdown Modal */}
+      <Modal visible={showCountryCodeDropdown} animationType="slide" transparent onRequestClose={() => setShowCountryCodeDropdown(false)}>
+        <View style={styles.dropdownOverlay}>
+          <View style={styles.dropdownModal}>
+            <View style={styles.dropdownModalHeader}>
+              <Text style={styles.dropdownModalTitle}>Select Country Code</Text>
+              <TouchableOpacity onPress={() => setShowCountryCodeDropdown(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={COUNTRY_CODES}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.countryOption, formData.countryCode === item.code && styles.countryOptionSelected]}
+                  onPress={() => {
+                    handleChange('countryCode', item.code);
+                    setShowCountryCodeDropdown(false);
+                  }}
+                >
+                  <View style={styles.countryOptionLeft}>
+                    <Text style={styles.countryOptionFlag}>{item.flag}</Text>
+                    <Text style={styles.countryOptionCode}>{item.code}</Text>
+                    <Text style={styles.countryOptionName}>{item.country}</Text>
+                  </View>
+                  {formData.countryCode === item.code && (
+                    <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* Lot Dropdown Modal */}
       <Modal visible={showLotDropdown} animationType="slide" transparent onRequestClose={() => setShowLotDropdown(false)}>
@@ -641,10 +738,29 @@ const styles = StyleSheet.create({
   loginLink: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: themeColors.border },
   loginText: { color: themeColors.textSecondary, fontSize: 14 },
   loginButtonText: { color: themeColors.primary, fontSize: 14, fontWeight: '600', marginLeft: 4 },
+
+  // Phone number with country code styles
+  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  countryCodeButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, gap: 6 },
+  countryCodeFlag: { fontSize: 18 },
+  countryCodeText: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary },
+  phoneInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#f8fafc' },
+  phoneInput: { flex: 1, paddingVertical: 12, fontSize: 16, color: themeColors.textPrimary },
+  phoneHelperText: { fontSize: 11, color: themeColors.textSecondary, marginBottom: 4, marginLeft: 4 },
+
+  // Country code dropdown styles
   dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   dropdownModal: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
   dropdownModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   dropdownModalTitle: { fontSize: 18, fontWeight: '600', color: themeColors.textPrimary },
+  countryOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  countryOptionSelected: { backgroundColor: themeColors.primary + '10' },
+  countryOptionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  countryOptionFlag: { fontSize: 24 },
+  countryOptionCode: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary },
+  countryOptionName: { fontSize: 14, color: themeColors.textSecondary },
+
+  // Lot dropdown styles
   lotOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   lotOptionSelected: { backgroundColor: themeColors.primary + '10' },
   lotOptionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -652,6 +768,8 @@ const styles = StyleSheet.create({
   lotOptionType: { fontSize: 13, color: themeColors.textSecondary },
   lotOptionRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   lotOptionSqm: { fontSize: 13, color: themeColors.textSecondary },
+
+  // Map styles
   mapModalContainer: { flex: 1, backgroundColor: '#0f2a04' },
   mapModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: themeColors.primary },
   mapModalBack: { padding: 8 },
@@ -683,6 +801,8 @@ const styles = StyleSheet.create({
   mapLotNumber: { fontWeight: '700' },
   mapLotSqm: { opacity: 0.7 },
   mapSelectedBadge: { position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, backgroundColor: themeColors.primary, justifyContent: 'center', alignItems: 'center' },
+
+  // Lot Info Modal styles
   lotInfoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   lotInfoModal: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
   lotInfoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
@@ -700,6 +820,8 @@ const styles = StyleSheet.create({
   lotInfoButton: { paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
   lotSelectButton: { backgroundColor: themeColors.success },
   lotSelectButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+
+  // Success Modal styles
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   successModal: { backgroundColor: 'white', borderRadius: 20, padding: 30, width: '85%', alignItems: 'center' },
   successIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: themeColors.success, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },

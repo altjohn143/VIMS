@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Lot = require('../models/Lot');
 const { protect } = require('../middleware/auth');
 
 const generateToken = (user) => {
@@ -35,8 +36,23 @@ router.post('/check-availability', async (req, res) => {
         query = { phone: value };
         break;
       case 'house':
-        query = { houseNumber: value };
+        // For house, value format is "BLOCK-LOT"
+        const parts = value.split('-');
+        if (parts.length === 2) {
+          const block = parts[0];
+          const lot = parts[1];
+          query = { houseBlock: block, houseLot: lot };
+        } else {
+          return res.json({ success: true, available: true });
+        }
         break;
+      case 'lot':
+        // Check if lot is available in the Lots collection
+        const foundLot = await Lot.findOne({ lotId: value });
+        if (!foundLot) {
+          return res.json({ success: true, available: false, error: 'Invalid lot number' });
+        }
+        return res.json({ success: true, available: foundLot.status === 'vacant', lotDetails: foundLot });
       default:
         return res.status(400).json({
           success: false,
@@ -61,14 +77,14 @@ router.post('/check-availability', async (req, res) => {
   }
 });
 
-// Register route - Residents require approval
+// Register route
 router.post('/register', async (req, res) => {
   try {
     console.log('\n===== REGISTRATION ATTEMPT =====');
     console.log('📝 Email:', req.body.email);
     console.log('📝 Role from request:', req.body.role);
     
-    const { firstName, lastName, email, phone, password, role, houseNumber } = req.body;
+    const { firstName, lastName, email, phone, password, role, selectedLot } = req.body;
 
     // Validation
     if (!firstName || !lastName || !email || !phone || !password) {
@@ -91,7 +107,6 @@ router.post('/register', async (req, res) => {
 
     // Set isApproved based on role
     const userRole = role || 'resident';
-    // CRITICAL: This determines approval status
     const isApproved = userRole === 'admin' || userRole === 'security';
     
     console.log('⚙️ Registration settings:', {
@@ -109,18 +124,49 @@ router.post('/register', async (req, res) => {
       phone,
       password,
       role: userRole,
-      isApproved: isApproved, // This should be false for residents
+      isApproved: isApproved,
     };
 
-    // Add houseNumber only for residents
+    // Add house information for residents using selected lot
     if (userRole === 'resident') {
-      if (!houseNumber) {
+      if (!selectedLot) {
         return res.status(400).json({
           success: false,
-          error: 'House number is required for residents'
+          error: 'Please select a lot from the available lots'
         });
       }
-      userData.houseNumber = houseNumber;
+      
+      // Verify the lot is still available
+      const lot = await Lot.findOne({ lotId: selectedLot });
+      if (!lot) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid lot selected'
+        });
+      }
+      
+      if (lot.status !== 'vacant') {
+        return res.status(400).json({
+          success: false,
+          error: 'This lot is no longer available. Please select another lot.'
+        });
+      }
+      
+      // Extract block and lot number from lotId (format: "A-1")
+      const lotParts = selectedLot.split('-');
+      if (lotParts.length === 2) {
+        const houseBlock = lotParts[0];
+        const houseLot = lotParts[1];
+        
+        userData.houseBlock = houseBlock;
+        userData.houseLot = houseLot;
+        userData.houseNumber = selectedLot;
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid lot format'
+        });
+      }
     }
 
     console.log('User data being saved:', {
@@ -136,19 +182,20 @@ router.post('/register', async (req, res) => {
       email: user.email,
       role: user.role,
       isApproved: user.isApproved,
+      houseBlock: user.houseBlock,
+      houseLot: user.houseLot,
       fromDatabase: await User.findById(user._id).select('isApproved role email')
     });
 
     // Remove password from output
     user.password = undefined;
 
-    // Generate token (only useful if approved, but we'll send it anyway)
+    // Generate token
     const token = generateToken(user);
     
-    // Different message based on approval status
     const message = user.isApproved 
       ? 'Registration successful! You can now login.'
-      : 'Registration successful! Your account is pending admin approval. You will be able to login once approved.';
+      : 'Registration successful! Your account is pending admin approval. Once approved, your selected lot will be reserved for you.';
 
     console.log('Response message:', message);
     console.log('===== REGISTRATION COMPLETE =====\n');
@@ -164,6 +211,8 @@ router.post('/register', async (req, res) => {
         email: user.email,
         role: user.role,
         houseNumber: user.houseNumber,
+        houseBlock: user.houseBlock,
+        houseLot: user.houseLot,
         isApproved: user.isApproved
       }
     });
@@ -177,7 +226,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login route - Check if user is approved
+// Login route
 router.post('/login', async (req, res) => {
   try {
     console.log('\n ===== LOGIN ATTEMPT =====');
@@ -193,7 +242,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Find user and include password field
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     
     if (!user) {
@@ -212,7 +260,6 @@ router.post('/login', async (req, res) => {
       isActive: user.isActive
     });
 
-    // Check if account is active
     if (!user.isActive) {
       console.log('Account is deactivated:', email);
       return res.status(403).json({
@@ -221,7 +268,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Verify password
     const isMatch = await user.comparePassword(password);
     
     if (!isMatch) {
@@ -232,7 +278,6 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    // CRITICAL: Check if user is approved
     console.log('Checking approval status:', {
       isApproved: user.isApproved,
       willAllow: user.isApproved ? 'YES - Login allowed' : 'NO - Login blocked'
@@ -250,10 +295,8 @@ router.post('/login', async (req, res) => {
     
     console.log('Login successful for:', email);
 
-    // Remove password from output
     user.password = undefined;
 
-    // Generate token
     const token = generateToken(user);
     
     res.json({
@@ -267,6 +310,8 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
         houseNumber: user.houseNumber,
+        houseBlock: user.houseBlock,
+        houseLot: user.houseLot,
         isApproved: user.isApproved,
         isActive: user.isActive
       }
@@ -311,7 +356,6 @@ router.put('/change-password', protect, async (req, res) => {
       });
     }
     
-    // Verify current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(400).json({
@@ -320,7 +364,6 @@ router.put('/change-password', protect, async (req, res) => {
       });
     }
     
-    // Update password
     user.password = newPassword;
     await user.save();
     
@@ -353,7 +396,6 @@ router.get('/me', async (req, res) => {
     }
 
     try {
-      // Decode token (simple base64 decode)
       const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
       
       const user = await User.findById(decoded.id);
@@ -365,7 +407,6 @@ router.get('/me', async (req, res) => {
         });
       }
       
-      // Check if user is approved
       if (!user.isApproved) {
         return res.status(403).json({
           success: false,
@@ -384,6 +425,8 @@ router.get('/me', async (req, res) => {
           email: user.email,
           role: user.role,
           houseNumber: user.houseNumber,
+          houseBlock: user.houseBlock,
+          houseLot: user.houseLot,
           isApproved: user.isApproved,
           isActive: user.isActive
         }
@@ -421,15 +464,12 @@ router.post('/forgot-password', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     
     if (!user) {
-      // Don't reveal that user doesn't exist
       return res.json({
         success: true,
         message: 'If your email is registered, you will receive a password reset link.'
       });
     }
     
-    // In a real app, you would send an email here
-    // For now, just log it
     console.log('Password reset requested for:', email);
     
     res.json({
@@ -481,7 +521,7 @@ router.get('/check-status/:email', async (req, res) => {
 // Debug route to check all users
 router.get('/debug/all-users', async (req, res) => {
   try {
-    const users = await User.find({}).select('email role isApproved createdAt');
+    const users = await User.find({}).select('email role isApproved createdAt houseBlock houseLot');
     res.json({
       success: true,
       count: users.length,

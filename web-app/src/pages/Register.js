@@ -13,7 +13,13 @@ import {
   IconButton,
   InputAdornment,
   Alert,
-  Divider
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   Visibility,
@@ -23,9 +29,10 @@ import {
   Email as EmailIcon,
   Person as PersonIcon,
   Phone as PhoneIcon,
-  Home as HomeIcon,
   ArrowBack as ArrowBackIcon,
-  HowToReg as RegisterIcon
+  HowToReg as RegisterIcon,
+  LocationOn as LocationIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -37,6 +44,7 @@ const Register = () => {
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
+    info: '#3b82f6',
     textPrimary: '#1e293b',
     textSecondary: '#64748b',
     border: 'rgba(45, 80, 22, 0.15)',
@@ -50,35 +58,56 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     role: 'resident',
-    houseLot: '',
-    houseBlock: ''
+    selectedLot: ''
   });
 
+  const [availableLots, setAvailableLots] = useState([]);
+  const [loadingLots, setLoadingLots] = useState(true);
+  const [selectedLotDetails, setSelectedLotDetails] = useState(null);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [availability, setAvailability] = useState({ email: null, phone: null, house: null });
-  const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false, house: false });
+  const [availability, setAvailability] = useState({ email: null, phone: null });
+  const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
 
   const { register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Pre-fill lot & block if coming from the public lot map
+  // Fetch available lots on component mount
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const lot = params.get('lot');
-    const block = params.get('block');
-    if (lot || block) {
-      setFormData(prev => ({
-        ...prev,
-        houseLot: block || prev.houseLot,
-        houseBlock: lot || prev.houseBlock,
-      }));
-    }
+    const fetchAvailableLots = async () => {
+      try {
+        setLoadingLots(true);
+        const response = await axios.get('/api/lots/available');
+        if (response.data.success) {
+          setAvailableLots(response.data.data);
+          
+          // Check if there's a pre-selected lot from URL
+          const params = new URLSearchParams(location.search);
+          const lot = params.get('lot');
+          const block = params.get('block');
+          if (lot && block) {
+            const lotId = `${block}-${lot}`;
+            const preSelectedLot = response.data.data.find(l => l.lotId === lotId);
+            if (preSelectedLot) {
+              setFormData(prev => ({ ...prev, selectedLot: lotId }));
+              setSelectedLotDetails(preSelectedLot);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching available lots:', error);
+      } finally {
+        setLoadingLots(false);
+      }
+    };
+    
+    fetchAvailableLots();
   }, [location.search]);
 
+  // Email availability check
   useEffect(() => {
     const checkEmailAvailability = async () => {
       if (!formData.email || !isValidEmail(formData.email)) return;
@@ -96,6 +125,7 @@ const Register = () => {
     return () => clearTimeout(timer);
   }, [formData.email]);
 
+  // Phone availability check
   useEffect(() => {
     const checkPhoneAvailability = async () => {
       if (!formData.phone || !/^\d{10}$/.test(formData.phone)) return;
@@ -113,27 +143,10 @@ const Register = () => {
     return () => clearTimeout(timer);
   }, [formData.phone]);
 
-  useEffect(() => {
-    const checkHouseAvailability = async () => {
-      if (!formData.houseLot || !formData.houseBlock) return;
-      const houseNumber = `${formData.houseLot}-${formData.houseBlock}`.trim();
-      setCheckingAvailability(prev => ({ ...prev, house: true }));
-      try {
-        const response = await axios.post('/api/auth/check-availability', { type: 'house', value: houseNumber });
-        setAvailability(prev => ({ ...prev, house: response.data.available }));
-      } catch (error) {
-        console.error('House check error:', error);
-      } finally {
-        setCheckingAvailability(prev => ({ ...prev, house: false }));
-      }
-    };
-    const timer = setTimeout(checkHouseAvailability, 500);
-    return () => clearTimeout(timer);
-  }, [formData.houseLot, formData.houseBlock]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     let filteredValue = value;
+    
     switch (name) {
       case 'firstName':
       case 'lastName':
@@ -142,21 +155,25 @@ const Register = () => {
       case 'phone':
         filteredValue = value.replace(/\D/g, '').slice(0, 10);
         break;
-      case 'houseLot':
-      case 'houseBlock':
-        filteredValue = value.replace(/[^a-zA-Z0-9-]/g, '');
-        break;
       default:
         filteredValue = value;
     }
+    
     setFormData(prev => ({ ...prev, [name]: filteredValue }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
-    if ((name === 'email' && !filteredValue) ||
-        (name === 'phone' && !filteredValue) ||
-        ((name === 'houseLot' || name === 'houseBlock') && (!formData.houseLot || !formData.houseBlock))) {
+    
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    
+    if (name === 'selectedLot') {
+      const selected = availableLots.find(lot => lot.lotId === filteredValue);
+      setSelectedLotDetails(selected || null);
+    }
+    
+    if ((name === 'email' && !filteredValue) || (name === 'phone' && !filteredValue)) {
       setAvailability(prev => ({
         ...prev,
-        [name === 'houseLot' || name === 'houseBlock' ? 'house' : name]: null
+        [name]: null
       }));
     }
   };
@@ -171,41 +188,41 @@ const Register = () => {
 
   const validate = () => {
     const newErrors = {};
+    
     if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
     else if (formData.firstName.length < 2) newErrors.firstName = 'First name must be at least 2 characters';
+    
     if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
     else if (formData.lastName.length < 2) newErrors.lastName = 'Last name must be at least 2 characters';
+    
     if (!formData.email) newErrors.email = 'Email is required';
     else if (!isValidEmail(formData.email)) newErrors.email = 'Please use a valid email from reputable providers';
     else if (availability.email === false) newErrors.email = 'This email is already registered';
+    
     if (!formData.phone) newErrors.phone = 'Phone number is required';
     else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Phone number must be exactly 10 digits';
     else if (availability.phone === false) newErrors.phone = 'This phone number is already registered';
+    
     if (!formData.password) newErrors.password = 'Password is required';
     else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) newErrors.password = 'Password must contain uppercase, lowercase, and numbers';
+    
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm your password';
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-    if (formData.role === 'resident') {
-      if (!formData.houseLot) newErrors.houseLot = 'Lot number is required';
-      if (!formData.houseBlock) newErrors.houseBlock = 'Block number is required';
-      if (formData.houseLot && formData.houseBlock && availability.house === false) {
-        newErrors.houseLot = 'This house is already registered';
-        newErrors.houseBlock = 'This house is already registered';
-      }
-    }
+    
+    if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot from the available lots';
+    
     return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) { setErrors(validationErrors); return; }
-    if (availability.email === false || availability.phone === false ||
-        (formData.role === 'resident' && availability.house === false)) {
-      setErrors(prev => ({ ...prev, submit: 'Some information is already registered. Please check all fields.' }));
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
+    
     setLoading(true);
     const registrationData = {
       firstName: formData.firstName.trim(),
@@ -214,8 +231,9 @@ const Register = () => {
       phone: formData.phone,
       password: formData.password,
       role: formData.role,
-      houseNumber: formData.role === 'resident' ? `${formData.houseLot.trim()}-${formData.houseBlock.trim()}` : undefined
+      selectedLot: formData.selectedLot
     };
+    
     const result = await register(registrationData);
     if (result.success) {
       navigate('/login');
@@ -355,7 +373,7 @@ const Register = () => {
                 '& .MuiAlert-icon': { color: '#16a34a' },
               }}
             >
-              <strong>Lot pre-selected from the village map!</strong> Block {new URLSearchParams(location.search).get('block')}, Lot {new URLSearchParams(location.search).get('lot')} has been filled in for you.
+              <strong>Lot pre-selected from the village map!</strong> Select it from the dropdown below.
             </Alert>
           )}
 
@@ -516,58 +534,116 @@ const Register = () => {
                 />
               </Grid>
 
-              {/* House Number */}
+              {/* Lot Selection */}
               <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
-                  House Number
+                  Select Your Lot
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                  <TextField
-                    fullWidth
-                    label="Lot"
-                    name="houseLot"
-                    value={formData.houseLot}
-                    onChange={handleChange}
-                    error={!!errors.houseLot}
-                    placeholder="A"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <HomeIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} />
-                        </InputAdornment>
-                      ),
-                      sx: { borderRadius: 2 }
-                    }}
-                    sx={fieldSx}
-                  />
-                  <Typography sx={{ color: themeColors.textSecondary, mt: 2, fontWeight: 700, fontSize: '1.2rem' }}>-</Typography>
-                  <TextField
-                    fullWidth
-                    label="Block"
-                    name="houseBlock"
-                    value={formData.houseBlock}
-                    onChange={handleChange}
-                    error={!!errors.houseBlock}
-                    placeholder="101"
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          {getAvailabilityIcon('house')}
-                        </InputAdornment>
-                      ),
-                      sx: { borderRadius: 2 }
-                    }}
-                    sx={fieldSx}
-                  />
-                </Box>
-                {errors.houseLot || errors.houseBlock ? (
-                  <Typography variant="caption" sx={{ color: themeColors.error, ml: 0.5, mt: 0.5, display: 'block' }}>
-                    {errors.houseLot || errors.houseBlock}
-                  </Typography>
+                
+                {loadingLots ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={30} sx={{ color: themeColors.primary }} />
+                    <Typography sx={{ ml: 2, color: themeColors.textSecondary }}>Loading available lots...</Typography>
+                  </Box>
+                ) : availableLots.length === 0 ? (
+                  <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                    No available lots found. Please check back later or contact admin.
+                  </Alert>
                 ) : (
-                  <Typography variant="caption" sx={{ color: themeColors.textSecondary, ml: 0.5, mt: 0.5, display: 'block' }}>
-                    Format: Lot - Block (e.g., A - 101)
-                  </Typography>
+                  <>
+                    <FormControl fullWidth error={!!errors.selectedLot}>
+                      <InputLabel sx={{ color: themeColors.textSecondary }}>Choose a lot</InputLabel>
+                      <Select
+                        name="selectedLot"
+                        value={formData.selectedLot}
+                        onChange={handleChange}
+                        label="Choose a lot"
+                        required
+                        sx={{
+                          borderRadius: 2,
+                          backgroundColor: '#f8faf5',
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: themeColors.border
+                          },
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: themeColors.primary
+                          }
+                        }}
+                      >
+                        <MenuItem value="" disabled>Select an available lot</MenuItem>
+                        {availableLots.map((lot) => (
+                          <MenuItem key={lot.lotId} value={lot.lotId}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                              <span>
+                                <strong>{lot.lotId}</strong> - {lot.type}
+                              </span>
+                              <span style={{ color: themeColors.textSecondary }}>
+                                {lot.sqm} sqm
+                              </span>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    
+                    {errors.selectedLot && (
+                      <Typography variant="caption" sx={{ color: themeColors.error, mt: 0.5, display: 'block' }}>
+                        {errors.selectedLot}
+                      </Typography>
+                    )}
+                    
+                    {/* Selected Lot Details */}
+                    {selectedLotDetails && (
+                      <Card sx={{ mt: 2, borderRadius: 2, backgroundColor: themeColors.primary + '08', border: `1px solid ${themeColors.primary}20` }}>
+                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <LocationIcon sx={{ color: themeColors.primary, fontSize: 18 }} />
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: themeColors.primary }}>
+                              Lot Details
+                            </Typography>
+                          </Box>
+                          <Grid container spacing={1}>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>Lot ID:</Typography>
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{selectedLotDetails.lotId}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>Type:</Typography>
+                              <Typography variant="body2">{selectedLotDetails.type}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>Area:</Typography>
+                              <Typography variant="body2">{selectedLotDetails.sqm} sqm</Typography>
+                            </Grid>
+                            {selectedLotDetails.price && (
+                              <Grid item xs={6}>
+                                <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>Price:</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: themeColors.primary }}>
+                                  ₱{selectedLotDetails.price.toLocaleString()}
+                                </Typography>
+                              </Grid>
+                            )}
+                          </Grid>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    <Alert 
+                      severity="info" 
+                      sx={{ 
+                        mt: 2, 
+                        borderRadius: 2,
+                        backgroundColor: themeColors.info + '10',
+                        border: `1px solid ${themeColors.info}30`
+                      }}
+                      icon={<InfoIcon />}
+                    >
+                      <Typography variant="caption">
+                        Once you register, your selected lot will be reserved for you pending admin approval. 
+                        Upon approval, the lot will be officially assigned to you.
+                      </Typography>
+                    </Alert>
+                  </>
                 )}
               </Grid>
             </Grid>
@@ -577,7 +653,7 @@ const Register = () => {
               type="submit"
               fullWidth
               variant="contained"
-              disabled={loading}
+              disabled={loading || loadingLots || availableLots.length === 0}
               sx={{
                 mt: 3,
                 backgroundColor: themeColors.primary,

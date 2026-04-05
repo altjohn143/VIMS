@@ -55,11 +55,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Database connection
-// mongoose.connect('mongodb://127.0.0.1:27017/vims_system', {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true,
-// })
 // Database connection - USE ENVIRONMENT VARIABLE
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vims_system';
 mongoose.connect(MONGODB_URI, {
@@ -69,8 +64,56 @@ mongoose.connect(MONGODB_URI, {
 .then(async () => {
   console.log('MongoDB Connected');
   await autoSeedDatabase();
+  await initializeLots();
 })
 .catch(err => console.error('MongoDB Error:', err));
+
+// Initialize lots in database
+async function initializeLots() {
+  try {
+    const Lot = require('./models/Lot');
+    const BLOCKS = ['A', 'B', 'C', 'D', 'E'];
+    const LOTS_PER_BLOCK = 12;
+    const LOT_SIZES = [120, 150, 180, 200, 240, 300];
+    const HOUSE_TYPES = ['Single Family', 'Townhouse', 'Corner Lot', 'End Unit'];
+    
+    const seed = (block, lot) => (block.charCodeAt(0) * 31 + lot * 17) % 100;
+    
+    const existingCount = await Lot.countDocuments();
+    if (existingCount === 0) {
+      console.log('📦 Initializing lots in database...');
+      let created = 0;
+      
+      for (const block of BLOCKS) {
+        for (let lotNum = 1; lotNum <= LOTS_PER_BLOCK; lotNum++) {
+          const s = seed(block, lotNum);
+          const lotId = `${block}-${lotNum}`;
+          const sqm = LOT_SIZES[lotNum % LOT_SIZES.length];
+          
+          const lot = new Lot({
+            lotId,
+            block,
+            lotNumber: lotNum,
+            status: 'vacant',
+            type: HOUSE_TYPES[lotNum % HOUSE_TYPES.length],
+            sqm,
+            price: sqm * 18000 + s * 5000,
+            address: `Block ${block}, Lot ${lotNum}, Casimiro Westville Homes`,
+            features: sqm >= 200 ? ['Large Lot', 'Ready for Occupancy'] : ['Standard Lot', 'Ready for Occupancy'],
+            photoSeed: s
+          });
+          await lot.save();
+          created++;
+        }
+      }
+      console.log(`✅ Initialized ${created} lots in database`);
+    } else {
+      console.log(`📊 Database already has ${existingCount} lots`);
+    }
+  } catch (error) {
+    console.error('Initialize lots error:', error);
+  }
+}
 
 // Auto-seed function
 async function autoSeedDatabase() {
@@ -141,9 +184,12 @@ try {
   const serviceRequestRoutes = require('./routes/serviceRequests');
   console.log('/api/service-requests routes imported');
   
+  const lotRoutes = require('./routes/lots');
+  console.log('/api/lots routes imported');
+  
   // Register routes
   app.use('/api/payments', paymentRoutes);
- console.log('/api/payments routes registered');
+  console.log('/api/payments routes registered');
 
   app.use('/api/auth', authRoutes);
   console.log('/api/auth routes registered');
@@ -156,6 +202,9 @@ try {
   
   app.use('/api/service-requests', serviceRequestRoutes);
   console.log('/api/service-requests routes registered');
+  
+  app.use('/api/lots', lotRoutes);
+  console.log('/api/lots routes registered');
   
   console.log('All routes registered successfully!');
   
@@ -216,6 +265,7 @@ app.get('/api/health', (req, res) => {
       '/api/users',
       '/api/visitors',
       '/api/service-requests',
+      '/api/lots',
       '/api/debug/routes'
     ]
   });
@@ -323,6 +373,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Network: http://${localIP}:${PORT}/api`);
   console.log(`Health: http://localhost:${PORT}/api/health`);
   console.log(`Debug: http://localhost:${PORT}/api/debug/routes`);
+  console.log(`Lots API: http://localhost:${PORT}/api/lots`);
   console.log('\n📱 Mobile Setup:');
   console.log(`   Android Emulator: http://10.0.2.2:${PORT}/api`);
   console.log(`   iOS Simulator: http://localhost:${PORT}/api`);

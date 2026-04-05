@@ -48,6 +48,16 @@ const userSchema = new mongoose.Schema({
     required: function() { return this.role === 'resident'; }
   },
   
+  houseBlock: {
+    type: String,
+    required: function() { return this.role === 'resident'; }
+  },
+  
+  houseLot: {
+    type: String,
+    required: function() { return this.role === 'resident'; }
+  },
+  
   isActive: {
     type: Boolean,
     default: true

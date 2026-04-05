@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Box, Typography, Button, Chip, IconButton,
-  TextField, InputAdornment,
+  TextField, InputAdornment, Alert, CircularProgress
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -20,6 +20,7 @@ import {
   PlayArrow as PlayIcon,
   Pause as PauseIcon,
 } from '@mui/icons-material';
+import axios from 'axios';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
 const OUTSIDE_PHOTOS = [
@@ -55,42 +56,28 @@ const VIEW_TABS = [
   { key: 'surroundings', label: 'Surroundings', emoji: '🌳', photos: SURROUNDINGS_PHOTOS, color: '#fbbf24', desc: 'Neighborhood & amenities' },
 ];
 
-// ─── Lot data ────────────────────────────────────────────────────────────────
-const BLOCKS = ['A', 'B', 'C', 'D', 'E'];
-const LOTS_PER_BLOCK = 12;
-const HOUSE_TYPES = ['Single Family', 'Townhouse', 'Corner Lot', 'End Unit'];
-const LOT_SIZES = [120, 150, 180, 200, 240, 300];
-const seed = (block, lot) => (block.charCodeAt(0) * 31 + lot * 17) % 100;
-
-const generateLots = () => {
-  const lots = [];
-  BLOCKS.forEach((block) => {
-    for (let lot = 1; lot <= LOTS_PER_BLOCK; lot++) {
-      const s = seed(block, lot);
-      const statusIdx = s < 35 ? 0 : s < 85 ? 1 : 2;
-      const status = ['vacant', 'occupied', 'reserved'][statusIdx];
-      const sqm = LOT_SIZES[lot % LOT_SIZES.length];
-      lots.push({
-        id: `${block}-${lot}`, block, lotNumber: lot, status,
-        type: HOUSE_TYPES[lot % HOUSE_TYPES.length], sqm,
-        price: status === 'vacant' ? sqm * 18000 + s * 5000 : null,
-        address: `Block ${block}, Lot ${lot}, Casimiro Westville Homes`,
-        features: status === 'vacant'
-          ? ['Ready for Occupancy', sqm >= 200 ? 'Large Lot' : 'Standard Lot'].slice(0, 1 + (lot % 2))
-          : [],
-        photoSeed: s,
-      });
-    }
-  });
-  return lots;
-};
-
-const ALL_LOTS = generateLots();
-
 const STATUS_CONFIG = {
   vacant:   { color: '#22c55e', bg: '#dcfce7', label: 'Vacant',   border: '#16a34a' },
   occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', border: '#dc2626' },
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
+};
+
+const generateLotsFromAPI = (apiLots) => {
+  if (!apiLots || apiLots.length === 0) return [];
+  
+  return apiLots.map(lot => ({
+    id: lot.lotId,
+    block: lot.block,
+    lotNumber: lot.lotNumber,
+    status: lot.status,
+    type: lot.type,
+    sqm: lot.sqm,
+    price: lot.price,
+    address: lot.address,
+    features: lot.features || [],
+    photoSeed: lot.photoSeed || 0,
+    occupiedBy: lot.occupiedBy
+  }));
 };
 
 // ─── Virtual Tour Viewer ──────────────────────────────────────────────────────
@@ -103,19 +90,22 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
   const [transitioning, setTransitioning] = useState(false);
   const intervalRef = useRef(null);
 
-  const tabData = VIEW_TABS.find(t => t.key === activeTab);
+  const tabData = VIEW_TABS.find(t => t.key === activeTab) || VIEW_TABS[0];
 
   // Offset by lot seed so photos vary per lot
   const photos = tabData.photos.map((_, i) =>
-    tabData.photos[(i + lot.photoSeed) % tabData.photos.length]
+    tabData.photos[(i + (lot.photoSeed || 0)) % tabData.photos.length]
   );
-  const currentPhoto = photos[photoIndex];
+  const currentPhoto = photos[photoIndex] || photos[0];
 
   const changePhoto = useCallback((newIndex) => {
     if (transitioning) return;
     setTransitioning(true);
     setImageLoaded(false);
-    setTimeout(() => { setPhotoIndex(newIndex); setTransitioning(false); }, 200);
+    setTimeout(() => { 
+      setPhotoIndex(newIndex); 
+      setTransitioning(false); 
+    }, 200);
   }, [transitioning]);
 
   const goNext = useCallback(() => {
@@ -130,9 +120,11 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
     if (isPlaying) {
       intervalRef.current = setInterval(goNext, 3200);
     } else {
-      clearInterval(intervalRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     }
-    return () => clearInterval(intervalRef.current);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [isPlaying, goNext]);
 
   const handleTabChange = useCallback((key) => {
@@ -153,7 +145,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
     return () => window.removeEventListener('keydown', onKey);
   }, [goNext, goPrev, onClose]);
 
-  const cfg = STATUS_CONFIG[lot.status];
+  const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
 
   return (
     <Box sx={{
@@ -161,8 +153,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
       backgroundColor: 'rgba(0,0,0,0.95)',
       display: 'flex', flexDirection: 'column',
     }}>
-
-      {/* ── Header ─────────────────────────────────────────────── */}
+      {/* Header */}
       <Box sx={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
         px: { xs: 2, md: 4 }, py: 1.5,
@@ -212,10 +203,8 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
         </Box>
       </Box>
 
-      {/* ── Main Photo Area ─────────────────────────────────────── */}
+      {/* Main Photo Area */}
       <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-
-        {/* Photo */}
         <Box component="img"
           src={currentPhoto.url}
           alt={currentPhoto.caption}
@@ -230,7 +219,6 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           }}
         />
 
-        {/* Loading shimmer */}
         {(!imageLoaded || transitioning) && (
           <Box sx={{
             position: 'absolute', inset: 0,
@@ -244,13 +232,11 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           }} />
         )}
 
-        {/* Gradient overlays */}
         <Box sx={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
           background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.45) 100%)',
         }} />
 
-        {/* Left nav */}
         <IconButton onClick={goPrev} sx={{
           position: 'absolute', left: { xs: 8, md: 24 }, top: '50%',
           transform: 'translateY(-50%)',
@@ -263,7 +249,6 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           <PrevIcon sx={{ fontSize: { xs: 22, md: 30 } }} />
         </IconButton>
 
-        {/* Right nav */}
         <IconButton onClick={goNext} sx={{
           position: 'absolute', right: { xs: 8, md: 24 }, top: '50%',
           transform: 'translateY(-50%)',
@@ -283,7 +268,6 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2,
         }}>
           <Box>
-            {/* Active view label */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
               <Box sx={{
                 width: 8, height: 8, borderRadius: '50%',
@@ -307,7 +291,6 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
               {currentPhoto.caption}
             </Typography>
 
-            {/* Dot indicators */}
             <Box sx={{ display: 'flex', gap: 0.7, alignItems: 'center' }}>
               {photos.map((_, i) => (
                 <Box key={i} onClick={() => changePhoto(i)} sx={{
@@ -323,7 +306,6 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
             </Box>
           </Box>
 
-          {/* Controls */}
           <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
             <IconButton onClick={() => setIsPlaying(p => !p)} size="small" sx={{
               backgroundColor: isPlaying ? tabData.color : 'rgba(255,255,255,0.12)',
@@ -344,7 +326,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           </Box>
         </Box>
 
-        {/* Thumbnail filmstrip (desktop) */}
+        {/* Thumbnail filmstrip */}
         <Box sx={{
           position: 'absolute', bottom: 80, left: '50%',
           transform: 'translateX(-50%)',
@@ -373,7 +355,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
         </Box>
       </Box>
 
-      {/* ── View Tabs ───────────────────────────────────────────── */}
+      {/* View Tabs */}
       <Box sx={{
         backgroundColor: 'rgba(5,14,2,0.97)',
         borderTop: '1px solid rgba(255,255,255,0.07)',
@@ -410,7 +392,6 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           </Box>
         ))}
 
-        {/* Lot quick-info (desktop) */}
         <Box sx={{
           display: { xs: 'none', md: 'flex' },
           alignItems: 'center', gap: 3, px: 4,
@@ -446,11 +427,11 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
 
 // ─── Lot Box with portal hover popup ─────────────────────────────────────────
 const LotBox = ({ lot, onSelect, onTour, zoom }) => {
-  const cfg = STATUS_CONFIG[lot.status];
+  const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
   const isVacant = lot.status === 'vacant';
-  const w = Math.max(44, 56 * zoom);
-  const h = Math.max(36, 46 * zoom);
-  const fontSize = Math.max(8, 10 * zoom);
+  const w = Math.max(44, Math.min(80, 56 * zoom));
+  const h = Math.max(36, Math.min(66, 46 * zoom));
+  const fontSize = Math.max(8, Math.min(14, 10 * zoom));
   const [hovered, setHovered] = useState(false);
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const tileRef = useRef(null);
@@ -459,7 +440,7 @@ const LotBox = ({ lot, onSelect, onTour, zoom }) => {
     if (tileRef.current) {
       const rect = tileRef.current.getBoundingClientRect();
       setPopupPos({
-        top: rect.top + window.scrollY - 8,   // 8px gap above tile
+        top: rect.top + window.scrollY - 8,
         left: rect.left + rect.width / 2 + window.scrollX,
       });
     }
@@ -502,7 +483,7 @@ const LotBox = ({ lot, onSelect, onTour, zoom }) => {
         )}
       </Box>
 
-      {/* Portal popup — rendered directly into body, never clipped */}
+      {/* Portal popup */}
       {hovered && createPortal(
         <Box
           onMouseEnter={() => setHovered(true)}
@@ -526,7 +507,6 @@ const LotBox = ({ lot, onSelect, onTour, zoom }) => {
               from: { opacity: 0, transform: 'translate(-50%, calc(-100% + 8px))' },
               to:   { opacity: 1, transform: 'translate(-50%, -100%)' },
             },
-            // Downward arrow
             '&::after': {
               content: '""', position: 'absolute',
               top: '100%', left: '50%', transform: 'translateX(-50%)',
@@ -535,7 +515,6 @@ const LotBox = ({ lot, onSelect, onTour, zoom }) => {
             },
           }}
         >
-          {/* Header */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.8 }}>
             <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem' }}>
               {lot.id}
@@ -599,7 +578,7 @@ const LotBox = ({ lot, onSelect, onTour, zoom }) => {
 // ─── Side Detail Panel ────────────────────────────────────────────────────────
 const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
   if (!lot) return null;
-  const cfg = STATUS_CONFIG[lot.status];
+  const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
 
   return (
     <Box sx={{
@@ -690,7 +669,7 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
         )}
 
         {/* Features */}
-        {lot.features?.length > 0 && (
+        {lot.features && lot.features.length > 0 && (
           <Box sx={{ display: 'flex', gap: 0.8, flexWrap: 'wrap', mb: 2 }}>
             {lot.features.map(f => (
               <Chip key={f} label={f} size="small" sx={{
@@ -702,8 +681,17 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
           </Box>
         )}
 
-        <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.68rem', lineHeight: 1.65 }}>
-          To claim this lot, register as a resident. Your block and lot number will be pre-filled automatically.
+        {/* Occupied info */}
+        {lot.status === 'occupied' && lot.occupiedBy && (
+          <Alert severity="warning" sx={{ mt: 2, borderRadius: 2, backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+            <Typography variant="caption" sx={{ color: '#ef4444' }}>
+              This lot is already occupied and not available for registration.
+            </Typography>
+          </Alert>
+        )}
+
+        <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.68rem', lineHeight: 1.65, mt: 2 }}>
+          To claim this lot, register as a resident. Your selected lot will be reserved pending admin approval.
         </Typography>
       </Box>
 
@@ -744,37 +732,105 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const PublicLotMap = () => {
   const navigate = useNavigate();
+  const [allLots, setAllLots] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedLot, setSelectedLot] = useState(null);
   const [tourLot, setTourLot] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch lots from API
+  useEffect(() => {
+    const fetchLots = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axios.get('/api/lots');
+        if (response.data.success) {
+          const lots = generateLotsFromAPI(response.data.data);
+          setAllLots(lots);
+        } else {
+          setError('Failed to load lots data');
+        }
+      } catch (error) {
+        console.error('Error fetching lots:', error);
+        setError(error.response?.data?.error || 'Failed to connect to server');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchLots();
+  }, []);
 
   const stats = useMemo(() => ({
-    vacant:   ALL_LOTS.filter(l => l.status === 'vacant').length,
-    occupied: ALL_LOTS.filter(l => l.status === 'occupied').length,
-    reserved: ALL_LOTS.filter(l => l.status === 'reserved').length,
-    total:    ALL_LOTS.length,
-  }), []);
+    vacant:   allLots.filter(l => l.status === 'vacant').length,
+    occupied: allLots.filter(l => l.status === 'occupied').length,
+    reserved: allLots.filter(l => l.status === 'reserved').length,
+    total:    allLots.length,
+  }), [allLots]);
 
   const filteredIds = useMemo(() => {
     const s = search.toLowerCase();
     return new Set(
-      ALL_LOTS.filter(l => {
+      allLots.filter(l => {
         const matchStatus = filterStatus === 'all' || l.status === filterStatus;
         const matchSearch = !s || l.id.toLowerCase().includes(s) || l.block.toLowerCase().includes(s);
         return matchStatus && matchSearch;
       }).map(l => l.id)
     );
-  }, [filterStatus, search]);
+  }, [filterStatus, search, allLots]);
 
   const handleRegister = (lot) => {
     const l = lot || selectedLot;
-    if (l) navigate(`/register?lot=${l.lotNumber}&block=${l.block}`);
+    if (l && l.status === 'vacant') {
+      navigate(`/register?lot=${l.lotNumber}&block=${l.block}`);
+    } else if (l && l.status !== 'vacant') {
+      alert('This lot is not available for registration.');
+    }
   };
 
-  const vacantLots = ALL_LOTS.filter(l => l.status === 'vacant');
+  const vacantLots = allLots.filter(l => l.status === 'vacant');
   const featuredLots = vacantLots.slice(0, 3);
+
+  if (loading) {
+    return (
+      <Box sx={{ minHeight: '100vh', background: 'linear-gradient(160deg, #0f2a04 0%, #1a3a0a 40%, #2d5016 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
+        <CircularProgress sx={{ color: '#5a8a1a' }} />
+        <Typography sx={{ color: 'white' }}>Loading village map...</Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ minHeight: '100vh', background: 'linear-gradient(160deg, #0f2a04 0%, #1a3a0a 40%, #2d5016 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
+        <Alert severity="error" sx={{ maxWidth: 500 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={() => window.location.reload()} sx={{ backgroundColor: '#5a8a1a' }}>
+          Retry
+        </Button>
+      </Box>
+    );
+  }
+
+  // Group lots by block
+  const lotsByBlock = allLots.reduce((acc, lot) => {
+    if (!acc[lot.block]) acc[lot.block] = [];
+    acc[lot.block].push(lot);
+    return acc;
+  }, {});
+
+  // Sort lots within each block
+  Object.keys(lotsByBlock).forEach(block => {
+    lotsByBlock[block].sort((a, b) => a.lotNumber - b.lotNumber);
+  });
+
+  // Sort blocks
+  const sortedBlocks = Object.keys(lotsByBlock).sort();
 
   return (
     <Box sx={{
@@ -783,7 +839,7 @@ const PublicLotMap = () => {
       display: 'flex', flexDirection: 'column',
     }}>
 
-      {/* ── Top bar ──────────────────────────────────────────────── */}
+      {/* Top bar */}
       <Box sx={{
         px: { xs: 2, md: 4 }, py: 1.8,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -845,7 +901,7 @@ const PublicLotMap = () => {
         </Box>
       </Box>
 
-      {/* ── Filter bar ───────────────────────────────────────────── */}
+      {/* Filter bar */}
       <Box sx={{
         px: { xs: 2, md: 4 }, py: 1.2,
         display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap',
@@ -878,17 +934,20 @@ const PublicLotMap = () => {
           </Box>
         ))}
         <Box sx={{ ml: 'auto', display: 'flex', gap: 0.8 }}>
-          {[ZoomInIcon, ZoomOutIcon].map((Icon, i) => (
-            <IconButton key={i} size="small"
-              onClick={() => setZoom(z => i === 0 ? Math.min(1.7, z + 0.2) : Math.max(0.5, z - 0.2))}
-              sx={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1.5 }}>
-              <Icon fontSize="small" />
-            </IconButton>
-          ))}
+          <IconButton size="small"
+            onClick={() => setZoom(z => Math.min(1.7, z + 0.2))}
+            sx={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1.5 }}>
+            <ZoomInIcon fontSize="small" />
+          </IconButton>
+          <IconButton size="small"
+            onClick={() => setZoom(z => Math.max(0.5, z - 0.2))}
+            sx={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1.5 }}>
+            <ZoomOutIcon fontSize="small" />
+          </IconButton>
         </Box>
       </Box>
 
-      {/* ── Main two-column body ─────────────────────────────────── */}
+      {/* Main two-column body */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
 
         {/* LEFT — Lot map */}
@@ -926,8 +985,8 @@ const PublicLotMap = () => {
 
           {/* Blocks */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {BLOCKS.map((block) => {
-              const blockLots = ALL_LOTS.filter(l => l.block === block);
+            {sortedBlocks.map((block) => {
+              const blockLots = lotsByBlock[block] || [];
               const vacantCount = blockLots.filter(l => l.status === 'vacant').length;
               return (
                 <Box key={block} sx={{
@@ -996,86 +1055,14 @@ const PublicLotMap = () => {
           flexShrink: 0,
         }}>
           {selectedLot ? (
-            /* ── Selected lot detail ── */
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              {/* Preview */}
-              <Box sx={{ height: 190, flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
-                <Box component="img"
-                  src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=700&q=80"
-                  alt="House"
-                  sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(10,26,5,0.95) 100%)' }} />
-                <IconButton onClick={() => setSelectedLot(null)} size="small" sx={{
-                  position: 'absolute', top: 8, right: 8,
-                  backgroundColor: 'rgba(0,0,0,0.5)', color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(0,0,0,0.8)' },
-                }}>
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-                <Chip label={STATUS_CONFIG[selectedLot.status].label} size="small" sx={{
-                  position: 'absolute', top: 8, left: 8,
-                  backgroundColor: STATUS_CONFIG[selectedLot.status].color + '28',
-                  color: STATUS_CONFIG[selectedLot.status].color,
-                  border: `1px solid ${STATUS_CONFIG[selectedLot.status].color}55`,
-                  fontWeight: 700, fontSize: '0.68rem',
-                }} />
-              </Box>
-              <Box sx={{ flex: 1, overflowY: 'auto', px: 2.5, py: 2 }}>
-                <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.3rem', mb: 0.3 }}>
-                  Lot {selectedLot.lotNumber} — Block {selectedLot.block}
-                </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.7rem', mb: 2 }}>
-                  {selectedLot.address}
-                </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.2, mb: 2 }}>
-                  {[
-                    { l: 'Area', v: `${selectedLot.sqm} sqm`, e: '📐' },
-                    { l: 'Type', v: selectedLot.type, e: '🏠' },
-                    { l: 'Block', v: `Block ${selectedLot.block}`, e: '🗺️' },
-                    { l: 'Lot No.', v: `Lot ${selectedLot.lotNumber}`, e: '🔢' },
-                  ].map(({ l, v, e }) => (
-                    <Box key={l} sx={{ p: 1.2, borderRadius: 1.5, backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.32)', fontSize: '0.6rem', mb: 0.2 }}>{e} {l}</Typography>
-                      <Typography sx={{ color: 'white', fontWeight: 600, fontSize: '0.78rem' }}>{v}</Typography>
-                    </Box>
-                  ))}
-                </Box>
-                {selectedLot.price && (
-                  <Box sx={{ p: 1.8, borderRadius: 2, mb: 2, textAlign: 'center', backgroundColor: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.18)' }}>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', mb: 0.2 }}>STARTING PRICE</Typography>
-                    <Typography sx={{ color: '#4ade80', fontWeight: 800, fontSize: '1.4rem' }}>₱{selectedLot.price.toLocaleString()}</Typography>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.22)', fontSize: '0.6rem' }}>Contact admin for final terms</Typography>
-                  </Box>
-                )}
-                {selectedLot.features?.length > 0 && (
-                  <Box sx={{ display: 'flex', gap: 0.7, flexWrap: 'wrap', mb: 2 }}>
-                    {selectedLot.features.map(f => (
-                      <Chip key={f} label={f} size="small" sx={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontSize: '0.6rem', border: '1px solid rgba(255,255,255,0.08)' }} />
-                    ))}
-                  </Box>
-                )}
-                <Typography sx={{ color: 'rgba(255,255,255,0.22)', fontSize: '0.67rem', lineHeight: 1.65 }}>
-                  To claim this lot, register as a resident. Your block and lot will be pre-filled.
-                </Typography>
-              </Box>
-              <Box sx={{ px: 2.5, pb: 2.5, pt: 1.5, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 1.2 }}>
-                <Button fullWidth variant="outlined" onClick={() => setTourLot(selectedLot)}
-                  sx={{ borderColor: 'rgba(255,255,255,0.18)', color: 'white', borderRadius: 2, textTransform: 'none', fontWeight: 600, py: 1, fontSize: '0.85rem', '&:hover': { borderColor: 'rgba(255,255,255,0.45)', backgroundColor: 'rgba(255,255,255,0.04)' } }}>
-                  🎥 &nbsp; Start Virtual Tour
-                </Button>
-                {selectedLot.status === 'vacant' && (
-                  <Button fullWidth variant="contained" startIcon={<RegisterIcon />} onClick={() => handleRegister(selectedLot)}
-                    sx={{ backgroundColor: '#22c55e', color: '#052e16', fontWeight: 700, borderRadius: 2, textTransform: 'none', py: 1.1, fontSize: '0.88rem', '&:hover': { backgroundColor: '#16a34a' }, boxShadow: '0 4px 16px rgba(34,197,94,0.28)' }}>
-                    Register for This Lot
-                  </Button>
-                )}
-              </Box>
-            </Box>
+            <LotDetailPanel
+              lot={selectedLot}
+              onClose={() => setSelectedLot(null)}
+              onRegister={() => handleRegister(selectedLot)}
+              onTour={(l) => setTourLot(l)}
+            />
           ) : (
-            /* ── Default sidebar content ── */
             <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-
               {/* Village summary header */}
               <Box sx={{
                 borderRadius: 2.5, overflow: 'hidden',
@@ -1112,7 +1099,7 @@ const PublicLotMap = () => {
                   LOT AVAILABILITY
                 </Typography>
                 {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
-                  const pct = Math.round((stats[key] / stats.total) * 100);
+                  const pct = stats.total > 0 ? Math.round((stats[key] / stats.total) * 100) : 0;
                   return (
                     <Box key={key} sx={{ mb: 1.2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Lot = require('../models/Lot');
 const { protect, authorize } = require('../middleware/auth');
 
 // ===== TEST ROUTE - REMOVE AFTER DEBUGGING =====
@@ -81,7 +82,7 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
   }
 });
 
-// Approve user
+// Approve user - UPDATED to update lot status
 router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -107,19 +108,41 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
       });
     }
     
+    // Update the lot status to occupied
+    if (user.houseBlock && user.houseLot) {
+      const lotId = `${user.houseBlock}-${user.houseLot}`;
+      const lot = await Lot.findOne({ lotId });
+      
+      if (lot && lot.status === 'vacant') {
+        lot.status = 'occupied';
+        lot.occupiedBy = user._id;
+        lot.occupiedAt = new Date();
+        await lot.save();
+        console.log(`✅ Lot ${lotId} marked as occupied by ${user.email}`);
+      } else if (lot && lot.status !== 'vacant') {
+        console.log(`⚠️ Lot ${lotId} is already ${lot.status}, cannot approve user`);
+        return res.status(400).json({
+          success: false,
+          error: `This lot (${lotId}) is no longer available. Please contact admin.`
+        });
+      }
+    }
+    
     user.isApproved = true;
     await user.save();
     
     res.json({
       success: true,
-      message: 'User approved successfully',
+      message: 'User approved successfully. Lot has been marked as occupied.',
       user: {
         id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
         role: user.role,
-        isApproved: user.isApproved
+        isApproved: user.isApproved,
+        houseBlock: user.houseBlock,
+        houseLot: user.houseLot
       }
     });
     
@@ -132,7 +155,7 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// Reject/Delete user (for admin)
+// Reject/Delete user (for admin) - UPDATED to free up lot
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -142,6 +165,20 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
         success: false,
         error: 'User not found'
       });
+    }
+    
+    // Free up the lot if it was occupied by this user
+    if (user.houseBlock && user.houseLot && user.isApproved) {
+      const lotId = `${user.houseBlock}-${user.houseLot}`;
+      const lot = await Lot.findOne({ lotId });
+      
+      if (lot && lot.occupiedBy && lot.occupiedBy.toString() === user._id.toString()) {
+        lot.status = 'vacant';
+        lot.occupiedBy = null;
+        lot.occupiedAt = null;
+        await lot.save();
+        console.log(`✅ Lot ${lotId} freed up (was occupied by ${user.email})`);
+      }
     }
     
     // Log this rejection

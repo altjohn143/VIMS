@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+// src/screens/RegisterScreen.js
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
+  TouchableOpacity,
+  TextInput,
   Alert,
   ActivityIndicator,
   Modal,
+  FlatList,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../utils/theme';
@@ -24,87 +25,109 @@ const RegisterScreen = ({ navigation, route }) => {
     phone: '',
     password: '',
     confirmPassword: '',
-    houseLot: '',
-    houseBlock: '',
+    selectedLot: ''
   });
 
+  const [availableLots, setAvailableLots] = useState([]);
+  const [allLots, setAllLots] = useState([]);
+  const [selectedLotDetails, setSelectedLotDetails] = useState(null);
+  const [loadingLots, setLoadingLots] = useState(true);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [availability, setAvailability] = useState({ email: null, phone: null });
+  const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [mapViewMode, setMapViewMode] = useState('available');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [availability, setAvailability] = useState({
-    email: null,
-    phone: null,
-    house: null,
-  });
+  const [showLotDropdown, setShowLotDropdown] = useState(false);
 
+  // Fetch available lots on component mount
   useEffect(() => {
-    if (route.params?.lot || route.params?.block) {
-      setFormData(prev => ({
-        ...prev,
-        houseLot: route.params.block || prev.houseLot,
-        houseBlock: route.params.lot || prev.houseBlock,
-      }));
+    fetchAvailableLots();
+    fetchAllLots();
+  }, []);
+
+  // Check for pre-selected lot from route params (from PublicLotMap)
+  useEffect(() => {
+    if (route.params?.lot && route.params?.block) {
+      const lotId = `${route.params.block}-${route.params.lot}`;
+      const preSelectedLot = availableLots.find(l => l.lotId === lotId);
+      if (preSelectedLot) {
+        setFormData(prev => ({ ...prev, selectedLot: lotId }));
+        setSelectedLotDetails(preSelectedLot);
+      }
     }
-  }, [route.params]);
+  }, [route.params, availableLots]);
 
+  const fetchAvailableLots = async () => {
+    try {
+      setLoadingLots(true);
+      const response = await api.get('/lots/available');
+      if (response.data.success) {
+        setAvailableLots(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching available lots:', error);
+      Alert.alert('Error', 'Failed to load available lots');
+    } finally {
+      setLoadingLots(false);
+    }
+  };
+
+  const fetchAllLots = async () => {
+    try {
+      const response = await api.get('/lots');
+      if (response.data.success) {
+        setAllLots(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching all lots:', error);
+    }
+  };
+
+  // Email availability check
   useEffect(() => {
-    const checkEmail = async () => {
+    const checkEmailAvailability = async () => {
       if (!formData.email || !isValidEmail(formData.email)) return;
+      setCheckingAvailability(prev => ({ ...prev, email: true }));
       try {
-        const response = await api.post('/auth/check-availability', {
-          type: 'email',
-          value: formData.email,
+        const response = await api.post('/auth/check-availability', { 
+          type: 'email', 
+          value: formData.email 
         });
         setAvailability(prev => ({ ...prev, email: response.data.available }));
       } catch (error) {
         console.error('Email check error:', error);
+      } finally {
+        setCheckingAvailability(prev => ({ ...prev, email: false }));
       }
     };
-    const timer = setTimeout(checkEmail, 500);
+    const timer = setTimeout(checkEmailAvailability, 500);
     return () => clearTimeout(timer);
   }, [formData.email]);
 
+  // Phone availability check
   useEffect(() => {
-    const checkPhone = async () => {
+    const checkPhoneAvailability = async () => {
       if (!formData.phone || !/^\d{10}$/.test(formData.phone)) return;
+      setCheckingAvailability(prev => ({ ...prev, phone: true }));
       try {
-        const response = await api.post('/auth/check-availability', {
-          type: 'phone',
-          value: formData.phone,
+        const response = await api.post('/auth/check-availability', { 
+          type: 'phone', 
+          value: formData.phone 
         });
         setAvailability(prev => ({ ...prev, phone: response.data.available }));
       } catch (error) {
         console.error('Phone check error:', error);
+      } finally {
+        setCheckingAvailability(prev => ({ ...prev, phone: false }));
       }
     };
-    const timer = setTimeout(checkPhone, 500);
+    const timer = setTimeout(checkPhoneAvailability, 500);
     return () => clearTimeout(timer);
   }, [formData.phone]);
-
-  useEffect(() => {
-    const checkHouse = async () => {
-      if (!formData.houseLot || !formData.houseBlock) return;
-      const houseNumber = `${formData.houseLot}-${formData.houseBlock}`;
-      try {
-        const response = await api.post('/auth/check-availability', {
-          type: 'house',
-          value: houseNumber,
-        });
-        setAvailability(prev => ({ ...prev, house: response.data.available }));
-      } catch (error) {
-        console.error('House check error:', error);
-      }
-    };
-    const timer = setTimeout(checkHouse, 500);
-    return () => clearTimeout(timer);
-  }, [formData.houseLot, formData.houseBlock]);
-
-  const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
 
   const handleChange = (field, value) => {
     let filteredValue = value;
@@ -113,19 +136,38 @@ const RegisterScreen = ({ navigation, route }) => {
       filteredValue = value.replace(/[^a-zA-Z\s-]/g, '');
     } else if (field === 'phone') {
       filteredValue = value.replace(/\D/g, '').slice(0, 10);
-    } else if (field === 'houseLot' || field === 'houseBlock') {
-      filteredValue = value.replace(/[^a-zA-Z0-9-]/g, '');
     }
 
     setFormData(prev => ({ ...prev, [field]: filteredValue }));
+    
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
-
-    if (field === 'email' || field === 'phone' || field === 'houseLot' || field === 'houseBlock') {
-      const availabilityField = field === 'houseLot' || field === 'houseBlock' ? 'house' : field;
-      setAvailability(prev => ({ ...prev, [availabilityField]: null }));
+    
+    if (field === 'selectedLot') {
+      const selected = availableLots.find(lot => lot.lotId === filteredValue);
+      setSelectedLotDetails(selected || null);
     }
+  };
+
+  const handleLotSelect = (lot) => {
+    if (lot.status === 'vacant') {
+      setFormData(prev => ({ ...prev, selectedLot: lot.lotId }));
+      setSelectedLotDetails(lot);
+      setShowLotDropdown(false);
+      setShowMapModal(false);
+    } else {
+      Alert.alert('Not Available', `Lot ${lot.lotId} is not available for registration.`);
+    }
+  };
+
+  const handleLotSelectFromMap = (lot) => {
+    handleLotSelect(lot);
+  };
+
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const validate = () => {
@@ -173,15 +215,8 @@ const RegisterScreen = ({ navigation, route }) => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    if (!formData.houseLot) {
-      newErrors.houseLot = 'Lot number is required';
-    }
-    if (!formData.houseBlock) {
-      newErrors.houseBlock = 'Block number is required';
-    }
-    if (formData.houseLot && formData.houseBlock && availability.house === false) {
-      newErrors.houseLot = 'This house is already registered';
-      newErrors.houseBlock = 'This house is already registered';
+    if (!formData.selectedLot) {
+      newErrors.selectedLot = 'Please select a lot';
     }
 
     return newErrors;
@@ -195,15 +230,6 @@ const RegisterScreen = ({ navigation, route }) => {
       return;
     }
 
-    if (
-      availability.email === false ||
-      availability.phone === false ||
-      availability.house === false
-    ) {
-      Alert.alert('Error', 'Some information is already registered');
-      return;
-    }
-
     setLoading(true);
     try {
       const registrationData = {
@@ -213,40 +239,26 @@ const RegisterScreen = ({ navigation, route }) => {
         phone: formData.phone,
         password: formData.password,
         role: 'resident',
-        houseNumber: `${formData.houseLot.trim()}-${formData.houseBlock.trim()}`,
+        selectedLot: formData.selectedLot
       };
 
       const response = await api.post('/auth/register', registrationData);
       
       if (response.data.success) {
-        // Clear the form
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          password: '',
-          confirmPassword: '',
-          houseLot: '',
-          houseBlock: '',
-        });
-        
-        // Show success modal
         setShowSuccessModal(true);
       }
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'Registration failed. Please try again.';
-      Alert.alert(
-        'Registration Failed',
-        errorMessage,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Registration Failed', errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const getAvailabilityIcon = (field) => {
+    if (checkingAvailability[field]) {
+      return <ActivityIndicator size="small" color={themeColors.primary} />;
+    }
     if (availability[field] === true) {
       return <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />;
     }
@@ -256,20 +268,291 @@ const RegisterScreen = ({ navigation, route }) => {
     return null;
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2
+    }).format(amount || 0);
+  };
+
+  // Lot Selection Modal Component
+  const LotSelectionModal = () => {
+    const [zoom, setZoom] = useState(1);
+    const [selectedMapLot, setSelectedMapLot] = useState(null);
+    const [showLotInfo, setShowLotInfo] = useState(false);
+    
+    const displayLots = mapViewMode === 'available' ? availableLots : allLots;
+    
+    // Group lots by block
+    const lotsByBlock = displayLots.reduce((acc, lot) => {
+      if (!acc[lot.block]) acc[lot.block] = [];
+      acc[lot.block].push(lot);
+      return acc;
+    }, {});
+    
+    // Sort lots within each block
+    Object.keys(lotsByBlock).forEach(block => {
+      lotsByBlock[block].sort((a, b) => a.lotNumber - b.lotNumber);
+    });
+    
+    const sortedBlocks = Object.keys(lotsByBlock).sort();
+    
+    const statusConfig = {
+      vacant: { color: '#22c55e', bg: '#dcfce7', label: 'Vacant', border: '#16a34a' },
+      occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', border: '#dc2626' },
+      reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
+    };
+    
+    const getStatusConfig = (status) => statusConfig[status] || statusConfig.vacant;
+    
+    return (
+      <Modal
+        visible={showMapModal}
+        animationType="slide"
+        onRequestClose={() => setShowMapModal(false)}
+      >
+        <View style={styles.mapModalContainer}>
+          {/* Header */}
+          <View style={styles.mapModalHeader}>
+            <TouchableOpacity onPress={() => setShowMapModal(false)} style={styles.mapModalBack}>
+              <Ionicons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.mapModalTitle}>Select Your Lot</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          
+          {/* View Toggle */}
+          <View style={styles.mapViewToggle}>
+            <TouchableOpacity
+              style={[styles.mapToggleButton, mapViewMode === 'available' && styles.mapToggleActive]}
+              onPress={() => setMapViewMode('available')}
+            >
+              <Text style={[styles.mapToggleText, mapViewMode === 'available' && styles.mapToggleActiveText]}>
+                Available Lots Only
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.mapToggleButton, mapViewMode === 'all' && styles.mapToggleActive]}
+              onPress={() => setMapViewMode('all')}
+            >
+              <Text style={[styles.mapToggleText, mapViewMode === 'all' && styles.mapToggleActiveText]}>
+                All Lots
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Zoom Controls */}
+          <View style={styles.zoomControls}>
+            <TouchableOpacity style={styles.zoomButton} onPress={() => setZoom(z => Math.min(1.5, z + 0.1))}>
+              <Ionicons name="add" size={20} color={themeColors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.zoomButton} onPress={() => setZoom(z => Math.max(0.6, z - 0.1))}>
+              <Ionicons name="remove" size={20} color={themeColors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.zoomButton} onPress={() => setZoom(1)}>
+              <Ionicons name="refresh" size={20} color={themeColors.primary} />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Legend */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.legendScroll}>
+            <View style={styles.legendContainer}>
+              {Object.entries(statusConfig).map(([key, cfg]) => (
+                <View key={key} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: cfg.bg, borderColor: cfg.border, borderWidth: 2 }]} />
+                  <Text style={styles.legendText}>{cfg.label}</Text>
+                </View>
+              ))}
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: '#2d501640', borderColor: '#2d5016', borderWidth: 2 }]} />
+                <Text style={styles.legendText}>Selected</Text>
+              </View>
+            </View>
+          </ScrollView>
+          
+          {/* Map Content */}
+          <ScrollView 
+            contentContainerStyle={styles.mapContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={{ transform: [{ scale: zoom }] }}>
+              {/* Entrance Road */}
+              <View style={styles.entranceRoad}>
+                <Text style={styles.entranceRoadText}>← MAIN ENTRANCE ROAD →</Text>
+              </View>
+              
+              {/* Blocks */}
+              {sortedBlocks.map((block) => {
+                const blockLots = lotsByBlock[block] || [];
+                const vacantCount = blockLots.filter(l => l.status === 'vacant').length;
+                
+                return (
+                  <View key={block} style={styles.blockContainer}>
+                    <View style={styles.blockHeader}>
+                      <View style={styles.blockTitleBox}>
+                        <Text style={styles.blockTitle}>BLOCK {block}</Text>
+                      </View>
+                      {vacantCount > 0 && (
+                        <View style={styles.blockAvailableBadge}>
+                          <Text style={styles.blockAvailableText}>{vacantCount} available</Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    <View style={styles.roadStrip} />
+                    
+                    <View style={styles.lotsGrid}>
+                      {blockLots.map((lot) => {
+                        const cfg = getStatusConfig(lot.status);
+                        const isSelected = formData.selectedLot === lot.lotId;
+                        const isAvailable = lot.status === 'vacant';
+                        const lotSize = Math.max(50, Math.min(70, 55 * zoom));
+                        
+                        return (
+                          <TouchableOpacity
+                            key={lot.lotId}
+                            style={[
+                              styles.lotTile,
+                              {
+                                width: lotSize,
+                                height: lotSize * 0.8,
+                                backgroundColor: isSelected ? cfg.color + '40' : cfg.bg,
+                                borderColor: isSelected ? themeColors.primary : cfg.border,
+                                opacity: isAvailable ? 1 : 0.6,
+                              }
+                            ]}
+                            onPress={() => {
+                              if (isAvailable) {
+                                setSelectedMapLot(lot);
+                                setShowLotInfo(true);
+                              } else {
+                                Alert.alert('Not Available', `Lot ${lot.lotId} is ${lot.status}`);
+                              }
+                            }}
+                            disabled={!isAvailable}
+                          >
+                            <Text style={[styles.lotNumber, { color: cfg.border, fontSize: Math.max(10, 12 * zoom) }]}>
+                              {lot.lotNumber}
+                            </Text>
+                            {zoom >= 0.8 && (
+                              <Text style={[styles.lotSqm, { fontSize: Math.max(8, 10 * zoom) }]}>
+                                {lot.sqm}m²
+                              </Text>
+                            )}
+                            {isSelected && (
+                              <View style={styles.selectedBadge}>
+                                <Ionicons name="checkmark" size={12} color="white" />
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+          
+          {/* Lot Info Modal */}
+          <Modal
+            visible={showLotInfo}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowLotInfo(false)}
+          >
+            <View style={styles.lotInfoOverlay}>
+              <View style={styles.lotInfoModal}>
+                <View style={styles.lotInfoHeader}>
+                  <Text style={styles.lotInfoTitle}>Lot Details</Text>
+                  <TouchableOpacity onPress={() => setShowLotInfo(false)}>
+                    <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+                  </TouchableOpacity>
+                </View>
+                
+                {selectedMapLot && (
+                  <ScrollView>
+                    <View style={styles.lotInfoContent}>
+                      <Text style={styles.lotInfoId}>
+                        Lot {selectedMapLot.lotNumber} - Block {selectedMapLot.block}
+                      </Text>
+                      
+                      <View style={[styles.lotInfoBadge, { backgroundColor: getStatusConfig(selectedMapLot.status).bg }]}>
+                        <Text style={[styles.lotInfoBadgeText, { color: getStatusConfig(selectedMapLot.status).color }]}>
+                          {getStatusConfig(selectedMapLot.status).label}
+                        </Text>
+                      </View>
+                      
+                      <Text style={styles.lotInfoAddress}>{selectedMapLot.address}</Text>
+                      
+                      <View style={styles.lotInfoGrid}>
+                        <View style={styles.lotInfoItem}>
+                          <Text style={styles.lotInfoLabel}>Type</Text>
+                          <Text style={styles.lotInfoValue}>{selectedMapLot.type}</Text>
+                        </View>
+                        <View style={styles.lotInfoItem}>
+                          <Text style={styles.lotInfoLabel}>Area</Text>
+                          <Text style={styles.lotInfoValue}>{selectedMapLot.sqm} sqm</Text>
+                        </View>
+                      </View>
+                      
+                      {selectedMapLot.price && (
+                        <View style={styles.priceContainer}>
+                          <Text style={styles.priceLabel}>Price</Text>
+                          <Text style={styles.priceValue}>{formatCurrency(selectedMapLot.price)}</Text>
+                          <Text style={styles.priceNote}>from</Text>
+                        </View>
+                      )}
+                      
+                      {selectedMapLot.features && selectedMapLot.features.length > 0 && (
+                        <View style={styles.featuresContainer}>
+                          <Text style={styles.featuresTitle}>Features</Text>
+                          {selectedMapLot.features.map((feature, index) => (
+                            <View key={index} style={styles.featureItem}>
+                              <Ionicons name="checkmark-circle" size={16} color={themeColors.success} />
+                              <Text style={styles.featureText}>{feature}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                      
+                      <View style={styles.lotInfoActions}>
+                        <TouchableOpacity
+                          style={[styles.lotInfoButton, styles.selectButton]}
+                          onPress={() => {
+                            handleLotSelect(selectedMapLot);
+                            setShowLotInfo(false);
+                            setShowMapModal(false);
+                          }}
+                        >
+                          <Text style={styles.selectButtonText}>Select This Lot</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </ScrollView>
+                )}
+              </View>
+            </View>
+          </Modal>
+        </View>
+      </Modal>
+    );
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.content}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+    <View style={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back Button */}
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
           <Text style={styles.backText}>Back to Login</Text>
         </TouchableOpacity>
 
+        {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>
             <Ionicons name="person-add" size={32} color="white" />
@@ -280,6 +563,7 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         </View>
 
+        {/* Pre-selected lot notice */}
         {route.params?.lot && (
           <View style={styles.successAlert}>
             <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
@@ -289,32 +573,33 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        <View style={[styles.form, shadows.medium]}>
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Ionicons name="person" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="First Name"
-                value={formData.firstName}
-                onChangeText={(text) => handleChange('firstName', text)}
-              />
-            </View>
-            {errors.firstName ? <Text style={styles.errorText}>{errors.firstName}</Text> : null}
+        {/* Form Card */}
+        <View style={[styles.formCard, shadows.medium]}>
+          {/* First Name */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="person" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="First Name"
+              value={formData.firstName}
+              onChangeText={(text) => handleChange('firstName', text)}
+            />
           </View>
+          {errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
 
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <TextInput
-                style={styles.input}
-                placeholder="Last Name"
-                value={formData.lastName}
-                onChangeText={(text) => handleChange('lastName', text)}
-              />
-            </View>
-            {errors.lastName ? <Text style={styles.errorText}>{errors.lastName}</Text> : null}
+          {/* Last Name */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="person" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Last Name"
+              value={formData.lastName}
+              onChangeText={(text) => handleChange('lastName', text)}
+            />
           </View>
+          {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
 
+          {/* Email */}
           <View style={styles.inputContainer}>
             <Ionicons name="mail" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput
@@ -327,8 +612,9 @@ const RegisterScreen = ({ navigation, route }) => {
             />
             {getAvailabilityIcon('email')}
           </View>
-          {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
+          {/* Phone */}
           <View style={styles.inputContainer}>
             <Ionicons name="call" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput
@@ -341,8 +627,9 @@ const RegisterScreen = ({ navigation, route }) => {
             />
             {getAvailabilityIcon('phone')}
           </View>
-          {errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}
+          {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 
+          {/* Password */}
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput
@@ -356,8 +643,9 @@ const RegisterScreen = ({ navigation, route }) => {
               <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
             </TouchableOpacity>
           </View>
-          {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
+          {/* Confirm Password */}
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput
@@ -371,38 +659,96 @@ const RegisterScreen = ({ navigation, route }) => {
               <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
             </TouchableOpacity>
           </View>
-          {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
+          {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
 
-          <Text style={styles.sectionLabel}>House Number</Text>
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Ionicons name="home" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Lot (e.g., A)"
-                value={formData.houseLot}
-                onChangeText={(text) => handleChange('houseLot', text)}
-              />
+          {/* Lot Selection Section */}
+          <Text style={styles.sectionLabel}>Select Your Lot</Text>
+          
+          {loadingLots ? (
+            <View style={styles.loadingLotsContainer}>
+              <ActivityIndicator size="small" color={themeColors.primary} />
+              <Text style={styles.loadingLotsText}>Loading available lots...</Text>
             </View>
-
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <TextInput
-                style={styles.input}
-                placeholder="Block (e.g., 101)"
-                value={formData.houseBlock}
-                onChangeText={(text) => handleChange('houseBlock', text)}
-              />
-              {getAvailabilityIcon('house')}
+          ) : availableLots.length === 0 ? (
+            <View style={styles.warningBox}>
+              <Ionicons name="warning" size={20} color={themeColors.warning} />
+              <Text style={styles.warningText}>No available lots found. Please contact admin.</Text>
             </View>
-          </View>
-          {(errors.houseLot || errors.houseBlock) ? (
-            <Text style={styles.errorText}>{errors.houseLot || errors.houseBlock}</Text>
-          ) : null}
+          ) : (
+            <>
+              {/* Dropdown Button */}
+              <TouchableOpacity 
+                style={styles.dropdownButton}
+                onPress={() => setShowLotDropdown(true)}
+              >
+                <View style={styles.dropdownLeft}>
+                  <Ionicons name="home" size={20} color={themeColors.textSecondary} />
+                  <Text style={styles.dropdownText}>
+                    {formData.selectedLot 
+                      ? `Lot ${formData.selectedLot}` 
+                      : 'Select a lot from available options'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={20} color={themeColors.textSecondary} />
+              </TouchableOpacity>
+              
+              {errors.selectedLot && <Text style={styles.errorText}>{errors.selectedLot}</Text>}
+              
+              {/* Map Button */}
+              <TouchableOpacity 
+                style={styles.mapButton}
+                onPress={() => setShowMapModal(true)}
+              >
+                <Ionicons name="map" size={20} color={themeColors.primary} />
+                <Text style={styles.mapButtonText}>View Interactive Lot Map</Text>
+              </TouchableOpacity>
+              
+              {/* Selected Lot Details */}
+              {selectedLotDetails && (
+                <View style={styles.selectedLotCard}>
+                  <View style={styles.selectedLotHeader}>
+                    <Ionicons name="location" size={18} color={themeColors.primary} />
+                    <Text style={styles.selectedLotTitle}>Selected Lot Details</Text>
+                  </View>
+                  <View style={styles.selectedLotGrid}>
+                    <View style={styles.selectedLotItem}>
+                      <Text style={styles.selectedLotLabel}>Lot ID:</Text>
+                      <Text style={styles.selectedLotValue}>{selectedLotDetails.lotId}</Text>
+                    </View>
+                    <View style={styles.selectedLotItem}>
+                      <Text style={styles.selectedLotLabel}>Type:</Text>
+                      <Text style={styles.selectedLotValue}>{selectedLotDetails.type}</Text>
+                    </View>
+                    <View style={styles.selectedLotItem}>
+                      <Text style={styles.selectedLotLabel}>Area:</Text>
+                      <Text style={styles.selectedLotValue}>{selectedLotDetails.sqm} sqm</Text>
+                    </View>
+                    {selectedLotDetails.price && (
+                      <View style={styles.selectedLotItem}>
+                        <Text style={styles.selectedLotLabel}>Price:</Text>
+                        <Text style={[styles.selectedLotValue, { color: themeColors.success }]}>
+                          {formatCurrency(selectedLotDetails.price)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+              
+              <View style={styles.infoBox}>
+                <Ionicons name="information-circle" size={18} color={themeColors.info} />
+                <Text style={styles.infoText}>
+                  Once you register, your selected lot will be reserved pending admin approval.
+                </Text>
+              </View>
+            </>
+          )}
 
+          {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            style={[styles.submitButton, (loading || loadingLots || availableLots.length === 0) && styles.submitButtonDisabled]}
             onPress={handleSubmit}
-            disabled={loading}
+            disabled={loading || loadingLots || availableLots.length === 0}
           >
             {loading ? (
               <ActivityIndicator color="white" />
@@ -411,6 +757,7 @@ const RegisterScreen = ({ navigation, route }) => {
             )}
           </TouchableOpacity>
 
+          {/* Login Link */}
           <View style={styles.loginLink}>
             <Text style={styles.loginText}>Already have an account?</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
@@ -420,43 +767,88 @@ const RegisterScreen = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
+      {/* Lot Dropdown Modal */}
+      <Modal
+        visible={showLotDropdown}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowLotDropdown(false)}
+      >
+        <View style={styles.dropdownOverlay}>
+          <View style={styles.dropdownModal}>
+            <View style={styles.dropdownModalHeader}>
+              <Text style={styles.dropdownModalTitle}>Select a Lot</Text>
+              <TouchableOpacity onPress={() => setShowLotDropdown(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={availableLots}
+              keyExtractor={(item) => item.lotId}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.lotOption,
+                    formData.selectedLot === item.lotId && styles.lotOptionSelected
+                  ]}
+                  onPress={() => handleLotSelect(item)}
+                >
+                  <View style={styles.lotOptionLeft}>
+                    <Text style={styles.lotOptionId}>{item.lotId}</Text>
+                    <Text style={styles.lotOptionType}>{item.type}</Text>
+                  </View>
+                  <View style={styles.lotOptionRight}>
+                    <Text style={styles.lotOptionSqm}>{item.sqm} sqm</Text>
+                    {formData.selectedLot === item.lotId && (
+                      <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyLotsContainer}>
+                  <Text style={styles.emptyLotsText}>No available lots found</Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Lot Selection Map Modal */}
+      <LotSelectionModal />
+
       {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={() => setShowSuccessModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={styles.successModal}>
             <View style={styles.successIconContainer}>
               <Ionicons name="checkmark" size={50} color="white" />
             </View>
-            
-            <Text style={styles.modalTitle}>
-              Registration Successful!
-            </Text>
-            
-            <Text style={styles.modalMessage}>
+            <Text style={styles.successTitle}>Registration Successful!</Text>
+            <Text style={styles.successMessage}>
               Your account has been created successfully.{'\n\n'}
               Please wait for admin approval before you can log in.
             </Text>
-            
             <TouchableOpacity
-              style={styles.modalButton}
+              style={styles.successButton}
               onPress={() => {
                 setShowSuccessModal(false);
                 navigation.navigate('Login');
               }}
             >
-              <Text style={styles.modalButtonText}>
-                Go to Login
-              </Text>
+              <Text style={styles.successButtonText}>Go to Login</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -465,7 +857,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
-  content: {
+  scrollContent: {
     padding: 20,
     paddingTop: 40,
   },
@@ -519,25 +911,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
-  form: {
+  formCard: {
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
     borderColor: themeColors.border,
-  },
-  row: {
-    marginBottom: 8,
-  },
-  halfWidth: {
-    width: '100%',
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: themeColors.textPrimary,
-    marginBottom: 8,
-    marginTop: 16,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -564,12 +943,129 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
   },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  loadingLotsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    gap: 12,
+  },
+  loadingLotsText: {
+    fontSize: 14,
+    color: themeColors.textSecondary,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: themeColors.warning + '15',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: themeColors.warning,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#f8fafc',
+    marginBottom: 8,
+  },
+  dropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dropdownText: {
+    fontSize: 15,
+    color: themeColors.textPrimary,
+  },
+  mapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: themeColors.primary,
+    borderRadius: 8,
+    paddingVertical: 12,
+    gap: 8,
+    marginBottom: 12,
+  },
+  mapButtonText: {
+    color: themeColors.primary,
+    fontWeight: '600',
+  },
+  selectedLotCard: {
+    backgroundColor: themeColors.primary + '08',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: themeColors.primary + '20',
+  },
+  selectedLotHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  selectedLotTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: themeColors.primary,
+  },
+  selectedLotGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  selectedLotItem: {
+    width: '50%',
+    marginBottom: 8,
+  },
+  selectedLotLabel: {
+    fontSize: 11,
+    color: themeColors.textSecondary,
+  },
+  selectedLotValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: themeColors.textPrimary,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: themeColors.info + '10',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+    marginBottom: 16,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: themeColors.info,
+  },
   submitButton: {
     backgroundColor: themeColors.primary,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 8,
   },
   submitButtonDisabled: {
     opacity: 0.6,
@@ -598,64 +1094,423 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
-  // Modal Styles
+  // Dropdown Modal
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  dropdownModal: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  dropdownModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
+  },
+  dropdownModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+  },
+  lotOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
+  },
+  lotOptionSelected: {
+    backgroundColor: themeColors.primary + '10',
+  },
+  lotOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  lotOptionId: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+  },
+  lotOptionType: {
+    fontSize: 13,
+    color: themeColors.textSecondary,
+  },
+  lotOptionRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  lotOptionSqm: {
+    fontSize: 13,
+    color: themeColors.textSecondary,
+  },
+  emptyLotsContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyLotsText: {
+    fontSize: 14,
+    color: themeColors.textSecondary,
+  },
+  // Map Modal
+  mapModalContainer: {
+    flex: 1,
+    backgroundColor: '#0f2a04',
+  },
+  mapModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: themeColors.primary,
+  },
+  mapModalBack: {
+    padding: 8,
+  },
+  mapModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'white',
+  },
+  mapViewToggle: {
+    flexDirection: 'row',
+    padding: 12,
+    gap: 12,
+  },
+  mapToggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  mapToggleActive: {
+    backgroundColor: themeColors.primary,
+  },
+  mapToggleText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  mapToggleActiveText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  zoomControls: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 12,
+    gap: 8,
+    marginBottom: 8,
+  },
+  zoomButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  legendScroll: {
+    maxHeight: 50,
+    paddingHorizontal: 12,
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    gap: 16,
+    paddingVertical: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+  },
+  legendText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  mapContent: {
+    padding: 12,
+  },
+  entranceRoad: {
+    marginBottom: 16,
+    padding: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+  },
+  entranceRoadText: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.3)',
+    letterSpacing: 3,
+  },
+  blockContainer: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  blockHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  blockTitleBox: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  blockTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: 'white',
+    letterSpacing: 1,
+  },
+  blockAvailableBadge: {
+    backgroundColor: 'rgba(34,197,94,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(34,197,94,0.3)',
+  },
+  blockAvailableText: {
+    fontSize: 10,
+    color: '#4ade80',
+    fontWeight: '700',
+  },
+  roadStrip: {
+    height: 3,
+    marginBottom: 12,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  lotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  lotTile: {
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    position: 'relative',
+  },
+  lotNumber: {
+    fontWeight: '700',
+  },
+  lotSqm: {
+    opacity: 0.7,
+  },
+  selectedBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: themeColors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Lot Info Modal
+  lotInfoOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  lotInfoModal: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  lotInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
+  },
+  lotInfoTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+  },
+  lotInfoContent: {
+    padding: 20,
+  },
+  lotInfoId: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: themeColors.textPrimary,
+    marginBottom: 8,
+  },
+  lotInfoBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  lotInfoBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  lotInfoAddress: {
+    fontSize: 14,
+    color: themeColors.textSecondary,
+    marginBottom: 16,
+  },
+  lotInfoGrid: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  lotInfoItem: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  lotInfoLabel: {
+    fontSize: 11,
+    color: themeColors.textSecondary,
+    marginBottom: 4,
+  },
+  lotInfoValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+  },
+  priceContainer: {
+    backgroundColor: themeColors.success + '10',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: themeColors.success + '30',
+  },
+  priceLabel: {
+    fontSize: 11,
+    color: themeColors.textSecondary,
+    marginBottom: 4,
+  },
+  priceValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: themeColors.success,
+  },
+  priceNote: {
+    fontSize: 11,
+    color: themeColors.textSecondary,
+    marginTop: 4,
+  },
+  featuresContainer: {
+    marginBottom: 16,
+  },
+  featuresTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+    marginBottom: 8,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 8,
+  },
+  featureText: {
+    fontSize: 13,
+    color: themeColors.textPrimary,
+  },
+  lotInfoActions: {
+    marginTop: 8,
+  },
+  lotInfoButton: {
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  selectButton: {
+    backgroundColor: themeColors.success,
+  },
+  selectButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Success Modal
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  modalContent: {
+  successModal: {
     backgroundColor: 'white',
     borderRadius: 20,
     padding: 30,
     width: '85%',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
   },
   successIconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#4CAF50',
+    backgroundColor: themeColors.success,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
-  modalTitle: {
-    fontSize: 24,
+  successTitle: {
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#333',
+    color: themeColors.textPrimary,
     marginBottom: 10,
     textAlign: 'center',
   },
-  modalMessage: {
-    fontSize: 16,
-    color: '#666',
+  successMessage: {
+    fontSize: 14,
+    color: themeColors.textSecondary,
     textAlign: 'center',
     marginBottom: 20,
-    lineHeight: 22,
+    lineHeight: 20,
   },
-  modalButton: {
-    backgroundColor: '#4CAF50',
+  successButton: {
+    backgroundColor: themeColors.success,
     paddingVertical: 14,
     paddingHorizontal: 30,
     borderRadius: 10,
     width: '100%',
   },
-  modalButtonText: {
+  successButtonText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
   },

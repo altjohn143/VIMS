@@ -23,32 +23,20 @@ for (const name of Object.keys(networkInterfaces)) {
 
 app.use(cors({
   origin: [
-  'http://localhost:3000',
-  'http://localhost:8081',
-  'http://localhost:19006',
-  'exp://localhost:19000',
-  'exp://192.168.*.*:8081',
-  `http://${localIP}:3000`,
-  `http://${localIP}:8081`,
-  'https://vims-one.vercel.app'
+    'http://localhost:3000',
+    'http://localhost:8081',
+    'http://localhost:19006',
+    'exp://localhost:19000',
+    /^exp:\/\/192\.168\..*:8081$/,
+    /^http:\/\/192\.168\..*:3000$/,
+    /^http:\/\/192\.168\..*:8081$/,
+    /^http:\/\/10\.0\..*:5000$/,
+    'https://vims-one.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'x-user-data',
-    'Cache-Control',
-    'Pragma',
-    'If-Modified-Since',
-    'Accept',
-    'Origin',
-    'X-Requested-With'
-  ],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-data', 'Cache-Control', 'Pragma', 'If-Modified-Since', 'Accept', 'Origin', 'X-Requested-With'],
   exposedHeaders: ['Content-Length', 'Content-Type', 'Authorization'],
-  maxAge: 86400,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
 }));
 
 // Middleware

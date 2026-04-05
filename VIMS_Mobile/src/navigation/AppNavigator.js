@@ -28,6 +28,12 @@ import AdminVisitorManagementScreen from '../screens/admin/AdminVisitorManagemen
 import SecurityVisitorApprovalScreen from '../screens/security/SecurityVisitorApprovalScreen';
 import SecurityVisitorLogsScreen from '../screens/security/SecurityVisitorLogsScreen';
 
+import PaymentsScreen from '../screens/PaymentsScreen';
+import AdminPaymentsScreen from '../screens/admin/AdminPaymentsScreen';
+import PaymentRedirectScreen from '../screens/PaymentRedirectScreen';
+import PaymentSuccessScreen from '../screens/PaymentSuccessScreen';
+import PaymentCancelledScreen from '../screens/PaymentCancelledScreen';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -66,6 +72,7 @@ const ResidentTabs = () => {
       <Tab.Screen name="VisitorsTab" component={VisitorManagementScreen} options={{ title: 'Visitors' }} />
       <Tab.Screen name="ServicesTab" component={ServiceRequestsScreen} options={{ title: 'Services' }} />
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <Tab.Screen name="PaymentsTab" component={PaymentsScreen} options={{ title: 'Payments' }} />
     </Tab.Navigator>
   );
 };
@@ -105,6 +112,7 @@ const AdminTabs = () => {
       <Tab.Screen name="UsersTab" component={AdminUserManagementScreen} options={{ title: 'Users' }} />
       <Tab.Screen name="VisitorsTab" component={AdminVisitorManagementScreen} options={{ title: 'Visitors' }} />
       <Tab.Screen name="ServicesTab" component={AdminServiceRequestsScreen} options={{ title: 'Services' }} />
+      <Tab.Screen name="PaymentsTab" component={AdminPaymentsScreen} options={{ title: 'Payments' }} />
     </Tab.Navigator>
   );
 };
@@ -154,8 +162,8 @@ const AppNavigator = () => {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      
       {!user ? (
-        // Auth Stack
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
@@ -163,10 +171,8 @@ const AppNavigator = () => {
           <Stack.Screen name="PublicLots" component={PublicLotMapScreen} />
         </>
       ) : !user.isApproved ? (
-        // Pending Approval
         <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
       ) : (
-        // Role-based Dashboards
         <>
           {user.role === 'resident' && (
             <Stack.Screen name="ResidentDashboard" component={ResidentTabs} />
@@ -182,6 +188,12 @@ const AppNavigator = () => {
           )}
         </>
       )}
+
+      {/* ✅ ALWAYS OUTSIDE CONDITION */}
+      <Stack.Screen name="PaymentRedirect" component={PaymentRedirectScreen} />
+      <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
+      <Stack.Screen name="PaymentCancelled" component={PaymentCancelledScreen} />
+
     </Stack.Navigator>
   );
 };

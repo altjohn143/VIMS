@@ -1,4 +1,4 @@
-// Register.js - Updated with interactive lot map
+// Register.js - Updated with country code dropdown
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -42,8 +42,30 @@ import {
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-// Import the LotMap component - we'll create this
+// Import the LotMap component
 import LotSelectionMap from '../components/LotSelectionMap';
+
+// Country codes data
+const COUNTRY_CODES = [
+  { code: '+63', country: 'Philippines', flag: '🇵🇭', prefix: '63' },
+  { code: '+1', country: 'USA/Canada', flag: '🇺🇸', prefix: '1' },
+  { code: '+44', country: 'United Kingdom', flag: '🇬🇧', prefix: '44' },
+  { code: '+61', country: 'Australia', flag: '🇦🇺', prefix: '61' },
+  { code: '+81', country: 'Japan', flag: '🇯🇵', prefix: '81' },
+  { code: '+82', country: 'South Korea', flag: '🇰🇷', prefix: '82' },
+  { code: '+86', country: 'China', flag: '🇨🇳', prefix: '86' },
+  { code: '+65', country: 'Singapore', flag: '🇸🇬', prefix: '65' },
+  { code: '+60', country: 'Malaysia', flag: '🇲🇾', prefix: '60' },
+  { code: '+66', country: 'Thailand', flag: '🇹🇭', prefix: '66' },
+  { code: '+84', country: 'Vietnam', flag: '🇻🇳', prefix: '84' },
+  { code: '+62', country: 'Indonesia', flag: '🇮🇩', prefix: '62' },
+  { code: '+971', country: 'UAE', flag: '🇦🇪', prefix: '971' },
+  { code: '+966', country: 'Saudi Arabia', flag: '🇸🇦', prefix: '966' },
+  { code: '+49', country: 'Germany', flag: '🇩🇪', prefix: '49' },
+  { code: '+33', country: 'France', flag: '🇫🇷', prefix: '33' },
+  { code: '+39', country: 'Italy', flag: '🇮🇹', prefix: '39' },
+  { code: '+34', country: 'Spain', flag: '🇪🇸', prefix: '34' },
+];
 
 const Register = () => {
   const themeColors = {
@@ -64,6 +86,7 @@ const Register = () => {
     lastName: '',
     email: '',
     phone: '',
+    countryCode: '+63',
     password: '',
     confirmPassword: '',
     role: 'resident',
@@ -81,7 +104,7 @@ const Register = () => {
   const [availability, setAvailability] = useState({ email: null, phone: null });
   const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
   const [mapDrawerOpen, setMapDrawerOpen] = useState(false);
-  const [mapViewMode, setMapViewMode] = useState('available'); // 'available' or 'all'
+  const [mapViewMode, setMapViewMode] = useState('available');
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -180,6 +203,9 @@ const Register = () => {
       case 'phone':
         filteredValue = value.replace(/\D/g, '').slice(0, 10);
         break;
+      case 'countryCode':
+        filteredValue = value;
+        break;
       default:
         filteredValue = value;
     }
@@ -236,9 +262,15 @@ const Register = () => {
     else if (!isValidEmail(formData.email)) newErrors.email = 'Please use a valid email from reputable providers';
     else if (availability.email === false) newErrors.email = 'This email is already registered';
     
-    if (!formData.phone) newErrors.phone = 'Phone number is required';
-    else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Phone number must be exactly 10 digits';
-    else if (availability.phone === false) newErrors.phone = 'This phone number is already registered';
+    if (!formData.phone) {
+      newErrors.phone = 'Phone number is required';
+    } else {
+      const phoneRegex = /^9\d{9}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        newErrors.phone = 'Phone number must be 10 digits starting with 9 (e.g., 9662342234)';
+      }
+    }
+    if (availability.phone === false) newErrors.phone = 'This phone number is already registered';
     
     if (!formData.password) newErrors.password = 'Password is required';
     else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
@@ -268,7 +300,8 @@ const Register = () => {
       phone: formData.phone,
       password: formData.password,
       role: formData.role,
-      selectedLot: formData.selectedLot
+      selectedLot: formData.selectedLot,
+      countryCode: formData.countryCode
     };
     
     const result = await register(registrationData);
@@ -296,6 +329,9 @@ const Register = () => {
     },
     '& .MuiInputLabel-root.Mui-focused': { color: themeColors.primary },
   };
+
+  // Get selected country display
+  const selectedCountry = COUNTRY_CODES.find(c => c.code === formData.countryCode) || COUNTRY_CODES[0];
 
   return (
     <Box
@@ -489,34 +525,79 @@ const Register = () => {
                 />
               </Grid>
 
-              {/* Phone */}
+              {/* Phone with Country Code */}
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Phone Number"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  error={!!errors.phone}
-                  helperText={errors.phone || 'Exactly 10 digits required'}
-                  required
-                  placeholder="9123456789"
-                  inputProps={{ maxLength: 10 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PhoneIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        {getAvailabilityIcon('phone')}
-                      </InputAdornment>
-                    ),
-                    sx: { borderRadius: 2 }
-                  }}
-                  sx={fieldSx}
-                />
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                  {/* Country Code Dropdown */}
+                  <FormControl sx={{ width: '130px' }} size="small">
+                    <InputLabel sx={{ color: themeColors.textSecondary }}>Country</InputLabel>
+                    <Select
+                      name="countryCode"
+                      value={formData.countryCode}
+                      onChange={handleChange}
+                      label="Country"
+                      sx={{
+                        borderRadius: 2,
+                        backgroundColor: '#f8faf5',
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: themeColors.border
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: themeColors.primary
+                        },
+                        '& .MuiSelect-select': {
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          py: 1.5
+                        }
+                      }}
+                    >
+                      {COUNTRY_CODES.map((country) => (
+                        <MenuItem key={country.code} value={country.code}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <span>{country.flag}</span>
+                            <span>{country.code}</span>
+                            <Typography variant="caption" sx={{ color: themeColors.textSecondary, ml: 0.5 }}>
+                              ({country.country})
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {/* Phone Number Field */}
+                  <TextField
+                    fullWidth
+                    label="Phone Number"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    error={!!errors.phone}
+                    helperText={errors.phone || 'Enter 10 digits starting with 9 (e.g., 9662342234)'}
+                    required
+                    placeholder="9662342234"
+                    inputProps={{ maxLength: 10, inputMode: 'numeric' }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PhoneIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          {getAvailabilityIcon('phone')}
+                        </InputAdornment>
+                      ),
+                      sx: { borderRadius: 2 }
+                    }}
+                    sx={fieldSx}
+                  />
+                </Box>
+                <Typography variant="caption" sx={{ color: themeColors.textSecondary, mt: 0.5, display: 'block' }}>
+                  {selectedCountry.flag} {selectedCountry.code} - Philippine format: Remove the leading 0 from your number (e.g., 0966-234-2234 → 9662342234)
+                </Typography>
               </Grid>
 
               {/* Password */}

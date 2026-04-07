@@ -1,22 +1,70 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Button, Chip, Container, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  AppBar,
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Container,
+  Grid,
+  IconButton,
+  InputAdornment,
+  Menu,
+  MenuItem,
+  Paper,
+  Tab,
+  Tabs,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Toolbar,
+  Typography
+} from '@mui/material';
+import {
+  ArrowBack as ArrowBackIcon,
+  Logout as LogoutIcon,
+  Search as SearchIcon,
+  Settings as SettingsIcon
+} from '@mui/icons-material';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+
+const themeColors = {
+  primary: '#2224be',
+  success: '#10b981',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  info: '#3b82f6',
+  background: '#f8fafc',
+  cardBackground: '#ffffff',
+  textPrimary: '#1e293b',
+  textSecondary: '#64748b',
+  border: 'rgba(99, 102, 241, 0.1)'
+};
 
 const SecurityServiceRequests = () => {
-  const { getCurrentUser } = useAuth();
+  const { getCurrentUser, logout } = useAuth();
   const currentUser = getCurrentUser();
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
-  const [status, setStatus] = useState('all');
+  const [activeTab, setActiveTab] = useState('all');
   const [priority, setPriority] = useState('all');
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
   const [assignedOnly, setAssignedOnly] = useState(true);
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const params = { status };
+      const params = { status: activeTab };
       if (priority !== 'all') params.priority = priority;
       if (category !== 'all') params.category = category;
       const res = await axios.get('/api/service-requests', { params });
@@ -24,7 +72,7 @@ const SecurityServiceRequests = () => {
     } catch (error) {
       toast.error('Failed to load service requests');
     }
-  }, [status, priority, category]);
+  }, [activeTab, priority, category]);
 
   useEffect(() => {
     load();
@@ -46,25 +94,93 @@ const SecurityServiceRequests = () => {
     return haystack.includes(query.toLowerCase());
   });
 
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const assigned = rows.filter((r) => r.status === 'assigned').length;
+    const inProgress = rows.filter((r) => r.status === 'in-progress').length;
+    const completed = rows.filter((r) => r.status === 'completed').length;
+    return { total, assigned, inProgress, completed };
+  }, [rows]);
+
+  const handleProfileMenuOpen = (event) => setProfileAnchorEl(event.currentTarget);
+  const handleProfileMenuClose = () => setProfileAnchorEl(null);
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, gap: 1, flexWrap: 'wrap' }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>Security Service Requests</Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+    <>
+      <AppBar position="sticky" elevation={0} sx={{ bgcolor: themeColors.cardBackground, borderBottom: `1px solid ${themeColors.border}` }}>
+        <Toolbar>
+          <IconButton component={RouterLink} to="/dashboard" sx={{ mr: 1, color: themeColors.primary }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography sx={{ flexGrow: 1, fontWeight: 800, color: themeColors.textPrimary }}>
+            Security Service Requests
+          </Typography>
+          <Button onClick={handleProfileMenuOpen} sx={{ textTransform: 'none', color: themeColors.textPrimary }}>
+            <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: themeColors.primary }}>
+              {currentUser?.firstName?.[0]}{currentUser?.lastName?.[0]}
+            </Avatar>
+            {currentUser?.firstName || 'Security'}
+          </Button>
+          <Menu anchorEl={profileAnchorEl} open={Boolean(profileAnchorEl)} onClose={handleProfileMenuClose}>
+            <MenuItem component={RouterLink} to="/profile" onClick={handleProfileMenuClose}>
+              <SettingsIcon sx={{ mr: 1, fontSize: 18 }} /> Profile Settings
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <LogoutIcon sx={{ mr: 1, fontSize: 18 }} /> Logout
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          {[
+            { label: 'Total', value: stats.total, color: themeColors.info },
+            { label: 'Assigned', value: stats.assigned, color: themeColors.warning },
+            { label: 'In Progress', value: stats.inProgress, color: themeColors.primary },
+            { label: 'Completed', value: stats.completed, color: themeColors.success }
+          ].map((stat) => (
+            <Grid item xs={12} sm={6} md={3} key={stat.label}>
+              <Card sx={{ borderRadius: 3 }}>
+                <CardContent>
+                  <Typography color="text.secondary" variant="body2">{stat.label}</Typography>
+                  <Typography sx={{ fontSize: 28, fontWeight: 800, color: stat.color }}>{stat.value}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        <Paper sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+          <Tabs value={activeTab} onChange={(_, value) => setActiveTab(value)} variant="scrollable" allowScrollButtonsMobile>
+            <Tab value="all" label="All" />
+            <Tab value="pending" label="Pending" />
+            <Tab value="assigned" label="Assigned" />
+            <Tab value="in-progress" label="In Progress" />
+            <Tab value="completed" label="Completed" />
+          </Tabs>
+        </Paper>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, gap: 1, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <TextField
             size="small"
             placeholder="Search resident/request"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            sx={{ minWidth: 220 }}
+            sx={{ minWidth: 240 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              )
+            }}
           />
-          <TextField select size="small" value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 140 }}>
-            <MenuItem value="all">All Status</MenuItem>
-            <MenuItem value="pending">Pending</MenuItem>
-            <MenuItem value="assigned">Assigned</MenuItem>
-            <MenuItem value="in-progress">In Progress</MenuItem>
-            <MenuItem value="completed">Completed</MenuItem>
-          </TextField>
           <TextField select size="small" value={priority} onChange={(e) => setPriority(e.target.value)} sx={{ minWidth: 130 }}>
             <MenuItem value="all">All Priority</MenuItem>
             <MenuItem value="low">Low</MenuItem>
@@ -83,47 +199,63 @@ const SecurityServiceRequests = () => {
           <Button variant={assignedOnly ? 'contained' : 'outlined'} size="small" onClick={() => setAssignedOnly((v) => !v)}>
             {assignedOnly ? 'Assigned to me' : 'All visible'}
           </Button>
+          </Box>
         </Box>
-      </Box>
 
-      <Stack spacing={2}>
-        {filteredRows.map((item) => (
-          <Paper key={item._id} sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-              <Box>
-                <Typography sx={{ fontWeight: 700 }}>{item.title}</Typography>
-                <Typography variant="body2" color="text.secondary">{item.description}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Resident: {item.residentId?.firstName || ''} {item.residentId?.lastName || ''} | Priority: {item.priority || 'normal'} | Assigned: {item.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}` : 'Unassigned'}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Chip size="small" label={item.status} />
-                <Button
-                  size="small"
-                  disabled={item.assignedTo?._id !== currentUser?._id || item.status === 'completed'}
-                  onClick={() => updateStatus(item._id, 'in-progress')}
-                >
-                  Start
-                </Button>
-                <Button
-                  size="small"
-                  disabled={item.assignedTo?._id !== currentUser?._id || item.status === 'completed'}
-                  onClick={() => updateStatus(item._id, 'completed')}
-                >
-                  Complete
-                </Button>
-              </Box>
-            </Box>
-          </Paper>
-        ))}
+        <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Request</TableCell>
+                <TableCell>Resident</TableCell>
+                <TableCell>Priority</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Assigned</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredRows.map((item) => (
+                <TableRow key={item._id} hover>
+                  <TableCell>
+                    <Typography sx={{ fontWeight: 700 }}>{item.title}</Typography>
+                    <Typography variant="caption" color="text.secondary">{item.description}</Typography>
+                  </TableCell>
+                  <TableCell>{item.residentId?.firstName || ''} {item.residentId?.lastName || ''}</TableCell>
+                  <TableCell>
+                    <Chip size="small" label={item.priority || 'normal'} color={item.priority === 'urgent' ? 'error' : 'default'} />
+                  </TableCell>
+                  <TableCell><Chip size="small" label={item.status} /></TableCell>
+                  <TableCell>{item.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}` : 'Unassigned'}</TableCell>
+                  <TableCell align="right">
+                    <Button
+                      size="small"
+                      disabled={item.assignedTo?._id !== currentUser?._id || item.status === 'completed'}
+                      onClick={() => updateStatus(item._id, 'in-progress')}
+                    >
+                      Start
+                    </Button>
+                    <Button
+                      size="small"
+                      disabled={item.assignedTo?._id !== currentUser?._id || item.status === 'completed'}
+                      onClick={() => updateStatus(item._id, 'completed')}
+                    >
+                      Complete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
         {filteredRows.length === 0 && (
           <Paper sx={{ p: 3 }}>
             <Typography color="text.secondary">No service requests match the selected filters.</Typography>
           </Paper>
         )}
-      </Stack>
-    </Container>
+      </Container>
+    </>
   );
 };
 

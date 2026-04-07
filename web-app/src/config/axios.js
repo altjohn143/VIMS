@@ -1,9 +1,10 @@
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
+const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
 
 // Set default base URL
-axios.defaults.baseURL = API_URL;
+axios.defaults.baseURL = API_BASE_URL;
 
 // Add request interceptor to add token to all requests
 axios.interceptors.request.use(

@@ -31,7 +31,8 @@ import PaymentCancelled from './pages/PaymentCancelled';
 import { AuthProvider } from './context/AuthContext';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
-axios.defaults.baseURL = API_URL;
+const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
+axios.defaults.baseURL = API_BASE_URL;
 
 const theme = createTheme({
   palette: {

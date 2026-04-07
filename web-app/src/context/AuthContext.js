@@ -3,6 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const API_URL = 'https://vims-backend.onrender.com/api';
+const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 const AuthContext = createContext();
@@ -47,7 +48,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    axios.defaults.baseURL = API_URL;
+    axios.defaults.baseURL = API_BASE_URL;
     
     const token = localStorage.getItem('token');
     if (!token) {
@@ -137,7 +138,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(user));
       setLastActivity();
 
-      axios.defaults.baseURL = API_URL;
+      axios.defaults.baseURL = API_BASE_URL;
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setIsAuthenticated(true);
       

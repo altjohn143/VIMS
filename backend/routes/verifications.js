@@ -5,7 +5,7 @@ const fs = require('fs');
 const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
-const { queueIdentityVerification } = require('../services/aiVerificationService');
+const { queueIdentityVerification, classifyVerificationResult } = require('../services/aiVerificationService');
 
 const router = express.Router();
 
@@ -92,10 +92,15 @@ router.post('/webhooks/ai-result', async (req, res) => {
     if (!verification) return res.status(404).json({ success: false, error: 'Verification not found' });
 
     verification.aiResult = { score, ocrName, ocrDob, flags, providerRaw };
-    verification.status = Array.isArray(flags) && flags.length > 0 ? 'ai_flagged' : 'manual_review';
+    const decision = classifyVerificationResult({ score, flags });
+    verification.status = decision.status;
+    verification.reviewedBy = null;
+    verification.reviewedAt = null;
+    verification.reviewNotes = decision.reason;
+    verification.rejectReason = decision.status === 'rejected' ? decision.reason : '';
     await verification.save();
 
-    res.json({ success: true });
+    res.json({ success: true, data: { verificationId: verification._id, status: verification.status, decision: decision.decision } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to process AI result' });
   }

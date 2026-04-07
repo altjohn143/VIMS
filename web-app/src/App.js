@@ -14,6 +14,9 @@ import ServiceRequests from './pages/ServiceRequests';
 import SecurityVisitorApproval from './pages/SecurityVisitorApproval';
 import AdminVisitorManagement from './pages/AdminVisitorManagement';
 import SecurityVisitorLogs from './pages/SecurityVisitorLogs';
+import SecurityServiceRequests from './pages/SecurityServiceRequests';
+import SecurityPatrolSchedule from './pages/SecurityPatrolSchedule';
+import SecurityIncidents from './pages/SecurityIncidents';
 import AdminServiceRequests from './pages/AdminServiceRequests';
 import ProfileSettings from './pages/ProfileSettings';
 import PublicLotMap from './pages/PublicLotMap';
@@ -117,6 +120,9 @@ function App() {
             {/* Security-only routes */}
             <Route path="/security/visitor-approval" element={<SecurityRoute><SecurityVisitorApproval /></SecurityRoute>} />
             <Route path="/security/visitor-logs" element={<SecurityRoute><SecurityVisitorLogs /></SecurityRoute>} />
+            <Route path="/security/service-requests" element={<SecurityRoute><SecurityServiceRequests /></SecurityRoute>} />
+            <Route path="/security/schedule" element={<SecurityRoute><SecurityPatrolSchedule /></SecurityRoute>} />
+            <Route path="/security/incidents" element={<SecurityRoute><SecurityIncidents /></SecurityRoute>} />
 
             {/* Resident-only routes */}
             <Route path="/visitors" element={<ResidentRoute><VisitorManagement /></ResidentRoute>} />

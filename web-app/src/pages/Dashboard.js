@@ -133,15 +133,12 @@ const statCardStyles = [
     accent: '#fee2e2'
   }
 ];
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
-
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
-  const [remainingSessionMs, setRemainingSessionMs] = useState(SESSION_TIMEOUT_MS);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingApprovals, setPendingApprovals] = useState([]);
@@ -176,25 +173,6 @@ const Dashboard = () => {
     logout();
     navigate('/login');
   }, [logout, navigate]);
-
-  useEffect(() => {
-    const getRemaining = () => {
-      const lastActivityAt = Number(localStorage.getItem('lastActivityAt') || 0);
-      if (!lastActivityAt) return SESSION_TIMEOUT_MS;
-      return Math.max(0, SESSION_TIMEOUT_MS - (Date.now() - lastActivityAt));
-    };
-
-    setRemainingSessionMs(getRemaining());
-    const intervalId = window.setInterval(() => {
-      const remaining = getRemaining();
-      setRemainingSessionMs(remaining);
-      if (remaining <= 0) {
-        handleLogout();
-      }
-    }, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [handleLogout]);
 
   useEffect(() => {
     const loadNotifications = async () => {
@@ -483,9 +461,6 @@ const Dashboard = () => {
   };
 
   const config = roleConfig[user.role] || roleConfig.resident;
-
-  const sessionMinutes = Math.floor(remainingSessionMs / 60000);
-  const sessionSeconds = Math.floor((remainingSessionMs % 60000) / 1000);
 
   const accountInfo = [
     { label: 'Name', value: `${user.firstName} ${user.lastName}` },
@@ -1070,17 +1045,6 @@ const Dashboard = () => {
               </Typography>
             </Box>
           </Box>
-
-          <Chip
-            label={`Session ${sessionMinutes}:${String(sessionSeconds).padStart(2, '0')}`}
-            size="small"
-            sx={{
-              mr: 2,
-              fontWeight: 600,
-              bgcolor: remainingSessionMs <= 5 * 60 * 1000 ? themeColors.warning : themeColors.info,
-              color: 'white'
-            }}
-          />
 
           <IconButton component={RouterLink} to="/notifications" sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}>
             <Badge badgeContent={unreadCount} color="error">

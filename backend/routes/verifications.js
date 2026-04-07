@@ -64,24 +64,32 @@ router.post(
         await verification.save();
       }
 
-      const queueResult = await queueIdentityVerification(verification);
-      verification.status = 'ai_processing';
-      if (queueResult.mode === 'gemini_direct' && queueResult.result) {
-        const aiResult = queueResult.result;
-        verification.aiResult = {
-          score: aiResult.score ?? null,
-          ocrName: aiResult.ocrName || '',
-          ocrDob: aiResult.ocrDob || '',
-          flags: Array.isArray(aiResult.flags) ? aiResult.flags : [],
-          providerRaw: aiResult.providerRaw || null
-        };
-        const decision = classifyVerificationResult({
-          score: verification.aiResult.score,
-          flags: verification.aiResult.flags
-        });
-        verification.status = decision.status;
-        verification.reviewNotes = decision.reason;
-        verification.rejectReason = decision.status === 'rejected' ? decision.reason : '';
+      let queueResult = { mode: 'local_stub' };
+      try {
+        queueResult = await queueIdentityVerification(verification);
+        verification.status = 'ai_processing';
+        if (queueResult.mode === 'gemini_direct' && queueResult.result) {
+          const aiResult = queueResult.result;
+          verification.aiResult = {
+            score: aiResult.score ?? null,
+            ocrName: aiResult.ocrName || '',
+            ocrDob: aiResult.ocrDob || '',
+            flags: Array.isArray(aiResult.flags) ? aiResult.flags : [],
+            providerRaw: aiResult.providerRaw || null
+          };
+          const decision = classifyVerificationResult({
+            score: verification.aiResult.score,
+            flags: verification.aiResult.flags
+          });
+          verification.status = decision.status;
+          verification.reviewNotes = decision.reason;
+          verification.rejectReason = decision.status === 'rejected' ? decision.reason : '';
+        }
+      } catch (aiError) {
+        console.error('AI verification error (fallback to manual review):', aiError?.response?.data || aiError.message || aiError);
+        verification.status = 'manual_review';
+        verification.reviewNotes = 'AI verification service unavailable. Routed to manual review.';
+        verification.rejectReason = '';
       }
       await verification.save();
 
@@ -89,7 +97,9 @@ router.post(
         success: true,
         message: queueResult.mode === 'gemini_direct'
           ? 'ID uploaded and processed by AI'
-          : 'ID uploaded and queued for AI verification',
+          : verification.status === 'manual_review'
+            ? 'ID uploaded and routed to manual review'
+            : 'ID uploaded and queued for AI verification',
         data: verification
       });
     } catch (error) {

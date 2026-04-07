@@ -145,6 +145,7 @@ const Dashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [liveStats, setLiveStats] = useState({});
   const { logout, getCurrentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -237,6 +238,83 @@ const Dashboard = () => {
 
     loadPendingApprovals();
   }, [user?.role]);
+
+  useEffect(() => {
+    const formatCompactPeso = (amount) => {
+      if (!Number.isFinite(amount)) return '₱0';
+      if (amount >= 1000) return `₱${Math.round(amount / 1000)}K`;
+      return `₱${Math.round(amount)}`;
+    };
+
+    const loadRoleStats = async () => {
+      if (!user?.role) return;
+      try {
+        if (user.role === 'admin') {
+          const [usersRes, paymentsRes, serviceRes] = await Promise.all([
+            axios.get('/api/users'),
+            axios.get('/api/payments/admin/stats'),
+            axios.get('/api/service-requests/admin/dashboard')
+          ]);
+
+          const totalResidents = usersRes.data?.count ?? (usersRes.data?.data || []).length ?? 0;
+          const monthlyCollected = paymentsRes.data?.data?.monthlyCollected || 0;
+          const activeIssues =
+            (serviceRes.data?.data?.pendingRequests || 0) +
+            (serviceRes.data?.data?.underReviewRequests || 0) +
+            (serviceRes.data?.data?.urgentRequests || 0);
+
+          setLiveStats({
+            totalResidents,
+            monthlyCollection: formatCompactPeso(monthlyCollected),
+            activeIssues
+          });
+          return;
+        }
+
+        if (user.role === 'resident') {
+          const [visitorDashRes, paymentRes, serviceRes] = await Promise.all([
+            axios.get('/api/visitors/resident/dashboard'),
+            axios.get('/api/payments/my'),
+            axios.get('/api/service-requests/my')
+          ]);
+
+          const pendingVisitors = visitorDashRes.data?.data?.stats?.pendingVisitors || 0;
+          const dueAmount = paymentRes.data?.summary?.totalPending || 0;
+          const activeRequests = (serviceRes.data?.data || []).filter(
+            (request) => !['completed', 'cancelled', 'rejected'].includes(request.status)
+          ).length;
+
+          setLiveStats({
+            pendingVisitors,
+            dueAmount: formatCompactPeso(dueAmount),
+            activeRequests,
+            unreadAlerts: unreadCount
+          });
+          return;
+        }
+
+        if (user.role === 'security') {
+          const [visitorStatsRes, serviceStatsRes] = await Promise.all([
+            axios.get('/api/visitors/stats/summary'),
+            axios.get('/api/service-requests/stats/summary')
+          ]);
+
+          const visitorStats = visitorStatsRes.data?.data || {};
+          const serviceStats = serviceStatsRes.data?.data || {};
+          setLiveStats({
+            visitorsToday: visitorStats.todayVisitors || 0,
+            activePremises: visitorStats.activeVisitors || 0,
+            pendingCheckouts: visitorStats.activeVisitors || 0,
+            alertsToday: serviceStats.pendingRequests || 0
+          });
+        }
+      } catch (error) {
+        setLiveStats({});
+      }
+    };
+
+    loadRoleStats();
+  }, [user?.role, unreadCount]);
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleProfileMenuClose = () => setAnchorEl(null);
@@ -380,13 +458,42 @@ const Dashboard = () => {
   ];
 
   const dashboardStats = config.stats.map((stat) =>
-    user.role === 'admin' && stat.label === 'Pending Approvals'
-      ? {
-          ...stat,
-          value: String(pendingApprovals.length),
-          helper: pendingApprovals.length > 0 ? 'awaiting admin review' : 'no pending approvals'
+    (() => {
+      if (user.role === 'admin') {
+        if (stat.label === 'Total Residents') {
+          return { ...stat, value: String(liveStats.totalResidents ?? stat.value), helper: 'live from users' };
         }
-      : stat
+        if (stat.label === 'Pending Approvals') {
+          return {
+            ...stat,
+            value: String(pendingApprovals.length),
+            helper: pendingApprovals.length > 0 ? 'awaiting admin review' : 'no pending approvals'
+          };
+        }
+        if (stat.label === 'Monthly Collection') {
+          return { ...stat, value: liveStats.monthlyCollection ?? stat.value, helper: 'live this month' };
+        }
+        if (stat.label === 'Active Issues') {
+          return { ...stat, value: String(liveStats.activeIssues ?? stat.value), helper: 'pending + under review + urgent' };
+        }
+      }
+
+      if (user.role === 'resident') {
+        if (stat.label === 'Pending Visitors') return { ...stat, value: String(liveStats.pendingVisitors ?? stat.value), helper: 'live from visitor dashboard' };
+        if (stat.label === 'Due Amount') return { ...stat, value: liveStats.dueAmount ?? stat.value, helper: 'live unpaid dues' };
+        if (stat.label === 'Active Requests') return { ...stat, value: String(liveStats.activeRequests ?? stat.value), helper: 'open service requests' };
+        if (stat.label === 'Unread Alerts') return { ...stat, value: String(liveStats.unreadAlerts ?? unreadCount ?? stat.value), helper: 'live unread notifications' };
+      }
+
+      if (user.role === 'security') {
+        if (stat.label === 'Visitors Today') return { ...stat, value: String(liveStats.visitorsToday ?? stat.value), helper: 'live arrivals today' };
+        if (stat.label === 'Active on Premises') return { ...stat, value: String(liveStats.activePremises ?? stat.value), helper: 'live active visitors' };
+        if (stat.label === 'Pending Checkouts') return { ...stat, value: String(liveStats.pendingCheckouts ?? stat.value), helper: 'live active visitor exits' };
+        if (stat.label === 'Alerts Today') return { ...stat, value: String(liveStats.alertsToday ?? stat.value), helper: 'live pending service alerts' };
+      }
+
+      return stat;
+    })()
   );
 
   const quickActions = [

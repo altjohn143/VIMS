@@ -250,9 +250,6 @@ try {
   const reportScheduleRoutes = require('./routes/reportSchedules');
   console.log('/api/report-schedules routes imported');
 
-  const verificationRoutes = require('./routes/verifications');
-  console.log('/api/verifications routes imported');
-  
   // Register routes
   app.use('/api/payments', paymentRoutes);
   console.log('/api/payments routes registered');
@@ -278,9 +275,6 @@ try {
   app.use('/api/report-schedules', reportScheduleRoutes);
   console.log('/api/report-schedules routes registered');
 
-  app.use('/api/verifications', verificationRoutes);
-  console.log('/api/verifications routes registered');
-  
   console.log('All routes registered successfully!');
   startReportScheduler();
   console.log('Report scheduler started');

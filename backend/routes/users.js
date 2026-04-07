@@ -71,11 +71,29 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
     })
     .select('-password')
     .sort({ createdAt: -1 });
+
+    const verificationRecords = await IdentityVerification.find({
+      userId: { $in: pendingUsers.map((user) => user._id) }
+    }).select('userId status updatedAt');
+
+    const verificationMap = new Map(
+      verificationRecords.map((record) => [String(record.userId), record])
+    );
+
+    const data = pendingUsers.map((user) => {
+      const verification = verificationMap.get(String(user._id));
+      return {
+        ...user.toObject(),
+        verificationStatus: verification?.status || 'pending_upload',
+        verificationUpdatedAt: verification?.updatedAt || null,
+        canApprove: verification?.status === 'approved'
+      };
+    });
     
     res.json({
       success: true,
-      count: pendingUsers.length,
-      data: pendingUsers
+      count: data.length,
+      data
     });
   } catch (error) {
     console.error('Get pending approvals error:', error);

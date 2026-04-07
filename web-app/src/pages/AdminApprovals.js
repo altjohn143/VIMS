@@ -103,6 +103,25 @@ const AdminApprovals = () => {
     checkAuthAndFetch();
   }, [getCurrentUser, navigate, fetchPendingApprovals]); // Added all dependencies
 
+  const getVerificationLabel = (status) => {
+    const labels = {
+      pending_upload: 'Pending Upload',
+      queued_ai: 'Queued for AI',
+      ai_processing: 'AI Processing',
+      ai_flagged: 'AI Flagged',
+      manual_review: 'Manual Review',
+      approved: 'Approved',
+      rejected: 'Rejected'
+    };
+    return labels[status] || 'Unknown';
+  };
+
+  const getVerificationColor = (status) => {
+    if (status === 'approved') return themeColors.success;
+    if (status === 'rejected' || status === 'ai_flagged') return themeColors.error;
+    return themeColors.warning;
+  };
+
   const handleApprove = async (userId) => {
     try {
       setProcessing(true);
@@ -121,7 +140,8 @@ const AdminApprovals = () => {
       }
     } catch (error) {
       console.error('Error approving user:', error);
-      toast.error(error.response?.data?.error || 'Failed to approve user');
+      const serverMessage = error.response?.data?.error || error.response?.data?.message;
+      toast.error(serverMessage || 'Failed to approve user');
     } finally {
       setProcessing(false);
     }
@@ -279,6 +299,7 @@ const AdminApprovals = () => {
                   <TableCell sx={{ fontWeight: 700, color: themeColors.textPrimary }}>Resident</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: themeColors.textPrimary }}>Contact</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: themeColors.textPrimary }}>House Number</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: themeColors.textPrimary }}>Verification</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: themeColors.textPrimary }}>Registered</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: themeColors.textPrimary }} align="center">
                     Actions
@@ -331,6 +352,17 @@ const AdminApprovals = () => {
                       />
                     </TableCell>
                     <TableCell>
+                      <Chip
+                        label={getVerificationLabel(user.verificationStatus)}
+                        size="small"
+                        sx={{
+                          backgroundColor: getVerificationColor(user.verificationStatus) + '15',
+                          color: getVerificationColor(user.verificationStatus),
+                          fontWeight: 600
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
                       <Typography variant="body2" sx={{ color: themeColors.textPrimary }}>
                         {new Date(user.createdAt).toLocaleDateString()}
                       </Typography>
@@ -352,17 +384,21 @@ const AdminApprovals = () => {
                             <ViewIcon />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Approve">
-                          <IconButton 
+                        <Tooltip title={user.canApprove ? 'Approve' : 'Cannot approve until ID is verified'}>
+                          <span>
+                            <IconButton 
                             size="small"
                             onClick={() => handleApprove(user._id)}
+                            disabled={!user.canApprove || processing}
                             sx={{ 
                               color: themeColors.success,
-                              '&:hover': { backgroundColor: themeColors.success + '15' }
+                              '&:hover': { backgroundColor: themeColors.success + '15' },
+                              '&.Mui-disabled': { color: themeColors.textSecondary }
                             }}
                           >
                             <ApproveIcon />
                           </IconButton>
+                          </span>
                         </Tooltip>
                         <Tooltip title="Reject">
                           <IconButton 
@@ -493,6 +529,9 @@ const AdminApprovals = () => {
                   </Typography>
                   <Box sx={{ pl: 4 }}>
                     <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
+                      Verification: <span style={{ color: getVerificationColor(selectedUser.verificationStatus), fontWeight: 600 }}>{getVerificationLabel(selectedUser.verificationStatus)}</span>
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
                       Registered on: <span style={{ color: themeColors.textPrimary, fontWeight: 500 }}>{new Date(selectedUser.createdAt).toLocaleString()}</span>
                     </Typography>
                   </Box>
@@ -514,7 +553,7 @@ const AdminApprovals = () => {
                 variant="contained" 
                 color="success"
                 onClick={() => handleApprove(selectedUser._id)}
-                disabled={processing}
+                disabled={processing || !selectedUser.canApprove}
                 startIcon={processing ? <CircularProgress size={20} /> : <ApproveIcon />}
                 sx={{ 
                   borderRadius: 2,
@@ -522,7 +561,7 @@ const AdminApprovals = () => {
                   '&:hover': { bgcolor: themeColors.success + 'dd' }
                 }}
               >
-                Approve Resident
+                {selectedUser.canApprove ? 'Approve Resident' : 'Awaiting Verified ID'}
               </Button>
             </DialogActions>
           </>

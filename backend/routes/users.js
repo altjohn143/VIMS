@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const Lot = require('../models/Lot');
 const { protect, authorize } = require('../middleware/auth');
+const { sendOnboardingNotification } = require('../services/notificationService');
 
 // ===== TEST ROUTE - REMOVE AFTER DEBUGGING =====
 router.get('/test', (req, res) => {
@@ -130,6 +131,10 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
     
     user.isApproved = true;
     await user.save();
+    await sendOnboardingNotification(user, {
+      includeCredentials: false,
+      message: 'Your account has been approved by admin. Please log in using your registered credentials.'
+    });
     
     res.json({
       success: true,

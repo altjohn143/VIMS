@@ -1,7 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const auditLogger = require('./middleware/auditLogger');
 
 console.log('\n📂 Starting VIMS Server...');
 
@@ -92,6 +94,16 @@ app.use(cors({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use('/api', apiLimiter);
+app.use('/api', auditLogger);
 
 // Database connection - USE ENVIRONMENT VARIABLE
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vims_system';

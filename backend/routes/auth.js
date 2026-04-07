@@ -2,9 +2,22 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const Lot = require('../models/Lot');
 const { protect } = require('../middleware/auth');
+const { sendOnboardingNotification } = require('../services/notificationService');
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many login attempts. Please try again in 15 minutes.'
+  }
+});
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -15,6 +28,14 @@ const generateToken = (user) => {
     process.env.JWT_SECRET,
     { expiresIn: '8h' }
   );
+};
+
+const getFallbackLots = async () => {
+  const lots = await Lot.find({ status: 'vacant' })
+    .select('lotId block lotNumber type sqm price status')
+    .sort({ block: 1, lotNumber: 1 })
+    .limit(10);
+  return lots;
 };
 
 // Check availability route
@@ -144,25 +165,31 @@ router.post('/register', async (req, res) => {
     // Add house information for residents using selected lot
     if (userRole === 'resident') {
       if (!selectedLot) {
+        const fallbackLots = await getFallbackLots();
         return res.status(400).json({
           success: false,
-          error: 'Please select a lot from the available lots'
+          error: 'Please select a lot from the available lots',
+          fallbackLots
         });
       }
       
       // Verify the lot is still available
       const lot = await Lot.findOne({ lotId: selectedLot });
       if (!lot) {
+        const fallbackLots = await getFallbackLots();
         return res.status(400).json({
           success: false,
-          error: 'Invalid lot selected'
+          error: 'Invalid lot selected',
+          fallbackLots
         });
       }
       
       if (lot.status !== 'vacant') {
+        const fallbackLots = await getFallbackLots();
         return res.status(400).json({
           success: false,
-          error: 'This lot is no longer available. Please select another lot.'
+          error: 'This lot is no longer available. Please select another lot.',
+          fallbackLots
         });
       }
       
@@ -204,6 +231,13 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const user = await User.create(userData);
+    if (userData.isApproved) {
+      await sendOnboardingNotification(user, {
+        includeCredentials: true,
+        plainPassword: password,
+        message: 'Your account is active. You can now log in.'
+      });
+    }
     
     console.log('User created in database:', {
       id: user._id,
@@ -256,7 +290,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login route
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     console.log('\n ===== LOGIN ATTEMPT =====');
     console.log('Email:', req.body.email);

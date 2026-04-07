@@ -10,7 +10,7 @@ import Constants from 'expo-constants';
 
 // Option 1: Set your computer's IP address manually (RECOMMENDED for physical devices)
 // Run 'ipconfig' on Windows or 'ifconfig' on Mac/Linux to find your IP
-const MANUAL_IP = '192.168.1.5'; // CHANGE THIS TO YOUR ACTUAL IP
+const MANUAL_IP = '192.168.1.141'; // CHANGE THIS TO YOUR ACTUAL IP
 
 // Option 2: Auto-detect using Expo's debugger host (works for both emulator and physical device)
 // This gets the IP from the Expo development server

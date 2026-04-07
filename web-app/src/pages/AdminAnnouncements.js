@@ -130,6 +130,10 @@ const AdminAnnouncements = () => {
                 </Typography>
                 <Chip size="small" label={item.isPublished ? 'Published' : 'Draft'} color={item.isPublished ? 'success' : 'default'} />
               </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Author: {item.createdBy?.firstName || 'System'} {item.createdBy?.lastName || ''}{' '}
+                {item.createdBy?.role ? `(${item.createdBy.role})` : ''}
+              </Typography>
               <Typography sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{item.body}</Typography>
               <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
                 <Button size="small" onClick={() => togglePublish(item._id, item.isPublished)}>

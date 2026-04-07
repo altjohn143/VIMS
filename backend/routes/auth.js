@@ -8,14 +8,17 @@ const Lot = require('../models/Lot');
 const { protect } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 
+const LOGIN_LIMIT_WINDOW_MINUTES = Number(process.env.LOGIN_LIMIT_WINDOW_MINUTES || 15);
+const LOGIN_LIMIT_MAX_ATTEMPTS = Number(process.env.LOGIN_LIMIT_MAX_ATTEMPTS || 10);
+
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
+  windowMs: LOGIN_LIMIT_WINDOW_MINUTES * 60 * 1000,
+  limit: LOGIN_LIMIT_MAX_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    error: 'Too many login attempts. Please try again in 15 minutes.'
+    error: `Too many login attempts. Please try again in ${LOGIN_LIMIT_WINDOW_MINUTES} minutes.`
   }
 });
 

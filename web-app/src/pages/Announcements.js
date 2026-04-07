@@ -45,6 +45,10 @@ const Announcements = () => {
                   color={item.publishedAt ? 'success' : 'default'}
                 />
               </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                By {item.createdBy?.firstName || 'System'} {item.createdBy?.lastName || ''}{' '}
+                {item.createdBy?.role ? `(${item.createdBy.role})` : ''}
+              </Typography>
               <Typography sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{item.body}</Typography>
             </CardContent>
           </Card>

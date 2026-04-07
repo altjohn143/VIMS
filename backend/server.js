@@ -8,6 +8,7 @@ const auditLogger = require('./middleware/auditLogger');
 console.log('\n📂 Starting VIMS Server...');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Configure CORS
 const os = require('os');

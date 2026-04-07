@@ -30,8 +30,16 @@ const allowedOrigins = [
   `http://${localIP}:3000`,
   `http://${localIP}:8081`,
   `http://${localIP}:5000`,
-  'https://vims-one.vercel.app'
+  'https://vims-one.vercel.app',
+  'https://casimiro-westville-homes-vims.online'
 ];
+
+const frontendUrlsFromEnv = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((url) => url.trim())
+  .filter(Boolean);
+
+const allowedOriginSet = new Set([...allowedOrigins, ...frontendUrlsFromEnv]);
 
 // Also allow any IP in the 192.168.x.x range for mobile devices
 app.use(cors({
@@ -40,7 +48,7 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     // Check if origin is allowed
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOriginSet.has(origin)) {
       return callback(null, true);
     }
     
@@ -61,8 +69,7 @@ app.use(cors({
       return callback(null, true);
     }
     
-    callback(null, true); // Temporarily allow all for debugging
-    // callback(new Error('Not allowed by CORS'));
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],

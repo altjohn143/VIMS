@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_URL = 'https://vims-backend.onrender.com/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
 const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 

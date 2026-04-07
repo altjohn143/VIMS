@@ -529,6 +529,12 @@ router.put('/:id/review', protect, authorize('admin'), async (req, res) => {
     if (estimatedCompletion) request.estimatedCompletion = new Date(estimatedCompletion);
     
     await request.save();
+    const resident = await User.findById(request.residentId).select('email phone');
+    if (resident) {
+      await sendServiceRequestStatusNotification(request, resident, {
+        actorName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || 'Admin'
+      });
+    }
     
     res.json({
       success: true,

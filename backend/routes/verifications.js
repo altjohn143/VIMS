@@ -64,11 +64,34 @@ router.post(
         await verification.save();
       }
 
-      await queueIdentityVerification(verification);
+      const queueResult = await queueIdentityVerification(verification);
       verification.status = 'ai_processing';
+      if (queueResult.mode === 'gemini_direct' && queueResult.result) {
+        const aiResult = queueResult.result;
+        verification.aiResult = {
+          score: aiResult.score ?? null,
+          ocrName: aiResult.ocrName || '',
+          ocrDob: aiResult.ocrDob || '',
+          flags: Array.isArray(aiResult.flags) ? aiResult.flags : [],
+          providerRaw: aiResult.providerRaw || null
+        };
+        const decision = classifyVerificationResult({
+          score: verification.aiResult.score,
+          flags: verification.aiResult.flags
+        });
+        verification.status = decision.status;
+        verification.reviewNotes = decision.reason;
+        verification.rejectReason = decision.status === 'rejected' ? decision.reason : '';
+      }
       await verification.save();
 
-      res.json({ success: true, message: 'ID uploaded and queued for AI verification', data: verification });
+      res.json({
+        success: true,
+        message: queueResult.mode === 'gemini_direct'
+          ? 'ID uploaded and processed by AI'
+          : 'ID uploaded and queued for AI verification',
+        data: verification
+      });
     } catch (error) {
       console.error('Upload ID error:', error);
       res.status(500).json({ success: false, error: 'Failed to upload ID' });

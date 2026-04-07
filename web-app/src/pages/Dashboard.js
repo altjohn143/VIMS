@@ -145,6 +145,7 @@ const Dashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [residentAnnouncements, setResidentAnnouncements] = useState([]);
   const [liveStats, setLiveStats] = useState({});
   const { logout, getCurrentUser } = useAuth();
   const navigate = useNavigate();
@@ -203,8 +204,57 @@ const Dashboard = () => {
           axios.get('/api/notifications')
         ]);
         if (countRes.data?.success) setUnreadCount(countRes.data.count || 0);
+
+        if (user?.role === 'admin') {
+          const [pendingRes, verificationRes, serviceRes, visitorRes, paymentRes, announcementRes] = await Promise.all([
+            axios.get('/api/users/pending-approvals'),
+            axios.get('/api/verifications/admin/queue', { params: { status: 'all' } }),
+            axios.get('/api/service-requests'),
+            axios.get('/api/visitors'),
+            axios.get('/api/payments'),
+            axios.get('/api/announcements/admin')
+          ]);
+
+          const activities = [];
+          (pendingRes.data?.data || []).forEach((item) => activities.push({
+            text: `Pending approval: ${item.firstName || ''} ${item.lastName || ''}`.trim(),
+            at: new Date(item.createdAt || Date.now()).getTime()
+          }));
+          (verificationRes.data?.data || []).forEach((item) => activities.push({
+            text: `Verification ${item.status}: ${item.userId?.firstName || ''} ${item.userId?.lastName || ''}`.trim(),
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (serviceRes.data?.data || []).forEach((item) => activities.push({
+            text: `Service request ${item.status}: ${item.title || 'Untitled request'}`,
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (visitorRes.data?.data || []).forEach((item) => activities.push({
+            text: `Visitor ${item.status}: ${item.visitorName || item.fullName || 'Visitor'}`,
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (paymentRes.data?.data || []).forEach((item) => activities.push({
+            text: `Payment ${item.status}: ₱${item.amount || 0}`,
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (announcementRes.data?.data || []).forEach((item) => activities.push({
+            text: `Announcement posted: ${item.title}`,
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (listRes.data?.data || []).forEach((n) => activities.push({
+            text: n.title,
+            at: new Date(n.createdAt || Date.now()).getTime()
+          }));
+
+          const feed = activities
+            .sort((a, b) => b.at - a.at)
+            .slice(0, 8)
+            .map((item) => ({ text: item.text, time: new Date(item.at).toLocaleString() }));
+          setRecentActivities(feed);
+          return;
+        }
+
         if (listRes.data?.success) {
-          const feed = (listRes.data.data || []).slice(0, 4).map((n) => ({
+          const feed = (listRes.data.data || []).slice(0, 6).map((n) => ({
             text: n.title,
             time: new Date(n.createdAt).toLocaleString()
           }));
@@ -212,10 +262,27 @@ const Dashboard = () => {
         }
       } catch (error) {
         setUnreadCount(0);
+        setRecentActivities([]);
       }
     };
     loadNotifications();
-  }, []);
+  }, [user?.role]);
+
+  useEffect(() => {
+    const loadResidentAnnouncements = async () => {
+      if (user?.role !== 'resident') return;
+      try {
+        const res = await axios.get('/api/announcements');
+        if (res.data?.success) {
+          setResidentAnnouncements((res.data.data || []).slice(0, 5));
+        }
+      } catch (error) {
+        setResidentAnnouncements([]);
+      }
+    };
+
+    loadResidentAnnouncements();
+  }, [user?.role]);
 
   useEffect(() => {
     const loadPendingApprovals = async () => {
@@ -1415,10 +1482,10 @@ const Dashboard = () => {
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography sx={{ fontSize: '1.06rem', fontWeight: 900, color: themeColors.textPrimary }}>
-                        Pending Approvals
+                        {user.role === 'admin' ? 'Pending Approvals' : 'Announcements'}
                       </Typography>
                       <Chip
-                        label={`${pendingApprovals.length} new`}
+                        label={user.role === 'admin' ? `${pendingApprovals.length} new` : `${residentAnnouncements.length} posts`}
                         size="small"
                         sx={{
                           bgcolor: themeColors.primarySoft,
@@ -1431,7 +1498,7 @@ const Dashboard = () => {
 
                     <Button
                       component={RouterLink}
-                      to={user.role === 'admin' ? '/admin/approvals' : '/dashboard'}
+                      to={user.role === 'admin' ? '/admin/approvals' : '/announcements'}
                       endIcon={<ArrowOutwardIcon />}
                       sx={{
                         textTransform: 'none',
@@ -1446,14 +1513,14 @@ const Dashboard = () => {
                   <Divider />
 
                   <Box sx={{ p: 1.5 }}>
-                    {pendingApprovals.length === 0 && (
+                    {user.role === 'admin' && pendingApprovals.length === 0 && (
                       <Box sx={{ px: 2, py: 3 }}>
                         <Typography sx={{ color: themeColors.textSecondary, fontWeight: 600 }}>
                           No pending approvals right now.
                         </Typography>
                       </Box>
                     )}
-                    {pendingApprovals.map((item, index) => (
+                    {user.role === 'admin' && pendingApprovals.map((item, index) => (
                       <Box key={item.id || index}>
                         <Box
                           sx={{
@@ -1544,6 +1611,47 @@ const Dashboard = () => {
                         </Box>
 
                         {index < pendingApprovals.length - 1 && <Divider sx={{ mx: 1 }} />}
+                      </Box>
+                    ))}
+
+                    {user.role !== 'admin' && residentAnnouncements.length === 0 && (
+                      <Box sx={{ px: 2, py: 3 }}>
+                        <Typography sx={{ color: themeColors.textSecondary, fontWeight: 600 }}>
+                          No announcements yet.
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {user.role !== 'admin' && residentAnnouncements.map((item, index) => (
+                      <Box key={item._id || index}>
+                        <Box
+                          sx={{
+                            px: 1,
+                            py: 1.4,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 2,
+                            flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                          }}
+                        >
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+                              {item.title}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.84rem', color: themeColors.textSecondary, fontWeight: 500 }} noWrap>
+                              {(item.body || '').slice(0, 90)}{(item.body || '').length > 90 ? '...' : ''}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.76rem', color: themeColors.textSecondary }}>
+                              By {item.createdBy?.firstName || 'Admin'} {item.createdBy?.lastName || ''}
+                            </Typography>
+                          </Box>
+
+                          <Typography sx={{ fontSize: '0.82rem', color: themeColors.textSecondary, fontWeight: 600 }}>
+                            {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '-'}
+                          </Typography>
+                        </Box>
+                        {index < residentAnnouncements.length - 1 && <Divider sx={{ mx: 1 }} />}
                       </Box>
                     ))}
                   </Box>

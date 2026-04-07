@@ -114,24 +114,15 @@ const ProfileSettings = () => {
         console.log('Fetching profile for user:', currentUser.id);
         
         const token = localStorage.getItem('token') || currentUser.token || '';
-        
         console.log('Using token:', token ? 'Token exists' : 'No token');
-        
-        const response = await fetch('/api/users/profile', {
-          method: 'GET',
+
+        const response = await axios.get('/api/users/profile', {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${token}`
           }
         });
         
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        const data = response.data;
         console.log('Profile data:', data);
         
         if (data.success) {

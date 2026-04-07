@@ -216,7 +216,8 @@ router.post('/register', async (req, res) => {
         houseNumber: user.houseNumber,
         houseBlock: user.houseBlock,
         houseLot: user.houseLot,
-        isApproved: user.isApproved
+        isApproved: user.isApproved,
+        profileComplete: user.profileComplete
       }
     });
     
@@ -316,7 +317,8 @@ router.post('/login', async (req, res) => {
         houseBlock: user.houseBlock,
         houseLot: user.houseLot,
         isApproved: user.isApproved,
-        isActive: user.isActive
+        isActive: user.isActive,
+        profileComplete: user.profileComplete
       }
     });
     
@@ -410,7 +412,8 @@ router.get('/me', protect, async (req, res) => {
         houseBlock: req.user.houseBlock,
         houseLot: req.user.houseLot,
         isApproved: req.user.isApproved,
-        isActive: req.user.isActive
+        isActive: req.user.isActive,
+        profileComplete: req.user.profileComplete
       }
     });
   } catch (error) {

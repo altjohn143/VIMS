@@ -54,6 +54,12 @@ app.use(cors({
       return callback(null, true);
     }
     
+    // Allow localhost on any port (Expo web uses dynamic ports like 8082/8083)
+    const localhostPattern = /^http:\/\/localhost:\d+$/;
+    if (localhostPattern.test(origin)) {
+      return callback(null, true);
+    }
+
     // Allow any 192.168.x.x IP address
     const ipPattern = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/;
     if (ipPattern.test(origin)) {

@@ -94,6 +94,7 @@ const ProfileSettings = () => {
   const [passwordErrors, setPasswordErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(null);
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -114,25 +115,15 @@ const ProfileSettings = () => {
         console.log('Fetching profile for user:', currentUser.id);
         
         const token = localStorage.getItem('token') || currentUser.token || '';
-        
         console.log('Using token:', token ? 'Token exists' : 'No token');
-        
-        const response = await fetch('/api/users/profile', {
-          method: 'GET',
+
+        const response = await axios.get('/api/users/profile', {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'x-user-data': JSON.stringify({ id: currentUser.id })
+            Authorization: `Bearer ${token}`
           }
         });
         
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        const data = response.data;
         console.log('Profile data:', data);
         
         if (data.success) {
@@ -148,6 +139,19 @@ const ProfileSettings = () => {
             vehicles: userData.vehicles?.length > 0 ? userData.vehicles : [{ plateNumber: '', make: '', model: '', color: '' }],
             familyMembers: userData.familyMembers?.length > 0 ? userData.familyMembers : [{ name: '', relationship: '', age: '', phone: '' }]
           });
+        }
+
+        try {
+          const verificationResponse = await axios.get('/api/verifications/me', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          if (verificationResponse.data?.success) {
+            setVerificationStatus(verificationResponse.data.data?.status || null);
+          }
+        } catch (verificationError) {
+          setVerificationStatus(null);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -499,6 +503,11 @@ const ProfileSettings = () => {
               </Typography>
             </Box>
           </Box>
+          {verificationStatus && (
+            <Alert severity={verificationStatus === 'approved' ? 'success' : verificationStatus === 'rejected' ? 'error' : 'info'}>
+              ID Verification Status: <strong>{verificationStatus}</strong>
+            </Alert>
+          )}
         </Box>
 
         <Grid container spacing={3}>

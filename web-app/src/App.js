@@ -1,10 +1,10 @@
 // src/App.js - Complete updated file with all routes
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider, createTheme } from '@mui/material';
 import { Container, CircularProgress } from '@mui/material';
-import axios from 'axios';
+import './config/axios';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -22,16 +22,17 @@ import PendingApproval from './pages/PendingApproval';
 import AdminUserManagement from './pages/AdminUserManagement';
 import Payments from './pages/Payments';
 import AdminPayments from './pages/AdminPayments';
+import AdminVerificationQueue from './pages/AdminVerificationQueue';
+import Notifications from './pages/Notifications';
+import AdminReportSchedules from './pages/AdminReportSchedules';
+import AdminReports from './pages/AdminReports';
 
 // NEW PAYMENT PAGES
 import PaymentRedirect from './pages/PaymentRedirect';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancelled from './pages/PaymentCancelled';
 
-import { AuthProvider } from './context/AuthContext';
-
-const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
-axios.defaults.baseURL = API_URL;
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 const theme = createTheme({
   palette: {
@@ -41,51 +42,9 @@ const theme = createTheme({
 });
 
 const ProtectedRoute = ({ children, requiredRole = null }) => {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, currentUser, bootstrapping } = useAuth();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      const userStr = localStorage.getItem('user');
-
-      if (token && userStr) {
-        try {
-          const parsedUser = JSON.parse(userStr);
-          setUser(parsedUser);
-          
-          if (parsedUser.role === 'resident' && !parsedUser.isApproved) {
-            console.log('User not approved, redirecting to pending');
-            setIsAuthenticated(false);
-            setLoading(false);
-            return;
-          }
-          
-          try {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            setIsAuthenticated(true);
-          } catch (error) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setIsAuthenticated(false);
-          }
-        } catch (error) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setIsAuthenticated(false);
-        }
-      } else {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setIsAuthenticated(false);
-      }
-      setLoading(false);
-    };
-    checkAuth();
-  }, []);
-
-  if (loading) {
+  if (bootstrapping) {
     return (
       <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
@@ -94,7 +53,10 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
   }
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (requiredRole && user?.role !== requiredRole) return <Navigate to="/dashboard" replace />;
+  if (currentUser?.role === 'resident' && !currentUser?.isApproved) {
+    return <Navigate to="/pending-approval" replace />;
+  }
+  if (requiredRole && currentUser?.role !== requiredRole) return <Navigate to="/dashboard" replace />;
 
   return children;
 };
@@ -145,6 +107,9 @@ function App() {
             <Route path="/admin/approvals" element={<AdminRoute><AdminApprovals /></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><AdminUserManagement /></AdminRoute>} />
             <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
+            <Route path="/admin/verifications" element={<AdminRoute><AdminVerificationQueue /></AdminRoute>} />
+            <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
+            <Route path="/admin/report-schedules" element={<AdminRoute><AdminReportSchedules /></AdminRoute>} />
 
             {/* Security-only routes */}
             <Route path="/security/visitor-approval" element={<SecurityRoute><SecurityVisitorApproval /></SecurityRoute>} />
@@ -154,6 +119,7 @@ function App() {
             <Route path="/visitors" element={<ResidentRoute><VisitorManagement /></ResidentRoute>} />
             <Route path="/service-requests" element={<ResidentRoute><ServiceRequests /></ResidentRoute>} />
             <Route path="/payments" element={<ResidentRoute><Payments /></ResidentRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
             {/* NEW PAYMENT ROUTES */}
             <Route path="/payment-redirect" element={<ProtectedRoute><PaymentRedirect /></ProtectedRoute>} />

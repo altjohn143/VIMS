@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Lot = require('../models/Lot');
+const OccupancyHistory = require('../models/OccupancyHistory');
+const IdentityVerification = require('../models/IdentityVerification');
 const { protect, authorize } = require('../middleware/auth');
+const { sendOnboardingNotification } = require('../services/notificationService');
+const { createInAppNotification } = require('../services/inAppNotificationService');
 
 // ===== TEST ROUTE - REMOVE AFTER DEBUGGING =====
 router.get('/test', (req, res) => {
@@ -67,11 +71,29 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
     })
     .select('-password')
     .sort({ createdAt: -1 });
+
+    const verificationRecords = await IdentityVerification.find({
+      userId: { $in: pendingUsers.map((user) => user._id) }
+    }).select('userId status updatedAt');
+
+    const verificationMap = new Map(
+      verificationRecords.map((record) => [String(record.userId), record])
+    );
+
+    const data = pendingUsers.map((user) => {
+      const verification = verificationMap.get(String(user._id));
+      return {
+        ...user.toObject(),
+        verificationStatus: verification?.status || 'pending_upload',
+        verificationUpdatedAt: verification?.updatedAt || null,
+        canApprove: verification?.status === 'approved'
+      };
+    });
     
     res.json({
       success: true,
-      count: pendingUsers.length,
-      data: pendingUsers
+      count: data.length,
+      data
     });
   } catch (error) {
     console.error('Get pending approvals error:', error);
@@ -107,6 +129,14 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
         error: 'User is already approved'
       });
     }
+
+    const verification = await IdentityVerification.findOne({ userId: user._id });
+    if (!verification || verification.status !== 'approved') {
+      return res.status(400).json({
+        success: false,
+        error: 'Resident cannot be approved until ID verification status is approved.'
+      });
+    }
     
     // Update the lot status to occupied
     if (user.houseBlock && user.houseLot) {
@@ -114,10 +144,20 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
       const lot = await Lot.findOne({ lotId });
       
       if (lot && lot.status === 'vacant') {
+        const previousStatus = lot.status;
         lot.status = 'occupied';
         lot.occupiedBy = user._id;
         lot.occupiedAt = new Date();
         await lot.save();
+        await OccupancyHistory.create({
+          lotId,
+          residentId: user._id,
+          action: 'move_in',
+          previousStatus,
+          newStatus: 'occupied',
+          reason: 'Resident approved by admin',
+          performedBy: req.user._id
+        });
         console.log(`✅ Lot ${lotId} marked as occupied by ${user.email}`);
       } else if (lot && lot.status !== 'vacant') {
         console.log(`⚠️ Lot ${lotId} is already ${lot.status}, cannot approve user`);
@@ -130,6 +170,16 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
     
     user.isApproved = true;
     await user.save();
+    await sendOnboardingNotification(user, {
+      includeCredentials: false,
+      message: 'Your account has been approved by admin. Please log in using your registered credentials.'
+    });
+    await createInAppNotification({
+      userId: user._id,
+      type: 'account',
+      title: 'Account approved',
+      body: 'Your resident account has been approved by admin.'
+    });
     
     res.json({
       success: true,
@@ -173,10 +223,20 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
       const lot = await Lot.findOne({ lotId });
       
       if (lot && lot.occupiedBy && lot.occupiedBy.toString() === user._id.toString()) {
+        const previousStatus = lot.status;
         lot.status = 'vacant';
         lot.occupiedBy = null;
         lot.occupiedAt = null;
         await lot.save();
+        await OccupancyHistory.create({
+          lotId,
+          residentId: user._id,
+          action: 'move_out',
+          previousStatus,
+          newStatus: 'vacant',
+          reason: 'Resident removed/rejected',
+          performedBy: req.user._id
+        });
         console.log(`✅ Lot ${lotId} freed up (was occupied by ${user.email})`);
       }
     }

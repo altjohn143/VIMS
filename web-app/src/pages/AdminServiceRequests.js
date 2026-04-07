@@ -57,6 +57,10 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import ReportToolbar from '../components/ReportToolbar';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -350,6 +354,97 @@ useEffect(() => {
 
   const handleBack = useCallback(() => navigate(-1), [navigate]);
 
+  const formatDate = useCallback((dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Invalid Date';
+    }
+  }, []);
+
+  const formatShortDate = useCallback((dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleDateString();
+    } catch {
+      return 'Invalid Date';
+    }
+  }, []);
+
+  const handleExportXlsx = useCallback(() => {
+    if (!filteredRequests.length) {
+      toast.error('No records to export');
+      return;
+    }
+
+    const rows = filteredRequests.map((request) => ({
+      ID: request._id ? request._id.toString().slice(-6) : 'N/A',
+      Resident: `${request.residentId?.firstName || ''} ${request.residentId?.lastName || ''}`.trim() || 'N/A',
+      House: request.residentId?.houseNumber || 'N/A',
+      Category: request.category || 'N/A',
+      Priority: request.priority || 'N/A',
+      Status: request.status || 'N/A',
+      AssignedTo: request.assignedTo
+        ? `${request.assignedTo.firstName || ''} ${request.assignedTo.lastName || ''}`.trim()
+        : 'Unassigned',
+      CreatedAt: formatDate(request.createdAt),
+      UpdatedAt: formatDate(request.updatedAt),
+      Title: request.title || 'N/A',
+      Description: request.description || 'N/A'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Service Requests');
+    XLSX.writeFile(wb, `admin_service_requests_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Excel exported successfully');
+  }, [filteredRequests, formatDate]);
+
+  const handleExportPdf = useCallback(() => {
+    if (!filteredRequests.length) {
+      toast.error('No records to export');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.setFontSize(14);
+    doc.text('Admin Service Requests Report', 14, 14);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 20);
+
+    autoTable(doc, {
+      startY: 24,
+      head: [['ID', 'Resident', 'Category', 'Priority', 'Status', 'Assigned To', 'Created']],
+      body: filteredRequests.map((request) => [
+        request._id ? request._id.toString().slice(-6) : 'N/A',
+        `${request.residentId?.firstName || ''} ${request.residentId?.lastName || ''}`.trim() || 'N/A',
+        request.category || 'N/A',
+        request.priority || 'N/A',
+        request.status || 'N/A',
+        request.assignedTo
+          ? `${request.assignedTo.firstName || ''} ${request.assignedTo.lastName || ''}`.trim()
+          : 'Unassigned',
+        formatShortDate(request.createdAt)
+      ]),
+      styles: { fontSize: 8 }
+    });
+
+    doc.save(`admin_service_requests_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('PDF exported successfully');
+  }, [filteredRequests, formatShortDate]);
+
   const handleMenuOpen = useCallback((event, request) => {
     setAnchorEl(event.currentTarget);
     setSelectedRequest(request);
@@ -454,35 +549,6 @@ useEffect(() => {
     setOpenCompleteDialog(true);
     handleMenuClose();
   }, [handleMenuClose]);
-
-  const formatDate = useCallback((dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return 'Invalid Date';
-    }
-  }, []);
-
-  const formatShortDate = useCallback((dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return date.toLocaleDateString();
-    } catch {
-      return 'Invalid Date';
-    }
-  }, []);
 
   const getPriorityChip = useCallback((priority) => {
     const colors = {
@@ -822,6 +888,7 @@ useEffect(() => {
               Service Requests Management
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
+              <ReportToolbar onExportXlsx={handleExportXlsx} onExportPdf={handleExportPdf} />
               <Button
                 startIcon={<BuildIcon />}
                 variant="outlined"

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Lot = require('../models/Lot');
+const OccupancyHistory = require('../models/OccupancyHistory');
 const { protect, authorize } = require('../middleware/auth');
 
 // Generate all lots (run once to populate database)
@@ -123,6 +124,8 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
       return res.status(404).json({ success: false, error: 'Lot not found' });
     }
     
+    const previousStatus = lot.status;
+    const previousOccupiedBy = lot.occupiedBy;
     lot.status = status;
     
     if (status === 'occupied' && occupiedBy) {
@@ -134,6 +137,15 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
     }
     
     await lot.save();
+    await OccupancyHistory.create({
+      lotId: lot.lotId,
+      residentId: status === 'occupied' ? lot.occupiedBy : previousOccupiedBy,
+      action: status === 'occupied' ? 'move_in' : status === 'vacant' ? 'move_out' : 'status_update',
+      previousStatus,
+      newStatus: status,
+      reason: 'Manual lot status update',
+      performedBy: req.user._id
+    });
     
     res.json({
       success: true,
@@ -142,6 +154,24 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
     });
   } catch (error) {
     console.error('Update lot status error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/history/:lotId', protect, authorize('admin', 'security'), async (req, res) => {
+  try {
+    const history = await OccupancyHistory.find({ lotId: req.params.lotId })
+      .populate('residentId', 'firstName lastName email')
+      .populate('performedBy', 'firstName lastName role')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: history.length,
+      data: history
+    });
+  } catch (error) {
+    console.error('Get lot history error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

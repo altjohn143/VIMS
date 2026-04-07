@@ -62,6 +62,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const AdminPayments = () => {
   const themeColors = {
@@ -290,6 +292,31 @@ const AdminPayments = () => {
     toast.success(`Exported ${exportData.length} records`);
   };
 
+  const handleExportPdf = () => {
+    if (payments.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.text('Payments Report', 14, 14);
+    autoTable(doc, {
+      startY: 20,
+      head: [['Invoice', 'Resident', 'House', 'Amount', 'Status', 'Method', 'Due Date']],
+      body: payments.map((p) => ([
+        p.invoiceNumber,
+        `${p.residentId?.firstName || ''} ${p.residentId?.lastName || ''}`.trim(),
+        p.residentId?.houseNumber || 'N/A',
+        p.amount,
+        p.status,
+        p.paymentMethod || '',
+        p.dueDate ? new Date(p.dueDate).toLocaleDateString() : ''
+      ])),
+      styles: { fontSize: 8 }
+    });
+    doc.save(`payments_export_${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('PDF exported');
+  };
+
   const handleViewReceiptImage = (payment) => {
     if (payment.receiptImage) {
       setSelectedImage(payment.receiptImage);
@@ -446,6 +473,9 @@ const AdminPayments = () => {
           </Button>
           <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExportExcel}>
             Export to Excel
+          </Button>
+          <Button variant="outlined" onClick={handleExportPdf}>
+            Export to PDF
           </Button>
           <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchPayments}>
             Refresh

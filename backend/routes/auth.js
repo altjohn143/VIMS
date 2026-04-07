@@ -1,17 +1,41 @@
 // routes/auth.js
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const Lot = require('../models/Lot');
 const { protect } = require('../middleware/auth');
+const { sendOnboardingNotification } = require('../services/notificationService');
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many login attempts. Please try again in 15 minutes.'
+  }
+});
 
 const generateToken = (user) => {
-  return Buffer.from(JSON.stringify({
-    id: user._id,
-    email: user.email,
-    role: user.role,
-    timestamp: Date.now()
-  })).toString('base64');
+  return jwt.sign(
+    {
+      id: user._id,
+      role: user.role
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '8h' }
+  );
+};
+
+const getFallbackLots = async () => {
+  const lots = await Lot.find({ status: 'vacant' })
+    .select('lotId block lotNumber type sqm price status')
+    .sort({ block: 1, lotNumber: 1 })
+    .limit(10);
+  return lots;
 };
 
 // Check availability route
@@ -84,7 +108,18 @@ router.post('/register', async (req, res) => {
     console.log('📝 Email:', req.body.email);
     console.log('📝 Role from request:', req.body.role);
     
-    const { firstName, lastName, email, phone, password, role, selectedLot } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      role,
+      selectedLot,
+      vehicles = [],
+      familyMembers = [],
+      noVehicles = false
+    } = req.body;
 
     // Validation
     if (!firstName || !lastName || !email || !phone || !password) {
@@ -105,9 +140,9 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Set isApproved based on role
-    const userRole = role || 'resident';
-    const isApproved = userRole === 'admin' || userRole === 'security';
+    // Security hardening: self-registration is resident-only.
+    const userRole = 'resident';
+    const isApproved = false;
     
     console.log('⚙️ Registration settings:', {
       role: userRole,
@@ -130,25 +165,31 @@ router.post('/register', async (req, res) => {
     // Add house information for residents using selected lot
     if (userRole === 'resident') {
       if (!selectedLot) {
+        const fallbackLots = await getFallbackLots();
         return res.status(400).json({
           success: false,
-          error: 'Please select a lot from the available lots'
+          error: 'Please select a lot from the available lots',
+          fallbackLots
         });
       }
       
       // Verify the lot is still available
       const lot = await Lot.findOne({ lotId: selectedLot });
       if (!lot) {
+        const fallbackLots = await getFallbackLots();
         return res.status(400).json({
           success: false,
-          error: 'Invalid lot selected'
+          error: 'Invalid lot selected',
+          fallbackLots
         });
       }
       
       if (lot.status !== 'vacant') {
+        const fallbackLots = await getFallbackLots();
         return res.status(400).json({
           success: false,
-          error: 'This lot is no longer available. Please select another lot.'
+          error: 'This lot is no longer available. Please select another lot.',
+          fallbackLots
         });
       }
       
@@ -167,6 +208,20 @@ router.post('/register', async (req, res) => {
           error: 'Invalid lot format'
         });
       }
+
+      const validVehicles = noVehicles
+        ? []
+        : Array.isArray(vehicles)
+          ? vehicles.filter(v => v && (v.plateNumber || v.make || v.model || v.color))
+          : [];
+
+      const validFamilyMembers = Array.isArray(familyMembers)
+        ? familyMembers.filter(m => m && (m.name || m.relationship || m.age || m.phone))
+        : [];
+
+      userData.vehicles = validVehicles;
+      userData.familyMembers = validFamilyMembers;
+      userData.profileComplete = true;
     }
 
     console.log('User data being saved:', {
@@ -176,6 +231,13 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const user = await User.create(userData);
+    if (userData.isApproved) {
+      await sendOnboardingNotification(user, {
+        includeCredentials: true,
+        plainPassword: password,
+        message: 'Your account is active. You can now log in.'
+      });
+    }
     
     console.log('User created in database:', {
       id: user._id,
@@ -213,7 +275,8 @@ router.post('/register', async (req, res) => {
         houseNumber: user.houseNumber,
         houseBlock: user.houseBlock,
         houseLot: user.houseLot,
-        isApproved: user.isApproved
+        isApproved: user.isApproved,
+        profileComplete: user.profileComplete
       }
     });
     
@@ -227,7 +290,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login route
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     console.log('\n ===== LOGIN ATTEMPT =====');
     console.log('Email:', req.body.email);
@@ -313,7 +376,8 @@ router.post('/login', async (req, res) => {
         houseBlock: user.houseBlock,
         houseLot: user.houseLot,
         isApproved: user.isApproved,
-        isActive: user.isActive
+        isActive: user.isActive,
+        profileComplete: user.profileComplete
       }
     });
     
@@ -384,62 +448,33 @@ router.put('/change-password', protect, async (req, res) => {
 });
 
 // Get current user
-router.get('/me', async (req, res) => {
+router.get('/me', protect, async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({
+    if (!req.user.isApproved) {
+      return res.status(403).json({
         success: false,
-        error: 'No token provided'
+        error: 'Account pending approval',
+        requiresApproval: true,
+        isApproved: false
       });
     }
 
-    try {
-      const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
-      
-      const user = await User.findById(decoded.id);
-      
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          error: 'User not found'
-        });
+    res.json({
+      success: true,
+      user: {
+        id: req.user._id,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        email: req.user.email,
+        role: req.user.role,
+        houseNumber: req.user.houseNumber,
+        houseBlock: req.user.houseBlock,
+        houseLot: req.user.houseLot,
+        isApproved: req.user.isApproved,
+        isActive: req.user.isActive,
+        profileComplete: req.user.profileComplete
       }
-      
-      if (!user.isApproved) {
-        return res.status(403).json({
-          success: false,
-          error: 'Account pending approval',
-          requiresApproval: true,
-          isApproved: false
-        });
-      }
-      
-      res.json({
-        success: true,
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-          houseNumber: user.houseNumber,
-          houseBlock: user.houseBlock,
-          houseLot: user.houseLot,
-          isApproved: user.isApproved,
-          isActive: user.isActive
-        }
-      });
-      
-    } catch (decodeError) {
-      console.error('Token decode error:', decodeError);
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token'
-      });
-    }
-    
+    });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({

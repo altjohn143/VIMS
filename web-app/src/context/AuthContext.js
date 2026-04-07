@@ -1,8 +1,8 @@
-import React, { createContext, useState, useContext, useEffect } from 'react'; 
-import axios from 'axios';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'; 
+import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-const API_URL = 'https://vims-backend.onrender.com/api';
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 const AuthContext = createContext();
 
@@ -16,39 +16,108 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
+  const [bootstrapping, setBootstrapping] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const setAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    }
-    
-    if (userStr) {
-      axios.defaults.headers.common['x-user-data'] = userStr;
-    }
+  const clearAuthData = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('lastActivityAt');
+    delete axios.defaults.headers.common.Authorization;
+    setIsAuthenticated(false);
+    setCurrentUser(null);
   };
 
-  useEffect(() => {
-axios.defaults.baseURL = 'https://vims-backend.onrender.com';
-    
+  const setLastActivity = () => {
+    localStorage.setItem('lastActivityAt', String(Date.now()));
+  };
+
+  const isSessionExpired = () => {
+    const lastActivityAt = Number(localStorage.getItem('lastActivityAt') || 0);
+    if (!lastActivityAt) return false;
+    return Date.now() - lastActivityAt > SESSION_TIMEOUT_MS;
+  };
+
+  const setAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
     
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    }
-    
-    if (userStr) {
-      axios.defaults.headers.common['x-user-data'] = userStr;
+      setIsAuthenticated(true);
     }
   }, []);
+
+  const refreshUser = useCallback(async () => {
+    const response = await axios.get('/api/auth/me');
+    if (!response.data?.success || !response.data?.user) {
+      throw new Error('Unable to load session');
+    }
+    const user = response.data.user;
+    localStorage.setItem('user', JSON.stringify(user));
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    return user;
+  }, []);
+
+  const bootstrapAuth = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      clearAuthData();
+      setBootstrapping(false);
+      return;
+    }
+
+    if (isSessionExpired()) {
+      clearAuthData();
+      toast.error('Session expired due to inactivity. Please log in again.');
+      setBootstrapping(false);
+      window.location.href = '/login';
+      return;
+    }
+
+    try {
+      setAuthHeaders();
+      await refreshUser();
+      setLastActivity();
+    } catch (error) {
+      clearAuthData();
+    } finally {
+      setBootstrapping(false);
+    }
+  }, [refreshUser, setAuthHeaders]);
+
+  useEffect(() => {
+    bootstrapAuth();
+
+    const handleActivity = () => {
+      if (localStorage.getItem('token')) {
+        setLastActivity();
+      }
+    };
+
+    const events = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+    events.forEach((event) => window.addEventListener(event, handleActivity));
+
+    const intervalId = window.setInterval(() => {
+      if (!localStorage.getItem('token')) return;
+      if (isSessionExpired()) {
+        clearAuthData();
+        toast.error('Session expired due to inactivity. Please log in again.');
+        window.location.href = '/login';
+      }
+    }, 15000);
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, handleActivity));
+      window.clearInterval(intervalId);
+    };
+  }, [bootstrapAuth]);
 
   const register = async (userData) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      const response = await axios.post('/api/auth/register', userData);
       
       if (response.data.success) {
         const { token, user } = response.data;
@@ -58,6 +127,7 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
         if (user.isApproved) {
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(user));
+          setLastActivity();
           setAuthHeaders();
         }
         
@@ -76,7 +146,7 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
  const login = async (email, password) => {
   setLoading(true);
   try {
-    const response = await axios.post(`${API_URL}/auth/login`, { 
+      const response = await axios.post('/api/auth/login', { 
       email, 
       password 
     }, {
@@ -90,11 +160,9 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-
-      // ✅ FIXED: Use live backend URL
-      axios.defaults.baseURL = 'https://vims-backend.onrender.com';
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      axios.defaults.headers.common['x-user-data'] = JSON.stringify(user);
+      setLastActivity();
+      setAuthHeaders();
+      await refreshUser();
       
       toast.success('Login successful!');
       return { success: true, user };
@@ -121,19 +189,13 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
 };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    delete axios.defaults.headers.common['Authorization'];
-    delete axios.defaults.headers.common['x-user-data'];
+    clearAuthData();
     toast.success('Logged out successfully');
     
     window.location.href = '/login';  
   };
 
-  const getCurrentUser = () => {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  };
+  const getCurrentUser = () => currentUser;
 
   const value = {
     loading,
@@ -141,7 +203,11 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
     login,
     logout,
     getCurrentUser,
-    isAuthenticated: !!localStorage.getItem('token')
+    isAuthenticated,
+    currentUser,
+    bootstrapping,
+    refreshUser,
+    bootstrapAuth
   };
 
   return (

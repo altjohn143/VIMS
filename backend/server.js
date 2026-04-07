@@ -1,7 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const auditLogger = require('./middleware/auditLogger');
 
 console.log('\n📂 Starting VIMS Server...');
 
@@ -30,8 +32,16 @@ const allowedOrigins = [
   `http://${localIP}:3000`,
   `http://${localIP}:8081`,
   `http://${localIP}:5000`,
-  'https://vims-one.vercel.app'
+  'https://vims-one.vercel.app',
+  'https://casimiro-westville-homes-vims.online'
 ];
+
+const frontendUrlsFromEnv = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((url) => url.trim())
+  .filter(Boolean);
+
+const allowedOriginSet = new Set([...allowedOrigins, ...frontendUrlsFromEnv]);
 
 // Also allow any IP in the 192.168.x.x range for mobile devices
 app.use(cors({
@@ -40,7 +50,7 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     // Check if origin is allowed
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOriginSet.has(origin)) {
       return callback(null, true);
     }
     
@@ -61,15 +71,13 @@ app.use(cors({
       return callback(null, true);
     }
     
-    callback(null, true); // Temporarily allow all for debugging
-    // callback(new Error('Not allowed by CORS'));
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
   allowedHeaders: [
     'Content-Type', 
     'Authorization', 
-    'x-user-data',
     'Cache-Control',
     'Pragma',
     'If-Modified-Since',
@@ -87,12 +95,19 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use('/api', apiLimiter);
+app.use('/api', auditLogger);
+
 // Database connection - USE ENVIRONMENT VARIABLE
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vims_system';
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(MONGODB_URI)
 .then(async () => {
   console.log('MongoDB Connected');
   await autoSeedDatabase();
@@ -209,6 +224,7 @@ async function autoSeedDatabase() {
 }
 
 console.log('\n🔗 Registering routes...');
+const { startReportScheduler } = require('./services/reportScheduler');
 
 // Import routes
 try {
@@ -227,7 +243,13 @@ try {
   
   const lotRoutes = require('./routes/lots');
   console.log('/api/lots routes imported');
-  
+  const verificationRoutes = require('./routes/verifications');
+  console.log('/api/verifications routes imported');
+  const notificationRoutes = require('./routes/notifications');
+  console.log('/api/notifications routes imported');
+  const reportScheduleRoutes = require('./routes/reportSchedules');
+  console.log('/api/report-schedules routes imported');
+
   // Register routes
   app.use('/api/payments', paymentRoutes);
   console.log('/api/payments routes registered');
@@ -246,8 +268,16 @@ try {
   
   app.use('/api/lots', lotRoutes);
   console.log('/api/lots routes registered');
-  
+  app.use('/api/verifications', verificationRoutes);
+  console.log('/api/verifications routes registered');
+  app.use('/api/notifications', notificationRoutes);
+  console.log('/api/notifications routes registered');
+  app.use('/api/report-schedules', reportScheduleRoutes);
+  console.log('/api/report-schedules routes registered');
+
   console.log('All routes registered successfully!');
+  startReportScheduler();
+  console.log('Report scheduler started');
   
 } catch (error) {
   console.error('Error importing routes:', error.message);

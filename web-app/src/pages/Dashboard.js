@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import villageLogo from '../assets/village-logo.png';
@@ -67,6 +67,7 @@ import {
   ArrowOutward as ArrowOutwardIcon,
   Apartment as ApartmentIcon
 } from '@mui/icons-material';
+import axios from 'axios';
 
 const themeColors = {
   primary: '#166534',
@@ -87,6 +88,7 @@ const themeColors = {
   muted: '#e5e7eb'
 };
 
+<<<<<<< HEAD
 const APPBAR_HEIGHT = 72;
 const SIDEBAR_WIDTH = 260;
 const MINI_SIDEBAR_WIDTH = 82;
@@ -132,6 +134,10 @@ const statCardStyles = [
     accent: '#fee2e2'
   }
 ];
+=======
+const APPBAR_HEIGHT = 64;
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+>>>>>>> 35fe9c69bcda4e40c77ad1ca9052474cec07edc7
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -139,6 +145,9 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
+  const [remainingSessionMs, setRemainingSessionMs] = useState(SESSION_TIMEOUT_MS);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [recentActivities, setRecentActivities] = useState([]);
   const { logout, getCurrentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -158,6 +167,7 @@ const Dashboard = () => {
     checkAuth();
   }, [getCurrentUser, navigate, location]);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (!isMobile) {
       setSidebarOpen(true);
@@ -165,9 +175,53 @@ const Dashboard = () => {
   }, [isMobile]);
 
   const handleLogout = () => {
+=======
+  const handleLogout = useCallback(() => {
+>>>>>>> 35fe9c69bcda4e40c77ad1ca9052474cec07edc7
     logout();
     navigate('/login');
-  };
+  }, [logout, navigate]);
+
+  useEffect(() => {
+    const getRemaining = () => {
+      const lastActivityAt = Number(localStorage.getItem('lastActivityAt') || 0);
+      if (!lastActivityAt) return SESSION_TIMEOUT_MS;
+      return Math.max(0, SESSION_TIMEOUT_MS - (Date.now() - lastActivityAt));
+    };
+
+    setRemainingSessionMs(getRemaining());
+    const intervalId = window.setInterval(() => {
+      const remaining = getRemaining();
+      setRemainingSessionMs(remaining);
+      if (remaining <= 0) {
+        handleLogout();
+      }
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [handleLogout]);
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const [countRes, listRes] = await Promise.all([
+          axios.get('/api/notifications/unread-count'),
+          axios.get('/api/notifications')
+        ]);
+        if (countRes.data?.success) setUnreadCount(countRes.data.count || 0);
+        if (listRes.data?.success) {
+          const feed = (listRes.data.data || []).slice(0, 4).map((n) => ({
+            text: n.title,
+            time: new Date(n.createdAt).toLocaleString()
+          }));
+          setRecentActivities(feed);
+        }
+      } catch (error) {
+        setUnreadCount(0);
+      }
+    };
+    loadNotifications();
+  }, []);
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleProfileMenuClose = () => setAnchorEl(null);
@@ -226,7 +280,11 @@ const Dashboard = () => {
           { title: 'Financial Reports', icon: <PaymentIcon />, link: '/admin/payments' }
         ],
         announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/admin/announcements' }],
-        settings: [{ title: 'System Settings', icon: <SettingsIcon />, link: '/admin/settings' }]
+        settings: [
+          { title: 'System Settings', icon: <SettingsIcon />, link: '/admin/settings' },
+          { title: 'Verification Queue', icon: <VerifiedUserIcon />, link: '/admin/verifications' },
+          { title: 'Reports Center', icon: <ReceiptIcon />, link: '/admin/reports' }
+        ]
       },
       stats: [
         { label: 'Total Residents', value: '45', helper: '+2 vs. last month' },
@@ -250,7 +308,10 @@ const Dashboard = () => {
         patrol: [{ title: 'Patrol Schedule', icon: <AssignmentIcon />, link: '/security/schedule' }],
         services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/security/service-requests' }],
         incidents: [{ title: 'Incident Reports', icon: <AssignmentIcon />, link: '/security/incidents' }],
-        settings: [{ title: 'Profile Settings', icon: <SettingsIcon />, link: '/profile' }]
+        settings: [
+          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/profile' },
+          { title: 'Notifications', icon: <NotificationsIcon />, link: '/notifications' }
+        ]
       },
       stats: [
         { label: 'Visitors Today', value: '12', helper: 'active movement' },
@@ -263,12 +324,8 @@ const Dashboard = () => {
 
   const config = roleConfig[user.role] || roleConfig.resident;
 
-  const recentActivities = [
-    { text: 'New visitor pass generated', time: '10 min ago' },
-    { text: 'Monthly dues payment received', time: '1 hour ago' },
-    { text: 'Service request completed', time: '2 hours ago' },
-    { text: 'Community meeting announced', time: '3 hours ago' }
-  ];
+  const sessionMinutes = Math.floor(remainingSessionMs / 60000);
+  const sessionSeconds = Math.floor((remainingSessionMs % 60000) / 1000);
 
   const accountInfo = [
     { label: 'Name', value: `${user.firstName} ${user.lastName}` },
@@ -794,6 +851,7 @@ const Dashboard = () => {
               />
             </Box>
 
+<<<<<<< HEAD
             <Box sx={{ minWidth: 0 }}>
               <Typography
                 variant="h6"
@@ -831,6 +889,21 @@ const Dashboard = () => {
             }}
           >
             <Badge badgeContent={3} color="error">
+=======
+          <Chip
+            label={`Session ${sessionMinutes}:${String(sessionSeconds).padStart(2, '0')}`}
+            size="small"
+            sx={{
+              mr: 2,
+              fontWeight: 600,
+              bgcolor: remainingSessionMs <= 5 * 60 * 1000 ? themeColors.warning : themeColors.info,
+              color: 'white'
+            }}
+          />
+
+          <IconButton component={RouterLink} to="/notifications" sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}>
+            <Badge badgeContent={unreadCount} color="error">
+>>>>>>> 35fe9c69bcda4e40c77ad1ca9052474cec07edc7
               <NotificationsIcon />
             </Badge>
           </IconButton>

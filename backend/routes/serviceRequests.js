@@ -3,6 +3,8 @@ const router = express.Router();
 const ServiceRequest = require('../models/ServiceRequest');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
+const { sendServiceRequestStatusNotification } = require('../services/notificationService');
+const { createInAppNotification } = require('../services/inAppNotificationService');
 
 router.post('/', protect, authorize('resident'), async (req, res) => {
   try {
@@ -135,6 +137,19 @@ router.put('/:id/assign', protect, authorize('admin'), async (req, res) => {
     request.status = 'assigned';
     
     await request.save();
+    await createInAppNotification({
+      userId: request.residentId,
+      type: 'service_request',
+      title: 'Service request assigned',
+      body: `${request.title} was assigned to staff.`,
+      metadata: { requestId: request._id, status: request.status }
+    });
+    const resident = await User.findById(request.residentId).select('email phone');
+    if (resident) {
+      await sendServiceRequestStatusNotification(request, resident, {
+        actorName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || 'Admin'
+      });
+    }
     
     res.json({
       success: true,
@@ -224,6 +239,19 @@ router.put('/:id/status', protect, async (req, res) => {
     }
     
     await request.save();
+    await createInAppNotification({
+      userId: request.residentId,
+      type: 'service_request',
+      title: 'Service request status updated',
+      body: `${request.title} is now ${request.status}.`,
+      metadata: { requestId: request._id, status: request.status }
+    });
+    const resident = await User.findById(request.residentId).select('email phone');
+    if (resident) {
+      await sendServiceRequestStatusNotification(request, resident, {
+        actorName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || req.user.role
+      });
+    }
     
     res.json({
       success: true,
@@ -278,6 +306,19 @@ router.put('/:id/rate', protect, authorize('resident'), async (req, res) => {
     request.feedback = feedback || '';
     
     await request.save();
+    await createInAppNotification({
+      userId: request.residentId,
+      type: 'service_request',
+      title: 'Service request assigned',
+      body: `${request.title} was assigned to staff.`,
+      metadata: { requestId: request._id, status: request.status }
+    });
+    const resident = await User.findById(request.residentId).select('email phone');
+    if (resident) {
+      await sendServiceRequestStatusNotification(request, resident, {
+        actorName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || 'Admin'
+      });
+    }
     
     res.json({
       success: true,
@@ -466,6 +507,19 @@ router.put('/:id/assign-staff', protect, authorize('admin'), async (req, res) =>
     if (adminNotes) request.adminNotes = adminNotes;
     
     await request.save();
+    await createInAppNotification({
+      userId: request.residentId,
+      type: 'service_request',
+      title: 'Service request reviewed',
+      body: `${request.title} was reviewed by admin.`,
+      metadata: { requestId: request._id, status: request.status }
+    });
+    const resident = await User.findById(request.residentId).select('email phone');
+    if (resident) {
+      await sendServiceRequestStatusNotification(request, resident, {
+        actorName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || 'Admin'
+      });
+    }
     
     res.json({
       success: true,
@@ -504,6 +558,12 @@ router.put('/:id/review', protect, authorize('admin'), async (req, res) => {
     if (estimatedCompletion) request.estimatedCompletion = new Date(estimatedCompletion);
     
     await request.save();
+    const resident = await User.findById(request.residentId).select('email phone');
+    if (resident) {
+      await sendServiceRequestStatusNotification(request, resident, {
+        actorName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || 'Admin'
+      });
+    }
     
     res.json({
       success: true,

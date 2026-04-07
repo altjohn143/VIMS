@@ -211,15 +211,7 @@ const ServiceRequests = () => {
         location: finalLocation
       };
 
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-
-      const response = await axios.post('/api/service-requests', requestData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'x-user-data': userData
-        }
-      });
+      const response = await axios.post('/api/service-requests', requestData);
 
       if (response.data.success || response.status === 200) {
         toast.success('Service request submitted successfully!');

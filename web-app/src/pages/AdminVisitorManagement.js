@@ -57,6 +57,9 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const AdminVisitorManagement = () => {
   // Dashboard Theme Colors from Login
@@ -237,26 +240,33 @@ const handleReject = async () => {
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      const params = {};
-      if (exportStartDate) params.startDate = exportStartDate;
-      if (exportEndDate) params.endDate = exportEndDate;
-      
-      const response = await axios.get('/api/visitors/admin/export', { params });
-      
-      if (response.data.success) {
-        const dataStr = JSON.stringify(response.data.data, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = response.data.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        toast.success(`Exported ${response.data.count} visitors`);
-        setExportDialogOpen(false);
-      }
+      const rows = visitors.map((v) => ({
+        id: v._id,
+        visitorName: v.visitorName,
+        resident: `${v.residentId?.firstName || ''} ${v.residentId?.lastName || ''}`.trim(),
+        house: v.residentId?.houseNumber || '',
+        status: v.status,
+        expectedArrival: formatDate(v.expectedArrival),
+        expectedDeparture: formatDate(v.expectedDeparture)
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Visitors');
+      XLSX.writeFile(wb, `visitors_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      const pdf = new jsPDF({ orientation: 'landscape' });
+      pdf.text('Visitor Report', 14, 14);
+      autoTable(pdf, {
+        startY: 20,
+        head: [['Visitor', 'Resident', 'House', 'Status', 'Arrival', 'Departure']],
+        body: rows.map((r) => [r.visitorName, r.resident, r.house, r.status, r.expectedArrival, r.expectedDeparture]),
+        styles: { fontSize: 8 }
+      });
+      pdf.save(`visitors_export_${new Date().toISOString().split('T')[0]}.pdf`);
+
+      toast.success(`Exported ${rows.length} visitors (XLSX + PDF)`);
+      setExportDialogOpen(false);
     } catch (error) {
       toast.error('Failed to export data');
       console.error('Error exporting data:', error);

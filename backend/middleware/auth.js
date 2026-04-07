@@ -5,46 +5,38 @@ const User = require('../models/User');
 const auth = {
   protect: async (req, res, next) => {
     try {
-      let token;
-      
-      if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        token = req.headers.authorization.split(' ')[1];
-      }
-      else if (req.headers['x-user-data']) {
-        try {
-          const userData = JSON.parse(req.headers['x-user-data']);
-          if (userData.id) {
-            const user = await User.findById(userData.id).select('-password');
-            if (user) {
-              req.user = user;
-              return next();
-            }
-          }
-        } catch (error) {
-          // Silent fail
-        }
-      }
-      
+      const authHeader = req.headers.authorization || '';
+      const hasBearer = authHeader.startsWith('Bearer ');
+      const token = hasBearer ? authHeader.split(' ')[1] : null;
+
       if (!token) {
         return res.status(401).json({
           success: false,
           error: 'Not authorized, no token'
         });
       }
-      
+
+      if (!process.env.JWT_SECRET) {
+        console.error('JWT_SECRET is not configured');
+        return res.status(500).json({
+          success: false,
+          error: 'Authentication configuration error'
+        });
+      }
+
       try {
-        const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.id).select('-password');
-        
+
         if (!user) {
           return res.status(401).json({
             success: false,
             error: 'User not found'
           });
         }
-        
+
         req.user = user;
-        next();
+        return next();
       } catch (error) {
         return res.status(401).json({
           success: false,

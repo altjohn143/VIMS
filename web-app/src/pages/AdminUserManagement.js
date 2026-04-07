@@ -154,7 +154,7 @@ const AdminUserManagement = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await axios.get('http://localhost:5000/api/users', {
+      const response = await axios.get('/api/users', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -277,7 +277,7 @@ const AdminUserManagement = () => {
         return;
       }
       
-      const response = await axios.put(`/api/users/{user._id}/approve`, 
+      const response = await axios.put(`/api/users/${user._id}/approve`, 
         {},
         {
           headers: {

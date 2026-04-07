@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import villageLogo from '../assets/village-logo.png';
+
 import {
   Container,
   Box,
@@ -30,13 +32,14 @@ import {
   ListItemButton,
   CircularProgress
 } from '@mui/material';
+
 import {
   Logout as LogoutIcon,
   Home as HomeIcon,
   People as PeopleIcon,
   Security as SecurityIcon,
   AdminPanelSettings as AdminIcon,
-  Notifications as NotificationsIcon,
+  NotificationsNone as NotificationsIcon,
   QrCode as QrCodeIcon,
   Payment as PaymentIcon,
   Build as BuildIcon,
@@ -52,32 +55,89 @@ import {
   Receipt as ReceiptIcon,
   Group as GroupIcon,
   VerifiedUser as VerifiedUserIcon,
-  ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   ExpandLess as ExpandLessIcon,
   ExpandMore as ExpandMoreIcon,
   Close as CloseIcon,
-  QrCodeScanner as QrCodeScannerIcon
+  QrCodeScanner as QrCodeScannerIcon,
+  KeyboardArrowRight as KeyboardArrowRightIcon,
+  PersonAddAlt1 as PersonAddAlt1Icon,
+  Campaign as CampaignIcon,
+  ReportProblemOutlined as ReportProblemOutlinedIcon,
+  ArrowOutward as ArrowOutwardIcon,
+  Apartment as ApartmentIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
 const themeColors = {
-  primary: '#2224be',
-  primaryLight: '#2224be',
-  primaryDark: '#2224be',
-  success: '#10b981',
+  primary: '#166534',
+  primaryDark: '#14532d',
+  primaryLight: '#22c55e',
+  primarySoft: '#dcfce7',
+  sidebar: '#146c34',
+  sidebarDark: '#0f5a2a',
+  success: '#22c55e',
   warning: '#f59e0b',
   error: '#ef4444',
-  info: '#3b82f6',
-  background: '#f8fafc',
+  info: '#0ea5e9',
+  background: '#f3f5f7',
   cardBackground: '#ffffff',
-  textPrimary: '#1e293b',
+  textPrimary: '#0f172a',
   textSecondary: '#64748b',
-  border: 'rgba(99, 102, 241, 0.1)'
+  border: 'rgba(15, 23, 42, 0.08)',
+  muted: '#e5e7eb'
 };
 
+<<<<<<< HEAD
+const APPBAR_HEIGHT = 72;
+const SIDEBAR_WIDTH = 260;
+const MINI_SIDEBAR_WIDTH = 82;
+
+const screenFade = {
+  '@keyframes screenFadeIn': {
+    from: { opacity: 0, transform: 'translateY(14px)' },
+    to: { opacity: 1, transform: 'translateY(0)' }
+  },
+  '@keyframes slideUpSoft': {
+    from: { opacity: 0, transform: 'translateY(18px)' },
+    to: { opacity: 1, transform: 'translateY(0)' }
+  },
+  '@keyframes cardPop': {
+    from: { opacity: 0, transform: 'translateY(16px) scale(0.985)' },
+    to: { opacity: 1, transform: 'translateY(0) scale(1)' }
+  }
+};
+
+const statCardStyles = [
+  {
+    bg: 'linear-gradient(135deg, #2349d8 0%, #243fb8 100%)',
+    light: 'rgba(255,255,255,0.16)',
+    icon: <GroupIcon sx={{ fontSize: 56 }} />,
+    accent: '#dbeafe'
+  },
+  {
+    bg: 'linear-gradient(135deg, #18a34a 0%, #17803d 100%)',
+    light: 'rgba(255,255,255,0.16)',
+    icon: <VerifiedUserIcon sx={{ fontSize: 56 }} />,
+    accent: '#dcfce7'
+  },
+  {
+    bg: 'linear-gradient(135deg, #0986c8 0%, #0d6997 100%)',
+    light: 'rgba(255,255,255,0.14)',
+    icon: <ReceiptIcon sx={{ fontSize: 56 }} />,
+    accent: '#dbeafe'
+  },
+  {
+    bg: 'linear-gradient(135deg, #e02424 0%, #b91c1c 100%)',
+    light: 'rgba(255,255,255,0.14)',
+    icon: <ReportProblemOutlinedIcon sx={{ fontSize: 56 }} />,
+    accent: '#fee2e2'
+  }
+];
+=======
 const APPBAR_HEIGHT = 64;
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+>>>>>>> 35fe9c69bcda4e40c77ad1ca9052474cec07edc7
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -107,7 +167,17 @@ const Dashboard = () => {
     checkAuth();
   }, [getCurrentUser, navigate, location]);
 
+<<<<<<< HEAD
+  useEffect(() => {
+    if (!isMobile) {
+      setSidebarOpen(true);
+    }
+  }, [isMobile]);
+
+  const handleLogout = () => {
+=======
   const handleLogout = useCallback(() => {
+>>>>>>> 35fe9c69bcda4e40c77ad1ca9052474cec07edc7
     logout();
     navigate('/login');
   }, [logout, navigate]);
@@ -155,10 +225,10 @@ const Dashboard = () => {
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleProfileMenuClose = () => setAnchorEl(null);
-  const handleSidebarToggle = () => setSidebarOpen(!sidebarOpen);
+  const handleSidebarToggle = () => setSidebarOpen((prev) => !prev);
   const handleCloseSidebar = () => setSidebarOpen(false);
   const handleSectionToggle = (section) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   if (loading) {
@@ -174,9 +244,11 @@ const Dashboard = () => {
   const roleConfig = {
     resident: {
       title: 'Resident Dashboard',
+      subtitle: 'Your community tools and services in one place',
       icon: <HomeIcon />,
       color: '#1e88e5',
       features: {
+        dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
         visitors: [{ title: 'Generate Visitor Pass', icon: <QrCodeIcon />, link: '/visitors' }],
         services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/service-requests' }],
         payments: [{ title: 'Pay Dues', icon: <PaymentIcon />, link: '/payments' }],
@@ -184,17 +256,19 @@ const Dashboard = () => {
         settings: [{ title: 'Profile Settings', icon: <SettingsIcon />, link: '/profile' }]
       },
       stats: [
-        { label: 'Pending Visitors', value: '3' },
-        { label: 'Due Amount', value: '₱1,500' },
-        { label: 'Active Requests', value: '2' },
-        { label: 'Unread Alerts', value: '5' }
+        { label: 'Pending Visitors', value: '3', helper: '+1 today' },
+        { label: 'Due Amount', value: '₱1,500', helper: 'due this month' },
+        { label: 'Active Requests', value: '2', helper: 'in progress' },
+        { label: 'Unread Alerts', value: '5', helper: 'check updates' }
       ]
     },
     admin: {
-      title: 'Admin Dashboard',
+      title: 'Dashboard',
+      subtitle: 'Casimiro Westville Homes',
       icon: <AdminIcon />,
-      color: '#1976d2',
+      color: '#166534',
       features: {
+        dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
         visitors: [{ title: 'Visitor Management', icon: <PeopleIcon />, link: '/admin/visitor-management' }],
         users: [
           { title: 'User Management', icon: <GroupIcon />, link: '/admin/users' },
@@ -203,7 +277,7 @@ const Dashboard = () => {
         services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/admin/service-requests' }],
         finance: [
           { title: 'Payment Management', icon: <ReceiptIcon />, link: '/admin/payments' },
-          { title: 'Financial Reports', icon: <ReceiptIcon />, link: '/admin/payments' }
+          { title: 'Financial Reports', icon: <PaymentIcon />, link: '/admin/payments' }
         ],
         announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/admin/announcements' }],
         settings: [
@@ -213,17 +287,19 @@ const Dashboard = () => {
         ]
       },
       stats: [
-        { label: 'Total Residents', value: '45' },
-        { label: 'Pending Approvals', value: '3' },
-        { label: 'Monthly Collection', value: '₱45,000' },
-        { label: 'Active Issues', value: '7' }
+        { label: 'Total Residents', value: '45', helper: '+2 vs. last month' },
+        { label: 'Pending Approvals', value: '3', helper: '-1 since yesterday' },
+        { label: 'Monthly Collection', value: '₱45K', helper: '+11% vs. last month' },
+        { label: 'Active Issues', value: '7', helper: '+2 this week' }
       ]
     },
     security: {
       title: 'Security Dashboard',
+      subtitle: 'Monitor visitors and on-site activity',
       icon: <SecurityIcon />,
       color: '#1565c0',
       features: {
+        dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
         scanner: [{ title: 'QR Code Scanner', icon: <ScannerIcon />, link: '/security/scanner' }],
         visitors: [
           { title: 'Visitor Approvals', icon: <CheckCircleIcon />, link: '/security/visitor-approval' },
@@ -238,10 +314,10 @@ const Dashboard = () => {
         ]
       },
       stats: [
-        { label: 'Visitors Today', value: '12' },
-        { label: 'Active on Premises', value: '3' },
-        { label: 'Pending Checkouts', value: '2' },
-        { label: 'Alerts Today', value: '1' }
+        { label: 'Visitors Today', value: '12', helper: 'active movement' },
+        { label: 'Active on Premises', value: '3', helper: 'currently inside' },
+        { label: 'Pending Checkouts', value: '2', helper: 'for review' },
+        { label: 'Alerts Today', value: '1', helper: 'needs attention' }
       ]
     }
   };
@@ -257,222 +333,563 @@ const Dashboard = () => {
     { label: 'Phone', value: user.phone || 'Not provided' },
     {
       label: 'Role',
-      value: <Chip label={user.role} size="small" sx={{ bgcolor: config.color, color: 'white', textTransform: 'capitalize', fontWeight: 600 }} />
+      value: (
+        <Chip
+          label={user.role}
+          size="small"
+          sx={{
+            bgcolor: config.color,
+            color: 'white',
+            textTransform: 'capitalize',
+            fontWeight: 700,
+            borderRadius: '999px'
+          }}
+        />
+      )
     },
     {
       label: 'Account Status',
-      value: <Chip label={user.isApproved ? 'Approved' : 'Pending Approval'} size="small"
-        sx={{ bgcolor: user.isApproved ? themeColors.success : themeColors.warning, color: 'white', fontWeight: 500 }} />
+      value: (
+        <Chip
+          label={user.isApproved ? 'Approved' : 'Pending Approval'}
+          size="small"
+          sx={{
+            bgcolor: user.isApproved ? themeColors.success : themeColors.warning,
+            color: 'white',
+            fontWeight: 700,
+            borderRadius: '999px'
+          }}
+        />
+      )
     }
   ];
 
-  // ─── MINI SIDEBAR ────────────────────────────────────────────────────────────
-  const miniSidebar = (
-    <Box sx={{
-      width: 64,
-      height: '100%',
-      bgcolor: '#1e293b',
-      color: 'white',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      pt: `${APPBAR_HEIGHT}px`,
-      pb: 2,
-      overflowY: 'auto',
-      overflowX: 'hidden'
-    }}>
-      <Avatar sx={{
-        width: 40, height: 40, bgcolor: themeColors.primary, color: 'white',
-        mt: 2, mb: 2, fontSize: '1rem', fontWeight: 600,
-        boxShadow: `0 2px 8px ${themeColors.primary}40`
-      }}>
-        {user.firstName?.charAt(0)}
-      </Avatar>
+  const pendingApprovals = [
+    { name: 'Carlos Mendoza', detail: 'Unit 3A • New Resident', date: 'Apr 2' },
+    { name: 'Ana Reyes', detail: 'Unit 11C • Renovation Permit', date: 'Apr 1' },
+    { name: 'James Lim', detail: 'Unit 7B • New Resident', date: 'Mar 31' }
+  ];
 
-      <Divider sx={{ width: '70%', bgcolor: '#374151', mb: 2 }} />
+  const quickActions = [
+    {
+      title: user.role === 'admin' ? 'Add New Resident' : 'Open Dashboard',
+      subtitle: user.role === 'admin' ? 'Register a homeowner' : 'Go to main view',
+      icon: <PersonAddAlt1Icon />,
+      link: user.role === 'admin' ? '/admin/users' : '/dashboard'
+    },
+    {
+      title: user.role === 'admin' ? 'Post Announcement' : 'View Announcements',
+      subtitle: user.role === 'admin' ? 'Notify all residents' : 'Community updates',
+      icon: <CampaignIcon />,
+      link: user.role === 'admin' ? '/admin/announcements' : '/announcements'
+    },
+    {
+      title: user.role === 'admin' ? 'Issue Visitor Access' : 'Visitor Pass',
+      subtitle: user.role === 'admin' ? 'Grant temporary access' : 'Generate a visitor pass',
+      icon: <QrCodeIcon />,
+      link: user.role === 'admin' ? '/admin/visitor-management' : '/visitors'
+    },
+    {
+      title: user.role === 'admin' ? 'Report an Issue' : 'Submit Request',
+      subtitle: user.role === 'admin' ? 'Track active concerns' : 'Create a service request',
+      icon: <BuildIcon />,
+      link: user.role === 'admin' ? '/admin/service-requests' : '/service-requests'
+    }
+  ];
 
-      <IconButton
-        component={RouterLink}
-        to="/dashboard"
-        sx={{ color: 'white', mb: 2, '&:hover': { bgcolor: '#374151', color: themeColors.primary } }}
-        title="Dashboard"
+  const getSectionLabel = (section) => {
+    const customLabels = {
+      dashboard: 'Dashboard',
+      visitors: 'Visitors',
+      users: 'Users',
+      services: 'Services',
+      finance: 'Finance',
+      announcements: 'Announcements',
+      settings: 'Settings',
+      scanner: 'Scanner',
+      patrol: 'Patrol',
+      incidents: 'Incidents',
+      payments: 'Payments',
+      community: 'Community'
+    };
+    return customLabels[section] || section.charAt(0).toUpperCase() + section.slice(1);
+  };
+
+  const getSectionIcon = (section, items) => {
+    if (section === 'dashboard') return <DashboardIcon />;
+    return items[0]?.icon || <ChevronRightIcon />;
+  };
+
+  const sidebarNav = (
+    <Box
+      sx={{
+        width: sidebarOpen ? SIDEBAR_WIDTH : MINI_SIDEBAR_WIDTH,
+        height: '100%',
+        bgcolor: themeColors.sidebar,
+        color: 'white',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundImage: 'linear-gradient(180deg, #166534 0%, #146c34 60%, #115e31 100%)'
+      }}
+    >
+      <Box
+        sx={{
+          pt: `calc(${APPBAR_HEIGHT}px + 6px)`,
+          px: sidebarOpen ? 2.25 : 1.25,
+          pb: 2,
+          borderBottom: '1px solid rgba(255,255,255,0.08)'
+        }}
       >
-        <DashboardIcon />
-      </IconButton>
-
-      {Object.entries(config.features).slice(1, 4).map(([section, items]) => (
-        <React.Fragment key={section}>
-          {items.slice(0, 1).map((item, index) => (
-            <IconButton
-              key={index}
-              component={RouterLink}
-              to={item.link}
-              sx={{ color: 'white', mb: 1, '&:hover': { bgcolor: '#374151', color: themeColors.primary } }}
-              title={item.title}
+        {sidebarOpen ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              sx={{
+                width: 42,
+                height: 42,
+                borderRadius: '14px',
+                bgcolor: 'rgba(255,255,255,0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.15)'
+              }}
             >
-              {item.icon}
-            </IconButton>
-          ))}
-        </React.Fragment>
-      ))}
+              <Box
+                component="img"
+                src={villageLogo}
+                alt="Village Logo"
+                sx={{
+                  width: '82%',
+                  height: '82%',
+                  objectFit: 'contain'
+                }}
+              />
+            </Box>
 
-      <Box sx={{ flexGrow: 1 }} />
-      <IconButton
-        onClick={handleSidebarToggle}
-        sx={{ color: 'white', '&:hover': { bgcolor: '#374151', color: themeColors.primary } }}
-        title="Expand Menu"
-      >
-        <ChevronRightIcon />
-      </IconButton>
-    </Box>
-  );
-
-  // ─── FULL SIDEBAR ─────────────────────────────────────────────────────────────
-  const fullSidebar = (
-    <Box sx={{
-      width: 280,
-      height: '100%',
-      bgcolor: '#1e293b',
-      color: 'white',
-      display: 'flex',
-      flexDirection: 'column',
-      pt: `${APPBAR_HEIGHT}px`
-    }}>
-      {/* Sidebar Header */}
-      <Box sx={{ p: 3, borderBottom: '1px solid #374151', flexShrink: 0 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-          <Avatar sx={{
-            width: 48, height: 48, bgcolor: themeColors.primary, color: 'white',
-            fontSize: '1.2rem', fontWeight: 600, boxShadow: `0 2px 8px ${themeColors.primary}40`
-          }}>
-            {user.firstName?.charAt(0)}
-            {user.lastName?.charAt(0)}
-          </Avatar>
-          <IconButton onClick={handleCloseSidebar} sx={{ color: 'white', '&:hover': { bgcolor: '#374151' } }}>
-            <ChevronLeftIcon />
-          </IconButton>
-        </Box>
-        <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
-          {user.firstName} {user.lastName}
-        </Typography>
-        <Chip
-          label={user.role.toUpperCase()}
-          size="small"
-          sx={{ bgcolor: themeColors.primary, color: 'white', mt: 0.5, fontWeight: 'bold', fontSize: '0.7rem' }}
-        />
-        {user.houseNumber && (
-          <Typography variant="caption" sx={{ mt: 0.5, color: '#94a3b8', display: 'block' }}>
-            House {user.houseNumber}
-          </Typography>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  fontSize: '0.95rem',
+                  lineHeight: 1.1,
+                  color: 'white',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                Casimiro Westville
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.73rem',
+                  color: 'rgba(255,255,255,0.72)',
+                  fontWeight: 500
+                }}
+              >
+                Homes • Admin Panel
+              </Typography>
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Box
+              sx={{
+                width: 46,
+                height: 46,
+                borderRadius: '14px',
+                bgcolor: 'rgba(255,255,255,0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden'
+              }}
+            >
+              <Box
+                component="img"
+                src={villageLogo}
+                alt="Village Logo"
+                sx={{
+                  width: '80%',
+                  height: '80%',
+                  objectFit: 'contain'
+                }}
+              />
+            </Box>
+          </Box>
         )}
       </Box>
 
-      {/* Scrollable Nav */}
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden', p: 2 }}>
-        {Object.entries(config.features).map(([section, items]) => (
-          <Box key={section} sx={{ mb: 1 }}>
-            {items.length > 1 ? (
-              <>
-                <ListItemButton
-                  onClick={() => handleSectionToggle(section)}
+      <Box sx={{ px: sidebarOpen ? 2 : 1, py: 2 }}>
+        {sidebarOpen ? (
+          <Paper
+            elevation={0}
+            sx={{
+              bgcolor: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: '18px',
+              p: 1.5,
+              color: 'white'
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+              <Avatar
+                sx={{
+                  width: 42,
+                  height: 42,
+                  bgcolor: 'rgba(255,255,255,0.18)',
+                  fontWeight: 800
+                }}
+              >
+                {user.firstName?.charAt(0)}
+                {user.lastName?.charAt(0)}
+              </Avatar>
+
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
                   sx={{
-                    color: 'white', borderRadius: 1, mb: 0.5, px: 2, py: 1,
-                    '&:hover': { bgcolor: '#374151', color: themeColors.primary }
+                    fontWeight: 700,
+                    fontSize: '0.92rem',
+                    lineHeight: 1.1,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}
                 >
-                  <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
-                    {items[0].icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={section.charAt(0).toUpperCase() + section.slice(1)}
-                    primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 'medium' }}
-                  />
-                  {expandedSections[section] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </ListItemButton>
-                <Collapse in={expandedSections[section]} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding>
-                    {items.map((item, index) => (
-                      <ListItem
-                        key={index}
-                        component={RouterLink}
-                        to={item.link}
-                        sx={{
-                          color: 'white', borderRadius: 1, mb: 0.5, pl: 4, py: 1,
-                          '&:hover': { bgcolor: '#374151', color: themeColors.primary },
-                          textDecoration: 'none'
-                        }}
-                        onClick={() => { if (isMobile) setSidebarOpen(false); }}
-                      >
-                        <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}>{item.icon}</ListItemIcon>
-                        <ListItemText primary={item.title} primaryTypographyProps={{ fontSize: '0.85rem' }} />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Collapse>
-              </>
-            ) : (
-              <ListItem
-                component={RouterLink}
-                to={items[0].link}
-                sx={{
-                  color: 'white', borderRadius: 1, mb: 0.5, px: 2, py: 1,
-                  '&:hover': { bgcolor: '#374151', color: themeColors.primary },
-                  textDecoration: 'none'
-                }}
-                onClick={() => { if (isMobile) setSidebarOpen(false); }}
-              >
-                <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{items[0].icon}</ListItemIcon>
-                <ListItemText
-                  primary={section.charAt(0).toUpperCase() + section.slice(1)}
-                  primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 'medium' }}
+                  {user.firstName} {user.lastName}
+                </Typography>
+                <Chip
+                  label={user.role === 'admin' ? 'ADMIN' : user.role.toUpperCase()}
+                  size="small"
+                  sx={{
+                    mt: 0.75,
+                    height: 22,
+                    fontSize: '0.66rem',
+                    fontWeight: 800,
+                    bgcolor: '#d9f99d',
+                    color: '#14532d',
+                    borderRadius: '999px'
+                  }}
                 />
-              </ListItem>
-            )}
+              </Box>
+            </Box>
+          </Paper>
+        ) : (
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Avatar
+              sx={{
+                width: 42,
+                height: 42,
+                bgcolor: 'rgba(255,255,255,0.16)',
+                fontWeight: 800
+              }}
+            >
+              {user.firstName?.charAt(0)}
+            </Avatar>
           </Box>
-        ))}
+        )}
       </Box>
 
-      {/* Footer — pinned to bottom */}
-      <Box sx={{ p: 2, borderTop: '1px solid #374151', flexShrink: 0 }}>
-        <Chip
-          icon={<CheckCircleIcon />}
-          label="System OK"
-          size="small"
-          sx={{ bgcolor: themeColors.primary, color: 'white', fontSize: '0.7rem', width: '100%', mb: 1 }}
-        />
-        <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', textAlign: 'center' }}>
-          VIMS v2.0
-        </Typography>
+      <Box
+        sx={{
+          flexGrow: 1,
+          px: sidebarOpen ? 1.25 : 0.75,
+          overflowY: 'auto',
+          overflowX: 'hidden'
+        }}
+      >
+        <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {Object.entries(config.features).map(([section, items]) => {
+            const currentIcon = getSectionIcon(section, items);
+            const sectionLabel = getSectionLabel(section);
+            const hasChildren = items.length > 1;
+
+            if (!sidebarOpen) {
+              return (
+                <ListItemButton
+                  key={section}
+                  component={RouterLink}
+                  to={items[0].link}
+                  onClick={() => {
+                    if (isMobile) setSidebarOpen(false);
+                  }}
+                  sx={{
+                    minHeight: 48,
+                    justifyContent: 'center',
+                    borderRadius: '14px',
+                    color: 'rgba(255,255,255,0.88)',
+                    '&:hover': {
+                      bgcolor: 'rgba(255,255,255,0.10)'
+                    }
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 'unset',
+                      color: 'inherit'
+                    }}
+                  >
+                    {currentIcon}
+                  </ListItemIcon>
+                </ListItemButton>
+              );
+            }
+
+            return (
+              <Box key={section}>
+                {hasChildren ? (
+                  <>
+                    <ListItemButton
+                      onClick={() => handleSectionToggle(section)}
+                      sx={{
+                        minHeight: 46,
+                        borderRadius: '14px',
+                        px: 1.5,
+                        color: 'rgba(255,255,255,0.92)',
+                        '&:hover': {
+                          bgcolor: 'rgba(255,255,255,0.10)'
+                        }
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 38, color: 'inherit' }}>{currentIcon}</ListItemIcon>
+                      <ListItemText
+                        primary={sectionLabel}
+                        primaryTypographyProps={{
+                          fontSize: '0.93rem',
+                          fontWeight: 700
+                        }}
+                      />
+                      {expandedSections[section] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                    </ListItemButton>
+
+                    <Collapse in={expandedSections[section]} timeout="auto" unmountOnExit>
+                      <List disablePadding sx={{ mt: 0.5, mb: 0.5 }}>
+                        {items.map((item, index) => (
+                          <ListItemButton
+                            key={index}
+                            component={RouterLink}
+                            to={item.link}
+                            onClick={() => {
+                              if (isMobile) setSidebarOpen(false);
+                            }}
+                            sx={{
+                              ml: 1,
+                              mr: 0.5,
+                              minHeight: 42,
+                              borderRadius: '12px',
+                              px: 1.5,
+                              color: 'rgba(255,255,255,0.82)',
+                              '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.08)'
+                              }
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>{item.icon}</ListItemIcon>
+                            <ListItemText
+                              primary={item.title}
+                              primaryTypographyProps={{
+                                fontSize: '0.86rem',
+                                fontWeight: 600
+                              }}
+                            />
+                          </ListItemButton>
+                        ))}
+                      </List>
+                    </Collapse>
+                  </>
+                ) : (
+                  <ListItemButton
+                    component={RouterLink}
+                    to={items[0].link}
+                    onClick={() => {
+                      if (isMobile) setSidebarOpen(false);
+                    }}
+                    sx={{
+                      minHeight: 48,
+                      borderRadius: '14px',
+                      px: 1.5,
+                      color: section === 'dashboard' ? 'white' : 'rgba(255,255,255,0.9)',
+                      bgcolor: section === 'dashboard' ? 'rgba(255,255,255,0.14)' : 'transparent',
+                      boxShadow: section === 'dashboard' ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : 'none',
+                      '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.10)'
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 38, color: 'inherit' }}>{currentIcon}</ListItemIcon>
+                    <ListItemText
+                      primary={sectionLabel}
+                      primaryTypographyProps={{
+                        fontSize: '0.93rem',
+                        fontWeight: 700
+                      }}
+                    />
+                    {section === 'dashboard' ? null : <KeyboardArrowRightIcon sx={{ opacity: 0.5 }} />}
+                  </ListItemButton>
+                )}
+              </Box>
+            );
+          })}
+        </List>
+      </Box>
+
+      <Box sx={{ px: sidebarOpen ? 1.75 : 1, pb: 2, pt: 1.5 }}>
+        {sidebarOpen ? (
+          <>
+            <Paper
+              elevation={0}
+              sx={{
+                bgcolor: 'rgba(255,255,255,0.10)',
+                borderRadius: '14px',
+                color: 'white',
+                px: 1.5,
+                py: 1.2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                mb: 1,
+                border: '1px solid rgba(255,255,255,0.08)'
+              }}
+            >
+              <CheckCircleIcon sx={{ fontSize: 18, color: '#a7f3d0' }} />
+              <Typography sx={{ fontSize: '0.84rem', fontWeight: 700 }}>System OK</Typography>
+            </Paper>
+
+            <Button
+              onClick={handleLogout}
+              fullWidth
+              startIcon={<LogoutIcon />}
+              sx={{
+                justifyContent: 'flex-start',
+                color: 'rgba(255,255,255,0.72)',
+                borderRadius: '14px',
+                px: 1.5,
+                py: 1.15,
+                textTransform: 'none',
+                fontWeight: 700,
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.08)'
+                }
+              }}
+            >
+              Sign out
+            </Button>
+          </>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <IconButton
+              sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.08)', '&:hover': { bgcolor: 'rgba(255,255,255,0.14)' } }}
+            >
+              <CheckCircleIcon />
+            </IconButton>
+            <IconButton
+              onClick={handleLogout}
+              sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}
+            >
+              <LogoutIcon />
+            </IconButton>
+          </Box>
+        )}
       </Box>
     </Box>
   );
 
   return (
     <>
-      {/* TOP NAV BAR */}
-      <AppBar position="fixed" sx={{
-        zIndex: theme.zIndex.drawer + 1,
-        bgcolor: 'white',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-        borderBottom: `1px solid ${themeColors.border}`
-      }}>
-        <Toolbar>
+      <Box sx={screenFade} />
+
+      <AppBar
+        position="fixed"
+        sx={{
+          zIndex: theme.zIndex.drawer + 1,
+          bgcolor: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`,
+          color: themeColors.textPrimary
+        }}
+      >
+        <Toolbar sx={{ minHeight: `${APPBAR_HEIGHT}px !important`, px: { xs: 2, md: 3 } }}>
           <IconButton
             edge="start"
             onClick={handleSidebarToggle}
-            sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}
+            sx={{
+              mr: 1.5,
+              color: themeColors.textPrimary,
+              bgcolor: 'rgba(15,23,42,0.04)',
+              border: `1px solid ${themeColors.border}`,
+              '&:hover': { bgcolor: 'rgba(15,23,42,0.08)' }
+            }}
           >
             {sidebarOpen ? <CloseIcon /> : <MenuIcon />}
           </IconButton>
 
-          <Typography variant="h6" sx={{
-            flexGrow: 1, fontWeight: 700, color: themeColors.textPrimary,
-            background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.primaryLight})`,
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-          }}>
-            Dashboard
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexGrow: 1, minWidth: 0 }}>
+            <Box
+              sx={{
+                width: 38,
+                height: 38,
+                borderRadius: '12px',
+                bgcolor: '#eff6ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                border: '1px solid rgba(15,23,42,0.06)'
+              }}
+            >
+              <Box
+                component="img"
+                src={villageLogo}
+                alt="Village Logo"
+                sx={{
+                  width: '78%',
+                  height: '78%',
+                  objectFit: 'contain'
+                }}
+              />
+            </Box>
 
+<<<<<<< HEAD
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  fontSize: { xs: '1rem', md: '1.15rem' },
+                  lineHeight: 1.1,
+                  color: themeColors.textPrimary
+                }}
+              >
+                {config.title}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.76rem',
+                  color: themeColors.textSecondary,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                {config.subtitle}
+              </Typography>
+            </Box>
+          </Box>
+
+          <IconButton
+            sx={{
+              mr: 1.5,
+              color: themeColors.textPrimary,
+              bgcolor: 'rgba(15,23,42,0.035)',
+              border: `1px solid ${themeColors.border}`,
+              '&:hover': { bgcolor: 'rgba(15,23,42,0.08)' }
+            }}
+          >
+            <Badge badgeContent={3} color="error">
+=======
           <Chip
             label={`Session ${sessionMinutes}:${String(sessionSeconds).padStart(2, '0')}`}
             size="small"
@@ -486,272 +903,802 @@ const Dashboard = () => {
 
           <IconButton component={RouterLink} to="/notifications" sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}>
             <Badge badgeContent={unreadCount} color="error">
+>>>>>>> 35fe9c69bcda4e40c77ad1ca9052474cec07edc7
               <NotificationsIcon />
             </Badge>
           </IconButton>
 
-          <IconButton edge="end" onClick={handleProfileMenuOpen} sx={{ ml: 1, '&:hover': { transform: 'scale(1.05)', transition: 'transform 0.2s' } }}>
-            <Avatar sx={{ width: 40, height: 40, bgcolor: themeColors.primary, fontSize: '1rem', fontWeight: 600, boxShadow: `0 2px 8px ${themeColors.primary}40` }}>
-              {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+          <Button
+            onClick={handleProfileMenuOpen}
+            sx={{
+              textTransform: 'none',
+              color: themeColors.textPrimary,
+              borderRadius: '16px',
+              px: 1,
+              py: 0.5,
+              minWidth: 0,
+              border: `1px solid ${themeColors.border}`,
+              bgcolor: 'rgba(255,255,255,0.75)',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,1)',
+                transform: 'translateY(-1px)'
+              },
+              transition: 'all 0.25s ease'
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 38,
+                height: 38,
+                mr: 1.1,
+                bgcolor: themeColors.primary,
+                fontWeight: 800,
+                boxShadow: '0 6px 18px rgba(22,101,52,0.22)'
+              }}
+            >
+              {user.firstName?.charAt(0)}
+              {user.lastName?.charAt(0)}
             </Avatar>
-          </IconButton>
+
+            {!isMobile && (
+              <Box sx={{ textAlign: 'left', mr: 0.5 }}>
+                <Typography sx={{ fontSize: '0.92rem', fontWeight: 800, lineHeight: 1.1 }}>
+                  {user.firstName} {user.lastName}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.73rem',
+                    color: user.isApproved ? themeColors.success : themeColors.warning,
+                    fontWeight: 700,
+                    lineHeight: 1.1
+                  }}
+                >
+                  ● {user.isApproved ? 'Approved' : 'Pending Approval'}
+                </Typography>
+              </Box>
+            )}
+
+            {!isMobile && <ExpandMoreIcon sx={{ color: themeColors.textSecondary }} />}
+          </Button>
 
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={handleProfileMenuClose}
-            PaperProps={{ sx: { width: 240, mt: 1.5, borderRadius: 2, boxShadow: '0 10px 40px rgba(0,0,0,0.1)', border: `1px solid ${themeColors.border}` } }}
+            PaperProps={{
+              sx: {
+                width: 260,
+                mt: 1.5,
+                borderRadius: 3,
+                boxShadow: '0 18px 44px rgba(15,23,42,0.14)',
+                border: `1px solid ${themeColors.border}`,
+                overflow: 'hidden'
+              }
+            }}
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
-            <MenuItem disabled sx={{ opacity: 1, py: 1.5 }}>
+            <MenuItem disabled sx={{ opacity: 1, py: 1.75 }}>
               <ListItemIcon>
-                <Avatar sx={{ width: 32, height: 32, bgcolor: themeColors.primary, fontSize: '0.9rem' }}>
-                  {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                <Avatar sx={{ width: 36, height: 36, bgcolor: themeColors.primary }}>
+                  {user.firstName?.charAt(0)}
+                  {user.lastName?.charAt(0)}
                 </Avatar>
               </ListItemIcon>
               <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+                <Typography variant="body2" sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
                   {user.firstName} {user.lastName}
                 </Typography>
-                <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
+                <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 600 }}>
                   {user.role} • {user.houseNumber || 'No house'}
                 </Typography>
               </Box>
             </MenuItem>
-            <Divider sx={{ my: 1 }} />
+
+            <Divider />
+
             <MenuItem component={RouterLink} to="/dashboard" onClick={handleProfileMenuClose} sx={{ py: 1.5 }}>
-              <ListItemIcon><QrCodeScannerIcon fontSize="small" sx={{ color: themeColors.primary }} /></ListItemIcon>
-              <Typography variant="body2">Dashboard</Typography>
+              <ListItemIcon>
+                <QrCodeScannerIcon fontSize="small" sx={{ color: themeColors.primary }} />
+              </ListItemIcon>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>Dashboard</Typography>
             </MenuItem>
+
             <MenuItem component={RouterLink} to="/profile" onClick={handleProfileMenuClose} sx={{ py: 1.5 }}>
-              <ListItemIcon><SettingsIcon fontSize="small" sx={{ color: themeColors.primary }} /></ListItemIcon>
-              <Typography variant="body2">Profile Settings</Typography>
+              <ListItemIcon>
+                <SettingsIcon fontSize="small" sx={{ color: themeColors.primary }} />
+              </ListItemIcon>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>Profile Settings</Typography>
             </MenuItem>
-            <Divider sx={{ my: 1 }} />
-            <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: themeColors.error, '&:hover': { bgcolor: themeColors.error + '10' } }}>
-              <ListItemIcon><LogoutIcon fontSize="small" sx={{ color: themeColors.error }} /></ListItemIcon>
-              <Typography variant="body2">Logout</Typography>
+
+            <Divider />
+
+            <MenuItem
+              onClick={handleLogout}
+              sx={{
+                py: 1.5,
+                color: themeColors.error,
+                '&:hover': { bgcolor: 'rgba(239,68,68,0.06)' }
+              }}
+            >
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" sx={{ color: themeColors.error }} />
+              </ListItemIcon>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>Logout</Typography>
             </MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>
 
-      {/* SIDEBAR DRAWER */}
       <Drawer
         variant={isMobile ? 'temporary' : 'persistent'}
         open={sidebarOpen}
         onClose={handleCloseSidebar}
         ModalProps={{ keepMounted: true }}
         sx={{
-          width: sidebarOpen ? 280 : 64,
+          width: sidebarOpen ? SIDEBAR_WIDTH : MINI_SIDEBAR_WIDTH,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: sidebarOpen ? 280 : 64,
+            width: sidebarOpen ? SIDEBAR_WIDTH : MINI_SIDEBAR_WIDTH,
             boxSizing: 'border-box',
-            bgcolor: '#1e293b',
-            borderRight: '1px solid #374151',
+            borderRight: 'none',
             overflowX: 'hidden',
+            boxShadow: sidebarOpen ? '12px 0 32px rgba(15, 23, 42, 0.08)' : 'none',
             transition: theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
-          },
+              duration: theme.transitions.duration.enteringScreen
+            })
+          }
         }}
       >
-        {sidebarOpen ? fullSidebar : miniSidebar}
+        {sidebarNav}
       </Drawer>
 
-      {/* MAIN CONTENT */}
       <Box
         component="main"
         sx={{
+          ...screenFade,
           flexGrow: 1,
-          p: { xs: 2, md: 3 },
-          ml: { xs: 0, md: sidebarOpen ? '280px' : '64px' },
+          minHeight: '100vh',
+          ml: { xs: 0, md: sidebarOpen ? `${SIDEBAR_WIDTH}px` : `${MINI_SIDEBAR_WIDTH}px` },
           transition: theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
+            duration: theme.transitions.duration.leavingScreen
           }),
-          backgroundColor: themeColors.background,
-          minHeight: '100vh'
+          background: `
+            radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+            radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+            ${themeColors.background}
+          `
         }}
       >
-        <Toolbar />
+        <Toolbar sx={{ minHeight: `${APPBAR_HEIGHT}px !important` }} />
 
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          {/* HEADER */}
-          <Paper sx={{
-            p: 3, mb: 4, bgcolor: themeColors.primary, color: 'white', borderRadius: 3,
-            boxShadow: '0 8px 30px rgba(34, 36, 190, 0.3)',
-            border: `1px solid ${themeColors.primary}40`,
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 40px rgba(34, 36, 190, 0.4)' }
-          }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'white', color: themeColors.primary, width: 56, height: 56, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                  {config.icon}
-                </Avatar>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>{config.title}</Typography>
-                  <Typography sx={{ opacity: 0.9, mt: 0.5 }}>
-                    Welcome back, {user.firstName} {user.lastName}
-                    {user.houseNumber && ` • House ${user.houseNumber}`}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Paper>
-
-          {/* STATS */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            {config.stats.map((stat, index) => (
-              <Grid item xs={12} sm={6} md={3} key={index}>
-                <Card sx={{
-                  height: '100%', borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                  border: `1px solid ${themeColors.border}`, backgroundColor: themeColors.cardBackground,
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }
-                }}>
-                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, color: themeColors.primary, fontFeatureSettings: '"tnum"' }}>
-                      {stat.value}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: themeColors.textSecondary, fontWeight: 500 }}>
-                      {stat.label}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-
-          {/* WELCOME MESSAGE */}
-          <Paper sx={{
-            p: 3, mb: 4, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-            border: `1px solid ${themeColors.border}`, backgroundColor: themeColors.cardBackground
-          }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
-              Welcome to VIMS
-            </Typography>
-            <Typography variant="body1" sx={{ color: themeColors.textSecondary, mb: 2 }}>
-              {user.role === 'resident' && 'Manage your visitor passes, service requests, and community payments all in one place. Use the menu on the left to access all features.'}
-              {user.role === 'admin' && 'Monitor system activities, manage users, and oversee all community operations. Expand the sidebar to access all admin tools.'}
-              {user.role === 'security' && 'Handle visitor approvals, monitor security logs, and manage on-site activities. Click the menu icon to access security tools.'}
-            </Typography>
-            <Button
-              variant="outlined"
-              sx={{
-                mt: 2, borderColor: themeColors.border, color: themeColors.textPrimary, fontWeight: 500,
-                '&:hover': { borderColor: themeColors.primary, bgcolor: themeColors.primary + '08' }
-              }}
-              onClick={sidebarOpen ? handleCloseSidebar : handleSidebarToggle}
-              startIcon={sidebarOpen ? <CloseIcon /> : <MenuIcon />}
-            >
-              {sidebarOpen ? 'Hide Quick Actions' : 'Show Quick Actions'}
-            </Button>
-          </Paper>
-
-          {/* ACTIVITIES + ACCOUNT INFO */}
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${themeColors.border}`, backgroundColor: themeColors.cardBackground }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600, color: themeColors.textPrimary }}>
-                  <NotificationsIcon sx={{ color: themeColors.primary }} />
-                  Recent Activities
-                </Typography>
-                <List>
-                  {recentActivities.map((activity, index) => (
-                    <React.Fragment key={index}>
-                      <ListItem sx={{ px: 0 }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
-                          <NotificationsIcon sx={{ color: themeColors.primary }} />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={activity.text}
-                          secondary={activity.time}
-                          primaryTypographyProps={{ variant: 'body2', color: themeColors.textPrimary }}
-                          secondaryTypographyProps={{ variant: 'caption', color: themeColors.textSecondary }}
-                        />
-                      </ListItem>
-                      {index < recentActivities.length - 1 && <Divider />}
-                    </React.Fragment>
-                  ))}
-                </List>
-              </Paper>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${themeColors.border}`, backgroundColor: themeColors.cardBackground }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600, color: themeColors.textPrimary }}>
-                  <AccountCircleIcon sx={{ color: themeColors.primary }} />
-                  Account Information
-                </Typography>
-                <List>
-                  {accountInfo.map((info, index) => (
-                    <React.Fragment key={index}>
-                      <ListItem sx={{ px: 0 }}>
-                        <ListItemText
-                          primary={info.label}
-                          secondary={info.value}
-                          primaryTypographyProps={{ variant: 'body2', color: themeColors.textPrimary, fontWeight: 500 }}
-                          secondaryTypographyProps={{ component: 'div', sx: { mt: 0.5 } }}
-                        />
-                      </ListItem>
-                      {index < accountInfo.length - 1 && <Divider />}
-                    </React.Fragment>
-                  ))}
-                </List>
-                <Box sx={{ mt: 2 }}>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    component={RouterLink}
-                    to="/profile"
-                    startIcon={<SettingsIcon />}
+        <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
+          <Box
+            sx={{
+              animation: 'screenFadeIn 0.55s ease',
+              borderRadius: '24px'
+            }}
+          >
+            <Grid container spacing={2.25}>
+              <Grid item xs={12}>
+                <Paper
+                  sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderRadius: '22px',
+                    minHeight: { xs: 220, md: 240 },
+                    backgroundColor: '#0f172a',
+                    border: `1px solid ${themeColors.border}`,
+                    boxShadow: '0 16px 40px rgba(15, 23, 42, 0.08)'
+                  }}
+                >
+                  <Box
                     sx={{
-                      bgcolor: themeColors.primary, borderRadius: 2, fontWeight: 600,
-                      '&:hover': { bgcolor: themeColors.primaryDark, transform: 'translateY(-2px)', boxShadow: `0 8px 25px ${themeColors.primary}40` },
-                      transition: 'all 0.3s ease'
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundImage: `url("https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1600&q=80")`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                  />
+
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(90deg, rgba(2,6,23,0.82) 0%, rgba(2,6,23,0.65) 38%, rgba(2,6,23,0.18) 68%, rgba(2,6,23,0.08) 100%)'
+                    }}
+                  />
+
+                  <Grid container sx={{ position: 'relative', zIndex: 1, minHeight: { xs: 220, md: 240 } }}>
+                    <Grid item xs={12} md={6.5}>
+                      <Box
+                        sx={{
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          p: { xs: 2.5, md: 3.5 },
+                          color: 'white',
+                          animation: 'slideUpSoft 0.65s ease'
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontSize: '0.8rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.08em',
+                            color: '#4ade80',
+                            textTransform: 'uppercase',
+                            mb: 1.2
+                          }}
+                        >
+                          Casimiro Westville Homes • Cavite
+                        </Typography>
+
+                        <Typography
+                          sx={{
+                            fontSize: { xs: '1.75rem', md: '2.25rem' },
+                            fontWeight: 900,
+                            lineHeight: 1.05,
+                            mb: 1
+                          }}
+                        >
+                          Good morning, {user.firstName || 'Administrator'}
+                        </Typography>
+
+                        <Typography
+                          sx={{
+                            color: 'rgba(255,255,255,0.78)',
+                            fontWeight: 500,
+                            maxWidth: 520,
+                            fontSize: { xs: '0.92rem', md: '1rem' }
+                          }}
+                        >
+                          {new Date().toLocaleDateString(undefined, {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}{' '}
+                          • Your community is running smoothly today.
+                        </Typography>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} md={5.5}>
+                      <Grid container sx={{ height: '100%' }}>
+                        {config.stats.slice(0, 4).map((stat, index) => (
+                          <Grid item xs={6} key={index}>
+                            <Box
+                              sx={{
+                                height: '100%',
+                                p: 2.5,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                borderLeft: { md: '1px solid rgba(255,255,255,0.10)' },
+                                borderTop: {
+                                  xs: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none',
+                                  md: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none'
+                                },
+                                background: 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                                backdropFilter: 'blur(8px)'
+                              }}
+                            >
+                              <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>
+                                {stat.value}
+                              </Typography>
+                              <Typography sx={{ mt: 0.8, fontSize: '0.86rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
+                                {stat.label}
+                              </Typography>
+                              <Typography sx={{ mt: 1, fontSize: '0.76rem', color: '#86efac', fontWeight: 700 }}>
+                                ↗ {stat.helper}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              {config.stats.slice(0, 4).map((stat, index) => {
+                const style = statCardStyles[index % statCardStyles.length];
+                return (
+                  <Grid item xs={12} sm={6} md={3} key={index}>
+                    <Card
+                      sx={{
+                        position: 'relative',
+                        overflow: 'hidden',
+                        minHeight: 166,
+                        borderRadius: '20px',
+                        color: 'white',
+                        background: style.bg,
+                        boxShadow: '0 16px 28px rgba(15,23,42,0.10)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        animation: `cardPop ${0.35 + index * 0.08}s ease`,
+                        transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: '0 24px 40px rgba(15,23,42,0.16)'
+                        },
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          width: 180,
+                          height: 180,
+                          borderRadius: '50%',
+                          top: -72,
+                          right: -52,
+                          bgcolor: style.light
+                        },
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          width: 90,
+                          height: 90,
+                          borderRadius: '50%',
+                          top: 22,
+                          right: 28,
+                          bgcolor: 'rgba(255,255,255,0.06)'
+                        }
+                      }}
+                    >
+                      <CardContent
+                        sx={{
+                          position: 'relative',
+                          zIndex: 1,
+                          p: 2.25,
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.18 }}>
+                          {style.icon}
+                        </Box>
+
+                        <Box>
+                          <Typography sx={{ fontSize: '2.1rem', fontWeight: 900, lineHeight: 1 }}>
+                            {stat.value}
+                          </Typography>
+                          <Typography sx={{ mt: 0.7, fontSize: '0.94rem', fontWeight: 700 }}>
+                            {stat.label}
+                          </Typography>
+                          <Typography sx={{ mt: 1.2, fontSize: '0.78rem', color: style.accent, fontWeight: 700 }}>
+                            ↗ {stat.helper}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
+
+              <Grid item xs={12} md={8.5}>
+                <Paper
+                  sx={{
+                    borderRadius: '20px',
+                    border: `1px solid ${themeColors.border}`,
+                    boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+                    overflow: 'hidden',
+                    animation: 'slideUpSoft 0.65s ease'
+                  }}
+                >
+                  <Box
+                    sx={{
+                      px: 2.5,
+                      py: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      bgcolor: 'white'
                     }}
                   >
-                    Update Profile
-                  </Button>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography sx={{ fontSize: '1.06rem', fontWeight: 900, color: themeColors.textPrimary }}>
+                        Pending Approvals
+                      </Typography>
+                      <Chip
+                        label="3 new"
+                        size="small"
+                        sx={{
+                          bgcolor: themeColors.primarySoft,
+                          color: themeColors.primary,
+                          fontWeight: 800,
+                          borderRadius: '999px'
+                        }}
+                      />
+                    </Box>
+
+                    <Button
+                      component={RouterLink}
+                      to={user.role === 'admin' ? '/admin/approvals' : '/dashboard'}
+                      endIcon={<ArrowOutwardIcon />}
+                      sx={{
+                        textTransform: 'none',
+                        fontWeight: 800,
+                        color: themeColors.primary
+                      }}
+                    >
+                      View all
+                    </Button>
+                  </Box>
+
+                  <Divider />
+
+                  <Box sx={{ p: 1.5 }}>
+                    {pendingApprovals.map((item, index) => (
+                      <Box key={index}>
+                        <Box
+                          sx={{
+                            px: 1,
+                            py: 1.4,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 2,
+                            flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                            <Avatar
+                              sx={{
+                                width: 42,
+                                height: 42,
+                                bgcolor: index % 2 === 0 ? '#fed7aa' : '#ddd6fe',
+                                color: '#1f2937',
+                                fontWeight: 800
+                              }}
+                            >
+                              {item.name.split(' ').map((n) => n[0]).slice(0, 2).join('')}
+                            </Avatar>
+
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+                                {item.name}
+                              </Typography>
+                              <Typography sx={{ fontSize: '0.84rem', color: themeColors.textSecondary, fontWeight: 500 }}>
+                                {item.detail}
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              ml: 'auto',
+                              flexWrap: 'wrap'
+                            }}
+                          >
+                            <Typography sx={{ fontSize: '0.82rem', color: themeColors.textSecondary, fontWeight: 600, mr: 1 }}>
+                              {item.date}
+                            </Typography>
+
+                            <Button
+                              size="small"
+                              variant="contained"
+                              sx={{
+                                textTransform: 'none',
+                                minWidth: 94,
+                                borderRadius: '12px',
+                                fontWeight: 800,
+                                bgcolor: themeColors.primary,
+                                boxShadow: '0 8px 18px rgba(22,101,52,0.20)',
+                                '&:hover': {
+                                  bgcolor: themeColors.primaryDark,
+                                  transform: 'translateY(-1px)'
+                                },
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              Approve
+                            </Button>
+
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                textTransform: 'none',
+                                minWidth: 88,
+                                borderRadius: '12px',
+                                fontWeight: 800,
+                                color: '#94a3b8',
+                                borderColor: '#e2e8f0',
+                                '&:hover': {
+                                  borderColor: '#cbd5e1',
+                                  bgcolor: '#f8fafc'
+                                }
+                              }}
+                            >
+                              Decline
+                            </Button>
+                          </Box>
+                        </Box>
+
+                        {index < pendingApprovals.length - 1 && <Divider sx={{ mx: 1 }} />}
+                      </Box>
+                    ))}
+                  </Box>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={3.5}>
+                <Paper
+                  sx={{
+                    borderRadius: '20px',
+                    border: `1px solid ${themeColors.border}`,
+                    boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+                    overflow: 'hidden',
+                    animation: 'slideUpSoft 0.75s ease'
+                  }}
+                >
+                  <Box
+                    sx={{
+                      px: 2.25,
+                      py: 2,
+                      bgcolor: 'white'
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '1.06rem', fontWeight: 900, color: themeColors.textPrimary }}>
+                      Quick Actions
+                    </Typography>
+                  </Box>
+
+                  <Divider />
+
+                  <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.15 }}>
+                    {quickActions.map((action, index) => (
+                      <Paper
+                        key={index}
+                        component={RouterLink}
+                        to={action.link}
+                        elevation={0}
+                        sx={{
+                          textDecoration: 'none',
+                          px: 1.5,
+                          py: 1.4,
+                          borderRadius: '16px',
+                          border: '1px solid rgba(15,23,42,0.06)',
+                          bgcolor: '#f8fafc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.25,
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            bgcolor: '#f0fdf4',
+                            borderColor: 'rgba(34,197,94,0.18)',
+                            boxShadow: '0 10px 20px rgba(15,23,42,0.05)'
+                          }
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: '12px',
+                            bgcolor: '#ecfdf5',
+                            color: themeColors.primary,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                        >
+                          {action.icon}
+                        </Box>
+
+                        <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                          <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: themeColors.textPrimary }}>
+                            {action.title}
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.8rem', color: themeColors.textSecondary, fontWeight: 500 }}>
+                            {action.subtitle}
+                          </Typography>
+                        </Box>
+
+                        <KeyboardArrowRightIcon sx={{ color: '#cbd5e1' }} />
+                      </Paper>
+                    ))}
+                  </Box>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Paper
+                  sx={{
+                    borderRadius: '20px',
+                    border: `1px solid ${themeColors.border}`,
+                    boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+                    overflow: 'hidden',
+                    animation: 'slideUpSoft 0.8s ease'
+                  }}
+                >
+                  <Box sx={{ px: 2.25, py: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <NotificationsIcon sx={{ color: themeColors.primary }} />
+                    <Typography sx={{ fontSize: '1.05rem', fontWeight: 900, color: themeColors.textPrimary }}>
+                      Recent Activities
+                    </Typography>
+                  </Box>
+
+                  <Divider />
+
+                  <List sx={{ px: 1.5, py: 1 }}>
+                    {recentActivities.map((activity, index) => (
+                      <React.Fragment key={index}>
+                        <ListItem sx={{ borderRadius: '14px', py: 1.2 }}>
+                          <ListItemIcon sx={{ minWidth: 42 }}>
+                            <Box
+                              sx={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: '10px',
+                                bgcolor: '#ecfdf5',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: themeColors.primary
+                              }}
+                            >
+                              <NotificationsIcon sx={{ fontSize: 18 }} />
+                            </Box>
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={activity.text}
+                            secondary={activity.time}
+                            primaryTypographyProps={{
+                              variant: 'body2',
+                              sx: { color: themeColors.textPrimary, fontWeight: 700 }
+                            }}
+                            secondaryTypographyProps={{
+                              variant: 'caption',
+                              sx: { color: themeColors.textSecondary, fontWeight: 500 }
+                            }}
+                          />
+                        </ListItem>
+                        {index < recentActivities.length - 1 && <Divider sx={{ mx: 1 }} />}
+                      </React.Fragment>
+                    ))}
+                  </List>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Paper
+                  sx={{
+                    borderRadius: '20px',
+                    border: `1px solid ${themeColors.border}`,
+                    boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+                    overflow: 'hidden',
+                    animation: 'slideUpSoft 0.9s ease'
+                  }}
+                >
+                  <Box sx={{ px: 2.25, py: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AccountCircleIcon sx={{ color: themeColors.primary }} />
+                    <Typography sx={{ fontSize: '1.05rem', fontWeight: 900, color: themeColors.textPrimary }}>
+                      Account Information
+                    </Typography>
+                  </Box>
+
+                  <Divider />
+
+                  <List sx={{ px: 2, py: 1 }}>
+                    {accountInfo.map((info, index) => (
+                      <React.Fragment key={index}>
+                        <ListItem sx={{ px: 0, py: 1.3, alignItems: 'flex-start' }}>
+                          <ListItemText
+                            primary={info.label}
+                            secondary={info.value}
+                            primaryTypographyProps={{
+                              variant: 'body2',
+                              sx: { color: themeColors.textSecondary, fontWeight: 700, mb: 0.5 }
+                            }}
+                            secondaryTypographyProps={{
+                              component: 'div',
+                              sx: {
+                                color: themeColors.textPrimary,
+                                fontWeight: 700
+                              }
+                            }}
+                          />
+                        </ListItem>
+                        {index < accountInfo.length - 1 && <Divider />}
+                      </React.Fragment>
+                    ))}
+                  </List>
+
+                  <Box sx={{ px: 2, pb: 2 }}>
+                    <Button
+                      variant="contained"
+                      component={RouterLink}
+                      to="/profile"
+                      startIcon={<SettingsIcon />}
+                      sx={{
+                        textTransform: 'none',
+                        borderRadius: '14px',
+                        fontWeight: 800,
+                        px: 2,
+                        py: 1.2,
+                        bgcolor: themeColors.primary,
+                        boxShadow: '0 12px 22px rgba(22,101,52,0.18)',
+                        '&:hover': {
+                          bgcolor: themeColors.primaryDark,
+                          transform: 'translateY(-1px)'
+                        },
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      Update Profile
+                    </Button>
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {isMobile && !sidebarOpen && (
+                <Grid item xs={12}>
+                  <Paper
+                    sx={{
+                      p: 2.5,
+                      mt: 1,
+                      borderRadius: '20px',
+                      boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+                      border: `1px solid ${themeColors.border}`,
+                      backgroundColor: themeColors.cardBackground
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '1.05rem', fontWeight: 900, color: themeColors.textPrimary }}>
+                      Quick Access
+                    </Typography>
+                    <Typography sx={{ color: themeColors.textSecondary, mt: 0.6, mb: 2, fontWeight: 500 }}>
+                      Tap the menu icon to access all tools and sections.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      onClick={handleSidebarToggle}
+                      startIcon={<MenuIcon />}
+                      sx={{
+                        textTransform: 'none',
+                        bgcolor: themeColors.primary,
+                        borderRadius: '14px',
+                        py: 1.4,
+                        fontWeight: 800,
+                        '&:hover': { bgcolor: themeColors.primaryDark }
+                      }}
+                    >
+                      Open Menu
+                    </Button>
+                  </Paper>
+                </Grid>
+              )}
+
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    mt: 0.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1,
+                    color: themeColors.textSecondary,
+                    textAlign: 'center'
+                  }}
+                >
+                  <ApartmentIcon sx={{ fontSize: 18 }} />
+                  <Typography sx={{ fontSize: '0.84rem', fontWeight: 600 }}>
+                    VIMS • {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Access • Version 2.0
+                  </Typography>
                 </Box>
-              </Paper>
+              </Grid>
             </Grid>
-          </Grid>
-
-          {/* QUICK LINKS for mobile */}
-          {isMobile && !sidebarOpen && (
-            <Paper sx={{ p: 3, mt: 4, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: `1px solid ${themeColors.border}`, backgroundColor: themeColors.cardBackground }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
-                Quick Access
-              </Typography>
-              <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 2 }}>
-                Tap the menu icon in the top left to access all features
-              </Typography>
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={handleSidebarToggle}
-                startIcon={<MenuIcon />}
-                sx={{
-                  bgcolor: themeColors.primary, borderRadius: 2, fontWeight: 600, py: 1.5,
-                  '&:hover': { bgcolor: themeColors.primaryDark, transform: 'translateY(-2px)', boxShadow: `0 8px 25px ${themeColors.primary}40` },
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                Open Menu
-              </Button>
-            </Paper>
-          )}
-
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-              VIMS • {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Access • Version 2.0
-            </Typography>
           </Box>
         </Container>
       </Box>

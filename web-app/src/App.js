@@ -27,7 +27,6 @@ import AdminPayments from './pages/AdminPayments';
 import PaymentRedirect from './pages/PaymentRedirect';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancelled from './pages/PaymentCancelled';
-import FirstLoginSetup from './pages/FirstLoginSetup';
 
 import { AuthProvider } from './context/AuthContext';
 
@@ -46,7 +45,6 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const currentPath = window.location.pathname;
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -98,14 +96,6 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (requiredRole && user?.role !== requiredRole) return <Navigate to="/dashboard" replace />;
-  if (
-    user?.role === 'resident' &&
-    user?.isApproved &&
-    user?.profileComplete === false &&
-    currentPath !== '/onboarding/profile'
-  ) {
-    return <Navigate to="/onboarding/profile" replace />;
-  }
 
   return children;
 };
@@ -149,7 +139,6 @@ function App() {
             {/* Main dashboard */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
-            <Route path="/onboarding/profile" element={<ResidentRoute><FirstLoginSetup /></ResidentRoute>} />
 
             {/* Admin-only routes */}
             <Route path="/admin/service-requests" element={<AdminRoute><AdminServiceRequests /></AdminRoute>} />

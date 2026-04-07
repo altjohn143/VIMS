@@ -87,7 +87,18 @@ router.post('/register', async (req, res) => {
     console.log('📝 Email:', req.body.email);
     console.log('📝 Role from request:', req.body.role);
     
-    const { firstName, lastName, email, phone, password, role, selectedLot } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      role,
+      selectedLot,
+      vehicles = [],
+      familyMembers = [],
+      noVehicles = false
+    } = req.body;
 
     // Validation
     if (!firstName || !lastName || !email || !phone || !password) {
@@ -170,6 +181,20 @@ router.post('/register', async (req, res) => {
           error: 'Invalid lot format'
         });
       }
+
+      const validVehicles = noVehicles
+        ? []
+        : Array.isArray(vehicles)
+          ? vehicles.filter(v => v && (v.plateNumber || v.make || v.model || v.color))
+          : [];
+
+      const validFamilyMembers = Array.isArray(familyMembers)
+        ? familyMembers.filter(m => m && (m.name || m.relationship || m.age || m.phone))
+        : [];
+
+      userData.vehicles = validVehicles;
+      userData.familyMembers = validFamilyMembers;
+      userData.profileComplete = true;
     }
 
     console.log('User data being saved:', {

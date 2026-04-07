@@ -22,7 +22,9 @@ import {
   Card,
   CardContent,
   Chip,
-  Drawer
+  Drawer,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
 import {
   Visibility,
@@ -67,6 +69,10 @@ const COUNTRY_CODES = [
   { code: '+34', country: 'Spain', flag: '🇪🇸', prefix: '34' },
 ];
 
+const EMPTY_VEHICLE = { plateNumber: '', make: '', model: '', color: '' };
+const EMPTY_FAMILY_MEMBER = { name: '', relationship: '', otherRelationship: '', age: '', phone: '' };
+const RELATIONSHIP_OPTIONS = ['Mother', 'Father', 'Brother', 'Sister', 'Spouse', 'Son', 'Daughter', 'Grandparent', 'Other'];
+
 const Register = () => {
   const themeColors = {
     primary: '#2d5016',
@@ -90,7 +96,10 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     role: 'resident',
-    selectedLot: ''
+    selectedLot: '',
+    noVehicles: false,
+    vehicles: [EMPTY_VEHICLE],
+    familyMembers: [EMPTY_FAMILY_MEMBER]
   });
 
   const [availableLots, setAvailableLots] = useState([]);
@@ -229,6 +238,36 @@ const Register = () => {
     }
   };
 
+  const handleVehicleChange = (index, field, value) => {
+    setFormData(prev => {
+      const vehicles = [...prev.vehicles];
+      vehicles[index] = { ...vehicles[index], [field]: value };
+      return { ...prev, vehicles };
+    });
+  };
+
+  const handleFamilyChange = (index, field, value) => {
+    setFormData(prev => {
+      const familyMembers = [...prev.familyMembers];
+      if (field === 'phone') {
+        familyMembers[index] = { ...familyMembers[index], phone: value.replace(/\D/g, '').slice(0, 10) };
+      } else if (field === 'relationship' && value !== 'Other') {
+        familyMembers[index] = { ...familyMembers[index], relationship: value, otherRelationship: '' };
+      } else {
+        familyMembers[index] = { ...familyMembers[index], [field]: value };
+      }
+      return { ...prev, familyMembers };
+    });
+  };
+
+  const addVehicle = () => setFormData(prev => ({ ...prev, vehicles: [...prev.vehicles, EMPTY_VEHICLE] }));
+  const removeVehicle = (index) =>
+    setFormData(prev => ({ ...prev, vehicles: prev.vehicles.filter((_, i) => i !== index) }));
+  const addFamilyMember = () =>
+    setFormData(prev => ({ ...prev, familyMembers: [...prev.familyMembers, EMPTY_FAMILY_MEMBER] }));
+  const removeFamilyMember = (index) =>
+    setFormData(prev => ({ ...prev, familyMembers: prev.familyMembers.filter((_, i) => i !== index) }));
+
   // Handle lot selection from the map
   const handleLotSelectFromMap = (lot) => {
     if (lot.status === 'vacant') {
@@ -280,6 +319,24 @@ const Register = () => {
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot from the map or dropdown';
+
+    formData.familyMembers.forEach((member, index) => {
+      const hasData = member.name || member.relationship || member.otherRelationship || member.age || member.phone;
+      if (!hasData) return;
+
+      if (!member.name?.trim()) {
+        newErrors[`familyName_${index}`] = 'Name is required';
+      }
+      if (!member.relationship?.trim()) {
+        newErrors[`familyRelationship_${index}`] = 'Relationship is required';
+      }
+      if (member.relationship === 'Other' && !member.otherRelationship?.trim()) {
+        newErrors[`familyOtherRelationship_${index}`] = 'Please specify relationship';
+      }
+      if (!/^9\d{9}$/.test(member.phone || '')) {
+        newErrors[`familyPhone_${index}`] = 'Phone must be 10 digits starting with 9';
+      }
+    });
     
     return newErrors;
   };
@@ -301,7 +358,19 @@ const Register = () => {
       password: formData.password,
       role: formData.role,
       selectedLot: formData.selectedLot,
-      countryCode: formData.countryCode
+      countryCode: formData.countryCode,
+      noVehicles: formData.noVehicles,
+      vehicles: formData.noVehicles
+        ? []
+        : formData.vehicles.filter(v => v.plateNumber || v.make || v.model || v.color),
+      familyMembers: formData.familyMembers
+        .filter(m => m.name || m.relationship || m.otherRelationship || m.age || m.phone)
+        .map(m => ({
+          name: m.name,
+          relationship: m.relationship === 'Other' ? m.otherRelationship : m.relationship,
+          age: m.age,
+          phone: m.phone
+        }))
     };
     
     const result = await register(registrationData);
@@ -777,6 +846,116 @@ const Register = () => {
                     </Alert>
                   </>
                 )}
+              </Grid>
+
+              {/* Vehicle Information */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1.5 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
+                  Vehicle Information
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.noVehicles}
+                      onChange={(e) => setFormData(prev => ({ ...prev, noVehicles: e.target.checked }))}
+                    />
+                  }
+                  label="I don't have any vehicle"
+                />
+                {!formData.noVehicles && formData.vehicles.map((vehicle, index) => (
+                  <Grid container spacing={1} key={`vehicle_${index}`} sx={{ mb: 1 }}>
+                    <Grid item xs={12} sm={3}>
+                      <TextField fullWidth label="Plate Number" value={vehicle.plateNumber} onChange={(e) => handleVehicleChange(index, 'plateNumber', e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <TextField fullWidth label="Make" value={vehicle.make} onChange={(e) => handleVehicleChange(index, 'make', e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <TextField fullWidth label="Model" value={vehicle.model} onChange={(e) => handleVehicleChange(index, 'model', e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={2}>
+                      <TextField fullWidth label="Color" value={vehicle.color} onChange={(e) => handleVehicleChange(index, 'color', e.target.value)} />
+                    </Grid>
+                    <Grid item xs={12} sm={1}>
+                      <Button onClick={() => removeVehicle(index)} disabled={formData.vehicles.length === 1}>-</Button>
+                    </Grid>
+                  </Grid>
+                ))}
+                {!formData.noVehicles && (
+                  <Button size="small" onClick={addVehicle}>Add Vehicle</Button>
+                )}
+              </Grid>
+
+              {/* Family Members */}
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1.5 }} />
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
+                  Family Members
+                </Typography>
+                {formData.familyMembers.map((member, index) => (
+                  <Grid container spacing={1} key={`family_${index}`} sx={{ mb: 1 }}>
+                    <Grid item xs={12} sm={3}>
+                      <TextField
+                        fullWidth
+                        label="Name"
+                        value={member.name}
+                        onChange={(e) => handleFamilyChange(index, 'name', e.target.value)}
+                        error={!!errors[`familyName_${index}`]}
+                        helperText={errors[`familyName_${index}`]}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <FormControl fullWidth error={!!errors[`familyRelationship_${index}`]}>
+                        <InputLabel>Relationship</InputLabel>
+                        <Select
+                          value={member.relationship}
+                          label="Relationship"
+                          onChange={(e) => handleFamilyChange(index, 'relationship', e.target.value)}
+                        >
+                          {RELATIONSHIP_OPTIONS.map((option) => (
+                            <MenuItem key={option} value={option}>{option}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    {member.relationship === 'Other' && (
+                      <Grid item xs={12} sm={3}>
+                        <TextField
+                          fullWidth
+                          label="Specify relationship"
+                          value={member.otherRelationship}
+                          onChange={(e) => handleFamilyChange(index, 'otherRelationship', e.target.value)}
+                          error={!!errors[`familyOtherRelationship_${index}`]}
+                          helperText={errors[`familyOtherRelationship_${index}`]}
+                        />
+                      </Grid>
+                    )}
+                    <Grid item xs={12} sm={member.relationship === 'Other' ? 1 : 2}>
+                      <TextField
+                        fullWidth
+                        label="Age"
+                        type="number"
+                        value={member.age}
+                        onChange={(e) => handleFamilyChange(index, 'age', e.target.value)}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={member.relationship === 'Other' ? 2 : 3}>
+                      <TextField
+                        fullWidth
+                        label="Phone"
+                        value={member.phone}
+                        onChange={(e) => handleFamilyChange(index, 'phone', e.target.value)}
+                        error={!!errors[`familyPhone_${index}`]}
+                        helperText={errors[`familyPhone_${index}`] || '10 digits starting with 9'}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={1}>
+                      <Button onClick={() => removeFamilyMember(index)} disabled={formData.familyMembers.length === 1}>-</Button>
+                    </Grid>
+                  </Grid>
+                ))}
+                <Button size="small" onClick={addFamilyMember}>Add Family Member</Button>
               </Grid>
             </Grid>
 

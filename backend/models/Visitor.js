@@ -36,6 +36,12 @@ const visitorSchema = new mongoose.Schema({
     unique: true
   },
 
+  qrToken: {
+    type: String,
+    required: true,
+    unique: true
+  },
+
   expectedArrival: {
     type: Date,
     required: true

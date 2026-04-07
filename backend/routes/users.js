@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Lot = require('../models/Lot');
+const OccupancyHistory = require('../models/OccupancyHistory');
 const { protect, authorize } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 
@@ -115,10 +116,20 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
       const lot = await Lot.findOne({ lotId });
       
       if (lot && lot.status === 'vacant') {
+        const previousStatus = lot.status;
         lot.status = 'occupied';
         lot.occupiedBy = user._id;
         lot.occupiedAt = new Date();
         await lot.save();
+        await OccupancyHistory.create({
+          lotId,
+          residentId: user._id,
+          action: 'move_in',
+          previousStatus,
+          newStatus: 'occupied',
+          reason: 'Resident approved by admin',
+          performedBy: req.user._id
+        });
         console.log(`✅ Lot ${lotId} marked as occupied by ${user.email}`);
       } else if (lot && lot.status !== 'vacant') {
         console.log(`⚠️ Lot ${lotId} is already ${lot.status}, cannot approve user`);
@@ -178,10 +189,20 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
       const lot = await Lot.findOne({ lotId });
       
       if (lot && lot.occupiedBy && lot.occupiedBy.toString() === user._id.toString()) {
+        const previousStatus = lot.status;
         lot.status = 'vacant';
         lot.occupiedBy = null;
         lot.occupiedAt = null;
         await lot.save();
+        await OccupancyHistory.create({
+          lotId,
+          residentId: user._id,
+          action: 'move_out',
+          previousStatus,
+          newStatus: 'vacant',
+          reason: 'Resident removed/rejected',
+          performedBy: req.user._id
+        });
         console.log(`✅ Lot ${lotId} freed up (was occupied by ${user.email})`);
       }
     }

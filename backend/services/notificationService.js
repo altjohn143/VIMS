@@ -36,4 +36,48 @@ async function sendOnboardingNotification(user, options = {}) {
   return { emailResult, smsResult };
 }
 
-module.exports = { sendOnboardingNotification };
+async function sendVisitorReminderNotification(visitor, resident) {
+  const scheduleText = new Date(visitor.expectedArrival).toLocaleString();
+  const body = `Visitor reminder: ${visitor.visitorName} is expected on ${scheduleText}.`;
+
+  const [emailResult, smsResult] = await Promise.all([
+    postWebhook(process.env.EMAIL_WEBHOOK_URL, {
+      to: resident.email,
+      subject: 'VIMS Visitor Reminder',
+      body
+    }),
+    postWebhook(process.env.SMS_WEBHOOK_URL, {
+      to: resident.phone,
+      message: body
+    })
+  ]);
+
+  return { emailResult, smsResult };
+}
+
+async function sendServiceRequestStatusNotification(serviceRequest, resident, options = {}) {
+  const { actorName = 'VIMS Team' } = options;
+  const title = serviceRequest.title || 'Service request';
+  const status = serviceRequest.status || 'updated';
+  const body = `${title} is now ${status}. Updated by ${actorName}.`;
+
+  const [emailResult, smsResult] = await Promise.all([
+    postWebhook(process.env.EMAIL_WEBHOOK_URL, {
+      to: resident.email,
+      subject: 'VIMS Service Request Update',
+      body
+    }),
+    postWebhook(process.env.SMS_WEBHOOK_URL, {
+      to: resident.phone,
+      message: body
+    })
+  ]);
+
+  return { emailResult, smsResult };
+}
+
+module.exports = {
+  sendOnboardingNotification,
+  sendVisitorReminderNotification,
+  sendServiceRequestStatusNotification
+};

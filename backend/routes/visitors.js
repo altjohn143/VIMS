@@ -5,6 +5,42 @@ const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
+const { sendVisitorReminderNotification } = require('../services/notificationService');
+
+const decodeScanValue = (rawValue = '') => {
+  if (!rawValue || typeof rawValue !== 'string') return '';
+
+  const value = decodeURIComponent(rawValue).trim();
+  if (!value) return '';
+
+  // If scanner returns an URL, take the last non-empty segment.
+  if (value.includes('/')) {
+    const segments = value.split('/').filter(Boolean);
+    const lastSegment = segments[segments.length - 1];
+    if (lastSegment && lastSegment.length >= 8) return lastSegment;
+  }
+
+  // If scanner returns JSON/base64 payload, attempt to extract token-like fields.
+  const candidates = [value];
+  try {
+    candidates.push(Buffer.from(value, 'base64').toString('utf8'));
+  } catch (error) {
+    // ignore invalid base64
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (parsed.qrToken) return String(parsed.qrToken);
+      if (parsed.qrCode) return String(parsed.qrCode);
+      if (parsed.token) return String(parsed.token);
+    } catch (error) {
+      // ignore invalid json
+    }
+  }
+
+  return value;
+};
 
 router.get('/test', (req, res) => {
   console.log('/api/visitors/test route hit!');
@@ -105,8 +141,8 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       });
     }
 
-    const qrData = uuidv4();
-    const qrCode = await QRCode.toDataURL(qrData);
+    const qrToken = uuidv4();
+    const qrCode = await QRCode.toDataURL(qrToken);
     
      const visitor = await Visitor.create({
       residentId: req.user.id,
@@ -115,6 +151,7 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       vehicleNumber: vehicleNumber || '',
       purpose,
       qrCode,
+      qrToken,
       expectedArrival: new Date(expectedArrival),
       expectedDeparture: new Date(expectedDeparture),
       status: 'pending', 
@@ -277,10 +314,15 @@ router.put('/:id/reject', protect, authorize('security'), async (req, res) => {
 
 router.get('/qr/:qrCode', protect, authorize('security'), async (req, res) => {
   try {
-    const { qrCode } = req.params;
+    const qrCode = decodeScanValue(req.params.qrCode);
     
-    const visitor = await Visitor.findOne({ qrCode })
+    let visitor = await Visitor.findOne({ qrToken: qrCode })
       .populate('residentId', 'firstName lastName houseNumber phone');
+
+    if (!visitor) {
+      visitor = await Visitor.findOne({ qrCode })
+      .populate('residentId', 'firstName lastName houseNumber phone');
+    }
     
     if (!visitor) {
       return res.status(404).json({
@@ -300,6 +342,30 @@ router.get('/qr/:qrCode', protect, authorize('security'), async (req, res) => {
       success: false,
       error: 'Failed to verify QR code'
     });
+  }
+});
+
+router.post('/scan', protect, authorize('security'), async (req, res) => {
+  try {
+    const scanValue = decodeScanValue(req.body?.scanValue || req.body?.qrCode || '');
+    if (!scanValue) {
+      return res.status(400).json({ success: false, error: 'Scan value is required' });
+    }
+
+    let visitor = await Visitor.findOne({ qrToken: scanValue })
+      .populate('residentId', 'firstName lastName houseNumber phone');
+    if (!visitor) {
+      visitor = await Visitor.findOne({ qrCode: scanValue })
+        .populate('residentId', 'firstName lastName houseNumber phone');
+    }
+    if (!visitor) {
+      return res.status(404).json({ success: false, error: 'Invalid QR code' });
+    }
+
+    res.json({ success: true, data: visitor });
+  } catch (error) {
+    console.error('QR scan parse error:', error);
+    res.status(500).json({ success: false, error: 'Failed to process QR scan' });
   }
 });
 
@@ -337,6 +403,7 @@ router.get('/:id/qr', protect, authorize('resident'), async (req, res) => {
         residentName: resident.fullName,
         residentHouse: resident.houseNumber,
         qrCodeUrl: visitor.qrCode,
+        qrToken: visitor.qrToken,
         qrCodeVisible: visitor.qrCodeVisible
       }
     });
@@ -347,6 +414,46 @@ router.get('/:id/qr', protect, authorize('resident'), async (req, res) => {
       success: false,
       error: 'Failed to get QR code'
     });
+  }
+});
+
+router.post('/admin/send-reminders', protect, authorize('admin'), async (req, res) => {
+  try {
+    const now = new Date();
+    const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const upcomingVisitors = await Visitor.find({
+      status: { $in: ['approved', 'pending'] },
+      expectedArrival: { $gte: now, $lte: in24h }
+    }).populate('residentId', 'email phone firstName lastName');
+
+    let sent = 0;
+    const failures = [];
+
+    for (const visitor of upcomingVisitors) {
+      const resident = visitor.residentId;
+      if (!resident) continue;
+
+      const result = await sendVisitorReminderNotification(visitor, resident);
+      if (result.emailResult.sent || result.smsResult.sent) {
+        sent++;
+      } else {
+        failures.push({
+          visitorId: visitor._id,
+          reason: `${result.emailResult.reason || 'email_failed'}|${result.smsResult.reason || 'sms_failed'}`
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      totalCandidates: upcomingVisitors.length,
+      remindersSent: sent,
+      failures
+    });
+  } catch (error) {
+    console.error('Send visitor reminders error:', error);
+    res.status(500).json({ success: false, error: 'Failed to send visitor reminders' });
   }
 });
 

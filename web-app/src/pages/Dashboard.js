@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -76,6 +76,7 @@ const themeColors = {
 };
 
 const APPBAR_HEIGHT = 64;
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -83,6 +84,7 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
+  const [remainingSessionMs, setRemainingSessionMs] = useState(SESSION_TIMEOUT_MS);
   const { logout, getCurrentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -102,10 +104,29 @@ const Dashboard = () => {
     checkAuth();
   }, [getCurrentUser, navigate, location]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
     navigate('/login');
-  };
+  }, [logout, navigate]);
+
+  useEffect(() => {
+    const getRemaining = () => {
+      const lastActivityAt = Number(localStorage.getItem('lastActivityAt') || 0);
+      if (!lastActivityAt) return SESSION_TIMEOUT_MS;
+      return Math.max(0, SESSION_TIMEOUT_MS - (Date.now() - lastActivityAt));
+    };
+
+    setRemainingSessionMs(getRemaining());
+    const intervalId = window.setInterval(() => {
+      const remaining = getRemaining();
+      setRemainingSessionMs(remaining);
+      if (remaining <= 0) {
+        handleLogout();
+      }
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [handleLogout]);
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleProfileMenuClose = () => setAnchorEl(null);
@@ -201,6 +222,9 @@ const Dashboard = () => {
     { text: 'Service request completed', time: '2 hours ago' },
     { text: 'Community meeting announced', time: '3 hours ago' }
   ];
+
+  const sessionMinutes = Math.floor(remainingSessionMs / 60000);
+  const sessionSeconds = Math.floor((remainingSessionMs % 60000) / 1000);
 
   const accountInfo = [
     { label: 'Name', value: `${user.firstName} ${user.lastName}` },
@@ -423,6 +447,17 @@ const Dashboard = () => {
           }}>
             Dashboard
           </Typography>
+
+          <Chip
+            label={`Session ${sessionMinutes}:${String(sessionSeconds).padStart(2, '0')}`}
+            size="small"
+            sx={{
+              mr: 2,
+              fontWeight: 600,
+              bgcolor: remainingSessionMs <= 5 * 60 * 1000 ? themeColors.warning : themeColors.info,
+              color: 'white'
+            }}
+          />
 
           <IconButton sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}>
             <Badge badgeContent={3} color="error">

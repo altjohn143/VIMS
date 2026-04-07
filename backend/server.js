@@ -107,10 +107,7 @@ app.use('/api', auditLogger);
 
 // Database connection - USE ENVIRONMENT VARIABLE
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vims_system';
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(MONGODB_URI)
 .then(async () => {
   console.log('MongoDB Connected');
   await autoSeedDatabase();

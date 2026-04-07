@@ -48,7 +48,8 @@ import {
   ExitToApp as ExitToAppIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
-  Phone as PhoneIcon
+  Phone as PhoneIcon,
+  Map as MapIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -617,6 +618,22 @@ const VisitorManagement = () => {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<MapIcon />}
+              onClick={() => navigate('/lots')}
+              sx={{
+                borderRadius: 2,
+                borderColor: themeColors.primary,
+                color: themeColors.primary,
+                '&:hover': {
+                  backgroundColor: themeColors.primary + '08',
+                  borderColor: themeColors.primaryDark
+                }
+              }}
+            >
+              Interactive Village Map
+            </Button>
             <Button
               variant={historyMode ? "contained" : "outlined"}
               startIcon={<HistoryIcon />}

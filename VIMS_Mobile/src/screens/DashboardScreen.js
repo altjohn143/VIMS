@@ -6,8 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LogoutButton from '../components/LogoutButton';
 
 const DashboardScreen = ({ navigation }) => {
+  const { width } = useWindowDimensions();
+  const isNarrowScreen = width < 380;
+  const isVeryNarrowScreen = width < 340;
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -129,47 +132,113 @@ quickActions: [
 
   const config = roleConfig[user?.role] || roleConfig.resident;
 
+  const formattedDate = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  const statGradients = [
+    { bg: '#2349d8', accent: '#dbeafe' },
+    { bg: '#18a34a', accent: '#dcfce7' },
+    { bg: '#0986c8', accent: '#dbeafe' },
+    { bg: '#e02424', accent: '#fee2e2' },
+  ];
+
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { backgroundColor: themeColors.primary }]}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <View style={styles.iconContainer}>
-              <Ionicons name={config.icon} size={28} color="white" />
-            </View>
-            <View>
-              <Text style={styles.headerTitle}>{config.title}</Text>
-              <Text style={styles.headerSubtitle}>
-                Welcome, {user?.firstName} {user?.lastName}
-              </Text>
-            </View>
+      <View style={styles.topBar}>
+        <View style={styles.topBarLeft}>
+          <View style={styles.topIcon}>
+            <Ionicons name={config.icon} size={20} color={themeColors.primary} />
           </View>
-          <LogoutButton navigation={navigation} color="white" size={24} />
+            <View style={styles.topTextWrap}>
+              <Text style={styles.topBarTitle} numberOfLines={1}>
+                {config.title}
+              </Text>
+              <Text style={styles.topBarSubtitle} numberOfLines={1}>
+                Casimiro Westville Homes
+              </Text>
+          </View>
         </View>
+        <LogoutButton navigation={navigation} color={themeColors.textPrimary} size={22} />
       </View>
 
       <ScrollView
         style={styles.content}
+        contentContainerStyle={styles.contentContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.statsGrid}>
-          {config.stats.map((stat, index) => (
-            <View key={index} style={[styles.statCard, shadows.small]}>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
+        <View style={styles.heroCard}>
+          <View style={styles.heroImagePlaceholder} />
+          <View style={styles.heroOverlay} />
+
+          <View style={styles.heroContent}>
+            <Text style={styles.heroEyebrow}>Casimiro Westville Homes - Cavite</Text>
+            <Text style={[styles.heroTitle, isNarrowScreen && styles.heroTitleSmall]}>
+              Good day, {user?.firstName || 'User'}
+            </Text>
+            <Text style={styles.heroSubtitle}>
+              {formattedDate} - Your community is running smoothly today.
+            </Text>
+          </View>
+
+          <View style={styles.heroStatsGrid}>
+            {config.stats.slice(0, 4).map((stat, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.heroStatCell,
+                  isVeryNarrowScreen && styles.heroStatCellFull,
+                ]}
+              >
+                <Text style={styles.heroStatValue}>{stat.value}</Text>
+                <Text style={styles.heroStatLabel}>{stat.label}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
+        <View style={styles.colorStatsGrid}>
+          {config.stats.slice(0, 4).map((stat, index) => {
+            const tone = statGradients[index % statGradients.length];
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.colorStatCard,
+                  { backgroundColor: tone.bg },
+                  isNarrowScreen && styles.colorStatCardFull,
+                ]}
+              >
+                <Ionicons
+                  name={index % 2 === 0 ? 'stats-chart' : 'flash'}
+                  size={22}
+                  color="rgba(255,255,255,0.65)"
+                  style={styles.colorStatIcon}
+                />
+                <Text style={styles.colorStatValue}>{stat.value}</Text>
+                <Text style={styles.colorStatLabel} numberOfLines={2}>
+                  {stat.label}
+                </Text>
+                <Text style={[styles.colorStatHint, { color: tone.accent }]}>Live update</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+          </View>
+          <View style={styles.quickActionsList}>
             {config.quickActions.map((action, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.quickAction, { backgroundColor: action.color + '15' }]}
+                style={styles.quickActionRow}
                 onPress={() => {
                   if (action.screen === 'AdminApprovals') {
                     navigation.navigate('AdminApprovals');
@@ -178,30 +247,39 @@ quickActions: [
                   }
                 }}
               >
-                <Ionicons name={action.icon} size={28} color={action.color} />
-                <Text style={[styles.quickActionText, { color: action.color }]}>
-                  {action.title}
-                </Text>
+                <View style={[styles.quickActionIconWrap, { backgroundColor: action.color + '15' }]}>
+                  <Ionicons name={action.icon} size={20} color={action.color} />
+                </View>
+                <View style={styles.quickActionBody}>
+                  <Text style={styles.quickActionTitle} numberOfLines={1}>
+                    {action.title}
+                  </Text>
+                  <Text style={styles.quickActionSub}>Tap to open</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <View style={[styles.activityCard, shadows.small]}>
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Activities</Text>
+          </View>
+          <View style={styles.activityList}>
             <View style={styles.activityItem}>
               <View style={styles.activityIcon}>
-                <Ionicons name="time" size={20} color={themeColors.primary} />
+                <Ionicons name="notifications" size={18} color={themeColors.primary} />
               </View>
               <View style={styles.activityContent}>
                 <Text style={styles.activityText}>System ready</Text>
                 <Text style={styles.activityTime}>Just now</Text>
               </View>
             </View>
+            <View style={styles.activityDivider} />
             <View style={styles.activityItem}>
               <View style={styles.activityIcon}>
-                <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
+                <Ionicons name="checkmark-circle" size={18} color={themeColors.success} />
               </View>
               <View style={styles.activityContent}>
                 <Text style={styles.activityText}>Last login successful</Text>
@@ -209,6 +287,13 @@ quickActions: [
               </View>
             </View>
           </View>
+        </View>
+
+        <View style={styles.footerNote}>
+          <Ionicons name="business" size={15} color={themeColors.textSecondary} />
+          <Text style={styles.footerNoteText}>
+            VIMS - {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)} Access
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -225,120 +310,243 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerContent: {
+  topBar: {
+    paddingTop: 56,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
   },
-  headerLeft: {
+  topBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
+  topTextWrap: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  topIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#ecfdf5',
     alignItems: 'center',
-    marginRight: 12,
+    justifyContent: 'center',
   },
-  headerTitle: {
-    color: 'white',
-    fontSize: 18,
+  topBarTitle: {
+    color: themeColors.textPrimary,
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  topBarSubtitle: {
+    color: themeColors.textSecondary,
+    fontSize: 12,
     fontWeight: '600',
-  },
-  headerSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-  },
-  logoutButton: {
-    padding: 8,
   },
   content: {
     flex: 1,
-    padding: 16,
   },
-  statsGrid: {
+  contentContainer: {
+    padding: 14,
+    paddingBottom: 30,
+  },
+  heroCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    backgroundColor: '#0f172a',
+  },
+  heroImagePlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#111827',
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(2, 6, 23, 0.55)',
+  },
+  heroContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+  },
+  heroEyebrow: {
+    color: '#86efac',
+    fontSize: 11,
+    fontWeight: '800',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 28,
+    marginBottom: 6,
+  },
+  heroTitleSmall: {
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  heroSubtitle: {
+    color: 'rgba(255,255,255,0.82)',
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 19,
+  },
+  heroStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+  },
+  heroStatCell: {
+    width: '50%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  heroStatCellFull: {
+    width: '100%',
+    borderRightWidth: 0,
+  },
+  heroStatValue: {
+    color: 'white',
+    fontSize: 21,
+    fontWeight: '900',
+  },
+  heroStatLabel: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 12,
+    marginTop: 3,
+    fontWeight: '600',
+  },
+  colorStatsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 14,
   },
-  statCard: {
-    width: '48%',
+  colorStatCard: {
+    width: '48.5%',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+    minHeight: 116,
+    ...shadows.small,
+  },
+  colorStatCardFull: {
+    width: '100%',
+  },
+  colorStatIcon: {
+    alignSelf: 'flex-end',
+    marginBottom: 6,
+  },
+  colorStatValue: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 26,
+  },
+  colorStatLabel: {
+    color: 'white',
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '700',
+  },
+  colorStatHint: {
+    marginTop: 8,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  sectionCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: themeColors.border,
+    marginBottom: 14,
+    overflow: 'hidden',
+    ...shadows.small,
   },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: themeColors.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: themeColors.textSecondary,
-  },
-  section: {
-    marginBottom: 24,
+  sectionHeader: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '800',
     color: themeColors.textPrimary,
-    marginBottom: 12,
   },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  quickActionsList: {
+    padding: 10,
+    gap: 8,
   },
-  quickAction: {
-    width: '48%',
+  quickActionRow: {
     borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  quickActionText: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  activityCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
     borderWidth: 1,
-    borderColor: themeColors.border,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  quickActionIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  quickActionTitle: {
+    color: themeColors.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  quickActionSub: {
+    color: themeColors.textSecondary,
+    fontSize: 12,
+    marginTop: 1,
+  },
+  activityList: {
+    padding: 12,
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+  },
+  activityDivider: {
+    height: 1,
+    backgroundColor: themeColors.border,
+    marginVertical: 3,
   },
   activityIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: themeColors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   activityContent: {
     flex: 1,
@@ -347,10 +555,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: themeColors.textPrimary,
     marginBottom: 2,
+    fontWeight: '700',
   },
   activityTime: {
     fontSize: 12,
     color: themeColors.textSecondary,
+    fontWeight: '500',
+  },
+  footerNote: {
+    marginTop: 2,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  footerNoteText: {
+    color: themeColors.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

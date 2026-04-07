@@ -144,6 +144,7 @@ const Dashboard = () => {
   const [remainingSessionMs, setRemainingSessionMs] = useState(SESSION_TIMEOUT_MS);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentActivities, setRecentActivities] = useState([]);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
   const { logout, getCurrentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -214,6 +215,28 @@ const Dashboard = () => {
     };
     loadNotifications();
   }, []);
+
+  useEffect(() => {
+    const loadPendingApprovals = async () => {
+      if (user?.role !== 'admin') return;
+      try {
+        const response = await axios.get('/api/users/pending-approvals');
+        if (response.data?.success) {
+          const rows = (response.data.data || []).map((entry) => ({
+            id: entry._id,
+            name: `${entry.firstName || ''} ${entry.lastName || ''}`.trim() || 'Unknown Resident',
+            detail: `${entry.houseNumber || 'No unit'} • ${entry.verificationStatus || 'pending_upload'}`,
+            date: entry.createdAt ? new Date(entry.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '-'
+          }));
+          setPendingApprovals(rows);
+        }
+      } catch (error) {
+        setPendingApprovals([]);
+      }
+    };
+
+    loadPendingApprovals();
+  }, [user?.role]);
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleProfileMenuClose = () => setAnchorEl(null);
@@ -356,11 +379,15 @@ const Dashboard = () => {
     }
   ];
 
-  const pendingApprovals = [
-    { name: 'Carlos Mendoza', detail: 'Unit 3A • New Resident', date: 'Apr 2' },
-    { name: 'Ana Reyes', detail: 'Unit 11C • Renovation Permit', date: 'Apr 1' },
-    { name: 'James Lim', detail: 'Unit 7B • New Resident', date: 'Mar 31' }
-  ];
+  const dashboardStats = config.stats.map((stat) =>
+    user.role === 'admin' && stat.label === 'Pending Approvals'
+      ? {
+          ...stat,
+          value: String(pendingApprovals.length),
+          helper: pendingApprovals.length > 0 ? 'awaiting admin review' : 'no pending approvals'
+        }
+      : stat
+  );
 
   const quickActions = [
     {
@@ -1149,7 +1176,7 @@ const Dashboard = () => {
 
                     <Grid item xs={12} md={5.5}>
                       <Grid container sx={{ height: '100%' }}>
-                        {config.stats.slice(0, 4).map((stat, index) => (
+                        {dashboardStats.slice(0, 4).map((stat, index) => (
                           <Grid item xs={6} key={index}>
                             <Box
                               sx={{
@@ -1185,7 +1212,7 @@ const Dashboard = () => {
                 </Paper>
               </Grid>
 
-              {config.stats.slice(0, 4).map((stat, index) => {
+              {dashboardStats.slice(0, 4).map((stat, index) => {
                 const style = statCardStyles[index % statCardStyles.length];
                 return (
                   <Grid item xs={12} sm={6} md={3} key={index}>
@@ -1284,7 +1311,7 @@ const Dashboard = () => {
                         Pending Approvals
                       </Typography>
                       <Chip
-                        label="3 new"
+                        label={`${pendingApprovals.length} new`}
                         size="small"
                         sx={{
                           bgcolor: themeColors.primarySoft,
@@ -1312,8 +1339,15 @@ const Dashboard = () => {
                   <Divider />
 
                   <Box sx={{ p: 1.5 }}>
+                    {pendingApprovals.length === 0 && (
+                      <Box sx={{ px: 2, py: 3 }}>
+                        <Typography sx={{ color: themeColors.textSecondary, fontWeight: 600 }}>
+                          No pending approvals right now.
+                        </Typography>
+                      </Box>
+                    )}
                     {pendingApprovals.map((item, index) => (
-                      <Box key={index}>
+                      <Box key={item.id || index}>
                         <Box
                           sx={{
                             px: 1,

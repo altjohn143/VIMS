@@ -88,7 +88,6 @@ const themeColors = {
   muted: '#e5e7eb'
 };
 
-<<<<<<< HEAD
 const APPBAR_HEIGHT = 72;
 const SIDEBAR_WIDTH = 260;
 const MINI_SIDEBAR_WIDTH = 82;
@@ -134,10 +133,7 @@ const statCardStyles = [
     accent: '#fee2e2'
   }
 ];
-=======
-const APPBAR_HEIGHT = 64;
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
->>>>>>> 35fe9c69bcda4e40c77ad1ca9052474cec07edc7
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -167,17 +163,13 @@ const Dashboard = () => {
     checkAuth();
   }, [getCurrentUser, navigate, location]);
 
-<<<<<<< HEAD
   useEffect(() => {
     if (!isMobile) {
       setSidebarOpen(true);
     }
   }, [isMobile]);
 
-  const handleLogout = () => {
-=======
   const handleLogout = useCallback(() => {
->>>>>>> 35fe9c69bcda4e40c77ad1ca9052474cec07edc7
     logout();
     navigate('/login');
   }, [logout, navigate]);
@@ -851,7 +843,6 @@ const Dashboard = () => {
               />
             </Box>
 
-<<<<<<< HEAD
             <Box sx={{ minWidth: 0 }}>
               <Typography
                 variant="h6"
@@ -879,17 +870,6 @@ const Dashboard = () => {
             </Box>
           </Box>
 
-          <IconButton
-            sx={{
-              mr: 1.5,
-              color: themeColors.textPrimary,
-              bgcolor: 'rgba(15,23,42,0.035)',
-              border: `1px solid ${themeColors.border}`,
-              '&:hover': { bgcolor: 'rgba(15,23,42,0.08)' }
-            }}
-          >
-            <Badge badgeContent={3} color="error">
-=======
           <Chip
             label={`Session ${sessionMinutes}:${String(sessionSeconds).padStart(2, '0')}`}
             size="small"
@@ -903,7 +883,6 @@ const Dashboard = () => {
 
           <IconButton component={RouterLink} to="/notifications" sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}>
             <Badge badgeContent={unreadCount} color="error">
->>>>>>> 35fe9c69bcda4e40c77ad1ca9052474cec07edc7
               <NotificationsIcon />
             </Badge>
           </IconButton>

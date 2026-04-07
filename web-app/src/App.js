@@ -26,6 +26,8 @@ import AdminVerificationQueue from './pages/AdminVerificationQueue';
 import Notifications from './pages/Notifications';
 import AdminReportSchedules from './pages/AdminReportSchedules';
 import AdminReports from './pages/AdminReports';
+import Announcements from './pages/Announcements';
+import AdminAnnouncements from './pages/AdminAnnouncements';
 
 // NEW PAYMENT PAGES
 import PaymentRedirect from './pages/PaymentRedirect';
@@ -110,6 +112,7 @@ function App() {
             <Route path="/admin/verifications" element={<AdminRoute><AdminVerificationQueue /></AdminRoute>} />
             <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
             <Route path="/admin/report-schedules" element={<AdminRoute><AdminReportSchedules /></AdminRoute>} />
+            <Route path="/admin/announcements" element={<AdminRoute><AdminAnnouncements /></AdminRoute>} />
 
             {/* Security-only routes */}
             <Route path="/security/visitor-approval" element={<SecurityRoute><SecurityVisitorApproval /></SecurityRoute>} />
@@ -119,6 +122,7 @@ function App() {
             <Route path="/visitors" element={<ResidentRoute><VisitorManagement /></ResidentRoute>} />
             <Route path="/service-requests" element={<ResidentRoute><ServiceRequests /></ResidentRoute>} />
             <Route path="/payments" element={<ResidentRoute><Payments /></ResidentRoute>} />
+            <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
             {/* NEW PAYMENT ROUTES */}

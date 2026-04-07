@@ -98,6 +98,7 @@ const Register = () => {
     role: 'resident',
     selectedLot: '',
     noVehicles: false,
+    soloResident: false,
     vehicles: [EMPTY_VEHICLE],
     familyMembers: [EMPTY_FAMILY_MEMBER]
   });
@@ -324,6 +325,8 @@ const Register = () => {
       const hasData = member.name || member.relationship || member.otherRelationship || member.age || member.phone;
       if (!hasData) return;
 
+      if (formData.soloResident) return;
+
       if (!member.name?.trim()) {
         newErrors[`familyName_${index}`] = 'Name is required';
       }
@@ -360,10 +363,13 @@ const Register = () => {
       selectedLot: formData.selectedLot,
       countryCode: formData.countryCode,
       noVehicles: formData.noVehicles,
+      soloResident: formData.soloResident,
       vehicles: formData.noVehicles
         ? []
         : formData.vehicles.filter(v => v.plateNumber || v.make || v.model || v.color),
-      familyMembers: formData.familyMembers
+      familyMembers: formData.soloResident
+        ? []
+        : formData.familyMembers
         .filter(m => m.name || m.relationship || m.otherRelationship || m.age || m.phone)
         .map(m => ({
           name: m.name,
@@ -893,7 +899,17 @@ const Register = () => {
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
                   Family Members
                 </Typography>
-                {formData.familyMembers.map((member, index) => (
+                <FormControlLabel
+                  sx={{ mb: 1 }}
+                  control={
+                    <Checkbox
+                      checked={formData.soloResident}
+                      onChange={(e) => setFormData(prev => ({ ...prev, soloResident: e.target.checked }))}
+                    />
+                  }
+                  label="I am a solo resident (no family members)"
+                />
+                {!formData.soloResident && formData.familyMembers.map((member, index) => (
                   <Grid container spacing={1} key={`family_${index}`} sx={{ mb: 1 }}>
                     <Grid item xs={12} sm={3}>
                       <TextField
@@ -955,7 +971,9 @@ const Register = () => {
                     </Grid>
                   </Grid>
                 ))}
-                <Button size="small" onClick={addFamilyMember}>Add Family Member</Button>
+                {!formData.soloResident && (
+                  <Button size="small" onClick={addFamilyMember}>Add Family Member</Button>
+                )}
               </Grid>
             </Grid>
 

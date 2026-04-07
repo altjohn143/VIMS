@@ -121,8 +121,7 @@ const ProfileSettings = () => {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'x-user-data': JSON.stringify({ id: currentUser.id })
+            'Content-Type': 'application/json'
           }
         });
         

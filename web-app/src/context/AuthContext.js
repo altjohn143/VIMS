@@ -3,6 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const API_URL = 'https://vims-backend.onrender.com/api';
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 const AuthContext = createContext();
 
@@ -16,33 +17,76 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+
+  const clearAuthData = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('lastActivityAt');
+    delete axios.defaults.headers.common.Authorization;
+    setIsAuthenticated(false);
+  };
+
+  const setLastActivity = () => {
+    localStorage.setItem('lastActivityAt', String(Date.now()));
+  };
+
+  const isSessionExpired = () => {
+    const lastActivityAt = Number(localStorage.getItem('lastActivityAt') || 0);
+    if (!lastActivityAt) return false;
+    return Date.now() - lastActivityAt > SESSION_TIMEOUT_MS;
+  };
 
   const setAuthHeaders = () => {
     const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
     
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    }
-    
-    if (userStr) {
-      axios.defaults.headers.common['x-user-data'] = userStr;
+      setIsAuthenticated(true);
     }
   };
 
   useEffect(() => {
-axios.defaults.baseURL = 'https://vims-backend.onrender.com';
+    axios.defaults.baseURL = API_URL;
     
     const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    if (!token) {
+      clearAuthData();
+      return;
     }
-    
-    if (userStr) {
-      axios.defaults.headers.common['x-user-data'] = userStr;
+
+    if (isSessionExpired()) {
+      clearAuthData();
+      toast.error('Session expired due to inactivity. Please log in again.');
+      window.location.href = '/login';
+      return;
     }
+
+    setAuthHeaders();
+    setLastActivity();
+
+    const handleActivity = () => {
+      if (localStorage.getItem('token')) {
+        setLastActivity();
+      }
+    };
+
+    const events = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+    events.forEach((event) => window.addEventListener(event, handleActivity));
+
+    const intervalId = window.setInterval(() => {
+      if (!localStorage.getItem('token')) return;
+      if (isSessionExpired()) {
+        clearAuthData();
+        toast.error('Session expired due to inactivity. Please log in again.');
+        window.location.href = '/login';
+      }
+    }, 15000);
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, handleActivity));
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   const register = async (userData) => {
@@ -58,6 +102,7 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
         if (user.isApproved) {
           localStorage.setItem('token', token);
           localStorage.setItem('user', JSON.stringify(user));
+          setLastActivity();
           setAuthHeaders();
         }
         
@@ -90,11 +135,11 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      setLastActivity();
 
-      // ✅ FIXED: Use live backend URL
-      axios.defaults.baseURL = 'https://vims-backend.onrender.com';
+      axios.defaults.baseURL = API_URL;
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      axios.defaults.headers.common['x-user-data'] = JSON.stringify(user);
+      setIsAuthenticated(true);
       
       toast.success('Login successful!');
       return { success: true, user };
@@ -121,10 +166,7 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
 };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    delete axios.defaults.headers.common['Authorization'];
-    delete axios.defaults.headers.common['x-user-data'];
+    clearAuthData();
     toast.success('Logged out successfully');
     
     window.location.href = '/login';  
@@ -141,7 +183,7 @@ axios.defaults.baseURL = 'https://vims-backend.onrender.com';
     login,
     logout,
     getCurrentUser,
-    isAuthenticated: !!localStorage.getItem('token')
+    isAuthenticated
   };
 
   return (

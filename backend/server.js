@@ -69,7 +69,6 @@ app.use(cors({
   allowedHeaders: [
     'Content-Type', 
     'Authorization', 
-    'x-user-data',
     'Cache-Control',
     'Pragma',
     'If-Modified-Since',

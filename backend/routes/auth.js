@@ -1,17 +1,20 @@
 // routes/auth.js
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Lot = require('../models/Lot');
 const { protect } = require('../middleware/auth');
 
 const generateToken = (user) => {
-  return Buffer.from(JSON.stringify({
-    id: user._id,
-    email: user.email,
-    role: user.role,
-    timestamp: Date.now()
-  })).toString('base64');
+  return jwt.sign(
+    {
+      id: user._id,
+      role: user.role
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '8h' }
+  );
 };
 
 // Check availability route
@@ -384,62 +387,32 @@ router.put('/change-password', protect, async (req, res) => {
 });
 
 // Get current user
-router.get('/me', async (req, res) => {
+router.get('/me', protect, async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({
+    if (!req.user.isApproved) {
+      return res.status(403).json({
         success: false,
-        error: 'No token provided'
+        error: 'Account pending approval',
+        requiresApproval: true,
+        isApproved: false
       });
     }
 
-    try {
-      const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
-      
-      const user = await User.findById(decoded.id);
-      
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          error: 'User not found'
-        });
+    res.json({
+      success: true,
+      user: {
+        id: req.user._id,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        email: req.user.email,
+        role: req.user.role,
+        houseNumber: req.user.houseNumber,
+        houseBlock: req.user.houseBlock,
+        houseLot: req.user.houseLot,
+        isApproved: req.user.isApproved,
+        isActive: req.user.isActive
       }
-      
-      if (!user.isApproved) {
-        return res.status(403).json({
-          success: false,
-          error: 'Account pending approval',
-          requiresApproval: true,
-          isApproved: false
-        });
-      }
-      
-      res.json({
-        success: true,
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-          houseNumber: user.houseNumber,
-          houseBlock: user.houseBlock,
-          houseLot: user.houseLot,
-          isApproved: user.isApproved,
-          isActive: user.isActive
-        }
-      });
-      
-    } catch (decodeError) {
-      console.error('Token decode error:', decodeError);
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token'
-      });
-    }
-    
+    });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({

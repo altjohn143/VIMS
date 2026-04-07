@@ -224,6 +224,7 @@ async function autoSeedDatabase() {
 }
 
 console.log('\n🔗 Registering routes...');
+const { startReportScheduler } = require('./services/reportScheduler');
 
 // Import routes
 try {
@@ -242,6 +243,15 @@ try {
   
   const lotRoutes = require('./routes/lots');
   console.log('/api/lots routes imported');
+  const verificationRoutes = require('./routes/verifications');
+  console.log('/api/verifications routes imported');
+  const notificationRoutes = require('./routes/notifications');
+  console.log('/api/notifications routes imported');
+  const reportScheduleRoutes = require('./routes/reportSchedules');
+  console.log('/api/report-schedules routes imported');
+
+  const verificationRoutes = require('./routes/verifications');
+  console.log('/api/verifications routes imported');
   
   // Register routes
   app.use('/api/payments', paymentRoutes);
@@ -261,8 +271,19 @@ try {
   
   app.use('/api/lots', lotRoutes);
   console.log('/api/lots routes registered');
+  app.use('/api/verifications', verificationRoutes);
+  console.log('/api/verifications routes registered');
+  app.use('/api/notifications', notificationRoutes);
+  console.log('/api/notifications routes registered');
+  app.use('/api/report-schedules', reportScheduleRoutes);
+  console.log('/api/report-schedules routes registered');
+
+  app.use('/api/verifications', verificationRoutes);
+  console.log('/api/verifications routes registered');
   
   console.log('All routes registered successfully!');
+  startReportScheduler();
+  console.log('Report scheduler started');
   
 } catch (error) {
   console.error('Error importing routes:', error.message);

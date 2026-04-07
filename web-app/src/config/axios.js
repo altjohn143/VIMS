@@ -28,6 +28,8 @@ axios.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    } else if (error.response?.status === 403 && error.response?.data?.requiresApproval) {
+      window.location.href = '/pending-approval';
     }
     return Promise.reject(error);
   }

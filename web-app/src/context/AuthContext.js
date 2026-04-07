@@ -1,9 +1,7 @@
-import React, { createContext, useState, useContext, useEffect } from 'react'; 
-import axios from 'axios';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'; 
+import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
-const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 const AuthContext = createContext();
@@ -18,7 +16,9 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [bootstrapping, setBootstrapping] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const clearAuthData = () => {
     localStorage.removeItem('token');
@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('lastActivityAt');
     delete axios.defaults.headers.common.Authorization;
     setIsAuthenticated(false);
+    setCurrentUser(null);
   };
 
   const setLastActivity = () => {
@@ -38,33 +39,56 @@ export const AuthProvider = ({ children }) => {
     return Date.now() - lastActivityAt > SESSION_TIMEOUT_MS;
   };
 
-  const setAuthHeaders = () => {
+  const setAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('token');
     
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setIsAuthenticated(true);
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    axios.defaults.baseURL = API_BASE_URL;
-    
+  const refreshUser = useCallback(async () => {
+    const response = await axios.get('/api/auth/me');
+    if (!response.data?.success || !response.data?.user) {
+      throw new Error('Unable to load session');
+    }
+    const user = response.data.user;
+    localStorage.setItem('user', JSON.stringify(user));
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    return user;
+  }, []);
+
+  const bootstrapAuth = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       clearAuthData();
+      setBootstrapping(false);
       return;
     }
 
     if (isSessionExpired()) {
       clearAuthData();
       toast.error('Session expired due to inactivity. Please log in again.');
+      setBootstrapping(false);
       window.location.href = '/login';
       return;
     }
 
-    setAuthHeaders();
-    setLastActivity();
+    try {
+      setAuthHeaders();
+      await refreshUser();
+      setLastActivity();
+    } catch (error) {
+      clearAuthData();
+    } finally {
+      setBootstrapping(false);
+    }
+  }, [refreshUser, setAuthHeaders]);
+
+  useEffect(() => {
+    bootstrapAuth();
 
     const handleActivity = () => {
       if (localStorage.getItem('token')) {
@@ -88,12 +112,12 @@ export const AuthProvider = ({ children }) => {
       events.forEach((event) => window.removeEventListener(event, handleActivity));
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [bootstrapAuth]);
 
   const register = async (userData) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      const response = await axios.post('/api/auth/register', userData);
       
       if (response.data.success) {
         const { token, user } = response.data;
@@ -122,7 +146,7 @@ export const AuthProvider = ({ children }) => {
  const login = async (email, password) => {
   setLoading(true);
   try {
-    const response = await axios.post(`${API_URL}/auth/login`, { 
+      const response = await axios.post('/api/auth/login', { 
       email, 
       password 
     }, {
@@ -137,10 +161,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       setLastActivity();
-
-      axios.defaults.baseURL = API_BASE_URL;
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setIsAuthenticated(true);
+      setAuthHeaders();
+      await refreshUser();
       
       toast.success('Login successful!');
       return { success: true, user };
@@ -173,10 +195,7 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/login';  
   };
 
-  const getCurrentUser = () => {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  };
+  const getCurrentUser = () => currentUser;
 
   const value = {
     loading,
@@ -184,7 +203,11 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     getCurrentUser,
-    isAuthenticated
+    isAuthenticated,
+    currentUser,
+    bootstrapping,
+    refreshUser,
+    bootstrapAuth
   };
 
   return (

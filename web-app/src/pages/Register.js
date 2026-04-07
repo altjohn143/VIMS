@@ -102,6 +102,11 @@ const Register = () => {
     vehicles: [EMPTY_VEHICLE],
     familyMembers: [EMPTY_FAMILY_MEMBER]
   });
+  const [idDocs, setIdDocs] = useState({
+    frontImage: null,
+    backImage: null,
+    selfieImage: null
+  });
 
   const [availableLots, setAvailableLots] = useState([]);
   const [allLots, setAllLots] = useState([]);
@@ -381,7 +386,21 @@ const Register = () => {
     
     const result = await register(registrationData);
     if (result.success) {
-      navigate('/login');
+      try {
+        if (idDocs.frontImage && idDocs.backImage) {
+          const multipart = new FormData();
+          multipart.append('email', registrationData.email.toLowerCase());
+          multipart.append('frontImage', idDocs.frontImage);
+          multipart.append('backImage', idDocs.backImage);
+          if (idDocs.selfieImage) multipart.append('selfieImage', idDocs.selfieImage);
+          await axios.post('/api/verifications/upload-id', multipart, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+        }
+      } catch (uploadError) {
+        toast.error('Registration succeeded, but ID upload failed. Please upload your ID later.');
+      }
+      navigate('/pending-approval');
     } else {
       setErrors(prev => ({ ...prev, submit: result.error || 'Registration failed' }));
     }
@@ -974,6 +993,53 @@ const Register = () => {
                 {!formData.soloResident && (
                   <Button size="small" onClick={addFamilyMember}>Add Family Member</Button>
                 )}
+              </Grid>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ mt: 1, mb: 1, color: themeColors.textPrimary }}>
+                Valid ID Verification
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2, color: themeColors.textSecondary }}>
+                Upload front and back image of a valid ID. This is required for admin verification.
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <Button variant="outlined" component="label" fullWidth>
+                    Upload ID Front
+                    <input
+                      hidden
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setIdDocs((prev) => ({ ...prev, frontImage: e.target.files?.[0] || null }))}
+                    />
+                  </Button>
+                  <Typography variant="caption">{idDocs.frontImage?.name || 'No file selected'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Button variant="outlined" component="label" fullWidth>
+                    Upload ID Back
+                    <input
+                      hidden
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setIdDocs((prev) => ({ ...prev, backImage: e.target.files?.[0] || null }))}
+                    />
+                  </Button>
+                  <Typography variant="caption">{idDocs.backImage?.name || 'No file selected'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Button variant="outlined" component="label" fullWidth>
+                    Upload Selfie (Optional)
+                    <input
+                      hidden
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setIdDocs((prev) => ({ ...prev, selfieImage: e.target.files?.[0] || null }))}
+                    />
+                  </Button>
+                  <Typography variant="caption">{idDocs.selfieImage?.name || 'No file selected'}</Typography>
+                </Grid>
               </Grid>
             </Grid>
 

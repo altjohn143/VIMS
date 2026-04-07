@@ -6,6 +6,7 @@ const { protect, authorize } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
 const { sendVisitorReminderNotification } = require('../services/notificationService');
+const { createInAppNotification } = require('../services/inAppNotificationService');
 
 const decodeScanValue = (rawValue = '') => {
   if (!rawValue || typeof rawValue !== 'string') return '';
@@ -241,6 +242,13 @@ router.put('/:id/approve', protect, authorize('security'), async (req, res) => {
     }
     
     await visitor.save();
+    await createInAppNotification({
+      userId: visitor.residentId,
+      type: 'visitor',
+      title: 'Visitor approved',
+      body: `${visitor.visitorName} has been approved for gate entry.`,
+      metadata: { visitorId: visitor._id }
+    });
 
     const resident = await User.findById(visitor.residentId);
     
@@ -296,6 +304,13 @@ router.put('/:id/reject', protect, authorize('security'), async (req, res) => {
     visitor.qrCodeVisible = false;
     
     await visitor.save();
+    await createInAppNotification({
+      userId: visitor.residentId,
+      type: 'visitor',
+      title: 'Visitor rejected',
+      body: `${visitor.visitorName} was rejected: ${rejectionReason}`,
+      metadata: { visitorId: visitor._id }
+    });
     
     res.json({
       success: true,

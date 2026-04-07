@@ -60,6 +60,7 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ReportToolbar from '../components/ReportToolbar';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -887,38 +888,7 @@ useEffect(() => {
               Service Requests Management
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={handleExportXlsx}
-                sx={{ 
-                  borderRadius: 2,
-                  fontWeight: 600,
-                  borderColor: themeColors.border,
-                  color: themeColors.textPrimary,
-                  '&:hover': {
-                    borderColor: themeColors.primary,
-                    bgcolor: themeColors.primary + '08'
-                  }
-                }}
-              >
-                Export XLSX
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={handleExportPdf}
-                sx={{ 
-                  borderRadius: 2,
-                  fontWeight: 600,
-                  borderColor: themeColors.border,
-                  color: themeColors.textPrimary,
-                  '&:hover': {
-                    borderColor: themeColors.primary,
-                    bgcolor: themeColors.primary + '08'
-                  }
-                }}
-              >
-                Export PDF
-              </Button>
+              <ReportToolbar onExportXlsx={handleExportXlsx} onExportPdf={handleExportPdf} />
               <Button
                 startIcon={<BuildIcon />}
                 variant="outlined"

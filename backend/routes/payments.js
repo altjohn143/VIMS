@@ -4,6 +4,7 @@ const Payment = require('../models/Payment');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
+const { createInAppNotification } = require('../services/inAppNotificationService');
 
 // ========== PAYMENT ROUTES ==========
 
@@ -337,6 +338,13 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     }
     
     await payment.save();
+    await createInAppNotification({
+      userId: payment.residentId,
+      type: 'payment',
+      title: 'Payment confirmed',
+      body: `Your payment ${payment.invoiceNumber} has been confirmed.`,
+      metadata: { paymentId: payment._id }
+    });
     res.json({ success: true, message: 'Payment confirmed' });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to confirm payment' });
@@ -351,6 +359,15 @@ router.post('/send-reminders', protect, authorize('admin'), async (req, res) => 
     let remindersSent = 0;
     for (const payment of overduePayments) {
       console.log(`Reminder sent to ${payment.residentId?.email} for invoice ${payment.invoiceNumber}`);
+      if (payment.residentId?._id) {
+        await createInAppNotification({
+          userId: payment.residentId._id,
+          type: 'payment',
+          title: 'Payment reminder',
+          body: `Your invoice ${payment.invoiceNumber} is overdue.`,
+          metadata: { paymentId: payment._id }
+        });
+      }
       remindersSent++;
     }
     res.json({ success: true, message: `Sent ${remindersSent} reminders` });

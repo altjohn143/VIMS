@@ -140,9 +140,9 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Set isApproved based on role
-    const userRole = role || 'resident';
-    const isApproved = userRole === 'admin' || userRole === 'security';
+    // Security hardening: self-registration is resident-only.
+    const userRole = 'resident';
+    const isApproved = false;
     
     console.log('⚙️ Registration settings:', {
       role: userRole,

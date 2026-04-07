@@ -195,6 +195,13 @@ const AdminApprovals = () => {
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
             Pending Approvals
           </Typography>
+          <Button
+            color="inherit"
+            onClick={() => navigate('/admin/verifications')}
+            sx={{ mr: 1 }}
+          >
+            Verification Queue
+          </Button>
 
           <Button 
             color="inherit" 

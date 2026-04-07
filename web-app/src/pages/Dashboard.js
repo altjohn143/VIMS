@@ -59,6 +59,7 @@ import {
   Close as CloseIcon,
   QrCodeScanner as QrCodeScannerIcon
 } from '@mui/icons-material';
+import axios from 'axios';
 
 const themeColors = {
   primary: '#2224be',
@@ -85,6 +86,8 @@ const Dashboard = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
   const [remainingSessionMs, setRemainingSessionMs] = useState(SESSION_TIMEOUT_MS);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [recentActivities, setRecentActivities] = useState([]);
   const { logout, getCurrentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -127,6 +130,28 @@ const Dashboard = () => {
 
     return () => window.clearInterval(intervalId);
   }, [handleLogout]);
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const [countRes, listRes] = await Promise.all([
+          axios.get('/api/notifications/unread-count'),
+          axios.get('/api/notifications')
+        ]);
+        if (countRes.data?.success) setUnreadCount(countRes.data.count || 0);
+        if (listRes.data?.success) {
+          const feed = (listRes.data.data || []).slice(0, 4).map((n) => ({
+            text: n.title,
+            time: new Date(n.createdAt).toLocaleString()
+          }));
+          setRecentActivities(feed);
+        }
+      } catch (error) {
+        setUnreadCount(0);
+      }
+    };
+    loadNotifications();
+  }, []);
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleProfileMenuClose = () => setAnchorEl(null);
@@ -181,7 +206,11 @@ const Dashboard = () => {
           { title: 'Financial Reports', icon: <ReceiptIcon />, link: '/admin/payments' }
         ],
         announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/admin/announcements' }],
-        settings: [{ title: 'System Settings', icon: <SettingsIcon />, link: '/admin/settings' }]
+        settings: [
+          { title: 'System Settings', icon: <SettingsIcon />, link: '/admin/settings' },
+          { title: 'Verification Queue', icon: <VerifiedUserIcon />, link: '/admin/verifications' },
+          { title: 'Reports Center', icon: <ReceiptIcon />, link: '/admin/reports' }
+        ]
       },
       stats: [
         { label: 'Total Residents', value: '45' },
@@ -203,7 +232,10 @@ const Dashboard = () => {
         patrol: [{ title: 'Patrol Schedule', icon: <AssignmentIcon />, link: '/security/schedule' }],
         services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/security/service-requests' }],
         incidents: [{ title: 'Incident Reports', icon: <AssignmentIcon />, link: '/security/incidents' }],
-        settings: [{ title: 'Profile Settings', icon: <SettingsIcon />, link: '/profile' }]
+        settings: [
+          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/profile' },
+          { title: 'Notifications', icon: <NotificationsIcon />, link: '/notifications' }
+        ]
       },
       stats: [
         { label: 'Visitors Today', value: '12' },
@@ -215,13 +247,6 @@ const Dashboard = () => {
   };
 
   const config = roleConfig[user.role] || roleConfig.resident;
-
-  const recentActivities = [
-    { text: 'New visitor pass generated', time: '10 min ago' },
-    { text: 'Monthly dues payment received', time: '1 hour ago' },
-    { text: 'Service request completed', time: '2 hours ago' },
-    { text: 'Community meeting announced', time: '3 hours ago' }
-  ];
 
   const sessionMinutes = Math.floor(remainingSessionMs / 60000);
   const sessionSeconds = Math.floor((remainingSessionMs % 60000) / 1000);
@@ -459,8 +484,8 @@ const Dashboard = () => {
             }}
           />
 
-          <IconButton sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}>
-            <Badge badgeContent={3} color="error">
+          <IconButton component={RouterLink} to="/notifications" sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}>
+            <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon />
             </Badge>
           </IconButton>

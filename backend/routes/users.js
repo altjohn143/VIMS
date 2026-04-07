@@ -3,8 +3,10 @@ const router = express.Router();
 const User = require('../models/User');
 const Lot = require('../models/Lot');
 const OccupancyHistory = require('../models/OccupancyHistory');
+const IdentityVerification = require('../models/IdentityVerification');
 const { protect, authorize } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
+const { createInAppNotification } = require('../services/inAppNotificationService');
 
 // ===== TEST ROUTE - REMOVE AFTER DEBUGGING =====
 router.get('/test', (req, res) => {
@@ -109,6 +111,14 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
         error: 'User is already approved'
       });
     }
+
+    const verification = await IdentityVerification.findOne({ userId: user._id });
+    if (!verification || verification.status !== 'approved') {
+      return res.status(400).json({
+        success: false,
+        error: 'Resident cannot be approved until ID verification status is approved.'
+      });
+    }
     
     // Update the lot status to occupied
     if (user.houseBlock && user.houseLot) {
@@ -145,6 +155,12 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
     await sendOnboardingNotification(user, {
       includeCredentials: false,
       message: 'Your account has been approved by admin. Please log in using your registered credentials.'
+    });
+    await createInAppNotification({
+      userId: user._id,
+      type: 'account',
+      title: 'Account approved',
+      body: 'Your resident account has been approved by admin.'
     });
     
     res.json({

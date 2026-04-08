@@ -14,6 +14,9 @@ import ServiceRequests from './pages/ServiceRequests';
 import SecurityVisitorApproval from './pages/SecurityVisitorApproval';
 import AdminVisitorManagement from './pages/AdminVisitorManagement';
 import SecurityVisitorLogs from './pages/SecurityVisitorLogs';
+import SecurityServiceRequests from './pages/SecurityServiceRequests';
+import SecurityPatrolSchedule from './pages/SecurityPatrolSchedule';
+import SecurityIncidents from './pages/SecurityIncidents';
 import AdminServiceRequests from './pages/AdminServiceRequests';
 import ProfileSettings from './pages/ProfileSettings';
 import PublicLotMap from './pages/PublicLotMap';
@@ -26,6 +29,8 @@ import AdminVerificationQueue from './pages/AdminVerificationQueue';
 import Notifications from './pages/Notifications';
 import AdminReportSchedules from './pages/AdminReportSchedules';
 import AdminReports from './pages/AdminReports';
+import Announcements from './pages/Announcements';
+import AdminAnnouncements from './pages/AdminAnnouncements';
 
 // NEW PAYMENT PAGES
 import PaymentRedirect from './pages/PaymentRedirect';
@@ -110,15 +115,20 @@ function App() {
             <Route path="/admin/verifications" element={<AdminRoute><AdminVerificationQueue /></AdminRoute>} />
             <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
             <Route path="/admin/report-schedules" element={<AdminRoute><AdminReportSchedules /></AdminRoute>} />
+            <Route path="/admin/announcements" element={<AdminRoute><AdminAnnouncements /></AdminRoute>} />
 
             {/* Security-only routes */}
             <Route path="/security/visitor-approval" element={<SecurityRoute><SecurityVisitorApproval /></SecurityRoute>} />
             <Route path="/security/visitor-logs" element={<SecurityRoute><SecurityVisitorLogs /></SecurityRoute>} />
+            <Route path="/security/service-requests" element={<SecurityRoute><SecurityServiceRequests /></SecurityRoute>} />
+            <Route path="/security/schedule" element={<SecurityRoute><SecurityPatrolSchedule /></SecurityRoute>} />
+            <Route path="/security/incidents" element={<SecurityRoute><SecurityIncidents /></SecurityRoute>} />
 
             {/* Resident-only routes */}
             <Route path="/visitors" element={<ResidentRoute><VisitorManagement /></ResidentRoute>} />
             <Route path="/service-requests" element={<ResidentRoute><ServiceRequests /></ResidentRoute>} />
             <Route path="/payments" element={<ResidentRoute><Payments /></ResidentRoute>} />
+            <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
             {/* NEW PAYMENT ROUTES */}

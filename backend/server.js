@@ -8,6 +8,7 @@ const auditLogger = require('./middleware/auditLogger');
 console.log('\n📂 Starting VIMS Server...');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Configure CORS
 const os = require('os');
@@ -54,6 +55,12 @@ app.use(cors({
       return callback(null, true);
     }
     
+    // Allow localhost on any port (Expo web uses dynamic ports like 8082/8083)
+    const localhostPattern = /^http:\/\/localhost:\d+$/;
+    if (localhostPattern.test(origin)) {
+      return callback(null, true);
+    }
+
     // Allow any 192.168.x.x IP address
     const ipPattern = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/;
     if (ipPattern.test(origin)) {
@@ -249,6 +256,12 @@ try {
   console.log('/api/notifications routes imported');
   const reportScheduleRoutes = require('./routes/reportSchedules');
   console.log('/api/report-schedules routes imported');
+  const announcementRoutes = require('./routes/announcements');
+  console.log('/api/announcements routes imported');
+  const incidentRoutes = require('./routes/incidents');
+  console.log('/api/incidents routes imported');
+  const patrolRoutes = require('./routes/patrols');
+  console.log('/api/patrols routes imported');
 
   // Register routes
   app.use('/api/payments', paymentRoutes);
@@ -274,6 +287,12 @@ try {
   console.log('/api/notifications routes registered');
   app.use('/api/report-schedules', reportScheduleRoutes);
   console.log('/api/report-schedules routes registered');
+  app.use('/api/announcements', announcementRoutes);
+  console.log('/api/announcements routes registered');
+  app.use('/api/incidents', incidentRoutes);
+  console.log('/api/incidents routes registered');
+  app.use('/api/patrols', patrolRoutes);
+  console.log('/api/patrols routes registered');
 
   console.log('All routes registered successfully!');
   startReportScheduler();

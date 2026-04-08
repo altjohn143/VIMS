@@ -10,14 +10,23 @@ import Constants from 'expo-constants';
 
 // Option 1: Set your computer's IP address manually (RECOMMENDED for physical devices)
 // Run 'ipconfig' on Windows or 'ifconfig' on Mac/Linux to find your IP
+<<<<<<< HEAD
 const MANUAL_IP = '192.168.1.141'; // CHANGE THIS TO YOUR ACTUAL IP
+=======
+const MANUAL_IP = '192.168.1.141';
+
+// Env override support:
+// - EXPO_PUBLIC_API_URL is the Expo-recommended client env key
+// - API_URL kept for backward compatibility with existing setup
+const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL || process.env.API_URL;
+>>>>>>> 77ae856722a637e9354ef7bada8b8c26e7eff1a6
 
 // Option 2: Auto-detect using Expo's debugger host (works for both emulator and physical device)
 // This gets the IP from the Expo development server
 const getLocalIP = () => {
   try {
-    // For Expo Go app - gets the host IP from the debugger
-    const debuggerHost = Constants.manifest?.debuggerHost || Constants.expoConfig?.hostUri;
+    // Gets the host IP from Expo config in SDK 50+
+    const debuggerHost = Constants.expoConfig?.hostUri;
     if (debuggerHost) {
       const ip = debuggerHost.split(':')[0];
       console.log('📡 Detected local IP:', ip);
@@ -47,6 +56,7 @@ const IOS_SIMULATOR_URL = 'http://localhost:5000/api';
 
 // For Physical Device (using detected or manual IP)
 const PHYSICAL_DEVICE_URL = `http://${localIP}:${PORT}/api`;
+const WEB_LOCALHOST_URL = `http://localhost:${PORT}/api`;
 
 // For Physical Device using Ngrok (for testing over internet)
 // const NGROK_URL = 'https://your-ngrok-subdomain.ngrok.io/api';
@@ -57,7 +67,12 @@ const PHYSICAL_DEVICE_URL = `http://${localIP}:${PORT}/api`;
 
 let BASE_URL;
 
-if (Platform.OS === 'android') {
+// Highest priority: explicit environment override
+if (ENV_API_URL) {
+  BASE_URL = ENV_API_URL;
+}
+
+if (!BASE_URL && Platform.OS === 'android') {
   // Check if running on emulator by looking for common emulator indicators
   const isEmulator = 
     Constants.isDevice === false || 
@@ -72,7 +87,7 @@ if (Platform.OS === 'android') {
     BASE_URL = PHYSICAL_DEVICE_URL;
     console.log('📱 Running on physical Android device');
   }
-} else if (Platform.OS === 'ios') {
+} else if (!BASE_URL && Platform.OS === 'ios') {
   // Check if running on simulator
   const isSimulator = Constants.isDevice === false;
   
@@ -85,9 +100,9 @@ if (Platform.OS === 'android') {
     BASE_URL = PHYSICAL_DEVICE_URL;
     console.log('📱 Running on physical iOS device');
   }
-} else {
-  // Web or other platform
-  BASE_URL = PHYSICAL_DEVICE_URL;
+} else if (!BASE_URL) {
+  // Web runs in desktop browser, so localhost is usually correct
+  BASE_URL = Platform.OS === 'web' ? WEB_LOCALHOST_URL : PHYSICAL_DEVICE_URL;
 }
 
 // ============================================

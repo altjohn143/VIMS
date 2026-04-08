@@ -133,18 +133,17 @@ const statCardStyles = [
     accent: '#fee2e2'
   }
 ];
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
-
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
-  const [remainingSessionMs, setRemainingSessionMs] = useState(SESSION_TIMEOUT_MS);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [residentAnnouncements, setResidentAnnouncements] = useState([]);
+  const [liveStats, setLiveStats] = useState({});
   const { logout, getCurrentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -176,25 +175,6 @@ const Dashboard = () => {
   }, [logout, navigate]);
 
   useEffect(() => {
-    const getRemaining = () => {
-      const lastActivityAt = Number(localStorage.getItem('lastActivityAt') || 0);
-      if (!lastActivityAt) return SESSION_TIMEOUT_MS;
-      return Math.max(0, SESSION_TIMEOUT_MS - (Date.now() - lastActivityAt));
-    };
-
-    setRemainingSessionMs(getRemaining());
-    const intervalId = window.setInterval(() => {
-      const remaining = getRemaining();
-      setRemainingSessionMs(remaining);
-      if (remaining <= 0) {
-        handleLogout();
-      }
-    }, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [handleLogout]);
-
-  useEffect(() => {
     const loadNotifications = async () => {
       try {
         const [countRes, listRes] = await Promise.all([
@@ -202,8 +182,57 @@ const Dashboard = () => {
           axios.get('/api/notifications')
         ]);
         if (countRes.data?.success) setUnreadCount(countRes.data.count || 0);
+
+        if (user?.role === 'admin') {
+          const [pendingRes, verificationRes, serviceRes, visitorRes, paymentRes, announcementRes] = await Promise.all([
+            axios.get('/api/users/pending-approvals'),
+            axios.get('/api/verifications/admin/queue', { params: { status: 'all' } }),
+            axios.get('/api/service-requests'),
+            axios.get('/api/visitors'),
+            axios.get('/api/payments'),
+            axios.get('/api/announcements/admin')
+          ]);
+
+          const activities = [];
+          (pendingRes.data?.data || []).forEach((item) => activities.push({
+            text: `Pending approval: ${item.firstName || ''} ${item.lastName || ''}`.trim(),
+            at: new Date(item.createdAt || Date.now()).getTime()
+          }));
+          (verificationRes.data?.data || []).forEach((item) => activities.push({
+            text: `Verification ${item.status}: ${item.userId?.firstName || ''} ${item.userId?.lastName || ''}`.trim(),
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (serviceRes.data?.data || []).forEach((item) => activities.push({
+            text: `Service request ${item.status}: ${item.title || 'Untitled request'}`,
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (visitorRes.data?.data || []).forEach((item) => activities.push({
+            text: `Visitor ${item.status}: ${item.visitorName || item.fullName || 'Visitor'}`,
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (paymentRes.data?.data || []).forEach((item) => activities.push({
+            text: `Payment ${item.status}: ₱${item.amount || 0}`,
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (announcementRes.data?.data || []).forEach((item) => activities.push({
+            text: `Announcement posted: ${item.title}`,
+            at: new Date(item.updatedAt || item.createdAt || Date.now()).getTime()
+          }));
+          (listRes.data?.data || []).forEach((n) => activities.push({
+            text: n.title,
+            at: new Date(n.createdAt || Date.now()).getTime()
+          }));
+
+          const feed = activities
+            .sort((a, b) => b.at - a.at)
+            .slice(0, 8)
+            .map((item) => ({ text: item.text, time: new Date(item.at).toLocaleString() }));
+          setRecentActivities(feed);
+          return;
+        }
+
         if (listRes.data?.success) {
-          const feed = (listRes.data.data || []).slice(0, 4).map((n) => ({
+          const feed = (listRes.data.data || []).slice(0, 6).map((n) => ({
             text: n.title,
             time: new Date(n.createdAt).toLocaleString()
           }));
@@ -211,10 +240,27 @@ const Dashboard = () => {
         }
       } catch (error) {
         setUnreadCount(0);
+        setRecentActivities([]);
       }
     };
     loadNotifications();
-  }, []);
+  }, [user?.role]);
+
+  useEffect(() => {
+    const loadResidentAnnouncements = async () => {
+      if (user?.role !== 'resident') return;
+      try {
+        const res = await axios.get('/api/announcements');
+        if (res.data?.success) {
+          setResidentAnnouncements((res.data.data || []).slice(0, 5));
+        }
+      } catch (error) {
+        setResidentAnnouncements([]);
+      }
+    };
+
+    loadResidentAnnouncements();
+  }, [user?.role]);
 
   useEffect(() => {
     const loadPendingApprovals = async () => {
@@ -237,6 +283,83 @@ const Dashboard = () => {
 
     loadPendingApprovals();
   }, [user?.role]);
+
+  useEffect(() => {
+    const formatCompactPeso = (amount) => {
+      if (!Number.isFinite(amount)) return '₱0';
+      if (amount >= 1000) return `₱${Math.round(amount / 1000)}K`;
+      return `₱${Math.round(amount)}`;
+    };
+
+    const loadRoleStats = async () => {
+      if (!user?.role) return;
+      try {
+        if (user.role === 'admin') {
+          const [usersRes, paymentsRes, serviceRes] = await Promise.all([
+            axios.get('/api/users'),
+            axios.get('/api/payments/admin/stats'),
+            axios.get('/api/service-requests/admin/dashboard')
+          ]);
+
+          const totalResidents = usersRes.data?.count ?? (usersRes.data?.data || []).length ?? 0;
+          const monthlyCollected = paymentsRes.data?.data?.monthlyCollected || 0;
+          const activeIssues =
+            (serviceRes.data?.data?.pendingRequests || 0) +
+            (serviceRes.data?.data?.underReviewRequests || 0) +
+            (serviceRes.data?.data?.urgentRequests || 0);
+
+          setLiveStats({
+            totalResidents,
+            monthlyCollection: formatCompactPeso(monthlyCollected),
+            activeIssues
+          });
+          return;
+        }
+
+        if (user.role === 'resident') {
+          const [visitorDashRes, paymentRes, serviceRes] = await Promise.all([
+            axios.get('/api/visitors/resident/dashboard'),
+            axios.get('/api/payments/my'),
+            axios.get('/api/service-requests/my')
+          ]);
+
+          const pendingVisitors = visitorDashRes.data?.data?.stats?.pendingVisitors || 0;
+          const dueAmount = paymentRes.data?.summary?.totalPending || 0;
+          const activeRequests = (serviceRes.data?.data || []).filter(
+            (request) => !['completed', 'cancelled', 'rejected'].includes(request.status)
+          ).length;
+
+          setLiveStats({
+            pendingVisitors,
+            dueAmount: formatCompactPeso(dueAmount),
+            activeRequests,
+            unreadAlerts: unreadCount
+          });
+          return;
+        }
+
+        if (user.role === 'security') {
+          const [visitorStatsRes, serviceStatsRes] = await Promise.all([
+            axios.get('/api/visitors/stats/summary'),
+            axios.get('/api/service-requests/stats/summary')
+          ]);
+
+          const visitorStats = visitorStatsRes.data?.data || {};
+          const serviceStats = serviceStatsRes.data?.data || {};
+          setLiveStats({
+            visitorsToday: visitorStats.todayVisitors || 0,
+            activePremises: visitorStats.activeVisitors || 0,
+            pendingCheckouts: visitorStats.activeVisitors || 0,
+            alertsToday: serviceStats.pendingRequests || 0
+          });
+        }
+      } catch (error) {
+        setLiveStats({});
+      }
+    };
+
+    loadRoleStats();
+  }, [user?.role, unreadCount]);
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleProfileMenuClose = () => setAnchorEl(null);
@@ -339,9 +462,6 @@ const Dashboard = () => {
 
   const config = roleConfig[user.role] || roleConfig.resident;
 
-  const sessionMinutes = Math.floor(remainingSessionMs / 60000);
-  const sessionSeconds = Math.floor((remainingSessionMs % 60000) / 1000);
-
   const accountInfo = [
     { label: 'Name', value: `${user.firstName} ${user.lastName}` },
     { label: 'Email', value: user.email },
@@ -380,13 +500,42 @@ const Dashboard = () => {
   ];
 
   const dashboardStats = config.stats.map((stat) =>
-    user.role === 'admin' && stat.label === 'Pending Approvals'
-      ? {
-          ...stat,
-          value: String(pendingApprovals.length),
-          helper: pendingApprovals.length > 0 ? 'awaiting admin review' : 'no pending approvals'
+    (() => {
+      if (user.role === 'admin') {
+        if (stat.label === 'Total Residents') {
+          return { ...stat, value: String(liveStats.totalResidents ?? stat.value), helper: 'live from users' };
         }
-      : stat
+        if (stat.label === 'Pending Approvals') {
+          return {
+            ...stat,
+            value: String(pendingApprovals.length),
+            helper: pendingApprovals.length > 0 ? 'awaiting admin review' : 'no pending approvals'
+          };
+        }
+        if (stat.label === 'Monthly Collection') {
+          return { ...stat, value: liveStats.monthlyCollection ?? stat.value, helper: 'live this month' };
+        }
+        if (stat.label === 'Active Issues') {
+          return { ...stat, value: String(liveStats.activeIssues ?? stat.value), helper: 'pending + under review + urgent' };
+        }
+      }
+
+      if (user.role === 'resident') {
+        if (stat.label === 'Pending Visitors') return { ...stat, value: String(liveStats.pendingVisitors ?? stat.value), helper: 'live from visitor dashboard' };
+        if (stat.label === 'Due Amount') return { ...stat, value: liveStats.dueAmount ?? stat.value, helper: 'live unpaid dues' };
+        if (stat.label === 'Active Requests') return { ...stat, value: String(liveStats.activeRequests ?? stat.value), helper: 'open service requests' };
+        if (stat.label === 'Unread Alerts') return { ...stat, value: String(liveStats.unreadAlerts ?? unreadCount ?? stat.value), helper: 'live unread notifications' };
+      }
+
+      if (user.role === 'security') {
+        if (stat.label === 'Visitors Today') return { ...stat, value: String(liveStats.visitorsToday ?? stat.value), helper: 'live arrivals today' };
+        if (stat.label === 'Active on Premises') return { ...stat, value: String(liveStats.activePremises ?? stat.value), helper: 'live active visitors' };
+        if (stat.label === 'Pending Checkouts') return { ...stat, value: String(liveStats.pendingCheckouts ?? stat.value), helper: 'live active visitor exits' };
+        if (stat.label === 'Alerts Today') return { ...stat, value: String(liveStats.alertsToday ?? stat.value), helper: 'live pending service alerts' };
+      }
+
+      return stat;
+    })()
   );
 
   const quickActions = [
@@ -897,17 +1046,6 @@ const Dashboard = () => {
             </Box>
           </Box>
 
-          <Chip
-            label={`Session ${sessionMinutes}:${String(sessionSeconds).padStart(2, '0')}`}
-            size="small"
-            sx={{
-              mr: 2,
-              fontWeight: 600,
-              bgcolor: remainingSessionMs <= 5 * 60 * 1000 ? themeColors.warning : themeColors.info,
-              color: 'white'
-            }}
-          />
-
           <IconButton component={RouterLink} to="/notifications" sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}>
             <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon />
@@ -1308,10 +1446,10 @@ const Dashboard = () => {
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography sx={{ fontSize: '1.06rem', fontWeight: 900, color: themeColors.textPrimary }}>
-                        Pending Approvals
+                        {user.role === 'admin' ? 'Pending Approvals' : 'Announcements'}
                       </Typography>
                       <Chip
-                        label={`${pendingApprovals.length} new`}
+                        label={user.role === 'admin' ? `${pendingApprovals.length} new` : `${residentAnnouncements.length} posts`}
                         size="small"
                         sx={{
                           bgcolor: themeColors.primarySoft,
@@ -1324,7 +1462,7 @@ const Dashboard = () => {
 
                     <Button
                       component={RouterLink}
-                      to={user.role === 'admin' ? '/admin/approvals' : '/dashboard'}
+                      to={user.role === 'admin' ? '/admin/approvals' : '/announcements'}
                       endIcon={<ArrowOutwardIcon />}
                       sx={{
                         textTransform: 'none',
@@ -1339,14 +1477,14 @@ const Dashboard = () => {
                   <Divider />
 
                   <Box sx={{ p: 1.5 }}>
-                    {pendingApprovals.length === 0 && (
+                    {user.role === 'admin' && pendingApprovals.length === 0 && (
                       <Box sx={{ px: 2, py: 3 }}>
                         <Typography sx={{ color: themeColors.textSecondary, fontWeight: 600 }}>
                           No pending approvals right now.
                         </Typography>
                       </Box>
                     )}
-                    {pendingApprovals.map((item, index) => (
+                    {user.role === 'admin' && pendingApprovals.map((item, index) => (
                       <Box key={item.id || index}>
                         <Box
                           sx={{
@@ -1437,6 +1575,47 @@ const Dashboard = () => {
                         </Box>
 
                         {index < pendingApprovals.length - 1 && <Divider sx={{ mx: 1 }} />}
+                      </Box>
+                    ))}
+
+                    {user.role !== 'admin' && residentAnnouncements.length === 0 && (
+                      <Box sx={{ px: 2, py: 3 }}>
+                        <Typography sx={{ color: themeColors.textSecondary, fontWeight: 600 }}>
+                          No announcements yet.
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {user.role !== 'admin' && residentAnnouncements.map((item, index) => (
+                      <Box key={item._id || index}>
+                        <Box
+                          sx={{
+                            px: 1,
+                            py: 1.4,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 2,
+                            flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                          }}
+                        >
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+                              {item.title}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.84rem', color: themeColors.textSecondary, fontWeight: 500 }} noWrap>
+                              {(item.body || '').slice(0, 90)}{(item.body || '').length > 90 ? '...' : ''}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.76rem', color: themeColors.textSecondary }}>
+                              By {item.createdBy?.firstName || 'Admin'} {item.createdBy?.lastName || ''}
+                            </Typography>
+                          </Box>
+
+                          <Typography sx={{ fontSize: '0.82rem', color: themeColors.textSecondary, fontWeight: 600 }}>
+                            {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '-'}
+                          </Typography>
+                        </Box>
+                        {index < residentAnnouncements.length - 1 && <Divider sx={{ mx: 1 }} />}
                       </Box>
                     ))}
                   </Box>

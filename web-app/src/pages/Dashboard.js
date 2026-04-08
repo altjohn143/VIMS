@@ -49,7 +49,6 @@ import {
   AccountCircle as AccountCircleIcon,
   Settings as SettingsIcon,
   Dashboard as DashboardIcon,
-  Scanner as ScannerIcon,
   History as HistoryIcon,
   Assignment as AssignmentIcon,
   Receipt as ReceiptIcon,
@@ -438,7 +437,6 @@ const Dashboard = () => {
       color: '#1565c0',
       features: {
         dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
-        scanner: [{ title: 'QR Code Scanner', icon: <ScannerIcon />, link: '/security/scanner' }],
         visitors: [
           { title: 'Visitor Approvals', icon: <CheckCircleIcon />, link: '/security/visitor-approval' },
           { title: 'Visitor Logs', icon: <HistoryIcon />, link: '/security/visitor-logs' }

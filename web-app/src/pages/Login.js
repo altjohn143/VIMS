@@ -116,75 +116,6 @@ const Reveal = ({ children, sx = {}, delayMs = 0 }) => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// PAGE: HOME
-// ═══════════════════════════════════════════════════════════════════════════════
-const HomePage = ({ onClose, onRoleSelect, onBrowseLots }) => (
-  <Box sx={{ minHeight: '100vh', backgroundColor: T.bg }}>
-    <PageHero title="Welcome to Westville" subtitle="Your dream community in Paranaque City — where families thrive, safety is guaranteed, and every home tells a story." onClose={onClose} />
-
-    {/* Quick Links */}
-    <Box sx={{ backgroundColor: T.primary, py: 4 }}>
-      <Container maxWidth="lg">
-        <Grid container spacing={3} justifyContent="center">
-          {[
-            { label: 'Login as Admin', icon: <AdminIcon />, role: 'admin' },
-            { label: 'Login as Resident', icon: <HomeIcon />, role: 'resident' },
-            { label: 'Login as Security', icon: <ShieldIcon />, role: 'security' },
-          ].map((item) => (
-            <Grid item xs={12} sm={4} key={item.role}>
-              <Button fullWidth variant="outlined" startIcon={item.icon} onClick={() => { onClose(); onRoleSelect(item.role); }}
-                sx={{ borderColor: 'rgba(255,255,255,0.4)', color: 'white', borderRadius: 2, py: 1.5, fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: T.accent, color: T.accent } }}>
-                {item.label}
-              </Button>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    </Box>
-
-    {/* About Summary */}
-    <Box sx={{ py: { xs: 6, md: 10 } }}>
-      <Container maxWidth="lg">
-        <Grid container spacing={6} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <Box component="img" src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=700&q=80" alt="Westville" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 240, md: 360 }, objectFit: 'cover' }} />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, mb: 2, textTransform: 'uppercase' }}>A Community You Can Call Home</Typography>
-            <Typography sx={{ color: '#444', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is a premier gated residential community located in Paranaque City, designed to provide families with a safe, comfortable, and thriving environment.</Typography>
-            <Typography sx={{ color: '#444', lineHeight: 1.8, mb: 3 }}>Our community is managed through our Village Information Management System (VIMS) — ensuring transparent governance, efficient visitor management, and seamless resident services.</Typography>
-            <Grid container spacing={2}>
-              {[['500+', 'Homeowners'], ['24/7', 'Security'], ['10+', 'Years'], ['100%', 'Dedicated']].map(([n, l]) => (
-                <Grid item xs={6} key={l}>
-                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: T.bg, borderRadius: 2, border: `1px solid rgba(45,80,22,0.15)` }}>
-                    <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary }}>{n}</Typography>
-                    <Typography sx={{ fontSize: '0.8rem', color: '#666', fontWeight: 600 }}>{l}</Typography>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </Grid>
-        </Grid>
-      </Container>
-    </Box>
-
-    {/* Browse Lots CTA */}
-    <Box sx={{ backgroundColor: T.primary, py: { xs: 5, md: 7 }, textAlign: 'center' }}>
-      <Typography sx={{ color: 'white', fontSize: { xs: '1.5rem', md: '2rem' }, fontWeight: 900, mb: 2 }}>Interested in a Home at Westville?</Typography>
-      <Typography sx={{ color: 'rgba(255,255,255,0.75)', mb: 4, fontSize: '0.95rem' }}>Browse available lots on our interactive village map — no account needed.</Typography>
-      <Button variant="contained" startIcon={<MapIcon />} onClick={() => { onClose(); onBrowseLots(); }}
-        sx={{ backgroundColor: T.accent, color: T.dark, fontWeight: 700, px: 4, py: 1.5, borderRadius: 5, fontSize: '0.9rem', textTransform: 'none', '&:hover': { backgroundColor: '#b8e05a' } }}>
-        Browse Available Lots
-      </Button>
-    </Box>
-    <PageFooter />
-  </Box>
-);
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PAGE: ANNOUNCEMENTS
-// ═══════════════════════════════════════════════════════════════════════════════
 const ANNOUNCEMENTS = [
   { id: 1, category: 'Security', date: 'March 10, 2026', title: 'Enhanced Gate Security Protocol Starting April 2026', body: 'Effective April 1, 2026, all visitors must present a valid government-issued ID and be registered in our VIMS visitor portal before entry. Homeowners are requested to pre-register expected visitors through the resident portal. QR code stickers will also be distributed for faster vehicle entry.', color: '#ef4444' },
   { id: 2, category: 'Maintenance', date: 'March 8, 2026', title: 'Scheduled Water Service Interruption – March 15, 2026', body: 'Water service will be temporarily interrupted on March 15, 2026 from 8:00 AM to 5:00 PM due to scheduled maintenance of the main water line on Casimiro Street. All residents are advised to store sufficient water. We apologize for the inconvenience.', color: '#f59e0b' },
@@ -194,74 +125,6 @@ const ANNOUNCEMENTS = [
   { id: 6, category: 'Advisory', date: 'February 15, 2026', title: 'Reminder: No Loud Noise After 10:00 PM', body: 'As a reminder to all residents, the community noise ordinance prohibits loud music, parties, and other disruptive activities after 10:00 PM on weekdays and 11:00 PM on weekends. Violations may result in fines as stipulated in the Deed of Restrictions. Thank you for your cooperation.', color: '#64748b' },
 ];
 
-const AnnouncementPage = ({ onClose }) => {
-  const [selected, setSelected] = useState(null);
-  const [filter, setFilter] = useState('All');
-  const categories = ['All', 'Security', 'Maintenance', 'Community', 'HOA', 'Event', 'Advisory'];
-  const filtered = filter === 'All' ? ANNOUNCEMENTS : ANNOUNCEMENTS.filter(a => a.category === filter);
-
-  return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
-      <PageHero title="Announcements" subtitle="Stay updated with the latest news, advisories, and events from Westville Casimiro Homes." onClose={onClose} />
-
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 7 } }}>
-        {/* Filter chips */}
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 4 }}>
-          {categories.map(c => (
-            <Chip key={c} label={c} onClick={() => setFilter(c)}
-              sx={{ fontWeight: 600, cursor: 'pointer', backgroundColor: filter === c ? T.primary : 'white', color: filter === c ? 'white' : T.primary, border: `1px solid ${T.primary}`, '&:hover': { backgroundColor: filter === c ? T.dark : '#e8f5e9' } }} />
-          ))}
-        </Box>
-
-        <Grid container spacing={3}>
-          {filtered.map((ann) => (
-            <Grid item xs={12} md={6} key={ann.id}>
-              <Card onClick={() => setSelected(ann)} sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', cursor: 'pointer', transition: 'all 0.25s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 32px rgba(0,0,0,0.14)' }, borderLeft: `5px solid ${ann.color}` }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Chip label={ann.category} size="small" sx={{ backgroundColor: ann.color + '20', color: ann.color, fontWeight: 700, fontSize: '0.7rem' }} />
-                    <Typography sx={{ fontSize: '0.75rem', color: '#888' }}>{ann.date}</Typography>
-                  </Box>
-                  <Typography sx={{ fontWeight: 700, color: '#1e293b', fontSize: '0.95rem', mb: 1, lineHeight: 1.4 }}>{ann.title}</Typography>
-                  <Typography sx={{ color: '#666', fontSize: '0.82rem', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ann.body}</Typography>
-                  <Typography sx={{ color: T.primary, fontSize: '0.78rem', fontWeight: 600, mt: 1.5, cursor: 'pointer' }}>Read more →</Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-
-      {/* Detail Dialog */}
-      <Dialog open={!!selected} onClose={() => setSelected(null)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-        {selected && <>
-          <Box sx={{ backgroundColor: selected.color, p: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <Box>
-                <Chip label={selected.category} size="small" sx={{ backgroundColor: 'rgba(255,255,255,0.25)', color: 'white', fontWeight: 700, mb: 1 }} />
-                <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.1rem', lineHeight: 1.4 }}>{selected.title}</Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.78rem', mt: 0.5 }}>{selected.date}</Typography>
-              </Box>
-              <IconButton onClick={() => setSelected(null)} sx={{ color: 'white', mt: -1, mr: -1 }}><ArrowBackIcon /></IconButton>
-            </Box>
-          </Box>
-          <DialogContent sx={{ p: 3 }}>
-            <Typography sx={{ color: '#444', lineHeight: 1.8, fontSize: '0.92rem' }}>{selected.body}</Typography>
-          </DialogContent>
-          <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setSelected(null)} variant="contained" sx={{ backgroundColor: T.primary, borderRadius: 2, textTransform: 'none' }}>Close</Button>
-          </DialogActions>
-        </>}
-      </Dialog>
-
-      <PageFooter />
-    </Box>
-  );
-};
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PAGE: OFFICIALS
-// ═══════════════════════════════════════════════════════════════════════════════
 const OFFICIALS = [
   { name: 'Eduardo M. Santos', position: 'HOA President', description: 'Leads the Homeowners Association in promoting community welfare, overseeing governance, and representing residents in all official matters.', avatar: 'ES', dept: 'Executive Board' },
   { name: 'Maria Luisa R. Cruz', position: 'HOA Vice President', description: 'Assists the HOA President and oversees community programs, including environmental projects and resident welfare initiatives.', avatar: 'MC', dept: 'Executive Board' },
@@ -272,47 +135,6 @@ const OFFICIALS = [
   { name: 'Dennis F. Garcia', position: 'Community Relations Officer', description: 'Handles resident concerns, mediates disputes, and organizes community events and programs to strengthen neighborly bonds.', avatar: 'DG', dept: 'Community Relations' },
   { name: 'Patricia V. Lim', position: 'IT & Systems Coordinator', description: 'Manages the Village Information Management System (VIMS), resident portal, and all digital infrastructure of the community.', avatar: 'PL', dept: 'IT Committee' },
 ];
-
-const OfficialsPage = ({ onClose }) => {
-  const depts = [...new Set(OFFICIALS.map(o => o.dept))];
-  return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: T.bg }}>
-      <PageHero title="Community Officials" subtitle="Meet the dedicated leaders of Westville Casimiro Homes who work tirelessly to serve and protect our community." onClose={onClose} />
-
-      <Container maxWidth="lg" sx={{ py: { xs: 5, md: 8 } }}>
-        {depts.map(dept => (
-          <Box key={dept} sx={{ mb: 6 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Box sx={{ width: 4, height: 32, backgroundColor: T.primary, borderRadius: 2 }} />
-              <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: T.primary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dept}</Typography>
-            </Box>
-            <Grid container spacing={3}>
-              {OFFICIALS.filter(o => o.dept === dept).map((official) => (
-                <Grid item xs={12} sm={6} md={3} key={official.name}>
-                  <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center', p: 0, overflow: 'hidden', transition: 'transform 0.25s', '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 36px rgba(0,0,0,0.14)' } }}>
-                    <Box sx={{ backgroundColor: T.primary, pt: 4, pb: 6, position: 'relative' }}>
-                      <Avatar sx={{ width: 80, height: 80, mx: 'auto', backgroundColor: T.accent, color: T.dark, fontSize: '1.4rem', fontWeight: 900, border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
-                        {official.avatar}
-                      </Avatar>
-                    </Box>
-                    <Box sx={{ mt: -4, position: 'relative', zIndex: 2, px: 2, pb: 3 }}>
-                      <Box sx={{ backgroundColor: 'white', borderRadius: 3, p: 2.5, boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
-                        <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.9rem', mb: 0.5 }}>{official.name}</Typography>
-                        <Typography sx={{ color: T.primary, fontSize: '0.78rem', fontWeight: 600, mb: 1.5 }}>{official.position}</Typography>
-                        <Typography sx={{ color: '#666', fontSize: '0.76rem', lineHeight: 1.5 }}>{official.description}</Typography>
-                      </Box>
-                    </Box>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        ))}
-      </Container>
-      <PageFooter />
-    </Box>
-  );
-};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAGE: CONTACT

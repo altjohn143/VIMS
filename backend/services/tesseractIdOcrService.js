@@ -40,6 +40,10 @@ function isBogusName(s) {
   return false;
 }
 
+function isLikelyLabelText(s) {
+  return /(name|given|middle|last|surname|apelyido|pangalan|suffix|birth|date)/i.test(s || '');
+}
+
 /**
  * Philippine IDs often list: Given names (compound) + Middle name as last token on one line.
  * e.g. "JOHN MATTHEW ZABALA" → first "John Matthew", middle "Zabala"
@@ -158,6 +162,17 @@ function extractMonthNameDate(t) {
   return parseYyyyMmDd(y, mo, d);
 }
 
+function extractMonthFirstDate(t) {
+  const re = /\b([A-Za-z]{3,9})[\s./-]+(\d{1,2})(?:,)?[\s./-]+(\d{2,4})\b/i;
+  const m = t.match(re);
+  if (!m) return '';
+  const [, monStr, d, yStr] = m;
+  const mo = MONTH_MAP[monStr.toLowerCase()];
+  if (!mo) return '';
+  const y = yStr.length === 2 ? `20${yStr}` : yStr;
+  return parseYyyyMmDd(y, mo, d);
+}
+
 /** Prefer date on/near lines that mention birth (avoids expiry / issue dates when possible) */
 function extractDobNearBirthLabels(lines, fullTextNormalized) {
   const birthRes = [
@@ -173,11 +188,12 @@ function extractDobNearBirthLabels(lines, fullTextNormalized) {
   const chunk = window.join(' ');
   let dob = extractFirstDmyFromString(chunk);
   if (!dob) dob = extractMonthNameDate(chunk);
+  if (!dob) dob = extractMonthFirstDate(chunk);
   if (dob) return dob;
 
   for (const line of lines) {
     if (!birthRes.some((re) => re.test(line))) continue;
-    const same = extractFirstDmyFromString(line) || extractMonthNameDate(line);
+    const same = extractFirstDmyFromString(line) || extractMonthNameDate(line) || extractMonthFirstDate(line);
     if (same) return same;
   }
   return '';
@@ -204,6 +220,8 @@ function extractDobFixed(fullText) {
 
   const monthName = extractMonthNameDate(t);
   if (monthName) return monthName;
+  const monthFirst = extractMonthFirstDate(t);
+  if (monthFirst) return monthFirst;
 
   const allDates = [...t.matchAll(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b/g)];
   for (const m of allDates) {
@@ -225,8 +243,19 @@ function labelValue(lines, patterns) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!patterns.some((re) => re.test(line))) continue;
+    // Some OCR outputs value on same line after ":" or "/"
+    const sameLineTail = line.replace(/.*?(?:\:|\/)\s*/, '').trim();
+    if (
+      isProbableNameLine(sameLineTail) &&
+      !/suffix/i.test(sameLineTail) &&
+      !isLikelyLabelText(sameLineTail)
+    ) {
+      return sameLineTail;
+    }
     for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
-      if (isProbableNameLine(lines[j])) return lines[j].trim();
+      const candidate = lines[j].trim();
+      if (/suffix/i.test(candidate)) continue;
+      if (isProbableNameLine(candidate)) return candidate;
     }
   }
   return '';

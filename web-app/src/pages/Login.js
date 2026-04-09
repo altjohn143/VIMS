@@ -482,7 +482,7 @@ const AboutUsPage = ({ onClose }) => (
           <Box key={i} sx={{ width: 48, height: 48, borderRadius: 2, backgroundColor: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', '&:hover': { backgroundColor: T.dark } }}>{icon}</Box>
         ))}
       </Box>
-    </Box>
+    </Box>  
     <PageFooter />
   </Box>
 );

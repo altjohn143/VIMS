@@ -315,6 +315,538 @@ const RegisterScreen = ({ navigation, route }) => {
           <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
           <Text style={styles.backText}>Back to Login</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Text style={styles.backText}>Back to Login</Text>
+        </TouchableOpacity>
 
         <View style={styles.header}>
           <View style={styles.iconContainer}>

@@ -20,6 +20,7 @@ function looksLikeNameToken(word) {
 function isProbableNameLine(line) {
   const t = line.trim();
   if (t.length < 2 || t.length > 80) return false;
+  if (/^[\s.]+$/.test(t)) return false;
   if (/^\d+$/.test(t)) return false;
   if (/^\d+[/-]\d+[/-]\d+$/.test(t)) return false;
   const tokens = t.split(/\s+/).filter(Boolean);
@@ -29,6 +30,35 @@ function isProbableNameLine(line) {
   if (tokens.every((w) => NOISE_WORDS.has(w.toUpperCase()))) return false;
   const letterRatio = (t.match(/[A-Za-zÀ-ÿ]/g) || []).length / t.length;
   return letterRatio > 0.55;
+}
+
+/** junk OCR like "." — not a real name */
+function isBogusName(s) {
+  const t = (s || '').trim();
+  if (t.length < 2) return true;
+  if (!/[A-Za-zÀ-ÿ]{2,}/.test(t)) return true;
+  return false;
+}
+
+/**
+ * Philippine IDs often list: Given names (compound) + Middle name as last token on one line.
+ * e.g. "JOHN MATTHEW ZABALA" → first "John Matthew", middle "Zabala"
+ * Two tokens → both treated as first name (e.g. "John Matthew").
+ */
+function splitGivenIntoFirstMiddle(givenLine, surnameLine) {
+  let parts = givenLine.trim().split(/\s+/).filter(Boolean);
+  const surNorm = (surnameLine || '')
+    .replace(/[^A-Za-zÀ-ÿ]/gi, '')
+    .toUpperCase();
+  if (surNorm) {
+    parts = parts.filter((p) => p.replace(/[^A-Za-zÀ-ÿ]/gi, '').toUpperCase() !== surNorm);
+  }
+  if (parts.length === 0) return { first: '', middle: '' };
+  if (parts.length === 1) return { first: parts[0], middle: '' };
+  if (parts.length === 2) return { first: `${parts[0]} ${parts[1]}`, middle: '' };
+  const middle = parts[parts.length - 1];
+  const first = parts.slice(0, -1).join(' ');
+  return { first, middle };
 }
 
 function normalizeLines(text) {
@@ -98,13 +128,27 @@ function heuristicNames(lines) {
   let middleName = '';
 
   const labeledLast = labelValue(lines, [/surname|apelyido|last\s*name|family\s*name/i]);
-  const labeledFirst = labelValue(lines, [/given\s*name|first\s*name|mga\s*pangalan|pangalan(?!g)/i]);
+  const labeledFirst = labelValue(lines, [
+    /given\s*name/i,
+    /first\s*name/i,
+    /mga\s*pangalan/i,
+    /\bpangalan(?!g)\b/i
+  ]);
+  const labeledMiddleOnly = labelValue(lines, [
+    /middle\s*name/i,
+    /gitnang\s*pangalan/i,
+    /mother'?s?\s*maiden/i
+  ]);
 
   if (labeledLast) lastName = labeledLast;
-  if (labeledFirst) {
-    const parts = labeledFirst.split(/\s+/).filter(Boolean);
-    firstName = parts[0] || '';
-    middleName = parts.slice(1).join(' ') || '';
+
+  if (labeledMiddleOnly && labeledFirst) {
+    firstName = labeledFirst.trim();
+    middleName = labeledMiddleOnly.trim();
+  } else if (labeledFirst) {
+    const sp = splitGivenIntoFirstMiddle(labeledFirst, lastName);
+    firstName = sp.first;
+    middleName = sp.middle;
   }
 
   if (!lastName && nameLines[0]) {
@@ -113,17 +157,25 @@ function heuristicNames(lines) {
   if (!firstName) {
     const rest = nameLines.filter((l) => l !== lastName);
     if (rest[0]) {
-      const parts = rest[0].split(/\s+/).filter(Boolean);
-      firstName = parts[0] || '';
-      middleName = parts.slice(1).join(' ') || '';
+      const sp = splitGivenIntoFirstMiddle(rest[0], lastName);
+      firstName = sp.first;
+      middleName = middleName || sp.middle;
     }
   }
 
-  return {
-    lastName: titleCaseWords(lastName),
-    firstName: titleCaseWords(firstName),
-    middleName: titleCaseWords(middleName)
-  };
+  lastName = titleCaseWords(lastName);
+  firstName = titleCaseWords(firstName);
+  middleName = titleCaseWords(middleName);
+
+  if (isBogusName(firstName) && middleName && middleName.includes(' ')) {
+    const sp = splitGivenIntoFirstMiddle(middleName, lastName);
+    if (!isBogusName(sp.first)) {
+      firstName = titleCaseWords(sp.first);
+      middleName = titleCaseWords(sp.middle);
+    }
+  }
+
+  return { lastName, firstName, middleName };
 }
 
 function titleCaseWords(s) {

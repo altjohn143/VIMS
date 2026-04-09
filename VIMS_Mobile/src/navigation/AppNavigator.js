@@ -18,15 +18,26 @@ import VisitorManagementScreen from '../screens/VisitorManagementScreen';
 import ServiceRequestsScreen from '../screens/ServiceRequestsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
+// Shared (all roles) Screens
+import AnnouncementsScreen from '../screens/AnnouncementsScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
+
 // Admin Screens
 import AdminApprovalsScreen from '../screens/admin/AdminApprovalsScreen';
 import AdminUserManagementScreen from '../screens/admin/AdminUserManagementScreen';
 import AdminServiceRequestsScreen from '../screens/admin/AdminServiceRequestsScreen';
 import AdminVisitorManagementScreen from '../screens/admin/AdminVisitorManagementScreen';
+import AdminVerificationQueueScreen from '../screens/admin/AdminVerificationQueueScreen';
+import AdminReportSchedulesScreen from '../screens/admin/AdminReportSchedulesScreen';
+import AdminReportsScreen from '../screens/admin/AdminReportsScreen';
+import AdminAnnouncementsScreen from '../screens/admin/AdminAnnouncementsScreen';
 
 // Security Screens
 import SecurityVisitorApprovalScreen from '../screens/security/SecurityVisitorApprovalScreen';
 import SecurityVisitorLogsScreen from '../screens/security/SecurityVisitorLogsScreen';
+import SecurityServiceRequestsScreen from '../screens/security/SecurityServiceRequestsScreen';
+import SecurityPatrolScheduleScreen from '../screens/security/SecurityPatrolScheduleScreen';
+import SecurityIncidentsScreen from '../screens/security/SecurityIncidentsScreen';
 
 import PaymentsScreen from '../screens/PaymentsScreen';
 import AdminPaymentsScreen from '../screens/admin/AdminPaymentsScreen';
@@ -181,6 +192,10 @@ const AppNavigator = () => {
             <>
               <Stack.Screen name="AdminDashboard" component={AdminTabs} />
               <Stack.Screen name="AdminApprovals" component={AdminApprovalsScreen} />
+              <Stack.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} />
+              <Stack.Screen name="AdminReportSchedules" component={AdminReportSchedulesScreen} />
+              <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
+              <Stack.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} />
             </>
           )}
           {user.role === 'security' && (
@@ -190,6 +205,11 @@ const AppNavigator = () => {
       )}
 
       {/* ✅ ALWAYS OUTSIDE CONDITION */}
+      <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="SecurityServiceRequests" component={SecurityServiceRequestsScreen} />
+      <Stack.Screen name="SecurityPatrolSchedule" component={SecurityPatrolScheduleScreen} />
+      <Stack.Screen name="SecurityIncidents" component={SecurityIncidentsScreen} />
       <Stack.Screen name="PaymentRedirect" component={PaymentRedirectScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
       <Stack.Screen name="PaymentCancelled" component={PaymentCancelledScreen} />

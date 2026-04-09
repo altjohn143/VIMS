@@ -145,6 +145,20 @@ const api = axios.create({
 
 api.interceptors.request.use(
   async (config) => {
+    // If we're sending FormData, do NOT force JSON content-type.
+    // Let Axios/browser set the correct multipart boundary; otherwise multer receives no files.
+    const isFormData =
+      typeof FormData !== 'undefined' &&
+      config.data &&
+      (config.data instanceof FormData ||
+        Object.prototype.toString.call(config.data) === '[object FormData]');
+    if (isFormData) {
+      if (config.headers) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
+    }
+
     // Skip adding token for auth endpoints (login, register, check-availability)
     const skipAuthPaths = ['/auth/login', '/auth/register', '/auth/check-availability'];
     const shouldSkipAuth = skipAuthPaths.some(path => config.url?.includes(path));

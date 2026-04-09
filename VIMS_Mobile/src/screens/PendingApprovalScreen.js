@@ -39,7 +39,7 @@ const PendingApprovalScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            navigation.replace('Login');
+            // Don't navigate; AppNavigator will switch to auth stack.
           },
         },
       ]
@@ -47,7 +47,8 @@ const PendingApprovalScreen = ({ navigation }) => {
   };
 
   const handleCheckStatus = () => {
-    navigation.replace('Login');
+    // If approved, AppNavigator will route automatically after re-login.
+    navigation.navigate('Login');
   };
 
   const handleContactAdmin = () => {

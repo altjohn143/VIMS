@@ -1,9 +1,8 @@
 // src/screens/RegisterScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   TextInput,
@@ -11,41 +10,41 @@ import {
   ActivityIndicator,
   Modal,
   FlatList,
-  Platform,
-  Dimensions
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { themeColors, shadows } from '../utils/theme';
 import api from '../utils/api';
-
-const { width: screenWidth } = Dimensions.get('window');
-
-// Country codes data
-const COUNTRY_CODES = [
-  { code: '+63', country: 'Philippines', flag: '🇵🇭', prefix: '63', example: '9662342234' },
-  { code: '+1', country: 'USA/Canada', flag: '🇺🇸', prefix: '1', example: '2125551234' },
-  { code: '+44', country: 'United Kingdom', flag: '🇬🇧', prefix: '44', example: '7911123456' },
-  { code: '+61', country: 'Australia', flag: '🇦🇺', prefix: '61', example: '412345678' },
-  { code: '+81', country: 'Japan', flag: '🇯🇵', prefix: '81', example: '9012345678' },
-  { code: '+82', country: 'South Korea', flag: '🇰🇷', prefix: '82', example: '1012345678' },
-  { code: '+86', country: 'China', flag: '🇨🇳', prefix: '86', example: '13812345678' },
-  { code: '+65', country: 'Singapore', flag: '🇸🇬', prefix: '65', example: '91234567' },
-  { code: '+60', country: 'Malaysia', flag: '🇲🇾', prefix: '60', example: '123456789' },
-  { code: '+66', country: 'Thailand', flag: '🇹🇭', prefix: '66', example: '812345678' },
-  { code: '+84', country: 'Vietnam', flag: '🇻🇳', prefix: '84', example: '901234567' },
-  { code: '+62', country: 'Indonesia', flag: '🇮🇩', prefix: '62', example: '8123456789' },
-  { code: '+971', country: 'UAE', flag: '🇦🇪', prefix: '971', example: '501234567' },
-  { code: '+966', country: 'Saudi Arabia', flag: '🇸🇦', prefix: '966', example: '501234567' },
-  { code: '+49', country: 'Germany', flag: '🇩🇪', prefix: '49', example: '15123456789' },
-  { code: '+33', country: 'France', flag: '🇫🇷', prefix: '33', example: '612345678' },
-  { code: '+39', country: 'Italy', flag: '🇮🇹', prefix: '39', example: '3123456789' },
-  { code: '+34', country: 'Spain', flag: '🇪🇸', prefix: '34', example: '612345678' },
-];
+import { COUNTRY_CODES } from './RegisterScreen.constants';
+import { styles } from './RegisterScreen.styles';
+import RegisterLotMapModal from './register/RegisterLotMapModal';
 
 const RegisterScreen = ({ navigation, route }) => {
+  const WebDateInput = Platform.OS === 'web'
+    ? ({ value, onChange }) =>
+        React.createElement('input', {
+          type: 'date',
+          value,
+          onChange: (e) => onChange?.(e?.target?.value || ''),
+          style: {
+            width: '100%',
+            padding: 12,
+            borderRadius: 10,
+            border: `1px solid ${themeColors.border}`,
+            backgroundColor: '#f8fafc',
+            fontSize: 14,
+            boxSizing: 'border-box',
+          },
+        })
+    : null;
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    middleName: '',
+    dateOfBirth: '',
     email: '',
     phone: '',
     countryCode: '+63',
@@ -66,13 +65,20 @@ const RegisterScreen = ({ navigation, route }) => {
   const [availability, setAvailability] = useState({ email: null, phone: null });
   const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
   const [showMapModal, setShowMapModal] = useState(false);
-  const [mapViewMode, setMapViewMode] = useState('available');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showLotDropdown, setShowLotDropdown] = useState(false);
   const [showCountryCodeDropdown, setShowCountryCodeDropdown] = useState(false);
-  const [mapZoom, setMapZoom] = useState(1);
-  const [selectedMapLot, setSelectedMapLot] = useState(null);
-  const [showLotInfo, setShowLotInfo] = useState(false);
+
+  // OCR (backend-based)
+  const [idDocs, setIdDocs] = useState({ frontUri: null, backUri: null });
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrUnavailable, setOcrUnavailable] = useState(false);
+  const [lastOcrSignature, setLastOcrSignature] = useState('');
+  const [lastOcrAt, setLastOcrAt] = useState(0);
+
+  // DOB picker
+  const [dobPickerOpen, setDobPickerOpen] = useState(false);
+  const [dobTemp, setDobTemp] = useState(null);
 
   useEffect(() => {
     fetchLots();
@@ -118,12 +124,15 @@ const RegisterScreen = ({ navigation, route }) => {
   const handleChange = (field, value) => {
     let filteredValue = value;
     
-    if (field === 'firstName' || field === 'lastName') {
+    if (field === 'firstName' || field === 'lastName' || field === 'middleName') {
       filteredValue = value.replace(/[^a-zA-Z\s-]/g, '');
     } else if (field === 'phone') {
       filteredValue = value.replace(/\D/g, '').slice(0, 10);
     } else if (field === 'countryCode') {
       filteredValue = value;
+    } else if (field === 'dateOfBirth') {
+      // allow yyyy-mm-dd only, partial typing ok
+      filteredValue = value.replace(/[^\d-]/g, '').slice(0, 10);
     }
 
     setFormData(prev => ({ ...prev, [field]: filteredValue }));
@@ -144,7 +153,6 @@ const RegisterScreen = ({ navigation, route }) => {
       setSelectedLotDetails(lot);
       setShowLotDropdown(false);
       setShowMapModal(false);
-      setShowLotInfo(false);
       Alert.alert('Lot Selected', `You selected Lot ${lot.lotId} (${lot.sqm} sqm, ${lot.type})`);
     } else {
       Alert.alert('Not Available', `Lot ${lot.lotId} is not available for registration.`);
@@ -154,6 +162,116 @@ const RegisterScreen = ({ navigation, route }) => {
   const getSelectedCountry = () => {
     return COUNTRY_CODES.find(c => c.code === formData.countryCode) || COUNTRY_CODES[0];
   };
+
+  const formatYyyyMmDd = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const openDobPicker = useCallback(() => {
+    const existing = String(formData.dateOfBirth || '').trim();
+    let start = new Date();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(existing)) {
+      const d = new Date(existing + 'T00:00:00');
+      if (!Number.isNaN(d.getTime())) start = d;
+    } else {
+      start = new Date();
+      start.setFullYear(start.getFullYear() - 25);
+    }
+    setDobTemp(start);
+    setDobPickerOpen(true);
+  }, [formData.dateOfBirth]);
+
+  const pickIdImage = useCallback(async (side) => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow photo access to upload your ID.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.85,
+      });
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri || null;
+      if (!uri) return;
+      setIdDocs((p) => ({
+        ...p,
+        ...(side === 'front' ? { frontUri: uri } : { backUri: uri }),
+      }));
+      // reset OCR availability whenever images change
+      setOcrUnavailable(false);
+      setLastOcrSignature('');
+      setLastOcrAt(0);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to pick image.');
+    }
+  }, []);
+
+  const tryOcrAutofill = useCallback(async () => {
+    if (ocrLoading || ocrUnavailable) return;
+    const { frontUri, backUri } = idDocs;
+    if (!frontUri || !backUri) {
+      Alert.alert('Missing images', 'Please select both front and back ID images first.');
+      return;
+    }
+
+    const signature = `${frontUri}|${backUri}`;
+    const now = Date.now();
+    if (signature === lastOcrSignature) return;
+    if (now - lastOcrAt < 8000) return;
+
+    setOcrLoading(true);
+    setLastOcrSignature(signature);
+    setLastOcrAt(now);
+
+    try {
+      const fd = new FormData();
+      if (Platform.OS === 'web') {
+        const frontBlob = await fetch(frontUri).then((r) => r.blob());
+        const backBlob = await fetch(backUri).then((r) => r.blob());
+        fd.append('frontImage', frontBlob, 'front.jpg');
+        fd.append('backImage', backBlob, 'back.jpg');
+      } else {
+        const mkFile = (uri, name) => {
+          const lower = String(uri).toLowerCase();
+          const type = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+          return { uri, name, type };
+        };
+        fd.append('frontImage', mkFile(frontUri, 'front.jpg'));
+        fd.append('backImage', mkFile(backUri, 'back.jpg'));
+      }
+
+      // Let Axios set the correct multipart boundary.
+      const res = await api.post('/verifications/ocr-id', fd);
+
+      if (res.data?.success) {
+        const ocr = res.data.data || {};
+        setFormData((prev) => ({
+          ...prev,
+          firstName: prev.firstName?.trim() ? prev.firstName : (ocr.firstName || prev.firstName),
+          lastName: prev.lastName?.trim() ? prev.lastName : (ocr.lastName || prev.lastName),
+          middleName: prev.middleName?.trim() ? prev.middleName : (ocr.middleName || prev.middleName),
+          dateOfBirth: prev.dateOfBirth?.trim()
+            ? prev.dateOfBirth
+            : (/^\d{4}-\d{2}-\d{2}$/.test(String(ocr.dob || '')) ? ocr.dob : prev.dateOfBirth),
+        }));
+      } else {
+        setOcrUnavailable(true);
+      }
+    } catch (e) {
+      const msg = e?.response?.data?.error || e?.response?.data?.details || null;
+      if (msg) {
+        Alert.alert('OCR failed', msg);
+      }
+      // Don’t permanently disable OCR on a single failure (often a transient upload issue).
+    } finally {
+      setOcrLoading(false);
+    }
+  }, [idDocs, lastOcrAt, lastOcrSignature, ocrLoading, ocrUnavailable]);
 
   useEffect(() => {
     const checkEmailAvailability = async () => {
@@ -244,6 +362,8 @@ const RegisterScreen = ({ navigation, route }) => {
       const registrationData = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
+        ...(formData.middleName.trim() ? { middleName: formData.middleName.trim() } : {}),
+        ...(formData.dateOfBirth.trim() ? { dateOfBirth: formData.dateOfBirth.trim() } : {}),
         email: formData.email.trim(),
         phone: formData.phone,
         password: formData.password,
@@ -294,555 +414,11 @@ const RegisterScreen = ({ navigation, route }) => {
 
   const getStatusConfig = (status) => statusConfig[status] || statusConfig.vacant;
 
-  const displayLots = mapViewMode === 'available' ? availableLots : allLots;
-  const lotsByBlock = displayLots.reduce((acc, lot) => {
-    if (!acc[lot.block]) acc[lot.block] = [];
-    acc[lot.block].push(lot);
-    return acc;
-  }, {});
-
-  Object.keys(lotsByBlock).forEach(block => {
-    lotsByBlock[block].sort((a, b) => a.lotNumber - b.lotNumber);
-  });
-
-  const sortedBlocks = Object.keys(lotsByBlock).sort();
   const selectedCountry = getSelectedCountry();
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Login</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
           <Text style={styles.backText}>Back to Login</Text>
@@ -877,6 +453,121 @@ const RegisterScreen = ({ navigation, route }) => {
             <TextInput style={styles.input} placeholder="Last Name" value={formData.lastName} onChangeText={(text) => handleChange('lastName', text)} />
           </View>
           {errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="person" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
+            <TextInput style={styles.input} placeholder="Middle Name (optional)" value={formData.middleName} onChangeText={(text) => handleChange('middleName', text)} />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Ionicons name="calendar" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
+            <TouchableOpacity style={{ flex: 1 }} onPress={openDobPicker} activeOpacity={0.8}>
+              <TextInput
+                style={styles.input}
+                placeholder="Date of Birth (tap to pick) (optional)"
+                value={formData.dateOfBirth}
+                editable={false}
+                pointerEvents="none"
+              />
+            </TouchableOpacity>
+            {formData.dateOfBirth ? (
+              <TouchableOpacity onPress={() => handleChange('dateOfBirth', '')}>
+                <Ionicons name="close-circle" size={20} color={themeColors.textSecondary} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={openDobPicker}>
+                <Ionicons name="chevron-down" size={18} color={themeColors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {dobPickerOpen && Platform.OS !== 'web' ? (
+            <DateTimePicker
+              mode="date"
+              value={dobTemp || new Date()}
+              maximumDate={new Date()}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                if (event?.type === 'dismissed') {
+                  setDobPickerOpen(false);
+                  return;
+                }
+                const next = selectedDate || dobTemp;
+                if (Platform.OS !== 'ios') setDobPickerOpen(false);
+                if (next) {
+                  setDobTemp(next);
+                  handleChange('dateOfBirth', formatYyyyMmDd(next));
+                }
+              }}
+            />
+          ) : null}
+
+          <Modal
+            visible={dobPickerOpen && Platform.OS === 'web'}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setDobPickerOpen(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={[styles.successModal, { padding: 18, alignItems: 'stretch' }]}>
+                <Text style={[styles.successTitle, { fontSize: 18 }]}>Select Date of Birth</Text>
+                <View style={{ marginTop: 10 }}>
+                  {WebDateInput ? (
+                    <WebDateInput
+                      value={dobTemp ? formatYyyyMmDd(dobTemp) : ''}
+                      onChange={(v) => {
+                        if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+                        const d = new Date(v + 'T00:00:00');
+                        if (!Number.isNaN(d.getTime())) setDobTemp(d);
+                      }}
+                    />
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  style={[styles.submitButton, { marginTop: 12 }]}
+                  onPress={() => {
+                    if (dobTemp) handleChange('dateOfBirth', formatYyyyMmDd(dobTemp));
+                    setDobPickerOpen(false);
+                  }}
+                >
+                  <Text style={styles.submitButtonText}>Done</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.mapButton, { marginTop: 10 }]} onPress={() => setDobPickerOpen(false)}>
+                  <Text style={[styles.mapButtonText, { fontWeight: '900' }]}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          <View style={styles.ocrBox}>
+            <View style={styles.ocrTitleRow}>
+              <Text style={styles.ocrTitle}>ID OCR Autofill (optional)</Text>
+              {ocrLoading ? <ActivityIndicator size="small" color={themeColors.primary} /> : null}
+            </View>
+            <Text style={styles.ocrSub}>
+              Upload front/back ID images to autofill name and DOB. OCR runs on the backend (fast + stable).
+            </Text>
+            <View style={styles.ocrBtnRow}>
+              <TouchableOpacity style={styles.ocrBtn} onPress={() => pickIdImage('front')} disabled={ocrLoading}>
+                <Text style={styles.ocrBtnText}>{idDocs.frontUri ? 'Front selected' : 'Pick front'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.ocrBtn} onPress={() => pickIdImage('back')} disabled={ocrLoading}>
+                <Text style={styles.ocrBtnText}>{idDocs.backUri ? 'Back selected' : 'Pick back'}</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[styles.ocrBtn, { marginTop: 10, borderColor: themeColors.primary }]}
+              onPress={tryOcrAutofill}
+              disabled={ocrLoading || !idDocs.frontUri || !idDocs.backUri || ocrUnavailable}
+            >
+              <Text style={[styles.ocrBtnText, { color: themeColors.primary }]}>
+                {ocrUnavailable ? 'OCR unavailable (try later)' : 'Run OCR autofill'}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.ocrHint}>
+              Tip: OCR won’t overwrite fields you already typed.
+            </Text>
+          </View>
 
           <View style={styles.inputContainer}>
             <Ionicons name="mail" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
@@ -1079,134 +770,14 @@ const RegisterScreen = ({ navigation, route }) => {
         </View>
       </Modal>
 
-      {/* Interactive Lot Map Modal */}
-      <Modal visible={showMapModal} animationType="slide" onRequestClose={() => setShowMapModal(false)}>
-        <View style={styles.mapModalContainer}>
-          <View style={styles.mapModalHeader}>
-            <TouchableOpacity onPress={() => setShowMapModal(false)} style={styles.mapModalBack}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <Text style={styles.mapModalTitle}>Select Your Lot</Text>
-            <View style={{ width: 40 }} />
-          </View>
-
-          <View style={styles.mapViewToggle}>
-            <TouchableOpacity style={[styles.mapToggleButton, mapViewMode === 'available' && styles.mapToggleActive]} onPress={() => setMapViewMode('available')}>
-              <Text style={[styles.mapToggleText, mapViewMode === 'available' && styles.mapToggleActiveText]}>Available Lots Only</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.mapToggleButton, mapViewMode === 'all' && styles.mapToggleActive]} onPress={() => setMapViewMode('all')}>
-              <Text style={[styles.mapToggleText, mapViewMode === 'all' && styles.mapToggleActiveText]}>All Lots</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.zoomControls}>
-            <TouchableOpacity style={styles.zoomButton} onPress={() => setMapZoom(z => Math.min(1.5, z + 0.1))}>
-              <Ionicons name="add" size={20} color={themeColors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.zoomButton} onPress={() => setMapZoom(z => Math.max(0.6, z - 0.1))}>
-              <Ionicons name="remove" size={20} color={themeColors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.zoomButton} onPress={() => setMapZoom(1)}>
-              <Ionicons name="refresh" size={20} color={themeColors.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.legendScroll}>
-            <View style={styles.legendContainer}>
-              {Object.entries(statusConfig).map(([key, cfg]) => (
-                <View key={key} style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: cfg.bg, borderColor: cfg.border, borderWidth: 2 }]} />
-                  <Text style={styles.legendText}>{cfg.label}</Text>
-                </View>
-              ))}
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#2d501640', borderColor: '#2d5016', borderWidth: 2 }]} />
-                <Text style={styles.legendText}>Selected</Text>
-              </View>
-            </View>
-          </ScrollView>
-
-          <ScrollView contentContainerStyle={styles.mapContent} showsVerticalScrollIndicator={false}>
-            <View style={{ transform: [{ scale: mapZoom }] }}>
-              <View style={styles.entranceRoad}>
-                <Text style={styles.entranceRoadText}>← MAIN ENTRANCE ROAD →</Text>
-              </View>
-
-              {sortedBlocks.map((block) => {
-                const blockLots = lotsByBlock[block] || [];
-                const vacantCount = blockLots.filter(l => l.status === 'vacant').length;
-                return (
-                  <View key={block} style={styles.mapBlockContainer}>
-                    <View style={styles.mapBlockHeader}>
-                      <View style={styles.mapBlockTitleBox}>
-                        <Text style={styles.mapBlockTitle}>BLOCK {block}</Text>
-                      </View>
-                      {vacantCount > 0 && (
-                        <View style={styles.mapBlockAvailableBadge}>
-                          <Text style={styles.mapBlockAvailableText}>{vacantCount} available</Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.mapRoadStrip} />
-                    <View style={styles.mapLotsGrid}>
-                      {blockLots.map((lot) => {
-                        const cfg = getStatusConfig(lot.status);
-                        const isSelected = formData.selectedLot === lot.lotId;
-                        const isAvailable = lot.status === 'vacant';
-                        const lotSize = Math.max(50, Math.min(70, 55 * mapZoom));
-                        return (
-                          <TouchableOpacity
-                            key={lot.lotId}
-                            style={[styles.mapLotTile, { width: lotSize, height: lotSize * 0.8, backgroundColor: isSelected ? cfg.color + '40' : cfg.bg, borderColor: isSelected ? themeColors.primary : cfg.border, opacity: isAvailable ? 1 : 0.6 }]}
-                            onPress={() => { if (isAvailable) { setSelectedMapLot(lot); setShowLotInfo(true); } else { Alert.alert('Not Available', `Lot ${lot.lotId} is ${lot.status}`); } }}
-                            disabled={!isAvailable}
-                          >
-                            <Text style={[styles.mapLotNumber, { color: cfg.border, fontSize: Math.max(10, 12 * mapZoom) }]}>{lot.lotNumber}</Text>
-                            {mapZoom >= 0.8 && <Text style={[styles.mapLotSqm, { fontSize: Math.max(8, 10 * mapZoom) }]}>{lot.sqm}m²</Text>}
-                            {isSelected && <View style={styles.mapSelectedBadge}><Ionicons name="checkmark" size={12} color="white" /></View>}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          </ScrollView>
-        </View>
-      </Modal>
-
-      {/* Lot Info Modal */}
-      <Modal visible={showLotInfo} transparent animationType="slide" onRequestClose={() => setShowLotInfo(false)}>
-        <View style={styles.lotInfoOverlay}>
-          <View style={styles.lotInfoModal}>
-            <View style={styles.lotInfoHeader}>
-              <Text style={styles.lotInfoTitle}>Lot Details</Text>
-              <TouchableOpacity onPress={() => setShowLotInfo(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
-            </View>
-            {selectedMapLot && (
-              <ScrollView>
-                <View style={styles.lotInfoContent}>
-                  <Text style={styles.lotInfoId}>Lot {selectedMapLot.lotNumber} - Block {selectedMapLot.block}</Text>
-                  <View style={[styles.lotInfoBadge, { backgroundColor: getStatusConfig(selectedMapLot.status).bg }]}>
-                    <Text style={[styles.lotInfoBadgeText, { color: getStatusConfig(selectedMapLot.status).color }]}>{getStatusConfig(selectedMapLot.status).label}</Text>
-                  </View>
-                  <Text style={styles.lotInfoAddress}>{selectedMapLot.address}</Text>
-                  <View style={styles.lotInfoGrid}>
-                    <View style={styles.lotInfoItem}><Text style={styles.lotInfoLabel}>Type</Text><Text style={styles.lotInfoValue}>{selectedMapLot.type}</Text></View>
-                    <View style={styles.lotInfoItem}><Text style={styles.lotInfoLabel}>Area</Text><Text style={styles.lotInfoValue}>{selectedMapLot.sqm} sqm</Text></View>
-                  </View>
-                  <View style={styles.lotInfoActions}>
-                    <TouchableOpacity style={[styles.lotInfoButton, styles.lotSelectButton]} onPress={() => { handleLotSelect(selectedMapLot); setShowLotInfo(false); setShowMapModal(false); }}>
-                      <Text style={styles.lotSelectButtonText}>Select This Lot</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
+      <RegisterLotMapModal
+        visible={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        allLots={allLots}
+        availableLots={availableLots}
+        selectedLotId={formData.selectedLot}
+        onSelectLot={handleLotSelect}
+      />
 
       {/* Success Modal */}
       <Modal visible={showSuccessModal} transparent animationType="fade" onRequestClose={() => setShowSuccessModal(false)}>
@@ -1224,143 +795,5 @@ const RegisterScreen = ({ navigation, route }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
-  scrollContent: { padding: 20, paddingTop: 40 },
-  backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  backText: { color: themeColors.textPrimary, fontSize: 16, marginLeft: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
-  iconContainer: { width: 60, height: 60, borderRadius: 30, backgroundColor: themeColors.primary, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-  subtitle: { fontSize: 12, color: themeColors.textSecondary, letterSpacing: 1 },
-  title: { fontSize: 22, fontWeight: '700', color: themeColors.textPrimary },
-  successAlert: { flexDirection: 'row', alignItems: 'center', backgroundColor: themeColors.success + '15', borderWidth: 1, borderColor: themeColors.success + '30', borderRadius: 8, padding: 12, marginBottom: 20 },
-  alertText: { color: themeColors.success, fontSize: 14, marginLeft: 8, flex: 1 },
-  formCard: { backgroundColor: 'white', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: themeColors.border },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, paddingHorizontal: 12, marginBottom: 8, backgroundColor: '#f8fafc' },
-  inputIcon: { marginRight: 8 },
-  input: { flex: 1, paddingVertical: 12, fontSize: 16, color: themeColors.textPrimary },
-  errorText: { color: themeColors.error, fontSize: 12, marginBottom: 8, marginLeft: 4 },
-  sectionLabel: { fontSize: 14, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 8, marginTop: 16 },
-  loadingLotsContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, gap: 12 },
-  loadingLotsText: { fontSize: 14, color: themeColors.textSecondary },
-  errorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: themeColors.error + '15', padding: 12, borderRadius: 8, gap: 8, marginBottom: 12 },
-  errorBoxText: { flex: 1, fontSize: 13, color: themeColors.error },
-  retryButton: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: themeColors.error, borderRadius: 6 },
-  retryButtonText: { color: 'white', fontSize: 12, fontWeight: '600' },
-  warningBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: themeColors.warning + '15', padding: 12, borderRadius: 8, gap: 8 },
-  warningText: { flex: 1, fontSize: 13, color: themeColors.warning },
-  dropdownButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, backgroundColor: '#f8fafc', marginBottom: 8 },
-  dropdownLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  dropdownText: { fontSize: 14, color: themeColors.textPrimary, flex: 1 },
-  mapButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: themeColors.primary, borderRadius: 8, paddingVertical: 12, gap: 8, marginBottom: 12 },
-  mapButtonText: { color: themeColors.primary, fontWeight: '600' },
-  selectedLotCard: { backgroundColor: themeColors.primary + '08', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: themeColors.primary + '20' },
-  selectedLotHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  selectedLotTitle: { fontSize: 13, fontWeight: '600', color: themeColors.primary },
-  selectedLotGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  selectedLotItem: { width: '50%', marginBottom: 8 },
-  selectedLotLabel: { fontSize: 11, color: themeColors.textSecondary },
-  selectedLotValue: { fontSize: 13, fontWeight: '500', color: themeColors.textPrimary },
-  infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: themeColors.info + '10', padding: 12, borderRadius: 8, gap: 8, marginBottom: 16 },
-  infoText: { flex: 1, fontSize: 12, color: themeColors.info },
-  submitButton: { backgroundColor: themeColors.primary, borderRadius: 8, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  submitButtonDisabled: { opacity: 0.6 },
-  submitButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
-  loginLink: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: themeColors.border },
-  loginText: { color: themeColors.textSecondary, fontSize: 14 },
-  loginButtonText: { color: themeColors.primary, fontSize: 14, fontWeight: '600', marginLeft: 4 },
-
-  // Phone number with country code styles
-  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
-  countryCodeButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, gap: 6 },
-  countryCodeFlag: { fontSize: 18 },
-  countryCodeText: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary },
-  phoneInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#f8fafc' },
-  phoneInput: { flex: 1, paddingVertical: 12, fontSize: 16, color: themeColors.textPrimary },
-  phoneHelperText: { fontSize: 11, color: themeColors.textSecondary, marginBottom: 4, marginLeft: 4 },
-
-  // Country code dropdown styles
-  dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  dropdownModal: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
-  dropdownModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
-  dropdownModalTitle: { fontSize: 18, fontWeight: '600', color: themeColors.textPrimary },
-  countryOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: themeColors.border },
-  countryOptionSelected: { backgroundColor: themeColors.primary + '10' },
-  countryOptionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  countryOptionFlag: { fontSize: 24 },
-  countryOptionCode: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary },
-  countryOptionName: { fontSize: 14, color: themeColors.textSecondary },
-
-  // Lot dropdown styles
-  lotOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: themeColors.border },
-  lotOptionSelected: { backgroundColor: themeColors.primary + '10' },
-  lotOptionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  lotOptionId: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary },
-  lotOptionType: { fontSize: 13, color: themeColors.textSecondary },
-  lotOptionRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  lotOptionSqm: { fontSize: 13, color: themeColors.textSecondary },
-
-  // Map styles
-  mapModalContainer: { flex: 1, backgroundColor: '#0f2a04' },
-  mapModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: themeColors.primary },
-  mapModalBack: { padding: 8 },
-  mapModalTitle: { fontSize: 18, fontWeight: '600', color: 'white' },
-  mapViewToggle: { flexDirection: 'row', padding: 12, gap: 12, backgroundColor: 'rgba(0,0,0,0.3)' },
-  mapToggleButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)' },
-  mapToggleActive: { backgroundColor: themeColors.primary },
-  mapToggleText: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
-  mapToggleActiveText: { color: 'white', fontWeight: '600' },
-  zoomControls: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 12, paddingVertical: 8, gap: 8, backgroundColor: 'rgba(0,0,0,0.3)' },
-  zoomButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-  legendScroll: { maxHeight: 50, paddingHorizontal: 12, backgroundColor: 'rgba(0,0,0,0.2)' },
-  legendContainer: { flexDirection: 'row', gap: 16, paddingVertical: 8 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 12, height: 12, borderRadius: 2 },
-  legendText: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
-  mapContent: { padding: 12 },
-  entranceRoad: { marginBottom: 16, padding: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
-  entranceRoadText: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 3 },
-  mapBlockContainer: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  mapBlockHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  mapBlockTitleBox: { backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 4 },
-  mapBlockTitle: { fontSize: 12, fontWeight: '800', color: 'white', letterSpacing: 1 },
-  mapBlockAvailableBadge: { backgroundColor: 'rgba(34,197,94,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)' },
-  mapBlockAvailableText: { fontSize: 10, color: '#4ade80', fontWeight: '700' },
-  mapRoadStrip: { height: 3, marginBottom: 12, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.05)' },
-  mapLotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mapLotTile: { borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 2, position: 'relative' },
-  mapLotNumber: { fontWeight: '700' },
-  mapLotSqm: { opacity: 0.7 },
-  mapSelectedBadge: { position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, backgroundColor: themeColors.primary, justifyContent: 'center', alignItems: 'center' },
-
-  // Lot Info Modal styles
-  lotInfoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  lotInfoModal: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
-  lotInfoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
-  lotInfoTitle: { fontSize: 18, fontWeight: '600', color: themeColors.textPrimary },
-  lotInfoContent: { padding: 20 },
-  lotInfoId: { fontSize: 20, fontWeight: '700', color: themeColors.textPrimary, marginBottom: 8 },
-  lotInfoBadge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, marginBottom: 12 },
-  lotInfoBadgeText: { fontSize: 12, fontWeight: '600' },
-  lotInfoAddress: { fontSize: 14, color: themeColors.textSecondary, marginBottom: 16 },
-  lotInfoGrid: { flexDirection: 'row', marginBottom: 16 },
-  lotInfoItem: { flex: 1, backgroundColor: '#f8fafc', padding: 12, borderRadius: 8, marginHorizontal: 4 },
-  lotInfoLabel: { fontSize: 11, color: themeColors.textSecondary, marginBottom: 4 },
-  lotInfoValue: { fontSize: 15, fontWeight: '600', color: themeColors.textPrimary },
-  lotInfoActions: { marginTop: 8 },
-  lotInfoButton: { paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
-  lotSelectButton: { backgroundColor: themeColors.success },
-  lotSelectButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
-
-  // Success Modal styles
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  successModal: { backgroundColor: 'white', borderRadius: 20, padding: 30, width: '85%', alignItems: 'center' },
-  successIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: themeColors.success, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  successTitle: { fontSize: 22, fontWeight: 'bold', color: themeColors.textPrimary, marginBottom: 10, textAlign: 'center' },
-  successMessage: { fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
-  successButton: { backgroundColor: themeColors.success, paddingVertical: 14, paddingHorizontal: 30, borderRadius: 10, width: '100%' },
-  successButtonText: { color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' },
-});
 
 export default RegisterScreen;

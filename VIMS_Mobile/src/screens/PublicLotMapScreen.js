@@ -10,11 +10,14 @@ import {
   FlatList,
   Dimensions,
   Image,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../utils/theme';
 import QRCode from 'react-native-qrcode-svg';
 import LogoutButton from '../components/LogoutButton';
+import api from '../utils/api';
 
 const { width } = Dimensions.get('window');
 
@@ -24,35 +27,35 @@ const PublicLotMapScreen = ({ navigation }) => {
   const [showTourModal, setShowTourModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [lots, setLots] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   
   // TOUR STATE
   const [tourPhotoIndex, setTourPhotoIndex] = useState(0);
   const [activeTourTab, setActiveTourTab] = useState('outside');
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
-  // Mock data for lots
-  const lots = useMemo(() => {
-    const blocks = ['A', 'B', 'C', 'D', 'E'];
-    const allLots = [];
-    
-    blocks.forEach(block => {
-      for (let i = 1; i <= 12; i++) {
-        const status = Math.random() > 0.6 ? 'vacant' : Math.random() > 0.5 ? 'occupied' : 'reserved';
-        const sqm = [120, 150, 180, 200, 240, 300][i % 6];
-        allLots.push({
-          id: `${block}-${i}`,
-          block,
-          lotNumber: i,
-          status,
-          type: ['Single Family', 'Townhouse', 'Corner Lot'][i % 3],
-          sqm,
-          price: status === 'vacant' ? sqm * 18000 : null,
-          address: `Block ${block}, Lot ${i}, Casimiro Westville Homes`,
-          features: status === 'vacant' ? ['Ready for Occupancy', sqm >= 200 ? 'Large Lot' : 'Standard Lot'] : [],
-        });
+  const fetchLots = async () => {
+    try {
+      setLoadError(null);
+      const res = await api.get('/lots');
+      if (res.data?.success) {
+        setLots(Array.isArray(res.data.data) ? res.data.data : []);
+      } else {
+        setLoadError(res.data?.error || 'Failed to load lots');
       }
-    });
-    return allLots;
+    } catch (e) {
+      setLoadError(e?.response?.data?.error || 'Failed to load lots');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLots();
   }, []);
 
   const stats = useMemo(() => ({
@@ -63,14 +66,19 @@ const PublicLotMapScreen = ({ navigation }) => {
   }), [lots]);
 
   const filteredLots = useMemo(() => {
-    return lots.filter(lot => {
+    return lots.filter((lot) => {
       const matchesStatus = filterStatus === 'all' || lot.status === filterStatus;
       const matchesSearch = searchQuery === '' || 
-        lot.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(lot.lotId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         lot.block.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesStatus && matchesSearch;
     });
   }, [lots, filterStatus, searchQuery]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchLots();
+  };
 
   const statusConfig = {
     vacant: { color: '#22c55e', bg: '#dcfce7', label: 'Vacant', icon: 'checkmark-circle' },
@@ -203,7 +211,11 @@ const PublicLotMapScreen = ({ navigation }) => {
     );
   };
 
-  return (
+  return loading ? (
+    <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <ActivityIndicator size="large" color={themeColors.primary} />
+    </View>
+  ) : (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -226,7 +238,19 @@ const PublicLotMapScreen = ({ navigation }) => {
         </View>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        {loadError ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={18} color={themeColors.error} />
+            <Text style={styles.errorBannerText}>{loadError}</Text>
+            <TouchableOpacity onPress={fetchLots} style={styles.errorBannerBtn}>
+              <Text style={styles.errorBannerBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats.total}</Text>
@@ -283,7 +307,7 @@ const PublicLotMapScreen = ({ navigation }) => {
                 <FlatList
                   data={blockLots}
                   renderItem={renderLotBox}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={(item) => String(item?._id || item?.lotId || `${item?.block || 'X'}-${item?.lotNumber || '0'}`)}
                   numColumns={4}
                   columnWrapperStyle={styles.lotRow}
                   scrollEnabled={false}
@@ -594,6 +618,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: themeColors.textPrimary,
   },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: themeColors.error + '12',
+    borderWidth: 1,
+    borderColor: themeColors.error + '25',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  errorBannerText: { flex: 1, color: themeColors.error, fontWeight: '700', fontSize: 12 },
+  errorBannerBtn: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: themeColors.error, borderRadius: 8 },
+  errorBannerBtnText: { color: 'white', fontWeight: '900', fontSize: 12 },
   content: {
     flex: 1,
     padding: 16,

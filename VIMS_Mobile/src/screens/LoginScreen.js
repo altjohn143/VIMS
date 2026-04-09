@@ -47,12 +47,7 @@ const LoginScreen = ({ navigation }) => {
     },
   ];
 
-  // ✅ Stats data
-  const stats = [
-    { label: 'Residents', value: '120+' },
-    { label: 'Blocks', value: '3' },
-    { label: 'Est.', value: '2024' },
-  ];
+  // NOTE: Removed hardcoded/mock stats (must be DB-backed).
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -98,7 +93,10 @@ const LoginScreen = ({ navigation }) => {
           );
           return;
         }
-        navigation.replace('DashboardTab');
+        // IMPORTANT:
+        // Role dashboards are conditionally added by `AppNavigator` only AFTER AuthContext sets `user`.
+        // Navigating immediately can race and trigger "action not handled" warnings.
+        // So we don't manually navigate here; AppNavigator will switch to the correct dashboard automatically.
       }
     } catch (error) {
       Alert.alert('Error', 'Something went wrong');
@@ -156,15 +154,7 @@ const LoginScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              {/* ✅ Stats Row */}
-              <View style={styles.statsRow}>
-                {stats.map((stat, index) => (
-                  <View key={index} style={styles.statItem}>
-                    <Text style={styles.statValue}>{stat.value}</Text>
-                    <Text style={styles.statLabel}>{stat.label}</Text>
-                  </View>
-                ))}
-              </View>
+              {/* Stats removed (no mock data) */}
 
               {/* Role Cards */}
               <View style={styles.roleCardsContainer}>

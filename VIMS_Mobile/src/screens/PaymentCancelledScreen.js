@@ -39,7 +39,7 @@ const PaymentCancelledScreen = ({ navigation, route }) => {
   };
 
   const handleGoToDashboard = () => {
-    navigation.navigate('DashboardTab');
+    navigation.navigate('ResidentDashboard');
   };
 
   return (

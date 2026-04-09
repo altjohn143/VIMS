@@ -13,7 +13,7 @@ const LogoutButton = ({ navigation, color = "white", size = 24 }) => {
       // For web, use window.confirm
       if (window.confirm('Are you sure you want to logout?')) {
         logout();
-        navigation.replace('Login');
+        // Don't navigate here. AppNavigator switches to auth stack when user becomes null.
       }
     } else {
       // For mobile, use Alert
@@ -27,7 +27,7 @@ const LogoutButton = ({ navigation, color = "white", size = 24 }) => {
             style: 'destructive',
             onPress: async () => {
               await logout();
-              navigation.replace('Login');
+              // Don't navigate here. AppNavigator switches to auth stack when user becomes null.
             },
           },
         ]

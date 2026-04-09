@@ -1,0 +1,182 @@
+import { StyleSheet } from 'react-native';
+import { themeColors } from '../utils/theme';
+
+// Extracted styles to keep `RegisterScreen.js` small and reduce reload cost.
+export const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: themeColors.background },
+  scrollContent: { padding: 20, paddingTop: 40 },
+  backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  backText: { color: themeColors.textPrimary, fontSize: 16, marginLeft: 8 },
+
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
+  iconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: themeColors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  subtitle: { fontSize: 12, color: themeColors.textSecondary, letterSpacing: 1 },
+  title: { fontSize: 22, fontWeight: '700', color: themeColors.textPrimary },
+
+  successAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: themeColors.success + '15',
+    borderWidth: 1,
+    borderColor: themeColors.success + '30',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+  },
+  alertText: { color: themeColors.success, fontSize: 14, marginLeft: 8, flex: 1 },
+
+  formCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    backgroundColor: '#f8fafc',
+  },
+  inputIcon: { marginRight: 8 },
+  input: { flex: 1, paddingVertical: 12, fontSize: 16, color: themeColors.textPrimary },
+  errorText: { color: themeColors.error, fontSize: 12, marginBottom: 8, marginLeft: 4 },
+
+  sectionLabel: { fontSize: 14, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 8, marginTop: 16 },
+
+  // Phone number with country code styles
+  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  countryCodeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 6,
+  },
+  countryCodeFlag: { fontSize: 18 },
+  countryCodeText: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary },
+  phoneInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8fafc',
+  },
+  phoneInput: { flex: 1, paddingVertical: 12, fontSize: 16, color: themeColors.textPrimary },
+  phoneHelperText: { fontSize: 11, color: themeColors.textSecondary, marginBottom: 4, marginLeft: 4 },
+
+  loadingLotsContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, gap: 12 },
+  loadingLotsText: { fontSize: 14, color: themeColors.textSecondary },
+  errorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: themeColors.error + '15', padding: 12, borderRadius: 8, gap: 8, marginBottom: 12 },
+  errorBoxText: { flex: 1, fontSize: 13, color: themeColors.error },
+  retryButton: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: themeColors.error, borderRadius: 6 },
+  retryButtonText: { color: 'white', fontSize: 12, fontWeight: '600' },
+  warningBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: themeColors.warning + '15', padding: 12, borderRadius: 8, gap: 8 },
+  warningText: { flex: 1, fontSize: 13, color: themeColors.warning },
+
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#f8fafc',
+    marginBottom: 8,
+  },
+  dropdownLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  dropdownText: { fontSize: 14, color: themeColors.textPrimary, flex: 1 },
+
+  mapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: themeColors.primary,
+    borderRadius: 8,
+    paddingVertical: 12,
+    gap: 8,
+    marginBottom: 12,
+  },
+  mapButtonText: { color: themeColors.primary, fontWeight: '600' },
+
+  selectedLotCard: { backgroundColor: themeColors.primary + '08', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: themeColors.primary + '20' },
+  selectedLotHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  selectedLotTitle: { fontSize: 13, fontWeight: '600', color: themeColors.primary },
+  selectedLotGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  selectedLotItem: { width: '50%', marginBottom: 8 },
+  selectedLotLabel: { fontSize: 11, color: themeColors.textSecondary },
+  selectedLotValue: { fontSize: 13, fontWeight: '500', color: themeColors.textPrimary },
+
+  infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: themeColors.info + '10', padding: 12, borderRadius: 8, gap: 8, marginBottom: 16 },
+  infoText: { flex: 1, fontSize: 12, color: themeColors.info },
+
+  submitButton: { backgroundColor: themeColors.primary, borderRadius: 8, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+  submitButtonDisabled: { opacity: 0.6 },
+  submitButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+
+  loginLink: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: themeColors.border },
+  loginText: { color: themeColors.textSecondary, fontSize: 14 },
+  loginButtonText: { color: themeColors.primary, fontSize: 14, fontWeight: '600', marginLeft: 4 },
+
+  // Dropdown modal styles
+  dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  dropdownModal: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
+  dropdownModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  dropdownModalTitle: { fontSize: 18, fontWeight: '600', color: themeColors.textPrimary },
+  countryOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  countryOptionSelected: { backgroundColor: themeColors.primary + '10' },
+  countryOptionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  countryOptionFlag: { fontSize: 24 },
+  countryOptionCode: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary },
+  countryOptionName: { fontSize: 14, color: themeColors.textSecondary },
+
+  lotOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  lotOptionSelected: { backgroundColor: themeColors.primary + '10' },
+  lotOptionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  lotOptionId: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary },
+  lotOptionType: { fontSize: 13, color: themeColors.textSecondary },
+  lotOptionRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lotOptionSqm: { fontSize: 13, color: themeColors.textSecondary },
+
+  // OCR section
+  ocrBox: { marginTop: 14, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc' },
+  ocrTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  ocrTitle: { fontSize: 13, fontWeight: '900', color: themeColors.textPrimary },
+  ocrSub: { marginTop: 6, fontSize: 12, color: themeColors.textSecondary, fontWeight: '600', lineHeight: 18 },
+  ocrBtnRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  ocrBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white' },
+  ocrBtnText: { fontWeight: '900', color: themeColors.textPrimary },
+  ocrHint: { marginTop: 10, fontSize: 11, color: themeColors.textSecondary, fontWeight: '600' },
+
+  // Success Modal styles (used at end of RegisterScreen)
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  successModal: { backgroundColor: 'white', borderRadius: 20, padding: 30, width: '85%', alignItems: 'center' },
+  successIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: themeColors.success, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successTitle: { fontSize: 22, fontWeight: 'bold', color: themeColors.textPrimary, marginBottom: 10, textAlign: 'center' },
+  successMessage: { fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
+  successButton: { backgroundColor: themeColors.success, paddingVertical: 14, paddingHorizontal: 30, borderRadius: 10, width: '100%' },
+  successButtonText: { color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' },
+});
+

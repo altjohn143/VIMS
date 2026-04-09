@@ -1,4 +1,7 @@
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const sharp = require('sharp');
 const { createWorker, PSM } = require('tesseract.js');
 
 const uploadDir = path.join(__dirname, '../uploads/ids');
@@ -357,12 +360,50 @@ function parseFieldsFromText(rawText) {
 
 async function recognizeImage(absPath) {
   const worker = await createWorker('eng');
+  let processedPath = null;
   try {
     await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
-    const { data } = await worker.recognize(absPath);
+
+    // Preprocess to improve OCR on JPG/screenshot IDs:
+    // - rotate based on EXIF
+    // - upscale small images
+    // - grayscale/normalize/sharpen for contrast
+    // Keep as PNG for predictable decoding.
+    try {
+      const tmpDir = path.join(os.tmpdir(), 'vims-ocr');
+      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+      processedPath = path.join(
+        tmpDir,
+        `id-ocr-${Date.now()}-${Math.round(Math.random() * 1e9)}.png`
+      );
+
+      const img = sharp(absPath, { failOnError: false }).rotate();
+      const meta = await img.metadata();
+      const width = meta?.width || 0;
+      const targetWidth = Math.max(1800, width); // upscale if smaller than 1800px wide
+
+      await img
+        .resize({ width: targetWidth, withoutEnlargement: false })
+        .grayscale()
+        .normalize()
+        .sharpen()
+        .png({ compressionLevel: 6, adaptiveFiltering: true })
+        .toFile(processedPath);
+    } catch (_) {
+      processedPath = null; // fall back to original image
+    }
+
+    const { data } = await worker.recognize(processedPath || absPath);
     return data.text || '';
   } finally {
     await worker.terminate();
+    if (processedPath) {
+      try {
+        fs.unlinkSync(processedPath);
+      } catch (_) {
+        // best-effort cleanup
+      }
+    }
   }
 }
 

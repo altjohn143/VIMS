@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { themeColors, shadows } from '../utils/theme';
 import api from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LogoutButton from '../components/LogoutButton';
+import { startUnreadCountPolling } from '../utils/notifications';
 
 const DashboardScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
@@ -24,11 +25,23 @@ const DashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({});
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [recentNotifications, setRecentNotifications] = useState([]);
+  const [securityDashboardSupported, setSecurityDashboardSupported] = useState(null); // null | boolean
   const { logout } = useAuth();
 
   useEffect(() => {
     loadUserData();
   }, []);
+
+  useEffect(() => {
+    if (!user?.role) return;
+    const stop = startUnreadCountPolling({
+      intervalMs: 45000,
+      onCount: (count) => setUnreadCount(count),
+    });
+    return stop;
+  }, [user?.role]);
 
   const loadUserData = async () => {
     try {
@@ -53,13 +66,59 @@ const DashboardScreen = ({ navigation }) => {
       } else if (userData.role === 'admin') {
         endpoint = '/service-requests/admin/dashboard';
       } else if (userData.role === 'security') {
-        endpoint = '/visitors/pending';
+        endpoint = '/visitors/security/dashboard';
       }
 
       if (endpoint) {
-        const response = await api.get(endpoint);
-        if (response.data.success) {
-          setStats(response.data.data);
+        // If we already know the backend doesn't support this endpoint, don't call it again.
+        if (userData.role === 'security' && securityDashboardSupported === false) {
+          const res = await api.get('/visitors');
+          if (res.data?.success) {
+            const rows = Array.isArray(res.data.data) ? res.data.data : [];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const visitorsToday = rows.filter((v) => new Date(v.createdAt) >= today).length;
+            const pendingApproval = rows.filter((v) => v.status === 'pending').length;
+            const activeNow = rows.filter((v) => v.status === 'active').length;
+            const completed = rows.filter((v) => v.status === 'completed').length;
+            setStats({ visitorsToday, pendingApproval, activeNow, completed });
+          }
+          return;
+        }
+
+        try {
+          const response = await api.get(endpoint);
+          if (response.data.success) {
+            if (userData.role === 'resident') {
+              setStats(response.data.data?.stats || {});
+            } else {
+              setStats(response.data.data || {});
+            }
+            if (userData.role === 'security' && securityDashboardSupported !== true) {
+              setSecurityDashboardSupported(true);
+            }
+            return;
+          }
+        } catch (e) {
+          // Security fallback: older backend may not have /visitors/security/dashboard yet.
+          if (userData.role === 'security' && e?.response?.status === 404) {
+            if (securityDashboardSupported !== false) {
+              setSecurityDashboardSupported(false);
+            }
+            const res = await api.get('/visitors');
+            if (res.data?.success) {
+              const rows = Array.isArray(res.data.data) ? res.data.data : [];
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const visitorsToday = rows.filter((v) => new Date(v.createdAt) >= today).length;
+              const pendingApproval = rows.filter((v) => v.status === 'pending').length;
+              const activeNow = rows.filter((v) => v.status === 'active').length;
+              const completed = rows.filter((v) => v.status === 'completed').length;
+              setStats({ visitorsToday, pendingApproval, activeNow, completed });
+              return;
+            }
+          }
+          throw e;
         }
       }
     } catch (error) {
@@ -67,11 +126,40 @@ const DashboardScreen = ({ navigation }) => {
     }
   };
 
+  const fetchRecentNotifications = async () => {
+    try {
+      const res = await api.get('/notifications');
+      if (res.data?.success) {
+        const rows = Array.isArray(res.data.data) ? res.data.data : [];
+        setRecentNotifications(rows.slice(0, 3));
+      }
+    } catch (_) {
+      // best-effort; dashboard still works without
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadUserData();
+    await fetchRecentNotifications();
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    if (!user?.role) return;
+    fetchRecentNotifications();
+  }, [user?.role]);
+
+  const activities = useMemo(() => {
+    if (!recentNotifications.length) return [];
+    return recentNotifications.map((n) => ({
+      key: n._id || String(Math.random()),
+      icon: n.read ? 'checkmark-circle' : 'notifications',
+      iconColor: n.read ? themeColors.success : themeColors.primary,
+      text: n.title || n.message || 'Notification',
+      time: n.createdAt ? new Date(n.createdAt).toLocaleDateString() : '',
+    }));
+  }, [recentNotifications]);
 
   if (loading) {
     return (
@@ -95,6 +183,8 @@ const DashboardScreen = ({ navigation }) => {
       quickActions: [
         { title: 'Visitor Pass', icon: 'qr-code', screen: 'VisitorsTab', color: '#10b981' },
         { title: 'Service Requests', icon: 'build', screen: 'ServicesTab', color: '#f59e0b' },
+        { title: 'Announcements', icon: 'megaphone', screen: 'Announcements', color: '#3b82f6' },
+        { title: 'Notifications', icon: 'notifications', screen: 'Notifications', color: '#8b5cf6', badge: true },
       ],
     },
     admin: {
@@ -111,6 +201,10 @@ quickActions: [
   { title: 'User Management', icon: 'people', screen: 'UsersTab', color: '#8b5cf6' },
   { title: 'Approvals', icon: 'checkmark-circle', screen: 'AdminApprovals', color: '#f59e0b' },
   { title: 'Visitor Logs', icon: 'qr-code', screen: 'VisitorsTab', color: '#10b981' },
+  { title: 'Verifications', icon: 'id-card', screen: 'AdminVerificationQueue', color: '#3b82f6' },
+  { title: 'Report Schedules', icon: 'calendar', screen: 'AdminReportSchedules', color: '#64748b' },
+  { title: 'Reports Center', icon: 'bar-chart', screen: 'AdminReports', color: '#0ea5e9' },
+  { title: 'Manage Announcements', icon: 'megaphone', screen: 'AdminAnnouncements', color: '#8b5cf6' },
 ],
     },
     security: {
@@ -126,6 +220,9 @@ quickActions: [
       quickActions: [
         { title: 'Approvals', icon: 'checkmark-circle', screen: 'ApprovalsTab', color: '#f59e0b' },
         { title: 'Visitor Logs', icon: 'time', screen: 'LogsTab', color: '#3b82f6' },
+        { title: 'Service Requests', icon: 'build', screen: 'SecurityServiceRequests', color: '#10b981' },
+        { title: 'Patrol Logs', icon: 'walk', screen: 'SecurityPatrolSchedule', color: '#64748b' },
+        { title: 'Incidents', icon: 'alert-circle', screen: 'SecurityIncidents', color: '#ef4444' },
       ],
     },
   };
@@ -242,6 +339,20 @@ quickActions: [
                 onPress={() => {
                   if (action.screen === 'AdminApprovals') {
                     navigation.navigate('AdminApprovals');
+                  } else if (action.screen === 'AdminVerificationQueue') {
+                    navigation.navigate('AdminVerificationQueue');
+                  } else if (action.screen === 'AdminReportSchedules') {
+                    navigation.navigate('AdminReportSchedules');
+                  } else if (action.screen === 'AdminReports') {
+                    navigation.navigate('AdminReports');
+                  } else if (action.screen === 'AdminAnnouncements') {
+                    navigation.navigate('AdminAnnouncements');
+                  } else if (action.screen === 'SecurityServiceRequests') {
+                    navigation.navigate('SecurityServiceRequests');
+                  } else if (action.screen === 'SecurityPatrolSchedule') {
+                    navigation.navigate('SecurityPatrolSchedule');
+                  } else if (action.screen === 'SecurityIncidents') {
+                    navigation.navigate('SecurityIncidents');
                   } else {
                     navigation.navigate(action.screen);
                   }
@@ -256,38 +367,40 @@ quickActions: [
                   </Text>
                   <Text style={styles.quickActionSub}>Tap to open</Text>
                 </View>
+                {action.badge && unreadCount > 0 ? (
+                  <View style={styles.badgePill}>
+                    <Text style={styles.badgePillText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                  </View>
+                ) : null}
                 <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Activities</Text>
-          </View>
-          <View style={styles.activityList}>
-            <View style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Ionicons name="notifications" size={18} color={themeColors.primary} />
-              </View>
-              <View style={styles.activityContent}>
-                <Text style={styles.activityText}>System ready</Text>
-                <Text style={styles.activityTime}>Just now</Text>
-              </View>
+        {activities.length ? (
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Activities</Text>
             </View>
-            <View style={styles.activityDivider} />
-            <View style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Ionicons name="checkmark-circle" size={18} color={themeColors.success} />
-              </View>
-              <View style={styles.activityContent}>
-                <Text style={styles.activityText}>Last login successful</Text>
-                <Text style={styles.activityTime}>Today</Text>
-              </View>
+            <View style={styles.activityList}>
+              {activities.map((a, idx) => (
+                <View key={a.key}>
+                  <View style={styles.activityItem}>
+                    <View style={styles.activityIcon}>
+                      <Ionicons name={a.icon} size={18} color={a.iconColor} />
+                    </View>
+                    <View style={styles.activityContent}>
+                      <Text style={styles.activityText} numberOfLines={1}>{a.text}</Text>
+                      <Text style={styles.activityTime}>{a.time}</Text>
+                    </View>
+                  </View>
+                  {idx !== activities.length - 1 ? <View style={styles.activityDivider} /> : null}
+                </View>
+              ))}
             </View>
           </View>
-        </View>
+        ) : null}
 
         <View style={styles.footerNote}>
           <Ionicons name="business" size={15} color={themeColors.textSecondary} />
@@ -525,6 +638,21 @@ const styles = StyleSheet.create({
     color: themeColors.textSecondary,
     fontSize: 12,
     marginTop: 1,
+  },
+  badgePill: {
+    minWidth: 28,
+    paddingHorizontal: 8,
+    height: 22,
+    borderRadius: 999,
+    backgroundColor: themeColors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  badgePillText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: '900',
   },
   activityList: {
     padding: 12,

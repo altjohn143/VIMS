@@ -891,7 +891,7 @@ const Dashboard = () => {
                         fontWeight: 700
                       }}
                     />
-                    {section === 'dashboard' ? null : <KeyboardArrowRightIcon sx={{ opacity: 0.5 }} />}
+                    {/* No chevron for single-link sections */}
                   </ListItemButton>
                 )}
               </Box>

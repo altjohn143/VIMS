@@ -619,22 +619,6 @@ const VisitorManagement = () => {
 
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
-              variant="outlined"
-              startIcon={<MapIcon />}
-              onClick={() => navigate('/lots')}
-              sx={{
-                borderRadius: 2,
-                borderColor: themeColors.primary,
-                color: themeColors.primary,
-                '&:hover': {
-                  backgroundColor: themeColors.primary + '08',
-                  borderColor: themeColors.primaryDark
-                }
-              }}
-            >
-              Interactive Village Map
-            </Button>
-            <Button
               variant={historyMode ? "contained" : "outlined"}
               startIcon={<HistoryIcon />}
               onClick={toggleHistoryMode}

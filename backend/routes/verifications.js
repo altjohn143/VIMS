@@ -23,6 +23,15 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+router.get('/ping', (req, res) => {
+  res.json({
+    success: true,
+    service: 'verifications',
+    hasOcrRoute: true,
+    time: new Date().toISOString()
+  });
+});
+
 router.post(
   '/upload-id',
   upload.fields([

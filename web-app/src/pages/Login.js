@@ -78,6 +78,44 @@ const PageFooter = () => (
   </Box>
 );
 
+// ─── SCROLL REVEAL ─────────────────────────────────────────────────────────────
+const Reveal = ({ children, sx = {}, delayMs = 0 }) => {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <Box
+      ref={ref}
+      sx={{
+        opacity: inView ? 1 : 0,
+        transform: inView ? 'translateY(0px)' : 'translateY(16px)',
+        transition: `opacity 700ms ease ${delayMs}ms, transform 700ms ease ${delayMs}ms`,
+        willChange: 'opacity, transform',
+        ...sx
+      }}
+    >
+      {children}
+    </Box>
+  );
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAGE: HOME
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -491,10 +529,15 @@ const AboutUsPage = ({ onClose }) => (
 // LANDING PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
-  const [page, setPage] = useState(null); // 'home' | 'announcement' | 'officials' | 'contact' | 'about'
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const calendarRef = useRef(null);
+  const homeRef = useRef(null);
+  const announcementRef = useRef(null);
+  const officialsRef = useRef(null);
+  const contactRef = useRef(null);
+  const aboutRef = useRef(null);
+  const calendarSectionRef = useRef(null);
 
   useEffect(() => {
     const handler = (e) => { if (calendarRef.current && !calendarRef.current.contains(e.target)) setShowCalendar(false); };
@@ -502,22 +545,21 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Route to sub-pages
-  if (page === 'home') return <HomePage onClose={() => setPage(null)} onRoleSelect={onRoleSelect} onBrowseLots={onBrowseLots} />;
-  if (page === 'announcement') return <AnnouncementPage onClose={() => setPage(null)} />;
-  if (page === 'officials') return <OfficialsPage onClose={() => setPage(null)} />;
-  if (page === 'contact') return <ContactPage onClose={() => setPage(null)} />;
-  if (page === 'about') return <AboutUsPage onClose={() => setPage(null)} />;
+  const scrollTo = (ref) => {
+    const el = ref?.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
-  const navItem = (label, key) => (
-    <Typography key={key} onClick={() => setPage(key)}
+  const navItem = (label, onClick) => (
+    <Typography key={label} onClick={onClick}
       sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', cursor: 'pointer', '&:hover': { color: T.accent }, transition: 'color 0.2s' }}>
       {label}
     </Typography>
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: T.dark, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: T.dark, display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
 
       {/* BG */}
       <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: '45%', backgroundImage: 'url(https://images.unsplash.com/photo-1605146769289-440113cc3d00?w=1200&q=80)', backgroundSize: 'cover', backgroundPosition: 'center top', '&::after': { content: '""', position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(20,50,5,0.55) 0%, rgba(20,50,5,0.85) 80%, #1a3a0a 100%)' } }} />
@@ -538,11 +580,11 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
         {/* Nav */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 3, alignItems: 'center' }}>
-          {navItem('HOME', 'home')}
-          {navItem('ANNOUNCEMENT', 'announcement')}
-          {navItem('OFFICIALS', 'officials')}
-          {navItem('CONTACT', 'contact')}
-          {navItem('ABOUT US', 'about')}
+          {navItem('HOME', () => scrollTo(homeRef))}
+          {navItem('ANNOUNCEMENT', () => scrollTo(announcementRef))}
+          {navItem('OFFICIALS', () => scrollTo(officialsRef))}
+          {navItem('CONTACT', () => scrollTo(contactRef))}
+          {navItem('ABOUT US', () => scrollTo(aboutRef))}
 
           {/* Calendar */}
           <Box ref={calendarRef} sx={{ position: 'relative' }}>
@@ -591,14 +633,14 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       </Box>
 
       {/* HERO */}
-      <Box sx={{ position: 'relative', zIndex: 5, px: { xs: 3, md: 6 }, pt: { xs: 4, md: 6 }, pb: 2, maxWidth: 680 }}>
+      <Box ref={homeRef} sx={{ position: 'relative', zIndex: 5, px: { xs: 3, md: 6 }, pt: { xs: 4, md: 6 }, pb: 2, maxWidth: 680 }}>
         <Typography sx={{ fontSize: { xs: '2.2rem', md: '3.2rem' }, fontWeight: 900, color: 'white', lineHeight: 1.1, textTransform: 'uppercase', textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 2 }}>
           YOUR DREAM LIFE AWAITS asdasd<br />IN WESTVILLE HOMES
         </Typography>
         <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem', mb: 3, maxWidth: 500, lineHeight: 1.6 }}>
           Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
         </Typography>
-        <Typography onClick={() => setPage('about')} sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.1em', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 4, '&:hover': { color: T.accent } }}>
+        <Typography onClick={() => scrollTo(aboutRef)} sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.1em', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 4, '&:hover': { color: T.accent } }}>
           READ MORE
         </Typography>
       </Box>
@@ -641,6 +683,177 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             Browse Available Lots
           </Button>
         </Box>
+      </Box>
+
+      {/* CONTENT SECTIONS (scrollable) */}
+      <Box sx={{ backgroundColor: T.bg }}>
+        {/* Announcements */}
+        <Box ref={announcementRef} sx={{ py: { xs: 6, md: 10 } }}>
+          <Container maxWidth="lg">
+            <Reveal>
+              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+                Announcements
+              </Typography>
+              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+                Stay updated with the latest advisories, maintenance schedules, and community events.
+              </Typography>
+            </Reveal>
+            <Grid container spacing={3}>
+              {ANNOUNCEMENTS.slice(0, 4).map((ann, idx) => (
+                <Grid item xs={12} md={6} key={ann.id}>
+                  <Reveal delayMs={idx * 80}>
+                    <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', borderLeft: `5px solid ${ann.color}` }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Chip label={ann.category} size="small" sx={{ backgroundColor: ann.color + '20', color: ann.color, fontWeight: 700, fontSize: '0.7rem' }} />
+                          <Typography sx={{ fontSize: '0.75rem', color: '#888' }}>{ann.date}</Typography>
+                        </Box>
+                        <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.95rem', mb: 1, lineHeight: 1.4 }}>{ann.title}</Typography>
+                        <Typography sx={{ color: '#666', fontSize: '0.82rem', lineHeight: 1.7 }}>{ann.body}</Typography>
+                      </CardContent>
+                    </Card>
+                  </Reveal>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </Box>
+
+        {/* Officials */}
+        <Box ref={officialsRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
+          <Container maxWidth="lg">
+            <Reveal>
+              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+                Community Officials
+              </Typography>
+              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+                Meet the leaders who help keep Westville organized, safe, and thriving.
+              </Typography>
+            </Reveal>
+            <Grid container spacing={3}>
+              {OFFICIALS.map((official, idx) => (
+                <Grid item xs={12} sm={6} md={3} key={official.name}>
+                  <Reveal delayMs={idx * 60}>
+                    <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center', overflow: 'hidden', height: '100%' }}>
+                      <Box sx={{ backgroundColor: T.primary, pt: 4, pb: 6, position: 'relative' }}>
+                        <Avatar sx={{ width: 80, height: 80, mx: 'auto', backgroundColor: T.accent, color: T.dark, fontSize: '1.4rem', fontWeight: 900, border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                          {official.avatar}
+                        </Avatar>
+                      </Box>
+                      <Box sx={{ mt: -4, position: 'relative', zIndex: 2, px: 2, pb: 3 }}>
+                        <Box sx={{ backgroundColor: 'white', borderRadius: 3, p: 2.5, boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
+                          <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.9rem', mb: 0.5 }}>{official.name}</Typography>
+                          <Typography sx={{ color: T.primary, fontSize: '0.78rem', fontWeight: 700, mb: 1.5 }}>{official.position}</Typography>
+                          <Typography sx={{ color: '#666', fontSize: '0.76rem', lineHeight: 1.6 }}>{official.description}</Typography>
+                        </Box>
+                      </Box>
+                    </Card>
+                  </Reveal>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </Box>
+
+        {/* Contact */}
+        <Box ref={contactRef} sx={{ py: { xs: 6, md: 10 } }}>
+          <Container maxWidth="lg">
+            <Reveal>
+              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+                Contact Us
+              </Typography>
+              <Typography sx={{ color: '#556', mb: 5, maxWidth: 760, lineHeight: 1.8 }}>
+                Questions or concerns? Reach out to the Westville Casimiro Homes administration.
+              </Typography>
+            </Reveal>
+            <Reveal delayMs={80}>
+              <ContactPage onClose={() => {}} />
+            </Reveal>
+          </Container>
+        </Box>
+
+        {/* About */}
+        <Box ref={aboutRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
+          <Container maxWidth="lg">
+            <Reveal>
+              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+                About Us
+              </Typography>
+              <Typography sx={{ color: '#556', mb: 5, maxWidth: 760, lineHeight: 1.8 }}>
+                Learn more about Westville Casimiro Homes, our mission, and what we value as a community.
+              </Typography>
+            </Reveal>
+            <Reveal delayMs={80}>
+              <AboutUsPage onClose={() => {}} />
+            </Reveal>
+          </Container>
+        </Box>
+
+        {/* Calendar (inline) */}
+        <Box ref={calendarSectionRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: T.bg }}>
+          <Container maxWidth="lg">
+            <Reveal>
+              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+                Calendar
+              </Typography>
+              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+                Quick view of the current month.
+              </Typography>
+            </Reveal>
+            <Reveal delayMs={80} sx={{ maxWidth: 420 }}>
+              <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: 2, border: '1px solid rgba(45,80,22,0.15)' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}>
+                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
+                  </IconButton>
+                  <Typography sx={{ fontWeight: 800, color: T.primary, fontSize: '1rem' }}>
+                    {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                  </Typography>
+                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}>
+                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
+                  </IconButton>
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
+                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                    <Typography key={d} sx={{ textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: '#888' }}>{d}</Typography>
+                  ))}
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                  {(() => {
+                    const yr = currentDate.getFullYear(), mo = currentDate.getMonth();
+                    const first = new Date(yr, mo, 1).getDay();
+                    const days = new Date(yr, mo + 1, 0).getDate();
+                    const td = new Date();
+                    const cells = [];
+                    for (let i = 0; i < first; i++) cells.push(<Box key={`e${i}`} />);
+                    for (let d = 1; d <= days; d++) {
+                      const isT = d === td.getDate() && mo === td.getMonth() && yr === td.getFullYear();
+                      cells.push(
+                        <Box
+                          key={d}
+                          sx={{
+                            textAlign: 'center',
+                            py: '8px',
+                            borderRadius: '50%',
+                            backgroundColor: isT ? T.primary : 'transparent',
+                            color: isT ? 'white' : '#333',
+                            fontSize: '0.85rem',
+                            fontWeight: isT ? 800 : 500
+                          }}
+                        >
+                          {d}
+                        </Box>
+                      );
+                    }
+                    return cells;
+                  })()}
+                </Box>
+              </Box>
+            </Reveal>
+          </Container>
+        </Box>
+
+        <PageFooter />
       </Box>
     </Box>
   );

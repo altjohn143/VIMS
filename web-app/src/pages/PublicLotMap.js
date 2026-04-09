@@ -848,7 +848,9 @@ const PublicLotMap = () => {
         backgroundColor: 'rgba(15,42,4,0.93)', backdropFilter: 'blur(10px)',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button startIcon={<ArrowBackIcon />} component={Link} to="/login"
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate('/dashboard')}
             sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none', borderRadius: 2,
               '&:hover': { color: 'white', backgroundColor: 'rgba(255,255,255,0.07)' } }}>
             Back

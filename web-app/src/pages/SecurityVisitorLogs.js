@@ -73,18 +73,18 @@ import * as XLSX from 'xlsx';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
-  primary: '#2224be',
-  primaryLight: '#2224be',
-  primaryDark: '#2224be',
+  primary: '#166534',
+  primaryLight: '#22c55e',
+  primaryDark: '#14532d',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#3b82f6',
-  background: '#f8fafc',
+  background: '#f3f5f7',
   cardBackground: '#ffffff',
-  textPrimary: '#1e293b',
+  textPrimary: '#0f172a',
   textSecondary: '#64748b',
-  border: 'rgba(99, 102, 241, 0.1)'
+  border: 'rgba(15, 23, 42, 0.08)'
 };
 
 const SecurityVisitorLogs = () => {
@@ -750,24 +750,39 @@ const SecurityVisitorLogs = () => {
   }
 
   return (
-    <Box sx={{ backgroundColor: themeColors.background, minHeight: '100vh' }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `
+      }}
+    >
       {/* Top Navigation Bar */}
-      <AppBar position="static" sx={{ 
-        bgcolor: 'white',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-        borderBottom: `1px solid ${themeColors.border}`
-      }}>
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
           <IconButton
             edge="start"
-            color="inherit"
             onClick={handleBack}
             aria-label="back"
             sx={{ 
               mr: 2,
-              color: themeColors.textPrimary,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(34, 197, 94, 0.14)',
               '&:hover': {
-                bgcolor: themeColors.primary + '10'
+                bgcolor: 'rgba(34, 197, 94, 0.24)'
               }
             }}
           >
@@ -782,10 +797,7 @@ const SecurityVisitorLogs = () => {
             }} />
             <Typography variant="h6" sx={{ 
               fontWeight: 700,
-              color: themeColors.textPrimary,
-              background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.primaryLight})`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
+              color: themeColors.textPrimary
             }}>
               Security Visitor Logs
             </Typography>
@@ -922,6 +934,27 @@ const SecurityVisitorLogs = () => {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Paper
+          sx={{
+            mb: 3,
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '22px',
+            color: '#fff',
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)'
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            Visitor Logs & Tracking
+          </Typography>
+          <Typography sx={{ mt: 0.6, color: 'rgba(255,255,255,0.9)' }}>
+            Monitor scans, entries/exits, and visitor QR validity in one place.
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+            Security Officer: {currentUser?.firstName} {currentUser?.lastName}
+          </Typography>
+        </Paper>
+
         {/* Error Alert */}
         {error && !loading && (
           <Alert 
@@ -948,103 +981,45 @@ const SecurityVisitorLogs = () => {
 
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <Avatar sx={{ 
-              bgcolor: themeColors.primary,
-              boxShadow: `0 2px 8px ${themeColors.primary}40`
-            }}>
-              <ScannerIcon />
-            </Avatar>
-            <Box>
-              <Typography variant="h4" component="h1" sx={{ 
-                fontWeight: 700,
-                color: themeColors.textPrimary,
-                mb: 1
-              }}>
-                Visitor Logs & Tracking
-              </Typography>
-              <Typography variant="body1" sx={{ 
-                color: themeColors.textSecondary,
-                mb: 0.5
-              }}>
-                Monitor visitor scans, track entries/exits, and manage QR pass validity
-              </Typography>
-              <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
-                Security Officer: {currentUser?.firstName} {currentUser?.lastName}
-              </Typography>
-            </Box>
-          </Box>
-
           {/* Stats Cards - UPDATED: Removed Active and Expired stats */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={6} sm={4}>
-              <Card sx={{ 
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                border: `1px solid ${themeColors.border}`,
-                bgcolor: themeColors.cardBackground
-              }}>
-                <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                  <Typography variant="h4" sx={{ 
-                    fontWeight: 700,
-                    mb: 1
-                  }}>
-                    {loading ? '-' : stats.total}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                    Total Visitors
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={6} sm={4}>
-              <Card sx={{ 
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                border: `1px solid ${themeColors.border}`,
-                bgcolor: themeColors.cardBackground
-              }}>
-                <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                  <Typography variant="h4" sx={{ 
-                    fontWeight: 700,
-                    mb: 1
-                  }}>
-                    {loading ? '-' : stats.scanned}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                    Scanned Today
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={6} sm={4}>
-              <Card sx={{ 
-                borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                border: `1px solid ${themeColors.border}`,
-                bgcolor: themeColors.cardBackground
-              }}>
-                <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                  <Typography variant="h4" sx={{ 
-                    fontWeight: 700,
-                    mb: 1
-                  }}>
-                    {loading ? '-' : stats.pending}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                    Pending Approval
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+            {[
+              { label: 'Total Visitors', value: loading ? '-' : stats.total, helper: 'all records', gradient: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)', shadow: '0 14px 34px rgba(29,78,216,0.34)' },
+              { label: 'Scanned Today', value: loading ? '-' : stats.scanned, helper: 'entry logs', gradient: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', shadow: '0 14px 34px rgba(22,163,74,0.34)' },
+              { label: 'Pending Approval', value: loading ? '-' : stats.pending, helper: 'for security review', gradient: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', shadow: '0 14px 34px rgba(220,38,38,0.34)' }
+            ].map((stat) => (
+              <Grid item xs={6} sm={4} key={stat.label}>
+                <Card
+                  sx={{
+                    borderRadius: '20px',
+                    background: stat.gradient,
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.14)',
+                    boxShadow: stat.shadow
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 2 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: '#fff' }}>
+                      {stat.value}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.95)', fontWeight: 700 }}>
+                      {stat.label}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.84)' }}>
+                      ↗ {stat.helper}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
 
           {/* Filters */}
           <Paper sx={{ 
             p: 2, 
             mb: 3,
-            borderRadius: 2,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+            borderRadius: '20px',
+            boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
             border: `1px solid ${themeColors.border}`,
             bgcolor: themeColors.cardBackground
           }}>
@@ -1055,7 +1030,7 @@ const SecurityVisitorLogs = () => {
                   label="Search visitors"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   disabled={loading}
                   InputProps={{
                     startAdornment: (
@@ -1144,7 +1119,8 @@ const SecurityVisitorLogs = () => {
                     fullWidth
                     sx={{ 
                       bgcolor: themeColors.primary,
-                      borderRadius: 2,
+                      borderRadius: 2.5,
+                      textTransform: 'none',
                       fontWeight: 600,
                       '&:hover': {
                         bgcolor: themeColors.primaryDark,
@@ -1162,7 +1138,8 @@ const SecurityVisitorLogs = () => {
                     disabled={loading}
                     fullWidth
                     sx={{
-                      borderRadius: 2,
+                      borderRadius: 2.5,
+                      textTransform: 'none',
                       fontWeight: 600,
                       borderColor: themeColors.border,
                       color: themeColors.textPrimary,
@@ -1183,8 +1160,8 @@ const SecurityVisitorLogs = () => {
         {/* Tabs - UPDATED TO ONLY 3 TABS */}
         <Paper sx={{ 
           mb: 3, 
-          borderRadius: 2,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          borderRadius: '20px',
+          boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
           border: `1px solid ${themeColors.border}`,
           bgcolor: themeColors.cardBackground
         }}>
@@ -1268,7 +1245,8 @@ const SecurityVisitorLogs = () => {
               onClick={handleRefresh}
               disabled={loading}
               sx={{
-                borderRadius: 2,
+                borderRadius: 2.5,
+                textTransform: 'none',
                 fontWeight: 600,
                 borderColor: themeColors.border,
                 color: themeColors.textPrimary,
@@ -1287,7 +1265,8 @@ const SecurityVisitorLogs = () => {
               disabled={loading || visitors.length === 0}
               sx={{ 
                 bgcolor: themeColors.primary,
-                borderRadius: 2,
+                borderRadius: 2.5,
+                textTransform: 'none',
                 fontWeight: 600,
                 '&:hover': {
                   bgcolor: themeColors.primaryDark,
@@ -1304,15 +1283,15 @@ const SecurityVisitorLogs = () => {
 
         {/* Visitors Table */}
         <TableContainer component={Paper} sx={{ 
-          borderRadius: 2,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          borderRadius: '20px',
+          boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
           border: `1px solid ${themeColors.border}`,
           bgcolor: themeColors.cardBackground
         }}>
           <Table>
             <TableHead>
               <TableRow sx={{ 
-                bgcolor: '#f8fafc',
+                bgcolor: 'rgba(22, 163, 74, 0.08)',
                 '& th': {
                   fontWeight: 600,
                   color: themeColors.textPrimary,
@@ -1358,6 +1337,8 @@ const SecurityVisitorLogs = () => {
                       startIcon={<RefreshIcon />}
                       sx={{ 
                         bgcolor: themeColors.primary,
+                        borderRadius: 2.5,
+                        textTransform: 'none',
                         '&:hover': {
                           bgcolor: themeColors.primaryDark
                         }
@@ -1552,7 +1533,7 @@ const SecurityVisitorLogs = () => {
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '18px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               border: `1px solid ${themeColors.border}`
             }
@@ -1676,6 +1657,9 @@ const SecurityVisitorLogs = () => {
                         onClick={() => handlePrintPass(selectedVisitor)}
                         sx={{ 
                           mt: 2,
+                          borderRadius: 2.5,
+                          textTransform: 'none',
+                          fontWeight: 700,
                           borderColor: themeColors.border,
                           color: themeColors.textPrimary,
                           '&:hover': {
@@ -1697,6 +1681,9 @@ const SecurityVisitorLogs = () => {
               onClick={() => setViewDialogOpen(false)}
               sx={{
                 color: themeColors.textSecondary,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
                   bgcolor: themeColors.primary + '08'
                 }
@@ -1711,8 +1698,8 @@ const SecurityVisitorLogs = () => {
         <Paper sx={{ 
           p: 3, 
           mt: 3, 
-          borderRadius: 3,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          borderRadius: '20px',
+          boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
           border: `1px solid ${themeColors.border}`,
           bgcolor: themeColors.cardBackground
         }}>

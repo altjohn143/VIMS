@@ -41,18 +41,18 @@ import { useNavigate } from 'react-router-dom';
 const SecurityVisitorApproval = () => {
   // Dashboard Theme Colors from Login
   const themeColors = {
-    primary: '#2224be',
-    primaryLight: '#2224be',
-    primaryDark: '#2224be',
+    primary: '#166534',
+    primaryLight: '#22c55e',
+    primaryDark: '#14532d',
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
     info: '#3b82f6',
-    background: '#f8fafc',
+    background: '#f3f5f7',
     cardBackground: '#ffffff',
-    textPrimary: '#1e293b',
+    textPrimary: '#0f172a',
     textSecondary: '#64748b',
-    border: 'rgba(99, 102, 241, 0.1)'
+    border: 'rgba(15, 23, 42, 0.08)'
   };
 
   const [pendingVisitors, setPendingVisitors] = useState([]);
@@ -216,14 +216,28 @@ const SecurityVisitorApproval = () => {
           flexDirection: 'column'
         }}
       >
-        <AppBar position="static" sx={{ bgcolor: themeColors.primary, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+        <AppBar
+          position="sticky"
+          sx={{
+            bgcolor: 'rgba(255,255,255,0.92)',
+            color: themeColors.textPrimary,
+            backdropFilter: 'blur(14px)',
+            boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+            borderBottom: `1px solid ${themeColors.border}`
+          }}
+        >
           <Toolbar>
             <IconButton
               edge="start"
-              color="inherit"
+              sx={{
+                mr: 2,
+                color: themeColors.primary,
+                borderRadius: 2.5,
+                bgcolor: 'rgba(34, 197, 94, 0.14)',
+                '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.24)' }
+              }}
               onClick={handleBack}
               aria-label="back"
-              sx={{ mr: 2 }}
             >
               <ArrowBackIcon />
             </IconButton>
@@ -233,12 +247,16 @@ const SecurityVisitorApproval = () => {
             </Typography>
             
             <Button 
-              color="inherit" 
               onClick={handleLogout}
               startIcon={<LogoutIcon />}
               sx={{
+                color: themeColors.primary,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700,
+                bgcolor: 'rgba(34, 197, 94, 0.12)',
                 '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                  backgroundColor: 'rgba(34, 197, 94, 0.22)'
                 }
               }}
             >
@@ -263,14 +281,28 @@ const SecurityVisitorApproval = () => {
           flexDirection: 'column'
         }}
       >
-        <AppBar position="static" sx={{ bgcolor: themeColors.primary, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+        <AppBar
+          position="sticky"
+          sx={{
+            bgcolor: 'rgba(255,255,255,0.92)',
+            color: themeColors.textPrimary,
+            backdropFilter: 'blur(14px)',
+            boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+            borderBottom: `1px solid ${themeColors.border}`
+          }}
+        >
           <Toolbar>
             <IconButton
               edge="start"
-              color="inherit"
+              sx={{
+                mr: 2,
+                color: themeColors.primary,
+                borderRadius: 2.5,
+                bgcolor: 'rgba(34, 197, 94, 0.14)',
+                '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.24)' }
+              }}
               onClick={handleBack}
               aria-label="back"
-              sx={{ mr: 2 }}
             >
               <ArrowBackIcon />
             </IconButton>
@@ -280,12 +312,16 @@ const SecurityVisitorApproval = () => {
             </Typography>
             
             <Button 
-              color="inherit" 
               onClick={handleLogout}
               startIcon={<LogoutIcon />}
               sx={{
+                color: themeColors.primary,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700,
+                bgcolor: 'rgba(34, 197, 94, 0.12)',
                 '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                  backgroundColor: 'rgba(34, 197, 94, 0.22)'
                 }
               }}
             >
@@ -333,17 +369,35 @@ const SecurityVisitorApproval = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundColor: themeColors.background
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `
       }}
     >
-      <AppBar position="static" sx={{ bgcolor: themeColors.primary, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
           <IconButton
             edge="start"
-            color="inherit"
+            sx={{
+              mr: 2,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(34, 197, 94, 0.14)',
+              '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.24)' }
+            }}
             onClick={handleBack}
             aria-label="back"
-            sx={{ mr: 2 }}
           >
             <ArrowBackIcon />
           </IconButton>
@@ -353,12 +407,16 @@ const SecurityVisitorApproval = () => {
           </Typography>
           
           <Button 
-            color="inherit" 
             onClick={handleLogout}
             startIcon={<LogoutIcon />}
             sx={{
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              bgcolor: 'rgba(34, 197, 94, 0.12)',
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                backgroundColor: 'rgba(34, 197, 94, 0.22)'
               }
             }}
           >
@@ -369,28 +427,28 @@ const SecurityVisitorApproval = () => {
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
+        <Paper
+          sx={{
+            mb: 4,
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '22px',
+            color: '#fff',
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)'
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-            <Avatar sx={{ 
-              bgcolor: themeColors.warning,
-              boxShadow: `0 4px 12px ${themeColors.warning}40`
-            }}>
-              <SecurityIcon />
+            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.18)' }}>
+              <SecurityIcon sx={{ color: '#bef264' }} />
             </Avatar>
             <Box>
-              <Typography variant="h4" component="h1" sx={{ 
-                fontWeight: 700,
-                color: themeColors.textPrimary,
-                background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.primaryLight})`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
+              <Typography variant="h4" component="h1" sx={{ fontWeight: 800, color: '#fff' }}>
                 Visitor Approval
               </Typography>
-              <Typography variant="body1" sx={{ color: themeColors.textSecondary }}>
+              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
                 Approve or reject visitor requests
               </Typography>
-              <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)' }}>
                 Logged in as: {currentUser?.firstName} {currentUser?.lastName}
               </Typography>
             </Box>
@@ -411,12 +469,14 @@ const SecurityVisitorApproval = () => {
               disabled={fetchLoading || loading}
               size="small"
               sx={{ 
-                borderRadius: 2,
-                borderColor: themeColors.border,
-                color: themeColors.textPrimary,
+                borderRadius: 2.5,
+                borderColor: 'rgba(255,255,255,0.35)',
+                color: '#fff',
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
-                  borderColor: themeColors.primary,
-                  backgroundColor: themeColors.primary + '08'
+                  borderColor: 'rgba(255,255,255,0.65)',
+                  backgroundColor: 'rgba(255,255,255,0.12)'
                 }
               }}
             >
@@ -432,7 +492,7 @@ const SecurityVisitorApproval = () => {
               />
             )}
           </Box>
-        </Box>
+        </Paper>
 
         {/* Pending Visitors List */}
         <Grid container spacing={3}>
@@ -441,8 +501,8 @@ const SecurityVisitorApproval = () => {
               <Paper sx={{ 
                 p: 8, 
                 textAlign: 'center', 
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                borderRadius: '20px',
+                boxShadow: '0 12px 30px rgba(15,23,42,0.08)',
                 border: `1px solid ${themeColors.border}`,
                 backgroundColor: themeColors.cardBackground
               }}>
@@ -457,8 +517,8 @@ const SecurityVisitorApproval = () => {
               <Paper sx={{ 
                 p: 8, 
                 textAlign: 'center', 
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                borderRadius: '20px',
+                boxShadow: '0 12px 30px rgba(15,23,42,0.08)',
                 border: `1px solid ${themeColors.border}`,
                 backgroundColor: themeColors.cardBackground
               }}>
@@ -491,8 +551,8 @@ const SecurityVisitorApproval = () => {
               <Paper sx={{ 
                 p: 8, 
                 textAlign: 'center', 
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                borderRadius: '20px',
+                boxShadow: '0 12px 30px rgba(15,23,42,0.08)',
                 border: `1px solid ${themeColors.border}`,
                 backgroundColor: themeColors.cardBackground
               }}>
@@ -509,8 +569,8 @@ const SecurityVisitorApproval = () => {
             pendingVisitors.map((visitor) => (
               <Grid item xs={12} md={6} key={visitor._id}>
                 <Card sx={{ 
-                  borderRadius: 3,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                  borderRadius: '20px',
+                  boxShadow: '0 12px 30px rgba(15,23,42,0.08)',
                   border: `1px solid ${themeColors.border}`,
                   backgroundColor: themeColors.cardBackground,
                   '&:hover': {
@@ -600,8 +660,9 @@ const SecurityVisitorApproval = () => {
                           setOpenApproveDialog(true);
                         }}
                         sx={{ 
-                          borderRadius: 2,
+                          borderRadius: 2.5,
                           bgcolor: themeColors.success,
+                          textTransform: 'none',
                           '&:hover': {
                             bgcolor: '#0da271'
                           },
@@ -620,9 +681,10 @@ const SecurityVisitorApproval = () => {
                           setOpenRejectDialog(true);
                         }}
                         sx={{ 
-                          borderRadius: 2,
+                          borderRadius: 2.5,
                           borderColor: themeColors.error,
                           color: themeColors.error,
+                          textTransform: 'none',
                           '&:hover': {
                             borderColor: themeColors.error,
                             backgroundColor: themeColors.error + '08'
@@ -646,7 +708,7 @@ const SecurityVisitorApproval = () => {
           onClose={() => setOpenApproveDialog(false)}
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '18px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               backgroundColor: themeColors.cardBackground
             }
@@ -705,7 +767,9 @@ const SecurityVisitorApproval = () => {
                 '&:hover': {
                   backgroundColor: themeColors.primary + '08'
                 },
-                borderRadius: 2
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700
               }}
             >
               Cancel
@@ -716,8 +780,9 @@ const SecurityVisitorApproval = () => {
               onClick={handleApprove}
               disabled={loading}
               sx={{ 
-                borderRadius: 2,
+                borderRadius: 2.5,
                 bgcolor: themeColors.success,
+                textTransform: 'none',
                 '&:hover': {
                   bgcolor: '#0da271'
                 },
@@ -735,7 +800,7 @@ const SecurityVisitorApproval = () => {
           onClose={() => setOpenRejectDialog(false)}
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '18px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               backgroundColor: themeColors.cardBackground
             }
@@ -795,7 +860,9 @@ const SecurityVisitorApproval = () => {
                 '&:hover': {
                   backgroundColor: themeColors.primary + '08'
                 },
-                borderRadius: 2
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700
               }}
             >
               Cancel
@@ -806,8 +873,9 @@ const SecurityVisitorApproval = () => {
               onClick={handleReject}
               disabled={loading || !rejectionReason.trim()}
               sx={{ 
-                borderRadius: 2,
+                borderRadius: 2.5,
                 bgcolor: themeColors.error,
+                textTransform: 'none',
                 '&:hover': {
                   bgcolor: '#dc2626'
                 },

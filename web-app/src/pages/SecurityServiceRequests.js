@@ -38,16 +38,18 @@ import { useAuth } from '../context/AuthContext';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
 const themeColors = {
-  primary: '#2224be',
+  primary: '#166534',
+  primaryLight: '#22c55e',
+  primaryDark: '#14532d',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#3b82f6',
-  background: '#f8fafc',
+  background: '#f3f5f7',
   cardBackground: '#ffffff',
-  textPrimary: '#1e293b',
+  textPrimary: '#0f172a',
   textSecondary: '#64748b',
-  border: 'rgba(99, 102, 241, 0.1)'
+  border: 'rgba(15, 23, 42, 0.08)'
 };
 
 const SecurityServiceRequests = () => {
@@ -110,10 +112,39 @@ const SecurityServiceRequests = () => {
   };
 
   return (
-    <>
-      <AppBar position="sticky" elevation={0} sx={{ bgcolor: themeColors.cardBackground, borderBottom: `1px solid ${themeColors.border}` }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `
+      }}
+    >
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
-          <IconButton component={RouterLink} to="/dashboard" sx={{ mr: 1, color: themeColors.primary }}>
+          <IconButton
+            component={RouterLink}
+            to="/dashboard"
+            sx={{
+              mr: 1.5,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(34, 197, 94, 0.14)',
+              '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.24)' }
+            }}
+          >
             <ArrowBackIcon />
           </IconButton>
           <Typography sx={{ flexGrow: 1, fontWeight: 800, color: themeColors.textPrimary }}>
@@ -137,25 +168,54 @@ const SecurityServiceRequests = () => {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Paper
+          sx={{
+            mb: 3,
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '22px',
+            color: '#fff',
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)'
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            Security Service Requests
+          </Typography>
+          <Typography sx={{ mt: 0.6, color: 'rgba(255,255,255,0.9)' }}>
+            Monitor assigned tickets and update response progress in real time.
+          </Typography>
+        </Paper>
+
         <Grid container spacing={2} sx={{ mb: 2 }}>
           {[
-            { label: 'Total', value: stats.total, color: themeColors.info },
-            { label: 'Assigned', value: stats.assigned, color: themeColors.warning },
-            { label: 'In Progress', value: stats.inProgress, color: themeColors.primary },
-            { label: 'Completed', value: stats.completed, color: themeColors.success }
+            { label: 'Total', value: stats.total, helper: 'all visible', gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', shadow: '0 14px 34px rgba(14,165,233,0.34)' },
+            { label: 'Assigned', value: stats.assigned, helper: 'for review', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', shadow: '0 14px 34px rgba(245,158,11,0.34)' },
+            { label: 'In Progress', value: stats.inProgress, helper: 'active work', gradient: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)', shadow: '0 14px 34px rgba(29,78,216,0.34)' },
+            { label: 'Completed', value: stats.completed, helper: 'resolved', gradient: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', shadow: '0 14px 34px rgba(22,163,74,0.34)' }
           ].map((stat) => (
             <Grid item xs={12} sm={6} md={3} key={stat.label}>
-              <Card sx={{ borderRadius: 3 }}>
+              <Card
+                sx={{
+                  borderRadius: '20px',
+                  background: stat.gradient,
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  boxShadow: stat.shadow
+                }}
+              >
                 <CardContent>
-                  <Typography color="text.secondary" variant="body2">{stat.label}</Typography>
-                  <Typography sx={{ fontSize: 28, fontWeight: 800, color: stat.color }}>{stat.value}</Typography>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.9)', fontSize: 13 }}>{stat.label}</Typography>
+                  <Typography sx={{ fontSize: 30, fontWeight: 800, color: '#fff' }}>{stat.value}</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.82)' }}>
+                    ↗ {stat.helper}
+                  </Typography>
                 </CardContent>
               </Card>
             </Grid>
           ))}
         </Grid>
 
-        <Paper sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+        <Paper sx={{ p: 2, borderRadius: '20px', mb: 2, border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15,23,42,0.08)' }}>
           <Tabs value={activeTab} onChange={(_, value) => setActiveTab(value)} variant="scrollable" allowScrollButtonsMobile>
             <Tab value="all" label="All" />
             <Tab value="pending" label="Pending" />
@@ -196,15 +256,20 @@ const SecurityServiceRequests = () => {
             <MenuItem value="sanitation">Sanitation</MenuItem>
             <MenuItem value="other">Other</MenuItem>
           </TextField>
-          <Button variant={assignedOnly ? 'contained' : 'outlined'} size="small" onClick={() => setAssignedOnly((v) => !v)}>
+          <Button
+            variant={assignedOnly ? 'contained' : 'outlined'}
+            size="small"
+            onClick={() => setAssignedOnly((v) => !v)}
+            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
+          >
             {assignedOnly ? 'Assigned to me' : 'All visible'}
           </Button>
           </Box>
         </Box>
 
-        <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+        <TableContainer component={Paper} sx={{ borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15,23,42,0.08)' }}>
           <Table>
-            <TableHead>
+            <TableHead sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
               <TableRow>
                 <TableCell>Request</TableCell>
                 <TableCell>Resident</TableCell>
@@ -216,7 +281,7 @@ const SecurityServiceRequests = () => {
             </TableHead>
             <TableBody>
               {filteredRows.map((item) => (
-                <TableRow key={item._id} hover>
+                <TableRow key={item._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}>
                   <TableCell>
                     <Typography sx={{ fontWeight: 700 }}>{item.title}</Typography>
                     <Typography variant="caption" color="text.secondary">{item.description}</Typography>
@@ -232,6 +297,7 @@ const SecurityServiceRequests = () => {
                       size="small"
                       disabled={item.assignedTo?._id !== currentUser?._id || item.status === 'completed'}
                       onClick={() => updateStatus(item._id, 'in-progress')}
+                      sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                     >
                       Start
                     </Button>
@@ -239,6 +305,7 @@ const SecurityServiceRequests = () => {
                       size="small"
                       disabled={item.assignedTo?._id !== currentUser?._id || item.status === 'completed'}
                       onClick={() => updateStatus(item._id, 'completed')}
+                      sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                     >
                       Complete
                     </Button>
@@ -250,12 +317,12 @@ const SecurityServiceRequests = () => {
         </TableContainer>
 
         {filteredRows.length === 0 && (
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: 3, borderRadius: '20px', border: `1px solid ${themeColors.border}` }}>
             <Typography color="text.secondary">No service requests match the selected filters.</Typography>
           </Paper>
         )}
       </Container>
-    </>
+    </Box>
   );
 };
 

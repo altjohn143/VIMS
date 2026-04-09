@@ -64,18 +64,18 @@ import ReportToolbar from '../components/ReportToolbar';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
-  primary: '#2224be',
-  primaryLight: '#2224be',
-  primaryDark: '#2224be',
+  primary: '#166534',
+  primaryLight: '#22c55e',
+  primaryDark: '#14532d',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#3b82f6',
-  background: '#f8fafc',
+  background: '#f3f5f7',
   cardBackground: '#ffffff',
-  textPrimary: '#1e293b',
+  textPrimary: '#0f172a',
   textSecondary: '#64748b',
-  border: 'rgba(99, 102, 241, 0.1)'
+  border: 'rgba(15, 23, 42, 0.08)'
 };
 
 const AdminServiceRequests = () => {
@@ -664,22 +664,41 @@ useEffect(() => {
   }
 
   return (
-    <Box sx={{ backgroundColor: themeColors.background, minHeight: '100vh' }}>
-      <AppBar position="static" sx={{ 
-        bgcolor: 'white',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-        borderBottom: `1px solid ${themeColors.border}`
-      }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `,
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        }
+      }}
+    >
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
           <IconButton
             edge="start"
-            color="inherit"
             onClick={handleBack}
             sx={{ 
               mr: 2,
-              color: themeColors.textPrimary,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(34, 197, 94, 0.14)',
               '&:hover': {
-                bgcolor: themeColors.primary + '10'
+                bgcolor: 'rgba(34, 197, 94, 0.24)'
               }
             }}
           >
@@ -694,10 +713,7 @@ useEffect(() => {
             }} />
             <Typography variant="h6" sx={{ 
               fontWeight: 700,
-              color: themeColors.textPrimary,
-              background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.primaryLight})`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
+              color: themeColors.textPrimary
             }}>
               Admin - Service Requests Management
             </Typography>
@@ -818,52 +834,105 @@ useEffect(() => {
       </AppBar>
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Paper
+          sx={{
+            mb: 3,
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '22px',
+            color: '#fff',
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+            animation: 'fadeUpSoft .45s ease-out'
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+            Service Requests Management
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 0.6, color: 'rgba(255,255,255,0.9)' }}>
+            Review, assign, and complete resident requests with full status visibility.
+          </Typography>
+        </Paper>
+
         {/* Stats Dashboard */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
-            { value: stats.totalRequests || 0, label: 'Total Requests' },
-            { value: stats.pendingRequests || 0, label: 'Pending Review'},
-            { value: stats.urgentRequests || 0, label: 'Urgent Priority'},
+            {
+              value: stats.totalRequests || 0,
+              label: 'Total Requests',
+              helper: 'all submitted requests',
+              icon: <AssignmentIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 44 }} />,
+              gradient: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)',
+              shadow: '0 14px 34px rgba(29, 78, 216, 0.34)'
+            },
+            {
+              value: stats.pendingRequests || 0,
+              label: 'Pending Review',
+              helper: 'needs admin action',
+              icon: <ReviewIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 44 }} />,
+              gradient: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+              shadow: '0 14px 34px rgba(22, 163, 74, 0.34)'
+            },
+            {
+              value: stats.urgentRequests || 0,
+              label: 'Urgent Priority',
+              helper: 'pending + under review',
+              icon: <CancelIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 44 }} />,
+              gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
+              shadow: '0 14px 34px rgba(14, 165, 233, 0.34)'
+            },
             { 
               value: stats.averageRating?.toFixed(1) || 0, 
               label: 'Avg. Rating', 
-              icon: <StarIcon sx={{ color: '#ffb74d' }} />
+              helper: 'service quality',
+              icon: <StarIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 44 }} />,
+              gradient: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+              shadow: '0 14px 34px rgba(220, 38, 38, 0.34)'
             }
           ].map((stat, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
               <Card sx={{ 
-                borderRadius: 3, 
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                border: `1px solid ${themeColors.border}`,
-                backgroundColor: themeColors.cardBackground,
+                borderRadius: '20px',
+                boxShadow: stat.shadow,
+                border: '1px solid rgba(255,255,255,0.14)',
+                background: stat.gradient,
+                color: '#fff',
+                overflow: 'hidden',
+                position: 'relative',
                 transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.08)'
+                  filter: 'brightness(1.02)'
+                },
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  top: -28,
+                  right: -18,
+                  width: 116,
+                  height: 116,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.12)'
                 }
               }}>
-                <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: 1,
-                    mb: 1 
-                  }}>
+                <CardContent sx={{ p: 2.6, position: 'relative', zIndex: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Typography variant="h3" sx={{ 
                       fontWeight: 700,
-                      color: stat.color,
+                      color: '#fff',
                       fontFeatureSettings: '"tnum"'
                     }}>
                       {stat.value}
                     </Typography>
-                    {stat.icon}
+                    <Box sx={{ mt: -0.5 }}>{stat.icon}</Box>
                   </Box>
                   <Typography variant="body2" sx={{ 
-                    color: themeColors.textSecondary,
-                    fontWeight: 500
+                    color: 'rgba(255,255,255,0.95)',
+                    fontWeight: 700
                   }}>
                     {stat.label}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.84)', display: 'block', mt: 0.6 }}>
+                    ↗ {stat.helper}
                   </Typography>
                 </CardContent>
               </Card>
@@ -875,8 +944,8 @@ useEffect(() => {
         <Paper sx={{ 
           p: 3, 
           mb: 3, 
-          borderRadius: 3, 
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          borderRadius: '20px',
+          boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
           border: `1px solid ${themeColors.border}`,
           backgroundColor: themeColors.cardBackground
         }}>
@@ -895,7 +964,8 @@ useEffect(() => {
                 onClick={fetchAllRequests}
                 disabled={fetching}
                 sx={{ 
-                  borderRadius: 2,
+                  borderRadius: 2.5,
+                  textTransform: 'none',
                   fontWeight: 600,
                   borderColor: themeColors.border,
                   color: themeColors.textPrimary,
@@ -1007,7 +1077,7 @@ useEffect(() => {
             mb: 2, 
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
             border: `1px solid ${themeColors.border}`,
-            borderRadius: 2,
+            borderRadius: 2.5,
             overflow: 'hidden'
           }}>
             <Tabs
@@ -1060,8 +1130,8 @@ useEffect(() => {
         {/* Requests Table */}
         <Paper sx={{ 
           p: 3, 
-          borderRadius: 3, 
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          borderRadius: '20px',
+          boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
           border: `1px solid ${themeColors.border}`,
           backgroundColor: themeColors.cardBackground
         }}>
@@ -1118,11 +1188,11 @@ useEffect(() => {
               )}
             </Box>
           ) : (
-            <TableContainer sx={{ borderRadius: 2, border: `1px solid ${themeColors.border}` }}>
+            <TableContainer sx={{ borderRadius: 2.5, border: `1px solid ${themeColors.border}` }}>
               <Table>
                 <TableHead>
                   <TableRow sx={{ 
-                    bgcolor: '#f8fafc',
+                    bgcolor: 'rgba(22, 163, 74, 0.08)',
                     '& th': {
                       fontWeight: 600,
                       color: themeColors.textPrimary,
@@ -1339,7 +1409,7 @@ useEffect(() => {
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '18px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               border: `1px solid ${themeColors.border}`
             }
@@ -1525,6 +1595,9 @@ useEffect(() => {
               onClick={() => setOpenProcessDialog(false)}
               sx={{
                 color: themeColors.textSecondary,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
                   bgcolor: themeColors.primary + '08'
                 }
@@ -1538,7 +1611,8 @@ useEffect(() => {
               disabled={loading || (processForm.status === 'assigned' && !processForm.assignedTo)}
               sx={{ 
                 bgcolor: themeColors.primary,
-                borderRadius: 2,
+                borderRadius: 2.5,
+                textTransform: 'none',
                 fontWeight: 600,
                 px: 3,
                 '&:hover': {
@@ -1566,7 +1640,7 @@ useEffect(() => {
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '18px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               border: `1px solid ${themeColors.border}`
             }
@@ -1823,6 +1897,9 @@ useEffect(() => {
               onClick={() => setOpenCompleteDialog(false)}
               sx={{
                 color: themeColors.textSecondary,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
                   bgcolor: themeColors.primary + '08'
                 }

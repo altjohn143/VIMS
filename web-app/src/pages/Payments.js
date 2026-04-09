@@ -59,17 +59,18 @@ import qrphImage from '../assets/qrph.jpg';
 
 const Payments = () => {
   const themeColors = {
-    primary: '#2224be',
-    primaryDark: '#1a1c9e',
+    primary: '#166534',
+    primaryDark: '#14532d',
+    primaryLight: '#22c55e',
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
     info: '#3b82f6',
-    background: '#f8fafc',
+    background: '#f3f5f7',
     cardBackground: '#ffffff',
-    textPrimary: '#1e293b',
+    textPrimary: '#0f172a',
     textSecondary: '#64748b',
-    border: 'rgba(99, 102, 241, 0.1)'
+    border: 'rgba(15, 23, 42, 0.08)'
   };
 
   const [payments, setPayments] = useState([]);
@@ -299,18 +300,50 @@ const Payments = () => {
     : payments.filter(p => p.status === (activeTab === 1 ? 'pending' : 'paid'));
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: themeColors.background }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `,
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        }
+      }}
+    >
       {/* Navigation Bar */}
-      <AppBar position="static" sx={{ bgcolor: themeColors.primary, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={handleBack} sx={{ mr: 2 }}>
+          <IconButton
+            edge="start"
+            onClick={handleBack}
+            sx={{
+              mr: 2,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(34, 197, 94, 0.14)',
+              '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.24)' }
+            }}
+          >
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
             Payments & Dues
           </Typography>
-          <IconButton color="inherit" onClick={handleProfileMenuOpen}>
-            <Avatar sx={{ width: 36, height: 36, bgcolor: 'rgba(255,255,255,0.2)' }}>
+          <IconButton onClick={handleProfileMenuOpen}>
+            <Avatar sx={{ width: 36, height: 36, bgcolor: themeColors.primary }}>
               {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
             </Avatar>
           </IconButton>
@@ -330,11 +363,13 @@ const Payments = () => {
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Header Banner */}
         <Paper sx={{ 
-          p: 3, 
+          p: { xs: 2.5, md: 3 }, 
           mb: 4, 
-          borderRadius: 3, 
-          background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.primaryDark})`, 
-          color: 'white' 
+          borderRadius: '22px', 
+          background: `linear-gradient(135deg, ${themeColors.primaryLight}, ${themeColors.primary} 60%, ${themeColors.primaryDark})`, 
+          color: 'white',
+          boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+          animation: 'fadeUpSoft .45s ease-out'
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <PaymentIcon sx={{ fontSize: 48 }} />
@@ -349,55 +384,95 @@ const Payments = () => {
 
         {/* Stats Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3, border: `1px solid ${themeColors.border}` }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">Total Paid</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.success }}>
-                  {formatCurrency(summary.totalPaid)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3, border: `1px solid ${themeColors.border}` }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">Pending Balance</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.warning }}>
-                  {formatCurrency(summary.totalPending)}
-                </Typography>
-                <Typography variant="caption" color="textSecondary">{summary.pendingCount} pending invoices</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3, border: `1px solid ${themeColors.border}` }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">Overdue Amount</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.error }}>
-                  {formatCurrency(summary.overdueAmount)}
-                </Typography>
-                <Typography variant="caption" color="textSecondary">{summary.overdueCount} overdue invoices</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3, border: `1px solid ${themeColors.border}` }}>
-              <CardContent>
-                <Typography variant="body2" color="textSecondary">Collection Rate</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.info }}>
-                  {summary.totalPaid > 0 
-                    ? `${((summary.totalPaid / (summary.totalPaid + summary.totalPending)) * 100).toFixed(1)}%`
-                    : '0%'}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          {[
+            {
+              value: formatCurrency(summary.totalPaid),
+              label: 'Total Paid',
+              helper: 'settled payments',
+              icon: <CheckCircleIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 42 }} />,
+              gradient: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+              shadow: '0 14px 34px rgba(22,163,74,0.34)'
+            },
+            {
+              value: formatCurrency(summary.totalPending),
+              label: 'Pending Balance',
+              helper: `${summary.pendingCount || 0} pending invoices`,
+              icon: <PendingIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 42 }} />,
+              gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
+              shadow: '0 14px 34px rgba(14,165,233,0.34)'
+            },
+            {
+              value: formatCurrency(summary.overdueAmount),
+              label: 'Overdue Amount',
+              helper: `${summary.overdueCount || 0} overdue invoices`,
+              icon: <WarningIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 42 }} />,
+              gradient: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+              shadow: '0 14px 34px rgba(220,38,38,0.34)'
+            },
+            {
+              value: summary.totalPaid > 0
+                ? `${((summary.totalPaid / (summary.totalPaid + summary.totalPending)) * 100).toFixed(1)}%`
+                : '0%',
+              label: 'Collection Rate',
+              helper: 'payment health',
+              icon: <HistoryIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 42 }} />,
+              gradient: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)',
+              shadow: '0 14px 34px rgba(29,78,216,0.34)'
+            }
+          ].map((stat, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card
+                sx={{
+                  borderRadius: '20px',
+                  boxShadow: stat.shadow,
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  background: stat.gradient,
+                  color: '#fff',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    top: -20,
+                    right: -14,
+                    width: 96,
+                    height: 96,
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(255,255,255,0.12)'
+                  }
+                }}
+              >
+                <CardContent sx={{ p: 2.5, position: 'relative', zIndex: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#fff' }}>
+                      {stat.value}
+                    </Typography>
+                    {stat.icon}
+                  </Box>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.95)', fontWeight: 700 }}>
+                    {stat.label}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.84)', display: 'block', mt: 0.4 }}>
+                    ↗ {stat.helper}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
 
         {/* Current Month Dues Banner */}
         {currentDues && currentDues.status !== 'paid' && (
-          <Paper sx={{ p: 3, mb: 4, borderRadius: 3, border: `2px solid ${themeColors.warning}`, bgcolor: '#fffbeb' }}>
+          <Paper
+            sx={{
+              p: 3,
+              mb: 4,
+              borderRadius: '20px',
+              border: `1px solid ${themeColors.border}`,
+              boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
+              bgcolor: '#fff'
+            }}
+          >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 600, color: themeColors.warning }}>
@@ -417,7 +492,15 @@ const Payments = () => {
                 variant="contained"
                 startIcon={<QrCodeIcon />}
                 onClick={() => handlePayClick(currentDues)}
-                sx={{ bgcolor: themeColors.success, '&:hover': { bgcolor: '#0da271' }, px: 4, py: 1.5 }}
+                sx={{
+                  bgcolor: themeColors.success,
+                  '&:hover': { bgcolor: '#0da271' },
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 2.5,
+                  textTransform: 'none',
+                  fontWeight: 700
+                }}
               >
                 Pay Now
               </Button>
@@ -426,10 +509,23 @@ const Payments = () => {
         )}
 
         {/* Payment History Table */}
-        <Paper sx={{ p: 3, borderRadius: 3, border: `1px solid ${themeColors.border}` }}>
+        <Paper
+          sx={{
+            p: 3,
+            borderRadius: '20px',
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)'
+          }}
+        >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>Payment History</Typography>
-            <Button variant="outlined" size="small" startIcon={<HistoryIcon />} onClick={fetchData}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<HistoryIcon />}
+              onClick={fetchData}
+              sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
+            >
               Refresh
             </Button>
           </Box>
@@ -446,10 +542,10 @@ const Payments = () => {
               <Typography variant="body1" color="textSecondary">No payment records found</Typography>
             </Box>
           ) : (
-            <TableContainer>
+            <TableContainer sx={{ borderRadius: 2.5, border: `1px solid ${themeColors.border}` }}>
               <Table>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: themeColors.background }}>
+                  <TableRow sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
                     <TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>Amount</TableCell>
@@ -461,7 +557,7 @@ const Payments = () => {
                 </TableHead>
                 <TableBody>
                   {filteredPayments.map((payment) => (
-                    <TableRow key={payment._id} hover>
+                    <TableRow key={payment._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
                           {payment.invoiceNumber}
@@ -487,7 +583,7 @@ const Payments = () => {
                             size="small"
                             variant="contained"
                             onClick={() => handlePayClick(payment)}
-                            sx={{ bgcolor: themeColors.primary, fontSize: '0.7rem' }}
+                            sx={{ bgcolor: themeColors.primary, fontSize: '0.7rem', borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
                           >
                             Pay
                           </Button>
@@ -519,7 +615,7 @@ const Payments = () => {
         </Paper>
 
         {/* Payment Method Selection Dialog */}
-        <Dialog open={paymentMethodOpen} onClose={() => setPaymentMethodOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog open={paymentMethodOpen} onClose={() => setPaymentMethodOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
             Select Payment Method
           </DialogTitle>
@@ -538,7 +634,9 @@ const Payments = () => {
                     py: 2, 
                     justifyContent: 'flex-start', 
                     bgcolor: themeColors.primary,
-                    '&:hover': { bgcolor: themeColors.primaryDark }
+                    '&:hover': { bgcolor: themeColors.primaryDark },
+                    borderRadius: 2.5,
+                    textTransform: 'none'
                   }}
                 >
                   <Box sx={{ ml: 2, textAlign: 'left' }}>
@@ -559,7 +657,9 @@ const Payments = () => {
                     py: 2, 
                     justifyContent: 'flex-start',
                     borderColor: themeColors.border,
-                    color: themeColors.textPrimary
+                    color: themeColors.textPrimary,
+                    borderRadius: 2.5,
+                    textTransform: 'none'
                   }}
                 >
                   <Box sx={{ ml: 2, textAlign: 'left' }}>
@@ -573,12 +673,12 @@ const Payments = () => {
             </Grid>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setPaymentMethodOpen(false)}>Cancel</Button>
+            <Button onClick={() => setPaymentMethodOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
           </DialogActions>
         </Dialog>
 
         {/* QRPh Payment Dialog */}
-        <Dialog open={qrDialogOpen} onClose={() => setQrDialogOpen(false)} maxWidth="sm" fullWidth>
+        <Dialog open={qrDialogOpen} onClose={() => setQrDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary, borderBottom: `1px solid ${themeColors.border}` }}>
             Pay with QRPh
           </DialogTitle>
@@ -640,7 +740,7 @@ const Payments = () => {
                 variant="outlined"
                 startIcon={<UploadIcon />}
                 onClick={() => document.getElementById('receipt-upload').click()}
-                sx={{ mb: 2 }}
+                sx={{ mb: 2, borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
               >
                 Upload Receipt/Screenshot
               </Button>
@@ -661,12 +761,12 @@ const Payments = () => {
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            <Button onClick={() => setQrDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => setQrDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
             <Button 
               variant="contained" 
               onClick={handleUploadReceipt}
               disabled={!referenceNumber || !uploadedReceipt || processing}
-              sx={{ bgcolor: themeColors.success }}
+              sx={{ bgcolor: themeColors.success, borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
             >
               {processing ? <CircularProgress size={20} /> : 'Submit Payment'}
             </Button>
@@ -674,7 +774,7 @@ const Payments = () => {
         </Dialog>
 
         {/* Cash Payment Confirmation Dialog */}
-        <Dialog open={cashDialogOpen} onClose={() => setCashDialogOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog open={cashDialogOpen} onClose={() => setCashDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
             Cash Payment Selected
           </DialogTitle>
@@ -687,12 +787,12 @@ const Payments = () => {
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setCashDialogOpen(false)}>Close</Button>
+            <Button onClick={() => setCashDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Close</Button>
           </DialogActions>
         </Dialog>
 
         {/* Receipt Dialog */}
-        <Dialog open={receiptDialogOpen} onClose={() => setReceiptDialogOpen(false)} maxWidth="sm" fullWidth>
+        <Dialog open={receiptDialogOpen} onClose={() => setReceiptDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ bgcolor: themeColors.primary, color: 'white', fontWeight: 600 }}>
             Payment Receipt
           </DialogTitle>
@@ -764,8 +864,8 @@ const Payments = () => {
             </div>
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            <Button onClick={() => setReceiptDialogOpen(false)}>Close</Button>
-            <Button variant="contained" startIcon={<PrintIcon />} onClick={handlePrintReceipt}>
+            <Button onClick={() => setReceiptDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Close</Button>
+            <Button variant="contained" startIcon={<PrintIcon />} onClick={handlePrintReceipt} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
               Print Receipt
             </Button>
           </DialogActions>

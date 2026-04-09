@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Card, CardContent, Chip, Container, Typography, Divider } from '@mui/material';
+import { Box, Card, CardContent, Chip, Container, Typography, Divider, AppBar, Toolbar, IconButton } from '@mui/material';
+import { ArrowBack as ArrowBackIcon, Campaign as CampaignIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
@@ -17,6 +19,7 @@ const themeColors = {
 
 const Announcements = () => {
   const [rows, setRows] = useState([]);
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     try {
@@ -35,68 +38,100 @@ const Announcements = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: themeColors.background,
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `,
         display: 'flex',
         justifyContent: 'center',
-        px: { xs: 2, md: 3 },
-        py: { xs: 3, md: 5 },
+        px: { xs: 2, md: 0 },
+        py: { xs: 0, md: 0 },
       }}
     >
-      <Container
-        maxWidth="md"
-        sx={{
-          '@keyframes fadeUpSoft': {
-            from: { opacity: 0, transform: 'translateY(14px)' },
-            to: { opacity: 1, transform: 'translateY(0)' },
-          },
-        }}
-      >
+      <Box sx={{ width: '100%' }}>
+        <AppBar
+          position="sticky"
+          sx={{
+            bgcolor: 'rgba(255,255,255,0.92)',
+            color: themeColors.textPrimary,
+            backdropFilter: 'blur(14px)',
+            boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+            borderBottom: `1px solid ${themeColors.border}`
+          }}
+        >
+          <Toolbar>
+            <IconButton
+              edge="start"
+              onClick={() => navigate('/dashboard')}
+              sx={{
+                mr: 2,
+                color: themeColors.primary,
+                borderRadius: 2.5,
+                bgcolor: 'rgba(34, 197, 94, 0.14)',
+                '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.24)' }
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Announcements
+            </Typography>
+          </Toolbar>
+        </AppBar>
+
+        <Container
+          maxWidth="md"
+          sx={{
+            py: { xs: 3, md: 4 },
+            '@keyframes fadeUpSoft': {
+              from: { opacity: 0, transform: 'translateY(14px)' },
+              to: { opacity: 1, transform: 'translateY(0)' },
+            },
+          }}
+        >
         <Box
           sx={{
             mb: 3,
-            animation: 'fadeUpSoft 0.5s ease',
+            animation: 'fadeUpSoft 0.5s ease'
           }}
         >
-          <Typography
+          <Card
             sx={{
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.16em',
-              color: themeColors.primary,
-              mb: 0.75,
+              borderRadius: '22px',
+              color: '#fff',
+              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+              boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)'
             }}
           >
-            Community Updates
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: { xs: '1.5rem', md: '1.8rem' },
-              fontWeight: 900,
-              color: themeColors.textPrimary,
-            }}
-          >
-            Announcements & Advisories
-          </Typography>
-          <Typography
-            sx={{
-              mt: 0.75,
-              maxWidth: 560,
-              fontSize: '0.9rem',
-              color: themeColors.textSecondary,
-              fontWeight: 500,
-            }}
-          >
-            Stay informed about the latest community news, maintenance advisories, security reminders,
-            and upcoming events in Casimiro Westville Homes.
-          </Typography>
+            <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <CampaignIcon sx={{ color: '#bef264' }} />
+                <Typography sx={{ fontSize: { xs: '1.5rem', md: '1.8rem' }, fontWeight: 900, color: '#fff' }}>
+                  Announcements & Advisories
+                </Typography>
+              </Box>
+              <Typography
+                sx={{
+                  mt: 0.75,
+                  maxWidth: 560,
+                  fontSize: '0.9rem',
+                  color: 'rgba(255,255,255,0.9)',
+                  fontWeight: 500
+                }}
+              >
+                Stay informed about the latest community news, maintenance advisories, security reminders,
+                and upcoming events in Casimiro Westville Homes.
+              </Typography>
+            </CardContent>
+          </Card>
         </Box>
 
         {rows.length === 0 && (
           <Card
             elevation={0}
             sx={{
-              borderRadius: 3,
+              borderRadius: '20px',
               border: `1px dashed ${themeColors.border}`,
               bgcolor: themeColors.cardBackground,
               animation: 'fadeUpSoft 0.6s ease',
@@ -119,7 +154,7 @@ const Announcements = () => {
               key={item._id}
               elevation={0}
               sx={{
-                borderRadius: 3,
+                borderRadius: '20px',
                 border: `1px solid ${themeColors.border}`,
                 bgcolor: themeColors.cardBackground,
                 boxShadow: '0 14px 30px rgba(15, 23, 42, 0.06)',
@@ -188,7 +223,8 @@ const Announcements = () => {
             </Card>
           ))}
         </Box>
-      </Container>
+        </Container>
+      </Box>
     </Box>
   );
 };

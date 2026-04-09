@@ -31,6 +31,14 @@ const T = {
   bg: '#f6faf7',        // clean off-white background
 };
 
+const noRedErrorFieldSx = {
+  '& .MuiFormLabel-root.Mui-error': { color: '#475569' },
+  '& .MuiFormHelperText-root.Mui-error': { color: '#64748b' },
+  '& .MuiOutlinedInput-root.Mui-error fieldset': { borderColor: 'rgba(15, 23, 42, 0.24)' },
+  '& .MuiOutlinedInput-root.Mui-error:hover fieldset': { borderColor: 'rgba(15, 23, 42, 0.35)' },
+  '& .MuiOutlinedInput-root.Mui-error.Mui-focused fieldset': { borderColor: T.primary },
+};
+
 const ROLES = [
   { key: 'admin', label: 'ADMIN', description: 'Manages the system, resident records, and community information.', icon: <AdminIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80' },
   { key: 'resident', label: 'RESIDENT', description: 'Access personal information, community updates, and services.', icon: <HomeIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80' },
@@ -119,6 +127,70 @@ const Reveal = ({ children, sx = {}, delayMs = 0 }) => {
   );
 };
 
+const MiniCalendar = ({ currentDate, onPrevMonth, onNextMonth, compact = false, showFooter = false, onClose }) => {
+  const yr = currentDate.getFullYear();
+  const mo = currentDate.getMonth();
+  const first = new Date(yr, mo, 1).getDay();
+  const days = new Date(yr, mo + 1, 0).getDate();
+  const td = new Date();
+
+  const cells = [];
+  for (let i = 0; i < first; i++) cells.push(<Box key={`e${i}`} />);
+  for (let d = 1; d <= days; d++) {
+    const isT = d === td.getDate() && mo === td.getMonth() && yr === td.getFullYear();
+    cells.push(
+      <Box
+        key={d}
+        sx={{
+          textAlign: 'center',
+          py: compact ? '5px' : '8px',
+          borderRadius: '50%',
+          backgroundColor: isT ? T.primary : 'transparent',
+          color: isT ? 'white' : '#333',
+          fontSize: compact ? '0.78rem' : '0.85rem',
+          fontWeight: isT ? (compact ? 700 : 800) : (compact ? 400 : 500),
+          cursor: compact ? 'pointer' : 'default',
+          '&:hover': { backgroundColor: isT ? T.dark : '#e8f5e9' },
+        }}
+      >
+        {d}
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+        <IconButton size="small" onClick={onPrevMonth}>
+          <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
+        </IconButton>
+        <Typography sx={{ fontWeight: compact ? 700 : 800, color: T.primary, fontSize: compact ? '0.9rem' : '1rem' }}>
+          {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+        </Typography>
+        <IconButton size="small" onClick={onNextMonth}>
+          <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
+        </IconButton>
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
+        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+          <Typography key={d} sx={{ textAlign: 'center', fontSize: compact ? '0.68rem' : '0.72rem', fontWeight: compact ? 700 : 800, color: '#888' }}>{d}</Typography>
+        ))}
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+        {cells}
+      </Box>
+      {showFooter && (
+        <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography sx={{ fontSize: '0.72rem', color: '#888' }}>
+            Today: {new Date().toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </Typography>
+          <Button size="small" onClick={onClose} sx={{ color: T.primary, fontSize: '0.72rem', textTransform: 'none', fontWeight: 600 }}>Close</Button>
+        </Box>
+      )}
+    </Box>
+  );
+};
+
 const ANNOUNCEMENTS = [
   { id: 1, category: 'Security', date: 'March 10, 2026', title: 'Enhanced Gate Security Protocol Starting April 2026', body: 'Effective April 1, 2026, all visitors must present a valid government-issued ID and be registered in our VIMS visitor portal before entry. Homeowners are requested to pre-register expected visitors through the resident portal. QR code stickers will also be distributed for faster vehicle entry.', color: '#ef4444' },
   { id: 2, category: 'Maintenance', date: 'March 8, 2026', title: 'Scheduled Water Service Interruption – March 15, 2026', body: 'Water service will be temporarily interrupted on March 15, 2026 from 8:00 AM to 5:00 PM due to scheduled maintenance of the main water line on Casimiro Street. All residents are advised to store sufficient water. We apologize for the inconvenience.', color: '#f59e0b' },
@@ -129,14 +201,14 @@ const ANNOUNCEMENTS = [
 ];
 
 const OFFICIALS = [
-  { name: 'Eduardo M. Santos', position: 'HOA President', description: 'Leads the Homeowners Association in promoting community welfare, overseeing governance, and representing residents in all official matters.', avatar: 'ES', dept: 'Executive Board' },
-  { name: 'Maria Luisa R. Cruz', position: 'HOA Vice President', description: 'Assists the HOA President and oversees community programs, including environmental projects and resident welfare initiatives.', avatar: 'MC', dept: 'Executive Board' },
-  { name: 'Jose Antonio B. Reyes', position: 'HOA Secretary', description: 'Manages official correspondence, maintains community records, and handles documentation for all HOA meetings and resolutions.', avatar: 'JR', dept: 'Executive Board' },
-  { name: 'Cynthia L. Flores', position: 'HOA Treasurer', description: 'Oversees the collection of HOA dues, manages community funds, and prepares financial reports for the general assembly.', avatar: 'CF', dept: 'Executive Board' },
-  { name: 'Roberto D. Mercado', position: 'Security Committee Head', description: 'Coordinates all security operations including guard schedules, CCTV monitoring, visitor management, and emergency response.', avatar: 'RM', dept: 'Security Committee' },
-  { name: 'Angelica P. Torres', position: 'Facilities & Maintenance Head', description: 'Oversees maintenance of community facilities, roads, drainage, landscaping, and common areas within the village.', avatar: 'AT', dept: 'Maintenance Committee' },
-  { name: 'Dennis F. Garcia', position: 'Community Relations Officer', description: 'Handles resident concerns, mediates disputes, and organizes community events and programs to strengthen neighborly bonds.', avatar: 'DG', dept: 'Community Relations' },
-  { name: 'Patricia V. Lim', position: 'IT & Systems Coordinator', description: 'Manages the Village Information Management System (VIMS), resident portal, and all digital infrastructure of the community.', avatar: 'PL', dept: 'IT Committee' },
+  { name: 'Eduardo M. Santos', position: 'HOA President', description: 'Leads the Homeowners Association in promoting community welfare, overseeing governance, and representing residents in all official matters.', avatar: 'ES' },
+  { name: 'Maria Luisa R. Cruz', position: 'HOA Vice President', description: 'Assists the HOA President and oversees community programs, including environmental projects and resident welfare initiatives.', avatar: 'MC' },
+  { name: 'Jose Antonio B. Reyes', position: 'HOA Secretary', description: 'Manages official correspondence, maintains community records, and handles documentation for all HOA meetings and resolutions.', avatar: 'JR' },
+  { name: 'Cynthia L. Flores', position: 'HOA Treasurer', description: 'Oversees the collection of HOA dues, manages community funds, and prepares financial reports for the general assembly.', avatar: 'CF' },
+  { name: 'Roberto D. Mercado', position: 'Security Committee Head', description: 'Coordinates all security operations including guard schedules, CCTV monitoring, visitor management, and emergency response.', avatar: 'RM' },
+  { name: 'Angelica P. Torres', position: 'Facilities & Maintenance Head', description: 'Oversees maintenance of community facilities, roads, drainage, landscaping, and common areas within the village.', avatar: 'AT' },
+  { name: 'Dennis F. Garcia', position: 'Community Relations Officer', description: 'Handles resident concerns, mediates disputes, and organizes community events and programs to strengthen neighborly bonds.', avatar: 'DG' },
+  { name: 'Patricia V. Lim', position: 'IT & Systems Coordinator', description: 'Manages the Village Information Management System (VIMS), resident portal, and all digital infrastructure of the community.', avatar: 'PL' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -224,19 +296,19 @@ const ContactPage = ({ onClose }) => {
                   <Typography sx={{ color: '#888', fontSize: '0.85rem', mb: 3 }}>Fill out the form below and we'll respond as soon as possible.</Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
-                      <TextField fullWidth label="Full Name" value={form.name} onChange={e => { setForm({ ...form, name: e.target.value }); setErrors({ ...errors, name: '' }); }}
+                      <TextField sx={noRedErrorFieldSx} fullWidth label="Full Name" value={form.name} onChange={e => { setForm({ ...form, name: e.target.value }); setErrors({ ...errors, name: '' }); }}
                         error={!!errors.name} helperText={errors.name} InputProps={{ sx: { borderRadius: 2 } }} />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField fullWidth label="Email Address" value={form.email} onChange={e => { setForm({ ...form, email: e.target.value }); setErrors({ ...errors, email: '' }); }}
+                      <TextField sx={noRedErrorFieldSx} fullWidth label="Email Address" value={form.email} onChange={e => { setForm({ ...form, email: e.target.value }); setErrors({ ...errors, email: '' }); }}
                         error={!!errors.email} helperText={errors.email} InputProps={{ sx: { borderRadius: 2 } }} />
                     </Grid>
                     <Grid item xs={12}>
-                      <TextField fullWidth label="Subject" value={form.subject} onChange={e => { setForm({ ...form, subject: e.target.value }); setErrors({ ...errors, subject: '' }); }}
+                      <TextField sx={noRedErrorFieldSx} fullWidth label="Subject" value={form.subject} onChange={e => { setForm({ ...form, subject: e.target.value }); setErrors({ ...errors, subject: '' }); }}
                         error={!!errors.subject} helperText={errors.subject} InputProps={{ sx: { borderRadius: 2 } }} />
                     </Grid>
                     <Grid item xs={12}>
-                      <TextField fullWidth label="Message" multiline rows={5} value={form.message} onChange={e => { setForm({ ...form, message: e.target.value }); setErrors({ ...errors, message: '' }); }}
+                      <TextField sx={noRedErrorFieldSx} fullWidth label="Message" multiline rows={5} value={form.message} onChange={e => { setForm({ ...form, message: e.target.value }); setErrors({ ...errors, message: '' }); }}
                         error={!!errors.message} helperText={errors.message} InputProps={{ sx: { borderRadius: 2 } }} />
                     </Grid>
                     <Grid item xs={12}>
@@ -577,37 +649,14 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
             {showCalendar && (
               <Box sx={{ position: 'absolute', top: '160%', right: 0, width: 280, backgroundColor: 'white', borderRadius: 2, boxShadow: '0 8px 32px rgba(0,0,0,0.25)', p: 2, zIndex: 999, border: '1px solid rgba(45,80,22,0.15)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}>
-                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
-                  </IconButton>
-                  <Typography sx={{ fontWeight: 700, color: T.primary, fontSize: '0.9rem' }}>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</Typography>
-                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}>
-                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
-                  </IconButton>
-                </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
-                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => <Typography key={d} sx={{ textAlign: 'center', fontSize: '0.68rem', fontWeight: 700, color: '#888' }}>{d}</Typography>)}
-                </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-                  {(() => {
-                    const yr = currentDate.getFullYear(), mo = currentDate.getMonth();
-                    const first = new Date(yr, mo, 1).getDay();
-                    const days = new Date(yr, mo + 1, 0).getDate();
-                    const td = new Date();
-                    const cells = [];
-                    for (let i = 0; i < first; i++) cells.push(<Box key={`e${i}`} />);
-                    for (let d = 1; d <= days; d++) {
-                      const isT = d === td.getDate() && mo === td.getMonth() && yr === td.getFullYear();
-                      cells.push(<Box key={d} sx={{ textAlign: 'center', py: '5px', borderRadius: '50%', backgroundColor: isT ? T.primary : 'transparent', color: isT ? 'white' : '#333', fontSize: '0.78rem', fontWeight: isT ? 700 : 400, cursor: 'pointer', '&:hover': { backgroundColor: isT ? T.dark : '#e8f5e9' } }}>{d}</Box>);
-                    }
-                    return cells;
-                  })()}
-                </Box>
-                <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#888' }}>Today: {new Date().toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}</Typography>
-                  <Button size="small" onClick={() => setShowCalendar(false)} sx={{ color: T.primary, fontSize: '0.72rem', textTransform: 'none', fontWeight: 600 }}>Close</Button>
-                </Box>
+                <MiniCalendar
+                  currentDate={currentDate}
+                  compact
+                  showFooter
+                  onClose={() => setShowCalendar(false)}
+                  onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+                  onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+                />
               </Box>
             )}
           </Box>
@@ -1143,52 +1192,11 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             </Reveal>
             <Reveal delayMs={80} sx={{ maxWidth: 420 }}>
               <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: 2, border: '1px solid rgba(45,80,22,0.15)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}>
-                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
-                  </IconButton>
-                  <Typography sx={{ fontWeight: 800, color: T.primary, fontSize: '1rem' }}>
-                    {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                  </Typography>
-                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}>
-                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
-                  </IconButton>
-                </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
-                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                    <Typography key={d} sx={{ textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: '#888' }}>{d}</Typography>
-                  ))}
-                </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-                  {(() => {
-                    const yr = currentDate.getFullYear(), mo = currentDate.getMonth();
-                    const first = new Date(yr, mo, 1).getDay();
-                    const days = new Date(yr, mo + 1, 0).getDate();
-                    const td = new Date();
-                    const cells = [];
-                    for (let i = 0; i < first; i++) cells.push(<Box key={`e${i}`} />);
-                    for (let d = 1; d <= days; d++) {
-                      const isT = d === td.getDate() && mo === td.getMonth() && yr === td.getFullYear();
-                      cells.push(
-                        <Box
-                          key={d}
-                          sx={{
-                            textAlign: 'center',
-                            py: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: isT ? T.primary : 'transparent',
-                            color: isT ? 'white' : '#333',
-                            fontSize: '0.85rem',
-                            fontWeight: isT ? 800 : 500
-                          }}
-                        >
-                          {d}
-                        </Box>
-                      );
-                    }
-                    return cells;
-                  })()}
-                </Box>
+                <MiniCalendar
+                  currentDate={currentDate}
+                  onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+                  onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+                />
               </Box>
             </Reveal>
           </Container>
@@ -1217,13 +1225,6 @@ const Login = () => {
   const timerRef = useRef(null);
 
   const themeColors = { primary: T.primary, primaryDark: T.dark, textPrimary: '#1e293b', textSecondary: '#64748b' };
-  const noRedErrorFieldSx = {
-    '& .MuiFormLabel-root.Mui-error': { color: '#475569' },
-    '& .MuiFormHelperText-root.Mui-error': { color: '#64748b' },
-    '& .MuiOutlinedInput-root.Mui-error fieldset': { borderColor: 'rgba(15, 23, 42, 0.24)' },
-    '& .MuiOutlinedInput-root.Mui-error:hover fieldset': { borderColor: 'rgba(15, 23, 42, 0.35)' },
-    '& .MuiOutlinedInput-root.Mui-error.Mui-focused fieldset': { borderColor: T.primary },
-  };
 
   useEffect(() => {
     const storedAttempts = parseInt(localStorage.getItem('loginAttempts') || '0');
@@ -1469,7 +1470,7 @@ const Login = () => {
         <DialogTitle sx={{ fontWeight: 600 }}>Reset Password</DialogTitle>
         <DialogContent sx={{ p: 3, pt: 1 }}>
           <Typography variant="body2" sx={{ mb: 2, color: themeColors.textSecondary }}>Enter your email and we'll send you a reset link.</Typography>
-          <TextField fullWidth label="Email Address" type="email" name="email" value={formData.email} onChange={handleChange}
+          <TextField sx={noRedErrorFieldSx} fullWidth label="Email Address" type="email" name="email" value={formData.email} onChange={handleChange}
             InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>, sx: { borderRadius: 2 } }} />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

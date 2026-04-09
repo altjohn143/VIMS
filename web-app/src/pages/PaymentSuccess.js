@@ -73,17 +73,52 @@ const PaymentSuccess = () => {
   };
   
   const themeColors = {
-    primary: '#2224be',
+    primary: '#166534',
+    primaryDark: '#14532d',
+    primaryLight: '#22c55e',
     success: '#10b981',
-    background: '#f8fafc',
-    textPrimary: '#1e293b',
-    textSecondary: '#64748b'
+    background: '#f3f5f7',
+    textPrimary: '#0f172a',
+    textSecondary: '#64748b',
+    border: 'rgba(15, 23, 42, 0.08)'
   };
   
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: themeColors.background }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `
+      }}
+    >
       <Container maxWidth="sm" sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', py: 4 }}>
-        <Paper sx={{ p: 4, borderRadius: 3, textAlign: 'center', width: '100%' }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: '22px',
+            textAlign: 'center',
+            width: '100%',
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 16px 36px rgba(15, 23, 42, 0.10)',
+            bgcolor: '#fff'
+          }}
+        >
+          <Box
+            sx={{
+              mb: 2.5,
+              py: 1.8,
+              borderRadius: 3,
+              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+              color: '#fff'
+            }}
+          >
+            <Typography sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+              Payment Result
+            </Typography>
+          </Box>
           {loading ? (
             <CircularProgress size={60} sx={{ color: themeColors.primary, mb: 3 }} />
           ) : paymentStatus === 'paid' ? (
@@ -97,7 +132,7 @@ const PaymentSuccess = () => {
               </Typography>
               
               {paymentDetails && (
-                <Paper sx={{ p: 2, mb: 4, bgcolor: '#f0fdf4', borderRadius: 2 }}>
+                <Paper sx={{ p: 2, mb: 4, bgcolor: '#f0fdf4', borderRadius: 2.5, border: `1px solid ${themeColors.border}` }}>
                   <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
                     Payment Summary
                   </Typography>
@@ -136,7 +171,10 @@ const PaymentSuccess = () => {
                   startIcon={<HistoryIcon />}
                   sx={{ 
                     bgcolor: themeColors.primary,
-                    '&:hover': { bgcolor: '#1a1c9e' }
+                    borderRadius: 2.5,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    '&:hover': { bgcolor: themeColors.primaryDark }
                   }}
                 >
                   View My Payments
@@ -145,6 +183,11 @@ const PaymentSuccess = () => {
                   variant="outlined"
                   onClick={handleGoToDashboard}
                   startIcon={<HomeIcon />}
+                  sx={{
+                    borderRadius: 2.5,
+                    textTransform: 'none',
+                    fontWeight: 700
+                  }}
                 >
                   Back to Dashboard
                 </Button>
@@ -159,7 +202,12 @@ const PaymentSuccess = () => {
                 Your payment is being processed. Please check your payments page for updates.
               </Typography>
               <CircularProgress size={40} sx={{ mb: 3 }} />
-              <Button variant="contained" onClick={handleGoToPayments} startIcon={<ReceiptIcon />}>
+              <Button
+                variant="contained"
+                onClick={handleGoToPayments}
+                startIcon={<ReceiptIcon />}
+                sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}
+              >
                 View My Payments
               </Button>
             </>

@@ -62,20 +62,20 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const AdminVisitorManagement = () => {
-  // Dashboard Theme Colors from Login
+  // Dashboard Theme Colors
   const themeColors = {
-    primary: '#2224be',
-    primaryLight: '#2224be',
-    primaryDark: '#2224be',
+    primary: '#166534',
+    primaryLight: '#22c55e',
+    primaryDark: '#14532d',
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
     info: '#3b82f6',
-    background: '#f8fafc',
+    background: '#f3f5f7',
     cardBackground: '#ffffff',
-    textPrimary: '#1e293b',
+    textPrimary: '#0f172a',
     textSecondary: '#64748b',
-    border: 'rgba(99, 102, 241, 0.1)'
+    border: 'rgba(15, 23, 42, 0.08)'
   };
 
   const [visitors, setVisitors] = useState([]);
@@ -315,27 +315,51 @@ const handleReject = async () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundColor: themeColors.background
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `,
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(16px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        },
+        '@keyframes screenFadeIn': {
+          from: { opacity: 0, transform: 'translateY(10px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        }
       }}
     >
       {/* TOP NAVIGATION BAR */}
-      <AppBar position="static" sx={{ bgcolor: themeColors.primary, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={handleBack} sx={{ mr: 2 }}>
+          <IconButton edge="start" onClick={handleBack} sx={{ mr: 2, color: themeColors.textPrimary, bgcolor: 'rgba(15,23,42,0.04)', border: `1px solid ${themeColors.border}`, '&:hover': { bgcolor: 'rgba(15,23,42,0.08)' } }}>
             <ArrowBackIcon />
           </IconButton>
 
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 800 }}>
             Admin Visitor Management
           </Typography>
 
           <Button 
-            color="inherit" 
             onClick={handleLogout}
             startIcon={<LogoutIcon />}
             sx={{
+              color: themeColors.error,
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 700,
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                backgroundColor: 'rgba(239,68,68,0.08)'
               }
             }}
           >
@@ -344,14 +368,14 @@ const handleReject = async () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 3 }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: 4, animation: 'screenFadeIn 0.55s ease' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Avatar sx={{ 
                 bgcolor: themeColors.primary,
-                boxShadow: `0 4px 12px ${themeColors.primary}40`
+                boxShadow: `0 10px 22px ${themeColors.primary}40`
               }}>
                 <SecurityIcon />
               </Avatar>
@@ -377,9 +401,11 @@ const handleReject = async () => {
               onClick={handleBack}
               sx={{ 
                 display: { xs: 'none', sm: 'flex' },
-                borderRadius: 2,
+                  borderRadius: '12px',
                 borderColor: themeColors.primary,
                 color: themeColors.primary,
+                  textTransform: 'none',
+                  fontWeight: 700,
                 '&:hover': {
                   borderColor: themeColors.primaryDark,
                   backgroundColor: themeColors.primary + '08'
@@ -395,14 +421,29 @@ const handleReject = async () => {
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={6} sm={3}>
                 <Card sx={{ 
-                  borderRadius: 3, 
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                  border: `1px solid ${themeColors.border}`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '20px', 
+                  color: 'white',
+                  background: 'linear-gradient(135deg, #2349d8 0%, #243fb8 100%)',
+                  boxShadow: '0 16px 28px rgba(15,23,42,0.10)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  animation: 'fadeUpSoft 0.45s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)'
+                    boxShadow: '0 18px 34px rgba(15,23,42,0.12)'
                   },
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    width: 120,
+                    height: 120,
+                    borderRadius: '50%',
+                    top: -38,
+                    right: -28,
+                    bgcolor: 'rgba(255,255,255,0.14)'
+                  }
                 }}>
                   <CardContent sx={{ textAlign: 'center', p: 3 }}>
                     <Typography variant="h4" sx={{ 
@@ -411,20 +452,35 @@ const handleReject = async () => {
                     }}>
                       {stats.totals?.totalVisitors || 0}
                     </Typography>
-                    <Typography sx={{ color: themeColors.textSecondary }}>Total Visitors</Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.86)' }}>Total Visitors</Typography>
                   </CardContent>
                 </Card>
               </Grid>
               <Grid item xs={6} sm={3}>
                 <Card sx={{ 
-                  borderRadius: 3, 
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                  border: `1px solid ${themeColors.border}`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '20px', 
+                  color: 'white',
+                  background: 'linear-gradient(135deg, #18a34a 0%, #17803d 100%)',
+                  boxShadow: '0 16px 28px rgba(15,23,42,0.10)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  animation: 'fadeUpSoft 0.52s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)'
+                    boxShadow: '0 18px 34px rgba(15,23,42,0.12)'
                   },
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    width: 120,
+                    height: 120,
+                    borderRadius: '50%',
+                    top: -38,
+                    right: -28,
+                    bgcolor: 'rgba(255,255,255,0.14)'
+                  }
                 }}>
                   <CardContent sx={{ textAlign: 'center', p: 3 }}>
                     <Typography variant="h4" sx={{ 
@@ -434,20 +490,35 @@ const handleReject = async () => {
                     }}>
                       {stats.totals?.pendingVisitors || 0}
                     </Typography>
-                    <Typography sx={{ color: themeColors.textSecondary }}>Pending</Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.86)' }}>Pending</Typography>
                   </CardContent>
                 </Card>
               </Grid>
               <Grid item xs={6} sm={3}>
                 <Card sx={{ 
-                  borderRadius: 3, 
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                  border: `1px solid ${themeColors.border}`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '20px', 
+                  color: 'white',
+                  background: 'linear-gradient(135deg, #0986c8 0%, #0d6997 100%)',
+                  boxShadow: '0 16px 28px rgba(15,23,42,0.10)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  animation: 'fadeUpSoft 0.59s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)'
+                    boxShadow: '0 18px 34px rgba(15,23,42,0.12)'
                   },
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    width: 120,
+                    height: 120,
+                    borderRadius: '50%',
+                    top: -38,
+                    right: -28,
+                    bgcolor: 'rgba(255,255,255,0.14)'
+                  }
                 }}>
                   <CardContent sx={{ textAlign: 'center', p: 3 }}>
                     <Typography variant="h4" sx={{ 
@@ -456,20 +527,35 @@ const handleReject = async () => {
                     }}>
                       {stats.totals?.approvedVisitors || 0}
                     </Typography>
-                    <Typography sx={{ color: themeColors.textSecondary }}>Approved</Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.86)' }}>Approved</Typography>
                   </CardContent>
                 </Card>
               </Grid>
               <Grid item xs={6} sm={3}>
                 <Card sx={{ 
-                  borderRadius: 3, 
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                  border: `1px solid ${themeColors.border}`,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '20px', 
+                  color: 'white',
+                  background: 'linear-gradient(135deg, #e02424 0%, #b91c1c 100%)',
+                  boxShadow: '0 16px 28px rgba(15,23,42,0.10)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  animation: 'fadeUpSoft 0.66s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.12)'
+                    boxShadow: '0 18px 34px rgba(15,23,42,0.12)'
                   },
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    width: 120,
+                    height: 120,
+                    borderRadius: '50%',
+                    top: -38,
+                    right: -28,
+                    bgcolor: 'rgba(255,255,255,0.14)'
+                  }
                 }}>
                   <CardContent sx={{ textAlign: 'center', p: 3 }}>
                     <Typography variant="h4" sx={{ 
@@ -478,7 +564,7 @@ const handleReject = async () => {
                     }}>
                       {stats.totals?.activeVisitors || 0}
                     </Typography>
-                    <Typography sx={{ color: themeColors.textSecondary }}>Active Now</Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.86)' }}>Active Now</Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -489,10 +575,11 @@ const handleReject = async () => {
           <Paper sx={{ 
             p: 3, 
             mb: 3, 
-            borderRadius: 3, 
-            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            borderRadius: '20px', 
+            boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
             border: `1px solid ${themeColors.border}`,
-            backgroundColor: themeColors.cardBackground
+            backgroundColor: themeColors.cardBackground,
+            animation: 'fadeUpSoft 0.7s ease'
           }}>
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} sm={4}>
@@ -501,7 +588,7 @@ const handleReject = async () => {
                   label="Search by name"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -580,7 +667,7 @@ const handleReject = async () => {
                     startIcon={<FilterIcon />}
                     fullWidth
                     sx={{ 
-                      borderRadius: 2,
+                      borderRadius: '12px',
                       bgcolor: themeColors.primary,
                       '&:hover': {
                         bgcolor: themeColors.primaryDark
@@ -595,9 +682,10 @@ const handleReject = async () => {
                     onClick={handleClearFilters}
                     fullWidth
                     sx={{ 
-                      borderRadius: 2,
+                      borderRadius: '12px',
                       borderColor: themeColors.border,
                       color: themeColors.textPrimary,
+                      textTransform: 'none',
                       '&:hover': {
                         borderColor: themeColors.primary,
                         backgroundColor: themeColors.primary + '08'
@@ -614,7 +702,7 @@ const handleReject = async () => {
 
         {/* Actions */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h6" sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ color: themeColors.textPrimary, fontWeight: 800 }}>
             Visitor List ({total} total)
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -626,9 +714,11 @@ const handleReject = async () => {
                 fetchStats();
               }}
               sx={{ 
-                borderRadius: 2,
+                borderRadius: '12px',
                 borderColor: themeColors.border,
                 color: themeColors.textPrimary,
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
                   borderColor: themeColors.primary,
                   backgroundColor: themeColors.primary + '08'
@@ -642,9 +732,11 @@ const handleReject = async () => {
               startIcon={<DownloadIcon />}
               onClick={() => setExportDialogOpen(true)}
               sx={{ 
-                borderRadius: 2,
+                borderRadius: '12px',
                 borderColor: themeColors.border,
                 color: themeColors.textPrimary,
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
                   borderColor: themeColors.primary,
                   backgroundColor: themeColors.primary + '08'
@@ -658,12 +750,13 @@ const handleReject = async () => {
               startIcon={<ChartIcon />}
               onClick={() => navigate('/admin/visitor-reports')}
               sx={{ 
-                borderRadius: 2,
+                borderRadius: '12px',
                 bgcolor: themeColors.primary,
                 '&:hover': {
                   bgcolor: themeColors.primaryDark
                 },
-                fontWeight: 600
+                fontWeight: 700,
+                textTransform: 'none'
               }}
             >
               Reports
@@ -673,14 +766,16 @@ const handleReject = async () => {
 
         {/* Visitors Table */}
         <TableContainer component={Paper} sx={{ 
-          borderRadius: 3, 
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          borderRadius: '20px', 
+          boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
           border: `1px solid ${themeColors.border}`,
-          backgroundColor: themeColors.cardBackground
+          backgroundColor: themeColors.cardBackground,
+          overflow: 'hidden',
+          animation: 'fadeUpSoft 0.82s ease'
         }}>
           <Table>
             <TableHead>
-              <TableRow sx={{ bgcolor: themeColors.background }}>
+              <TableRow sx={{ bgcolor: '#f8fafc' }}>
                 <TableCell sx={{ fontWeight: 600, color: themeColors.textPrimary }}>Visitor Name</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: themeColors.textPrimary }}>Resident</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: themeColors.textPrimary }}>Purpose</TableCell>
@@ -706,7 +801,7 @@ const handleReject = async () => {
                     key={visitor._id} 
                     hover
                     sx={{ 
-                      '&:hover': { backgroundColor: themeColors.background + '80' },
+                      '&:hover': { backgroundColor: '#f8fafc' },
                       borderBottom: `1px solid ${themeColors.border}`
                     }}
                   >
@@ -801,7 +896,7 @@ const handleReject = async () => {
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '20px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               backgroundColor: themeColors.cardBackground
             }
@@ -879,10 +974,12 @@ const handleReject = async () => {
               onClick={() => setViewDialogOpen(false)}
               sx={{
                 color: themeColors.textSecondary,
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
                   backgroundColor: themeColors.primary + '08'
-                },
-                borderRadius: 2
+                }
               }}
             >
               Close
@@ -898,7 +995,7 @@ const handleReject = async () => {
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '20px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               backgroundColor: themeColors.cardBackground
             }
@@ -956,7 +1053,7 @@ const handleReject = async () => {
               </Grid>
               <Grid item xs={12}>
                 <Alert severity="info" sx={{ 
-                  borderRadius: 2,
+                  borderRadius: '12px',
                   backgroundColor: themeColors.info + '15',
                   border: `1px solid ${themeColors.info}30`
                 }}>
@@ -970,10 +1067,12 @@ const handleReject = async () => {
               onClick={() => setExportDialogOpen(false)}
               sx={{
                 color: themeColors.textSecondary,
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
                   backgroundColor: themeColors.primary + '08'
-                },
-                borderRadius: 2
+                }
               }}
             >
               Cancel
@@ -984,12 +1083,13 @@ const handleReject = async () => {
               disabled={exportLoading}
               startIcon={exportLoading ? <CircularProgress size={20} /> : <DownloadIcon />}
               sx={{ 
-                borderRadius: 2,
+                borderRadius: '12px',
                 bgcolor: themeColors.primary,
                 '&:hover': {
                   bgcolor: themeColors.primaryDark
                 },
-                fontWeight: 600
+                fontWeight: 700,
+                textTransform: 'none'
               }}
             >
               {exportLoading ? 'Exporting...' : 'Export'}

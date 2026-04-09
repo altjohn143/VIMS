@@ -1076,6 +1076,8 @@ const Register = () => {
                       accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0] || null;
+                        setOcrUnavailable(false);
+                        setLastOcrSignature('');
                         setIdDocs((prev) => {
                           const next = { ...prev, frontImage: file };
                           queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
@@ -1095,6 +1097,8 @@ const Register = () => {
                       accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0] || null;
+                        setOcrUnavailable(false);
+                        setLastOcrSignature('');
                         setIdDocs((prev) => {
                           const next = { ...prev, backImage: file };
                           queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
@@ -1124,9 +1128,26 @@ const Register = () => {
                 </Typography>
               )}
               {ocrUnavailable && (
-                <Typography variant="caption" sx={{ display: 'block', mt: 1, color: themeColors.warning }}>
-                  AI OCR autofill is currently unavailable. You can continue registration by filling details manually.
-                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" sx={{ display: 'block', color: themeColors.warning }}>
+                    AI OCR autofill hit a quota/limit. You can continue manually, or try again after updating your backend API key and restarting Render.
+                  </Typography>
+                  {idDocs.frontImage && idDocs.backImage && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      sx={{ mt: 0.5, p: 0, minWidth: 0, textTransform: 'none', color: themeColors.primary, fontWeight: 700 }}
+                      onClick={() => {
+                        setOcrUnavailable(false);
+                        setLastOcrSignature('');
+                        setLastOcrAt(0);
+                        tryOcrAutofill(idDocs.frontImage, idDocs.backImage);
+                      }}
+                    >
+                      Try scanning ID again
+                    </Button>
+                  )}
+                </Box>
               )}
             </Grid>
 

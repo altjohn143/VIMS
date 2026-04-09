@@ -68,35 +68,149 @@ function normalizeLines(text) {
     .filter(Boolean);
 }
 
-function extractDobFixed(fullText) {
-  const t = fullText.replace(/\s+/g, ' ');
-  const iso = t.match(/\b(\d{4})[/-](\d{1,2})[/-](\d{1,2})\b/);
+/** Common OCR mistakes in numeric dates */
+function normalizeOcrDigitsInDates(text) {
+  return text
+    .replace(/([0-9])O([0-9])/g, '$10$2')
+    .replace(/([0-9])o([0-9])/g, '$10$2')
+    .replace(/\bO([0-9]{1,2})\b/g, '0$1');
+}
+
+function parseYyyyMmDd(y, mo, d) {
+  const yi = Number(y);
+  const mi = Number(mo);
+  const di = Number(d);
+  if (yi < 1900 || yi > 2100 || mi < 1 || mi > 12 || di < 1 || di > 31) return '';
+  return `${yi}-${String(mi).padStart(2, '0')}-${String(di).padStart(2, '0')}`;
+}
+
+/** PH-style: day/month/year when both day and month could be ≤12 */
+function parseDmyPh(a, b, c) {
+  const cy = c.length === 2 ? `20${c}` : c;
+  const first = Number(a);
+  const second = Number(b);
+  let day;
+  let month;
+  const year = cy;
+  if (first > 12) {
+    day = a;
+    month = b;
+  } else if (second > 12) {
+    day = b;
+    month = a;
+  } else {
+    // Ambiguous: assume DD/MM/YYYY (Philippines)
+    day = a;
+    month = b;
+  }
+  return parseYyyyMmDd(year, month, day);
+}
+
+function extractFirstDmyFromString(t) {
+  const iso = t.match(/\b(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})\b/);
   if (iso) {
     const [, y, mo, d] = iso;
-    return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    return parseYyyyMmDd(y, mo, d);
   }
-  const dmy = t.match(/\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b/);
+  const dmy = t.match(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b/);
   if (dmy) {
-    let [, a, b, c] = dmy;
-    const cy = c.length === 2 ? `20${c}` : c;
-    const first = Number(a);
-    const second = Number(b);
-    let day;
-    let month;
-    let year = cy;
-    if (first > 12) {
-      day = a;
-      month = b;
-    } else if (second > 12) {
-      day = b;
-      month = a;
-    } else {
-      day = a;
-      month = b;
+    const [, a, b, c] = dmy;
+    return parseDmyPh(a, b, c);
+  }
+  return '';
+}
+
+const MONTH_MAP = {
+  january: 1,
+  jan: 1,
+  february: 2,
+  feb: 2,
+  march: 3,
+  mar: 3,
+  april: 4,
+  apr: 4,
+  may: 5,
+  june: 6,
+  jun: 6,
+  july: 7,
+  jul: 7,
+  august: 8,
+  aug: 8,
+  september: 9,
+  sep: 9,
+  sept: 9,
+  october: 10,
+  oct: 10,
+  november: 11,
+  nov: 11,
+  december: 12,
+  dec: 12
+};
+
+function extractMonthNameDate(t) {
+  const re = /\b(\d{1,2})[\s./-]+([A-Za-z]{3,9})[\s./-]+(\d{2,4})\b/i;
+  const m = t.match(re);
+  if (!m) return '';
+  const [, d, monStr, yStr] = m;
+  const mo = MONTH_MAP[monStr.toLowerCase()];
+  if (!mo) return '';
+  const y = yStr.length === 2 ? `20${yStr}` : yStr;
+  return parseYyyyMmDd(y, mo, d);
+}
+
+/** Prefer date on/near lines that mention birth (avoids expiry / issue dates when possible) */
+function extractDobNearBirthLabels(lines, fullTextNormalized) {
+  const birthRes = [
+    /birth|kapanganakan|date\s*of\s*birth|d\.?\s*o\.?\s*b|birthdate|birth\s*date|petsa\s*ng\s*kapanganakan/i
+  ];
+  const window = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!birthRes.some((re) => re.test(lines[i]))) continue;
+    for (let j = i; j < Math.min(i + 4, lines.length); j++) {
+      window.push(lines[j]);
     }
-    const yNum = Number(year);
-    if (yNum > 1900 && yNum < 2100) {
-      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+  const chunk = window.join(' ');
+  let dob = extractFirstDmyFromString(chunk);
+  if (!dob) dob = extractMonthNameDate(chunk);
+  if (dob) return dob;
+
+  for (const line of lines) {
+    if (!birthRes.some((re) => re.test(line))) continue;
+    const same = extractFirstDmyFromString(line) || extractMonthNameDate(line);
+    if (same) return same;
+  }
+  return '';
+}
+
+function extractDobFixed(fullText) {
+  const t = normalizeOcrDigitsInDates(fullText.replace(/\s+/g, ' '));
+  const lines = normalizeLines(fullText);
+
+  const nearBirth = extractDobNearBirthLabels(lines, t);
+  if (nearBirth) return nearBirth;
+
+  const iso = t.match(/\b(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})\b/);
+  if (iso) {
+    const [, y, mo, d] = iso;
+    const out = parseYyyyMmDd(y, mo, d);
+    if (out) return out;
+  }
+  const dmy = t.match(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b/);
+  if (dmy) {
+    const [, a, b, c] = dmy;
+    return parseDmyPh(a, b, c);
+  }
+
+  const monthName = extractMonthNameDate(t);
+  if (monthName) return monthName;
+
+  const allDates = [...t.matchAll(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b/g)];
+  for (const m of allDates) {
+    const parsed = parseDmyPh(m[1], m[2], m[3]);
+    if (parsed) {
+      const y = Number(parsed.slice(0, 4));
+      if (y >= 1940 && y <= 2015) return parsed;
     }
   }
   return '';

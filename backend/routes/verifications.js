@@ -5,7 +5,7 @@ const fs = require('fs');
 const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
-const { queueIdentityVerification, classifyVerificationResult, extractIdFieldsFromImages } = require('../services/aiVerificationService');
+const { queueIdentityVerification, classifyVerificationResult, extractIdFieldsFromImages, listGeminiModels } = require('../services/aiVerificationService');
 
 const router = express.Router();
 
@@ -30,6 +30,17 @@ router.get('/ping', (req, res) => {
     hasOcrRoute: true,
     time: new Date().toISOString()
   });
+});
+
+router.get('/gemini-models', protect, authorize('admin'), async (req, res) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.status(503).json({ success: false, error: 'GEMINI_API_KEY is not configured' });
+    const models = await listGeminiModels(apiKey);
+    return res.json({ success: true, count: models.length, data: models });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Failed to list Gemini models', details: error.message || 'Unknown error' });
+  }
 });
 
 router.post(

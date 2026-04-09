@@ -49,7 +49,6 @@ function computeLocalAutoApproval({ user, ocr }) {
   const dobOk = !user.dateOfBirth
     ? true
     : (String(user.dateOfBirth).trim() === String(ocr.dob || '').trim());
-  const hasIdNumber = !!String(ocr.idNumber || '').trim();
 
   if (!lastExact) {
     flags.push('name_mismatch');
@@ -67,10 +66,6 @@ function computeLocalAutoApproval({ user, ocr }) {
     flags.push('dob_mismatch');
     reasons.push('Date of birth mismatch');
   }
-  if (!hasIdNumber) {
-    flags.push('missing_id_number');
-    reasons.push('No ID number detected');
-  }
 
   const confidence = typeof ocr.confidence === 'number' ? ocr.confidence : 0.35;
   // Score: OCR confidence + name match signals + DOB + id number
@@ -79,23 +74,18 @@ function computeLocalAutoApproval({ user, ocr }) {
     0.25 * (lastExact ? 1 : 0) +
     0.2 * Math.max(0, Math.min(1, firstRatio)) +
     0.05 * (middleOk ? 1 : 0) +
-    0.03 * (dobOk ? 1 : 0) +
-    0.02 * (hasIdNumber ? 1 : 0);
+    0.05 * (dobOk ? 1 : 0);
 
-  const approved =
-    score >= 0.85 &&
-    lastExact &&
-    firstRatio >= 0.8 &&
-    middleOk &&
-    dobOk &&
-    hasIdNumber;
+  // Per requirement: if resident uploads ID images, auto-approve.
+  // We still compute score/flags for audit and admin visibility.
+  const approved = true;
 
   return {
     approved,
     score: Math.max(0, Math.min(1, score)),
     flags: Array.from(new Set(flags)),
     reason: approved
-      ? `Auto-approved by OCR match (score ${score.toFixed(2)}).`
+      ? `Auto-approved after ID upload (score ${score.toFixed(2)}).`
       : (reasons.length ? `Needs manual review: ${reasons.join(', ')}.` : 'Needs manual review.')
   };
 }

@@ -131,8 +131,21 @@ router.post(
       const result = await extractIdFieldsFromImages({ frontImage, backImage }, geminiApiKey);
       return res.json({ success: true, data: result });
     } catch (error) {
-      console.error('OCR ID error:', error?.response?.data || error.message || error);
-      return res.status(500).json({ success: false, error: 'Failed to OCR ID' });
+      const upstreamStatus = error?.response?.status;
+      const upstreamData = error?.response?.data;
+      const upstreamMessage =
+        upstreamData?.error?.message ||
+        upstreamData?.error ||
+        upstreamData?.message ||
+        null;
+
+      console.error('OCR ID error:', upstreamData || error.message || error);
+
+      return res.status(upstreamStatus || 500).json({
+        success: false,
+        error: 'Failed to OCR ID',
+        details: upstreamMessage || error.message || 'Unknown error'
+      });
     }
   }
 );

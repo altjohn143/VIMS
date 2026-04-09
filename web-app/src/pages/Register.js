@@ -108,6 +108,8 @@ const Register = () => {
     selfieImage: null
   });
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [lastOcrSignature, setLastOcrSignature] = useState('');
+  const [lastOcrAt, setLastOcrAt] = useState(0);
 
   const [availableLots, setAvailableLots] = useState([]);
   const [allLots, setAllLots] = useState([]);
@@ -419,7 +421,17 @@ const Register = () => {
     if (!nextFront || !nextBack) return;
     if (ocrLoading) return;
 
+    const signature = `${nextFront.name}:${nextFront.size}:${nextFront.lastModified}|${nextBack.name}:${nextBack.size}:${nextBack.lastModified}`;
+    if (signature === lastOcrSignature) return;
+
+    const now = Date.now();
+    if (now - lastOcrAt < 8000) {
+      return;
+    }
+
     setOcrLoading(true);
+    setLastOcrSignature(signature);
+    setLastOcrAt(now);
     try {
       const multipart = new FormData();
       multipart.append('frontImage', nextFront);
@@ -440,7 +452,11 @@ const Register = () => {
       }
     } catch (err) {
       const status = err?.response?.status;
-      const serverMessage = err?.response?.data?.error || err?.response?.data?.message || err?.message;
+      const serverMessage =
+        err?.response?.data?.details ||
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message;
       toast.error(`Couldn't scan ID${status ? ` (${status})` : ''}${serverMessage ? `: ${serverMessage}` : ''}`);
     } finally {
       setOcrLoading(false);

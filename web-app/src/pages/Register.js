@@ -41,7 +41,7 @@ import {
   Map as MapIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
 // Import the LotMap component
@@ -107,6 +107,7 @@ const Register = () => {
     backImage: null,
     selfieImage: null
   });
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   const [availableLots, setAvailableLots] = useState([]);
   const [allLots, setAllLots] = useState([]);
@@ -398,13 +399,56 @@ const Register = () => {
           });
         }
       } catch (uploadError) {
-        toast.error('Registration succeeded, but ID upload failed. Please upload your ID later.');
+        const status = uploadError?.response?.status;
+        const serverMessage =
+          uploadError?.response?.data?.error ||
+          uploadError?.response?.data?.message ||
+          uploadError?.message;
+        toast.error(
+          `Registration succeeded, but ID upload failed${status ? ` (${status})` : ''}${
+            serverMessage ? `: ${serverMessage}` : '.'
+          }`
+        );
       }
       navigate('/pending-approval');
     } else {
       setErrors(prev => ({ ...prev, submit: result.error || 'Registration failed' }));
     }
     setLoading(false);
+  };
+
+  const tryOcrAutofill = async (nextFront, nextBack) => {
+    if (!nextFront || !nextBack) return;
+    if (ocrLoading) return;
+
+    setOcrLoading(true);
+    try {
+      const multipart = new FormData();
+      multipart.append('frontImage', nextFront);
+      multipart.append('backImage', nextBack);
+
+      const res = await axios.post('/api/verifications/ocr-id', multipart, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data?.success && res.data?.data) {
+        const ocr = res.data.data;
+        setFormData((prev) => ({
+          ...prev,
+          firstName: prev.firstName?.trim() ? prev.firstName : (ocr.firstName || prev.firstName),
+          lastName: prev.lastName?.trim() ? prev.lastName : (ocr.lastName || prev.lastName)
+        }));
+
+        const conf = typeof ocr.confidence === 'number' ? ocr.confidence : null;
+        toast.success(`ID scanned${conf !== null ? ` (confidence ${(conf * 100).toFixed(0)}%)` : ''}. Please review your details.`);
+      }
+    } catch (err) {
+      const status = err?.response?.status;
+      const serverMessage = err?.response?.data?.error || err?.response?.data?.message || err?.message;
+      toast.error(`Couldn't scan ID${status ? ` (${status})` : ''}${serverMessage ? `: ${serverMessage}` : ''}`);
+    } finally {
+      setOcrLoading(false);
+    }
   };
 
   const getAvailabilityIcon = (field) => {
@@ -1011,7 +1055,14 @@ const Register = () => {
                       hidden
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setIdDocs((prev) => ({ ...prev, frontImage: e.target.files?.[0] || null }))}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setIdDocs((prev) => {
+                          const next = { ...prev, frontImage: file };
+                          queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                          return next;
+                        });
+                      }}
                     />
                   </Button>
                   <Typography variant="caption">{idDocs.frontImage?.name || 'No file selected'}</Typography>
@@ -1023,7 +1074,14 @@ const Register = () => {
                       hidden
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setIdDocs((prev) => ({ ...prev, backImage: e.target.files?.[0] || null }))}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setIdDocs((prev) => {
+                          const next = { ...prev, backImage: file };
+                          queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                          return next;
+                        });
+                      }}
                     />
                   </Button>
                   <Typography variant="caption">{idDocs.backImage?.name || 'No file selected'}</Typography>
@@ -1041,6 +1099,11 @@ const Register = () => {
                   <Typography variant="caption">{idDocs.selfieImage?.name || 'No file selected'}</Typography>
                 </Grid>
               </Grid>
+              {ocrLoading && (
+                <Typography variant="caption" sx={{ display: 'block', mt: 1, color: themeColors.textSecondary }}>
+                  Scanning ID to autofill details…
+                </Typography>
+              )}
             </Grid>
 
             {/* Submit button */}

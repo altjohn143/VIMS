@@ -5,7 +5,7 @@ const fs = require('fs');
 const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
-const { queueIdentityVerification, classifyVerificationResult } = require('../services/aiVerificationService');
+const { queueIdentityVerification, classifyVerificationResult, extractIdFieldsFromImages } = require('../services/aiVerificationService');
 
 const router = express.Router();
 
@@ -105,6 +105,34 @@ router.post(
     } catch (error) {
       console.error('Upload ID error:', error);
       res.status(500).json({ success: false, error: 'Failed to upload ID' });
+    }
+  }
+);
+
+router.post(
+  '/ocr-id',
+  upload.fields([
+    { name: 'frontImage', maxCount: 1 },
+    { name: 'backImage', maxCount: 1 }
+  ]),
+  async (req, res) => {
+    try {
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        return res.status(503).json({ success: false, error: 'OCR service is not configured' });
+      }
+
+      const frontImage = req.files?.frontImage?.[0]?.filename || null;
+      const backImage = req.files?.backImage?.[0]?.filename || null;
+      if (!frontImage || !backImage) {
+        return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
+      }
+
+      const result = await extractIdFieldsFromImages({ frontImage, backImage }, geminiApiKey);
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('OCR ID error:', error?.response?.data || error.message || error);
+      return res.status(500).json({ success: false, error: 'Failed to OCR ID' });
     }
   }
 );

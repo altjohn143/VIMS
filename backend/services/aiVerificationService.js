@@ -157,8 +157,57 @@ function classifyVerificationResult({ score, flags = [] }) {
   };
 }
 
+async function extractIdFieldsFromImages({ frontImage, backImage }, apiKey) {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const prompt = [
+    'You are an OCR assistant for government IDs.',
+    'Extract the person details from the provided ID images.',
+    'Return ONLY valid JSON with this shape:',
+    '{"firstName": string, "lastName": string, "middleName": string, "dob": string, "idNumber": string, "confidence": number 0..1}',
+    'Rules:',
+    '- Use empty string for unknown fields.',
+    "- dob should be in 'YYYY-MM-DD' if possible; otherwise return the raw DOB text you see.",
+    '- confidence should reflect how sure you are the extracted fields match the ID.',
+    '- Do not hallucinate. If unreadable, leave fields empty and lower confidence.'
+  ].join('\n');
+
+  const parts = [{ text: prompt }];
+  const frontPart = getImagePart(frontImage);
+  const backPart = getImagePart(backImage);
+  if (frontPart) parts.push(frontPart);
+  if (backPart) parts.push(backPart);
+
+  const response = await axios.post(
+    endpoint,
+    {
+      contents: [{ role: 'user', parts }],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: 'application/json'
+      }
+    },
+    { timeout: 30000 }
+  );
+
+  const modelText =
+    response.data?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join('\n') || '';
+  const parsed = extractJsonFromText(modelText) || {};
+  const confidence = typeof parsed.confidence === 'number' ? parsed.confidence : Number(parsed.confidence);
+
+  return {
+    firstName: typeof parsed.firstName === 'string' ? parsed.firstName : '',
+    lastName: typeof parsed.lastName === 'string' ? parsed.lastName : '',
+    middleName: typeof parsed.middleName === 'string' ? parsed.middleName : '',
+    dob: typeof parsed.dob === 'string' ? parsed.dob : '',
+    idNumber: typeof parsed.idNumber === 'string' ? parsed.idNumber : '',
+    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : null,
+    providerRaw: response.data
+  };
+}
+
 module.exports = {
   queueIdentityVerification,
+  extractIdFieldsFromImages,
   classifyVerificationResult,
   AUTO_APPROVE_SCORE_THRESHOLD,
   CRITICAL_MISMATCH_FLAGS

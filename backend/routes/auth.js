@@ -114,6 +114,8 @@ router.post('/register', async (req, res) => {
     const {
       firstName,
       lastName,
+      middleName,
+      dateOfBirth,
       email,
       phone,
       password,
@@ -158,6 +160,10 @@ router.post('/register', async (req, res) => {
     const userData = {
       firstName,
       lastName,
+      ...(typeof middleName === 'string' && middleName.trim() ? { middleName: middleName.trim() } : {}),
+      ...(typeof dateOfBirth === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth.trim())
+        ? { dateOfBirth: dateOfBirth.trim() }
+        : {}),
       email: email.toLowerCase(),
       phone,
       password,

@@ -5,7 +5,8 @@ const fs = require('fs');
 const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
-const { queueIdentityVerification, classifyVerificationResult, extractIdFieldsFromImages, listGeminiModels } = require('../services/aiVerificationService');
+const { queueIdentityVerification, classifyVerificationResult, listGeminiModels } = require('../services/aiVerificationService');
+const { extractIdFieldsFromImagePaths, resolveUploadedPaths } = require('../services/tesseractIdOcrService');
 
 const router = express.Router();
 
@@ -137,18 +138,14 @@ router.post(
   ]),
   async (req, res) => {
     try {
-      const geminiApiKey = process.env.GEMINI_API_KEY;
-      if (!geminiApiKey) {
-        return res.status(503).json({ success: false, error: 'OCR service is not configured' });
-      }
-
       const frontImage = req.files?.frontImage?.[0]?.filename || null;
       const backImage = req.files?.backImage?.[0]?.filename || null;
       if (!frontImage || !backImage) {
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
       }
 
-      const result = await extractIdFieldsFromImages({ frontImage, backImage }, geminiApiKey);
+      const { front, back } = resolveUploadedPaths(frontImage, backImage);
+      const result = await extractIdFieldsFromImagePaths(front, back);
       return res.json({ success: true, data: result });
     } catch (error) {
       const upstreamStatus = error?.response?.status;

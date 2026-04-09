@@ -394,9 +394,7 @@ const Register = () => {
           multipart.append('frontImage', idDocs.frontImage);
           multipart.append('backImage', idDocs.backImage);
           if (idDocs.selfieImage) multipart.append('selfieImage', idDocs.selfieImage);
-          await axios.post('/api/verifications/upload-id', multipart, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-          });
+          await axios.post('/api/verifications/upload-id', multipart);
         }
       } catch (uploadError) {
         const status = uploadError?.response?.status;
@@ -427,9 +425,7 @@ const Register = () => {
       multipart.append('frontImage', nextFront);
       multipart.append('backImage', nextBack);
 
-      const res = await axios.post('/api/verifications/ocr-id', multipart, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await axios.post('/api/verifications/ocr-id', multipart);
 
       if (res.data?.success && res.data?.data) {
         const ocr = res.data.data;

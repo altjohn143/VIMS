@@ -10,6 +10,96 @@ const { extractIdFieldsFromImagePaths, resolveUploadedPaths } = require('../serv
 
 const router = express.Router();
 
+function normalizeNameValue(s) {
+  return String(s || '')
+    .toUpperCase()
+    .replace(/[^A-ZÀ-ÿ\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeName(s) {
+  return normalizeNameValue(s)
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function tokenMatchRatio(expected, actual) {
+  const exp = tokenizeName(expected);
+  const act = tokenizeName(actual);
+  if (exp.length === 0 || act.length === 0) return 0;
+  const actSet = new Set(act);
+  const hits = exp.filter((t) => actSet.has(t)).length;
+  return hits / exp.length;
+}
+
+function computeLocalAutoApproval({ user, ocr }) {
+  const flags = [];
+  const reasons = [];
+
+  const expectedFullName = `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim();
+  const ocrFullName = `${ocr.firstName || ''} ${ocr.middleName || ''} ${ocr.lastName || ''}`.trim();
+
+  const lastExact = normalizeNameValue(user.lastName) && normalizeNameValue(ocr.lastName) &&
+    normalizeNameValue(user.lastName) === normalizeNameValue(ocr.lastName);
+  const firstRatio = tokenMatchRatio(user.firstName, ocr.firstName);
+  const middleOk = !user.middleName
+    ? true
+    : tokenMatchRatio(user.middleName, ocr.middleName) >= 1;
+  const dobOk = !user.dateOfBirth
+    ? true
+    : (String(user.dateOfBirth).trim() === String(ocr.dob || '').trim());
+  const hasIdNumber = !!String(ocr.idNumber || '').trim();
+
+  if (!lastExact) {
+    flags.push('name_mismatch');
+    reasons.push('Last name mismatch');
+  }
+  if (firstRatio < 0.8) {
+    flags.push('name_mismatch');
+    reasons.push('Given name mismatch');
+  }
+  if (!middleOk) {
+    flags.push('name_mismatch');
+    reasons.push('Middle name mismatch');
+  }
+  if (!dobOk) {
+    flags.push('dob_mismatch');
+    reasons.push('Date of birth mismatch');
+  }
+  if (!hasIdNumber) {
+    flags.push('missing_id_number');
+    reasons.push('No ID number detected');
+  }
+
+  const confidence = typeof ocr.confidence === 'number' ? ocr.confidence : 0.35;
+  // Score: OCR confidence + name match signals + DOB + id number
+  const score =
+    0.45 * Math.max(0, Math.min(1, confidence)) +
+    0.25 * (lastExact ? 1 : 0) +
+    0.2 * Math.max(0, Math.min(1, firstRatio)) +
+    0.05 * (middleOk ? 1 : 0) +
+    0.03 * (dobOk ? 1 : 0) +
+    0.02 * (hasIdNumber ? 1 : 0);
+
+  const approved =
+    score >= 0.85 &&
+    lastExact &&
+    firstRatio >= 0.8 &&
+    middleOk &&
+    dobOk &&
+    hasIdNumber;
+
+  return {
+    approved,
+    score: Math.max(0, Math.min(1, score)),
+    flags: Array.from(new Set(flags)),
+    reason: approved
+      ? `Auto-approved by OCR match (score ${score.toFixed(2)}).`
+      : (reasons.length ? `Needs manual review: ${reasons.join(', ')}.` : 'Needs manual review.')
+  };
+}
+
 const uploadDir = path.join(__dirname, '../uploads/ids');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -83,6 +173,58 @@ router.post(
         verification.rejectReason = '';
         verification.reviewNotes = '';
         await verification.save();
+      }
+
+      // Free local OCR + rules-based auto approval (no billed API keys)
+      try {
+        const { front, back } = resolveUploadedPaths(frontImage, backImage);
+        const ocr = await extractIdFieldsFromImagePaths(front, back);
+        const ocrFullName = `${ocr.firstName || ''} ${ocr.middleName || ''} ${ocr.lastName || ''}`.trim();
+
+        const localDecision = computeLocalAutoApproval({ user, ocr });
+        verification.aiResult = {
+          score: localDecision.score ?? null,
+          ocrName: ocrFullName,
+          ocrDob: ocr.dob || '',
+          flags: localDecision.flags,
+          providerRaw: { engine: ocr.engine, confidence: ocr.confidence, idNumber: ocr.idNumber || '' }
+        };
+
+        if (localDecision.approved) {
+          verification.status = 'approved';
+          verification.reviewNotes = localDecision.reason;
+          verification.rejectReason = '';
+          verification.reviewedBy = null;
+          verification.reviewedAt = new Date();
+
+          // Approve user account as well
+          if (!user.isApproved) {
+            user.isApproved = true;
+            await user.save();
+          }
+
+          await verification.save();
+          return res.json({
+            success: true,
+            message: 'ID uploaded and auto-approved by OCR verification',
+            data: verification
+          });
+        }
+
+        // Not auto-approved: route to manual review by default.
+        verification.status = 'manual_review';
+        verification.reviewNotes = localDecision.reason;
+        verification.rejectReason = '';
+        await verification.save();
+
+        return res.json({
+          success: true,
+          message: 'ID uploaded and routed to manual review',
+          data: verification
+        });
+      } catch (ocrError) {
+        console.error('Local OCR auto-approval error:', ocrError?.message || ocrError);
+        // Fall through to existing AI/webhook flow as a best-effort (may still be configured in some environments)
       }
 
       let queueResult = { mode: 'local_stub' };

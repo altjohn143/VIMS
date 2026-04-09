@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -9,7 +9,9 @@ import {
   Avatar,
   Card,
   CardContent,
-  Divider
+  Divider,
+  CircularProgress,
+  Chip
 } from '@mui/material';
 import {
   VerifiedUser as VerifiedIcon,
@@ -20,11 +22,16 @@ import {
   Phone as PhoneIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
+import axios from '../config/axios';
 
 const PendingApproval = () => {
   const { logout, getCurrentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = getCurrentUser();
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusError, setStatusError] = useState('');
+  const [pendingStatus, setPendingStatus] = useState(null);
 
   const themeColors = {
     primary: '#2224be',
@@ -33,13 +40,49 @@ const PendingApproval = () => {
     background: '#f8fafc'
   };
 
+  const email = useMemo(() => {
+    const fromState = location.state?.email;
+    const fromStorage = localStorage.getItem('pendingApprovalEmail');
+    return (fromState || fromStorage || user?.email || '').toLowerCase();
+  }, [location.state, user?.email]);
+
+  useEffect(() => {
+    // Poll quickly so UI updates within seconds after ID upload/admin action.
+    let stopped = false;
+    const run = async () => {
+      if (stopped) return;
+      await fetchStatus();
+    };
+    run();
+    const id = window.setInterval(run, 8000);
+    return () => {
+      stopped = true;
+      window.clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email]);
+
+  const fetchStatus = async () => {
+    if (!email) return;
+    setStatusError('');
+    try {
+      const res = await axios.post('/api/auth/pending-status', { email });
+      if (res.data?.success) setPendingStatus(res.data.data);
+    } catch (e) {
+      setStatusError(e?.response?.data?.error || 'Failed to check status');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
   const handleCheckStatus = () => {
-    window.location.reload();
+    setStatusLoading(true);
+    fetchStatus();
   };
 
   const handleContactAdmin = () => {
@@ -118,11 +161,41 @@ const PendingApproval = () => {
             Hello <strong>{user?.firstName} {user?.lastName}</strong>!
           </Typography>
 
+          {/* Live status */}
+          <Box sx={{ mb: 3 }}>
+            {statusLoading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+                <CircularProgress size={18} />
+                <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
+                  Checking status…
+                </Typography>
+              </Box>
+            ) : statusError ? (
+              <Typography variant="caption" sx={{ color: '#ef4444' }}>
+                {statusError}
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Chip
+                  size="small"
+                  icon={<VerifiedIcon fontSize="small" />}
+                  label={`Documents: ${pendingStatus?.documents?.status || 'pending_upload'}`}
+                  sx={{ fontWeight: 700 }}
+                />
+                <Chip
+                  size="small"
+                  icon={<TimeIcon fontSize="small" />}
+                  label={`Account: ${pendingStatus?.isApproved ? 'approved' : 'pending admin'}`}
+                  sx={{ fontWeight: 700 }}
+                />
+              </Box>
+            )}
+          </Box>
+
           {/* Main Message */}
           <Typography variant="body2" sx={{ color: '#64748b', mb: 4, lineHeight: 1.8 }}>
-            Your registration as a resident has been submitted successfully and is now 
-            waiting for admin approval. You will be able to access your account once 
-            an administrator reviews and approves your registration.
+            Your registration is submitted. Your uploaded ID can be verified automatically, but your
+            account still requires final admin approval before you can log in.
           </Typography>
 
           {/* User Info Card */}
@@ -251,6 +324,23 @@ const PendingApproval = () => {
             >
               Check Status
             </Button>
+
+            {pendingStatus?.isApproved && (
+              <Button
+                variant="contained"
+                onClick={() => navigate('/login')}
+                sx={{
+                  bgcolor: '#10b981',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  px: 3,
+                  py: 1,
+                  '&:hover': { bgcolor: '#0ea371' }
+                }}
+              >
+                Go to Login
+              </Button>
+            )}
           </Box>
 
           {/* Contact Admin Link */}

@@ -13,6 +13,70 @@ const CRITICAL_MISMATCH_FLAGS = new Set([
 ]);
 const uploadDir = path.join(__dirname, '../uploads/ids');
 
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+const GEMINI_MODEL_PREFERENCE = [
+  // Prefer newest/fastest first; we’ll select the first available for this API key.
+  'models/gemini-2.0-flash',
+  'models/gemini-2.0-flash-lite',
+  'models/gemini-1.5-flash-latest',
+  'models/gemini-1.5-flash',
+  'models/gemini-1.5-pro-latest',
+  'models/gemini-1.5-pro'
+];
+
+let cachedGeminiModel = null;
+let cachedGeminiModelAt = 0;
+const GEMINI_MODEL_CACHE_MS = 10 * 60 * 1000;
+
+async function listGeminiModels(apiKey) {
+  const endpoint = `${GEMINI_API_BASE}/models?key=${apiKey}`;
+  const response = await axios.get(endpoint, { timeout: 15000 });
+  return Array.isArray(response.data?.models) ? response.data.models : [];
+}
+
+function modelSupportsGenerateContent(model) {
+  const methods = model?.supportedGenerationMethods;
+  return Array.isArray(methods) && methods.includes('generateContent');
+}
+
+async function resolveGeminiModel(apiKey) {
+  if (cachedGeminiModel && Date.now() - cachedGeminiModelAt < GEMINI_MODEL_CACHE_MS) {
+    return cachedGeminiModel;
+  }
+
+  const models = await listGeminiModels(apiKey);
+  const usable = models.filter(modelSupportsGenerateContent);
+
+  const byName = new Map(usable.map((m) => [m.name, m]));
+  const preferred = GEMINI_MODEL_PREFERENCE.find((name) => byName.has(name));
+  const chosen = preferred || usable[0]?.name || null;
+
+  if (!chosen) {
+    throw new Error('No Gemini models available for generateContent. Check API key permissions/billing.');
+  }
+
+  cachedGeminiModel = chosen;
+  cachedGeminiModelAt = Date.now();
+  return chosen;
+}
+
+async function geminiGenerateContent({ apiKey, parts }) {
+  const modelName = await resolveGeminiModel(apiKey);
+  const endpoint = `${GEMINI_API_BASE}/${modelName}:generateContent?key=${apiKey}`;
+
+  return await axios.post(
+    endpoint,
+    {
+      contents: [{ role: 'user', parts }],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: 'application/json'
+      }
+    },
+    { timeout: 30000 }
+  );
+}
+
 async function queueIdentityVerification(verification) {
   const webhookUrl = process.env.AI_VERIFICATION_WEBHOOK_URL;
   const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -74,7 +138,6 @@ function extractJsonFromText(rawText) {
 }
 
 async function runGeminiVerification(verification, apiKey) {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   const prompt = [
     'You are an ID verification assistant.',
     'Compare front ID image, back ID image, and selfie image.',
@@ -93,17 +156,7 @@ async function runGeminiVerification(verification, apiKey) {
   if (backPart) parts.push(backPart);
   if (selfiePart) parts.push(selfiePart);
 
-  const response = await axios.post(
-    endpoint,
-    {
-      contents: [{ role: 'user', parts }],
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: 'application/json'
-      }
-    },
-    { timeout: 30000 }
-  );
+  const response = await geminiGenerateContent({ apiKey, parts });
 
   const modelText = response.data?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join('\n') || '';
   const parsed = extractJsonFromText(modelText) || {};
@@ -157,8 +210,47 @@ function classifyVerificationResult({ score, flags = [] }) {
   };
 }
 
+async function extractIdFieldsFromImages({ frontImage, backImage }, apiKey) {
+  const prompt = [
+    'You are an OCR assistant for government IDs.',
+    'Extract the person details from the provided ID images.',
+    'Return ONLY valid JSON with this shape:',
+    '{"firstName": string, "lastName": string, "middleName": string, "dob": string, "idNumber": string, "confidence": number 0..1}',
+    'Rules:',
+    '- Use empty string for unknown fields.',
+    "- dob should be in 'YYYY-MM-DD' if possible; otherwise return the raw DOB text you see.",
+    '- confidence should reflect how sure you are the extracted fields match the ID.',
+    '- Do not hallucinate. If unreadable, leave fields empty and lower confidence.'
+  ].join('\n');
+
+  const parts = [{ text: prompt }];
+  const frontPart = getImagePart(frontImage);
+  const backPart = getImagePart(backImage);
+  if (frontPart) parts.push(frontPart);
+  if (backPart) parts.push(backPart);
+
+  const response = await geminiGenerateContent({ apiKey, parts });
+
+  const modelText =
+    response.data?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join('\n') || '';
+  const parsed = extractJsonFromText(modelText) || {};
+  const confidence = typeof parsed.confidence === 'number' ? parsed.confidence : Number(parsed.confidence);
+
+  return {
+    firstName: typeof parsed.firstName === 'string' ? parsed.firstName : '',
+    lastName: typeof parsed.lastName === 'string' ? parsed.lastName : '',
+    middleName: typeof parsed.middleName === 'string' ? parsed.middleName : '',
+    dob: typeof parsed.dob === 'string' ? parsed.dob : '',
+    idNumber: typeof parsed.idNumber === 'string' ? parsed.idNumber : '',
+    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : null,
+    providerRaw: response.data
+  };
+}
+
 module.exports = {
   queueIdentityVerification,
+  extractIdFieldsFromImages,
+  listGeminiModels,
   classifyVerificationResult,
   AUTO_APPROVE_SCORE_THRESHOLD,
   CRITICAL_MISMATCH_FLAGS

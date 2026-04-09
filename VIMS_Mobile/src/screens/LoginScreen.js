@@ -47,62 +47,65 @@ const LoginScreen = ({ navigation }) => {
     },
   ];
 
-const handleLogin = async () => {
-  if (!email || !password) {
-    Alert.alert('Error', 'Please fill in all fields');
-    return;
-  }
+  // ✅ Stats data
+  const stats = [
+    { label: 'Residents', value: '120+' },
+    { label: 'Blocks', value: '3' },
+    { label: 'Est.', value: '2024' },
+  ];
 
-  setLoading(true);
-  try {
-    const result = await login(email, password);
-    
-    if (!result.success) {
-      // Check if the error indicates pending approval
-      if (result.error?.includes('pending admin approval') || result.requiresApproval) {
-        Alert.alert(
-          'Account Pending Approval',
-          'Your account is waiting for admin approval. You will be notified once approved.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                // Navigate to pending approval screen
-                navigation.replace('PendingApproval');
-              }
-            }
-          ]
-        );
-      } else {
-        Alert.alert('Login Failed', result.error || 'Invalid credentials');
-      }
-    } else {
-      // Check if user is approved after successful login
-      const userData = result.user;
-      if (userData?.role === 'resident' && !userData.isApproved) {
-        Alert.alert(
-          'Account Pending Approval',
-          'Your account is waiting for admin approval. Please wait for approval before logging in.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                navigation.replace('PendingApproval');
-              }
-            }
-          ]
-        );
-        return;
-      }
-      // Login successful and approved
-      navigation.replace('DashboardTab');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
     }
-  } catch (error) {
-    Alert.alert('Error', 'Something went wrong');
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    try {
+      const result = await login(email, password);
+
+      if (!result.success) {
+        if (result.error?.includes('pending admin approval') || result.requiresApproval) {
+          Alert.alert(
+            'Account Pending Approval',
+            'Your account is waiting for admin approval. You will be notified once approved.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  navigation.replace('PendingApproval');
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert('Login Failed', result.error || 'Invalid credentials');
+        }
+      } else {
+        const userData = result.user;
+        if (userData?.role === 'resident' && !userData.isApproved) {
+          Alert.alert(
+            'Account Pending Approval',
+            'Your account is waiting for admin approval. Please wait for approval before logging in.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  navigation.replace('PendingApproval');
+                },
+              },
+            ]
+          );
+          return;
+        }
+        navigation.replace('DashboardTab');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBrowseLots = () => {
     navigation.navigate('PublicLots');
@@ -113,16 +116,18 @@ const handleLogin = async () => {
       <View style={styles.screen}>
         <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
         <ImageBackground
-  source={require('../../assets/westville.jpg')}
-  resizeMode="cover"
-  style={styles.backgroundImage}
-  imageStyle={styles.backgroundImageStyle}
->
-          <View style={styles.overlay}>
+          source={require('../../assets/westville.jpg')}
+          resizeMode="cover"
+          style={styles.backgroundImage}
+          imageStyle={styles.backgroundImageStyle}
+        >
+          {/* Overlay for better text readability */}
+          <View style={styles.gradientOverlay}>
             <ScrollView
               contentContainerStyle={styles.landingScrollContent}
               showsVerticalScrollIndicator={false}
             >
+              {/* Brand Row */}
               <View style={styles.topBrandRow}>
                 <View style={styles.logoCircle}>
                   <Ionicons name="business-outline" size={18} color="#ffffff" />
@@ -133,11 +138,10 @@ const handleLogin = async () => {
                 </View>
               </View>
 
+              {/* Hero */}
               <View style={styles.heroContent}>
                 <Text style={styles.heroHeading}>
-                  YOUR DREAM LIFE{'\n'}
-                  AWAITS IN{'\n'}
-                  WESTVILLE HOMES
+                  YOUR DREAM LIFE{'\n'}AWAITS IN{'\n'}WESTVILLE HOMES
                 </Text>
 
                 <Text style={styles.heroDescription}>
@@ -152,6 +156,17 @@ const handleLogin = async () => {
                 </TouchableOpacity>
               </View>
 
+              {/* ✅ Stats Row */}
+              <View style={styles.statsRow}>
+                {stats.map((stat, index) => (
+                  <View key={index} style={styles.statItem}>
+                    <Text style={styles.statValue}>{stat.value}</Text>
+                    <Text style={styles.statLabel}>{stat.label}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Role Cards */}
               <View style={styles.roleCardsContainer}>
                 {roles.map((role) => (
                   <TouchableOpacity
@@ -163,15 +178,16 @@ const handleLogin = async () => {
                     <View style={styles.roleIconWrap}>
                       <Ionicons name={role.icon} size={26} color="#2E6B2E" />
                     </View>
-
                     <View style={styles.roleContent}>
                       <Text style={styles.roleTitle}>{role.label}</Text>
                       <Text style={styles.roleDesc}>{role.description}</Text>
                     </View>
+                    <Ionicons name="chevron-forward" size={18} color="#C0C0C0" />
                   </TouchableOpacity>
                 ))}
               </View>
 
+              {/* Bottom Section */}
               <View style={styles.bottomContent}>
                 <Text style={styles.bottomHeading}>HOUSE AND LOT</Text>
                 <Text style={styles.bottomDescription}>
@@ -189,6 +205,14 @@ const handleLogin = async () => {
                   <Text style={styles.browseLotsText}>BROWSE AVAILABLE LOTS</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* ✅ Footer */}
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>
+                  © 2024 Westville Casimiro Homes. All rights reserved.
+                </Text>
+                <Text style={styles.footerContact}>📍 Bacoor, Cavite, Philippines</Text>
+              </View>
             </ScrollView>
           </View>
         </ImageBackground>
@@ -204,7 +228,10 @@ const handleLogin = async () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#F4F6F3" />
-      <ScrollView contentContainerStyle={styles.loginContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.loginContent}
+        showsVerticalScrollIndicator={false}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => setSelectedRole(null)}
@@ -220,6 +247,7 @@ const handleLogin = async () => {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.loginSubtitle}>WESTVILLE CASIMIRO HOMES</Text>
+            {/* ✅ Fixed: consistent casing */}
             <Text style={styles.loginTitle}>{selectedRoleData.label} LOGIN</Text>
           </View>
         </View>
@@ -267,10 +295,12 @@ const handleLogin = async () => {
             </TouchableOpacity>
           </View>
 
+          {/* ✅ Forgot Password styled as green link */}
           <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.8}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
 
+          {/* ✅ Fixed: consistent button text casing */}
           <TouchableOpacity
             style={[styles.loginButton, loading && styles.loginButtonDisabled]}
             onPress={handleLogin}
@@ -280,14 +310,19 @@ const handleLogin = async () => {
             {loading ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
-              <Text style={styles.loginButtonText}>Sign In as {selectedRoleData.label}</Text>
+              <Text style={styles.loginButtonText}>
+                Sign in as {selectedRoleData.label.charAt(0) + selectedRoleData.label.slice(1).toLowerCase()}
+              </Text>
             )}
           </TouchableOpacity>
 
           {selectedRole === 'resident' && (
             <View style={styles.registerSection}>
               <Text style={styles.registerText}>Don&apos;t have an account?</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')} activeOpacity={0.8}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Register')}
+                activeOpacity={0.8}
+              >
                 <Text style={styles.registerLink}>Register as Resident</Text>
               </TouchableOpacity>
             </View>
@@ -304,17 +339,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E2A1E',
   },
   backgroundImage: {
-  flex: 1,
-  width: '100%',
-  height: '100%',
-},
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   backgroundImageStyle: {
     opacity: 0.95,
   },
-  overlay: {
+
+  // ✅ Gradient overlay replaces plain overlay
+  gradientOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(10, 18, 10, 0.58)',
+    backgroundColor: 'rgba(10, 25, 10, 0.60)',
   },
+
   landingScrollContent: {
     paddingTop: 52,
     paddingBottom: 36,
@@ -355,7 +393,7 @@ const styles = StyleSheet.create({
   heroHeading: {
     color: '#FFFFFF',
     fontSize: 42,
-    lineHeight: 40,
+    lineHeight: 44,
     fontWeight: '900',
     letterSpacing: 0.3,
     marginBottom: 16,
@@ -364,7 +402,7 @@ const styles = StyleSheet.create({
   heroDescription: {
     color: '#F3F3F3',
     fontSize: 14,
-    lineHeight: 18,
+    lineHeight: 20,
     maxWidth: '96%',
     marginBottom: 12,
     fontWeight: '500',
@@ -375,8 +413,35 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.5,
   },
+
+  // ✅ Stats Row
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  statLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+
   roleCardsContainer: {
-    marginTop: 18,
     marginBottom: 34,
   },
   roleCard: {
@@ -422,6 +487,7 @@ const styles = StyleSheet.create({
   bottomContent: {
     alignItems: 'center',
     paddingHorizontal: 8,
+    marginBottom: 28,
   },
   bottomHeading: {
     color: '#FFFFFF',
@@ -433,7 +499,7 @@ const styles = StyleSheet.create({
   bottomDescription: {
     color: '#F0F0F0',
     fontSize: 12.5,
-    lineHeight: 16,
+    lineHeight: 18,
     textAlign: 'center',
     marginBottom: 20,
     maxWidth: 330,
@@ -462,6 +528,26 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
+  // ✅ Footer
+  footer: {
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  footerText: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 10,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  footerContact: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  // Login screen styles
   loginContainer: {
     flex: 1,
     backgroundColor: '#F4F6F3',
@@ -531,6 +617,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: 14,
+    paddingHorizontal: 4,
     fontSize: 16,
     color: themeColors.textPrimary,
   },
@@ -538,10 +625,12 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     marginBottom: 24,
   },
+  // ✅ Forgot Password is now clearly a green link
   forgotPasswordText: {
     color: '#2E6B2E',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   loginButton: {
     backgroundColor: '#2E6B2E',
@@ -553,6 +642,7 @@ const styles = StyleSheet.create({
   loginButtonDisabled: {
     opacity: 0.65,
   },
+  // ✅ Fixed button text casing handled in JSX
   loginButtonText: {
     color: '#FFFFFF',
     fontSize: 16,

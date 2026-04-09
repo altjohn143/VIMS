@@ -14,6 +14,19 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Last name is required'],
     trim: true
   },
+
+  middleName: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+
+  /** Stored as YYYY-MM-DD from registration / OCR */
+  dateOfBirth: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   
   email: {
     type: String,

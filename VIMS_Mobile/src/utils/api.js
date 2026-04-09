@@ -10,22 +10,28 @@ import Constants from 'expo-constants';
 
 // Option 1: Set your computer's IP address manually (RECOMMENDED for physical devices)
 // Run 'ipconfig' on Windows or 'ifconfig' on Mac/Linux to find your IP
-const MANUAL_IP = '192.168.1.141';
+const MANUAL_IP = '192.168.1.5';
 
 // Env override support:
 // - EXPO_PUBLIC_API_URL is the Expo-recommended client env key
 // - API_URL kept for backward compatibility with existing setup
 const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL || process.env.API_URL;
 
-// Option 2: Auto-detect using Expo's debugger host (works for both emulator and physical device)
-// This gets the IP from the Expo development server
+// Option 2: Auto-detect using Expo's debugger host.
+// IMPORTANT: If Expo reports 'localhost' or '127.0.0.1', we fall back to MANUAL_IP so
+// physical devices don't try to connect to their own localhost.
 const getLocalIP = () => {
   try {
     // Gets the host IP from Expo config in SDK 50+
     const debuggerHost = Constants.expoConfig?.hostUri;
     if (debuggerHost) {
       const ip = debuggerHost.split(':')[0];
-      console.log('📡 Detected local IP:', ip);
+      console.log('📡 Detected debugger host:', debuggerHost);
+      if (ip === 'localhost' || ip === '127.0.0.1') {
+        console.log('⚠️ Debugger host is localhost; using MANUAL_IP instead:', MANUAL_IP);
+        return MANUAL_IP;
+      }
+      console.log('📡 Using detected local IP:', ip);
       return ip;
     }
   } catch (error) {

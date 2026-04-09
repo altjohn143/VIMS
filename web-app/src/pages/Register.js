@@ -110,6 +110,7 @@ const Register = () => {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [lastOcrSignature, setLastOcrSignature] = useState('');
   const [lastOcrAt, setLastOcrAt] = useState(0);
+  const [ocrUnavailable, setOcrUnavailable] = useState(false);
 
   const [availableLots, setAvailableLots] = useState([]);
   const [allLots, setAllLots] = useState([]);
@@ -420,6 +421,7 @@ const Register = () => {
   const tryOcrAutofill = async (nextFront, nextBack) => {
     if (!nextFront || !nextBack) return;
     if (ocrLoading) return;
+    if (ocrUnavailable) return;
 
     const signature = `${nextFront.name}:${nextFront.size}:${nextFront.lastModified}|${nextBack.name}:${nextBack.size}:${nextBack.lastModified}`;
     if (signature === lastOcrSignature) return;
@@ -457,7 +459,12 @@ const Register = () => {
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message;
-      toast.error(`Couldn't scan ID${status ? ` (${status})` : ''}${serverMessage ? `: ${serverMessage}` : ''}`);
+      if (status === 429) {
+        setOcrUnavailable(true);
+        toast.error('AI OCR is temporarily unavailable due to quota limits. Please continue filling the form manually.');
+      } else {
+        toast.error(`Couldn't scan ID${status ? ` (${status})` : ''}${serverMessage ? `: ${serverMessage}` : ''}`);
+      }
     } finally {
       setOcrLoading(false);
     }
@@ -1114,6 +1121,11 @@ const Register = () => {
               {ocrLoading && (
                 <Typography variant="caption" sx={{ display: 'block', mt: 1, color: themeColors.textSecondary }}>
                   Scanning ID to autofill details…
+                </Typography>
+              )}
+              {ocrUnavailable && (
+                <Typography variant="caption" sx={{ display: 'block', mt: 1, color: themeColors.warning }}>
+                  AI OCR autofill is currently unavailable. You can continue registration by filling details manually.
                 </Typography>
               )}
             </Grid>

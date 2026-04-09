@@ -159,6 +159,14 @@ router.post(
   }
 );
 
+router.get('/ocr-id', (req, res) => {
+  return res.status(405).json({
+    success: false,
+    error: 'Method not allowed',
+    details: 'Use POST /api/verifications/ocr-id with multipart form-data (frontImage, backImage).'
+  });
+});
+
 router.get('/me', protect, async (req, res) => {
   try {
     const verification = await IdentityVerification.findOne({ userId: req.user._id });

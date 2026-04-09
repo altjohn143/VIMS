@@ -48,8 +48,7 @@ import {
   ExitToApp as ExitToAppIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
-  Phone as PhoneIcon,
-  Map as MapIcon
+  Phone as PhoneIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';

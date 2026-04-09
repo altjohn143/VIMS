@@ -48,6 +48,22 @@ export const typography = {
   },
 };
 
+/**
+ * Optional Pinterest-inspired accents (soft gray canvas, floaty cards).
+ * Use only where you want that look — does not change global themeColors.
+ */
+export const pinterestTheme = {
+  canvas: '#f0f0f0',
+  cardRadius: 18,
+  cardShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+};
+
 export const shadows = {
   small: {
     shadowColor: '#000',

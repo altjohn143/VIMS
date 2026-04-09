@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import { themeColors, shadows } from '../utils/theme';
+import { themeColors, shadows, pinterestTheme } from '../utils/theme';
 import api from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LogoutButton from '../components/LogoutButton';
@@ -303,12 +303,13 @@ quickActions: [
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: themeColors.background,
+    backgroundColor: pinterestTheme.canvas,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: pinterestTheme.canvas,
   },
   topBar: {
     paddingTop: 56,
@@ -317,9 +318,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   topBarLeft: {
     flexDirection: 'row',
@@ -358,12 +359,13 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   heroCard: {
-    borderRadius: 20,
+    borderRadius: 22,
     overflow: 'hidden',
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: themeColors.border,
+    borderColor: 'rgba(0,0,0,0.08)',
     backgroundColor: '#0f172a',
+    ...pinterestTheme.cardShadow,
   },
   heroImagePlaceholder: {
     ...StyleSheet.absoluteFillObject,
@@ -440,11 +442,11 @@ const styles = StyleSheet.create({
   },
   colorStatCard: {
     width: '48.5%',
-    borderRadius: 16,
+    borderRadius: pinterestTheme.cardRadius,
     padding: 12,
     marginBottom: 10,
     minHeight: 116,
-    ...shadows.small,
+    ...pinterestTheme.cardShadow,
   },
   colorStatCardFull: {
     width: '100%',
@@ -472,18 +474,18 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderRadius: pinterestTheme.cardRadius,
     borderWidth: 1,
-    borderColor: themeColors.border,
+    borderColor: 'rgba(0,0,0,0.06)',
     marginBottom: 14,
     overflow: 'hidden',
-    ...shadows.small,
+    ...pinterestTheme.cardShadow,
   },
   sectionHeader: {
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   sectionTitle: {
     fontSize: 17,
@@ -495,10 +497,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   quickActionRow: {
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
+    borderColor: '#e8e8e8',
+    backgroundColor: '#fafafa',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,

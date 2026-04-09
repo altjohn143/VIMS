@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const Lot = require('../models/Lot');
+const IdentityVerification = require('../models/IdentityVerification');
 const { protect } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 
@@ -559,6 +560,36 @@ router.get('/check-status/:email', async (req, res) => {
       success: false,
       error: 'Failed to check status'
     });
+  }
+});
+
+// Lightweight status endpoint for pending approval UI
+router.post('/pending-status', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ success: false, error: 'Email is required' });
+
+    const user = await User.findOne({ email: String(email).toLowerCase() }).select('email role isApproved isActive');
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const verification = await IdentityVerification.findOne({ userId: user._id }).select('status updatedAt reviewNotes');
+
+    return res.json({
+      success: true,
+      data: {
+        email: user.email,
+        role: user.role,
+        isApproved: !!user.isApproved,
+        isActive: !!user.isActive,
+        documents: {
+          status: verification?.status || 'pending_upload',
+          updatedAt: verification?.updatedAt || null,
+          reviewNotes: verification?.reviewNotes || ''
+        }
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Failed to get pending status' });
   }
 });
 

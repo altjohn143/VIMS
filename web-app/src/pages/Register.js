@@ -431,7 +431,8 @@ const Register = () => {
           }`
         );
       }
-      navigate('/pending-approval');
+      localStorage.setItem('pendingApprovalEmail', registrationData.email.trim().toLowerCase());
+      navigate('/pending-approval', { state: { email: registrationData.email.trim().toLowerCase() } });
     } else {
       setErrors(prev => ({ ...prev, submit: result.error || 'Registration failed' }));
     }

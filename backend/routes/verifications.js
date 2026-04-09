@@ -187,16 +187,10 @@ router.post(
           verification.reviewedBy = null;
           verification.reviewedAt = new Date();
 
-          // Approve user account as well
-          if (!user.isApproved) {
-            user.isApproved = true;
-            await user.save();
-          }
-
           await verification.save();
           return res.json({
             success: true,
-            message: 'ID uploaded and auto-approved by OCR verification',
+            message: 'ID uploaded and documents approved. Account still requires admin approval.',
             data: verification
           });
         }

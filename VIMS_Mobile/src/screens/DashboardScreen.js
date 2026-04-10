@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,27 +8,28 @@ import {
   RefreshControl,
   ActivityIndicator,
   useWindowDimensions,
+  Modal,
+  Animated,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import { themeColors, shadows, pinterestTheme } from '../utils/theme';
+import { themeColors, pinterestTheme } from '../utils/theme';
 import api from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LogoutButton from '../components/LogoutButton';
 
 const DashboardScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
-  const isNarrowScreen = width < 380;
-  const isVeryNarrowScreen = width < 340;
+  const isNarrow = width < 380;
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({});
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const { logout } = useAuth();
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
+  useEffect(() => { loadUserData(); }, []);
 
   const loadUserData = async () => {
     try {
@@ -47,20 +48,15 @@ const DashboardScreen = ({ navigation }) => {
 
   const fetchDashboardData = async (userData) => {
     try {
-      let endpoint = '';
-      if (userData.role === 'resident') {
-        endpoint = '/visitors/resident/dashboard';
-      } else if (userData.role === 'admin') {
-        endpoint = '/service-requests/admin/dashboard';
-      } else if (userData.role === 'security') {
-        endpoint = '/visitors/pending';
-      }
-
+      const endpoints = {
+        resident: '/visitors/resident/dashboard',
+        admin: '/service-requests/admin/dashboard',
+        security: '/visitors/pending',
+      };
+      const endpoint = endpoints[userData.role];
       if (endpoint) {
         const response = await api.get(endpoint);
-        if (response.data.success) {
-          setStats(response.data.data);
-        }
+        if (response.data.success) setStats(response.data.data);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -73,59 +69,77 @@ const DashboardScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
+  const openDropdown = () => {
+    setDropdownVisible(true);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeDropdown = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 140,
+      useNativeDriver: true,
+    }).start(() => setDropdownVisible(false));
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={themeColors.primary} />
+        <ActivityIndicator size="large" color="#1a6b3c" />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
       </View>
     );
   }
 
   const roleConfig = {
     resident: {
-      title: 'Resident Dashboard',
-      icon: 'home',
-      color: '#1e88e5',
+      title: 'Dashboard',
+      icon: 'home-outline',
       stats: [
-        { label: 'Total Visitors', key: 'totalVisitors', value: stats.totalVisitors || 0 },
-        { label: "Today's Visitors", key: 'todayVisitors', value: stats.todayVisitors || 0 },
-        { label: 'Active Visitors', key: 'activeVisitors', value: stats.activeVisitors || 0 },
-        { label: 'Pending', key: 'pendingVisitors', value: stats.pendingVisitors || 0 },
+        { label: 'Total Visitors',   value: stats.totalVisitors   || 0, icon: 'people-outline',          bg: '#2563eb' },
+        { label: "Today's Visitors", value: stats.todayVisitors   || 0, icon: 'today-outline',           bg: '#16a34a' },
+        { label: 'Active Visitors',  value: stats.activeVisitors  || 0, icon: 'radio-button-on-outline', bg: '#0284c7' },
+        { label: 'Pending',          value: stats.pendingVisitors || 0, icon: 'time-outline',            bg: '#dc2626' },
       ],
+      hints: ['live from users', "today's count", 'active now', 'awaiting approval'],
       quickActions: [
-        { title: 'Visitor Pass', icon: 'qr-code', screen: 'VisitorsTab', color: '#10b981' },
-        { title: 'Service Requests', icon: 'build', screen: 'ServicesTab', color: '#f59e0b' },
+        { title: 'Visitor Pass',     subtitle: 'Manage visitor QR codes',     icon: 'qr-code-outline', screen: 'VisitorsTab', color: '#16a34a', bg: '#f0fdf4' },
+        { title: 'Service Requests', subtitle: 'Submit maintenance requests', icon: 'build-outline',   screen: 'ServicesTab', color: '#d97706', bg: '#fffbeb' },
       ],
     },
     admin: {
-      title: 'Admin Dashboard',
-      icon: 'shield',
-      color: '#1976d2',
+      title: 'Dashboard',
+      icon: 'shield-checkmark-outline',
       stats: [
-        { label: 'Total Users', key: 'totalUsers', value: stats.totalUsers || 0 },
-        { label: 'Pending Approvals', key: 'pendingApprovals', value: stats.pendingApprovals || 0 },
-        { label: 'Active Requests', key: 'activeRequests', value: stats.activeRequests || 0 },
-        { label: 'Total Visitors', key: 'totalVisitors', value: stats.totalVisitors || 0 },
+        { label: 'Total Residents',    value: stats.totalUsers        || 0, icon: 'people-outline',       bg: '#2563eb' },
+        { label: 'Pending Approvals',  value: stats.pendingApprovals  || 0, icon: 'alert-circle-outline', bg: '#16a34a' },
+        { label: 'Monthly Collection', value: stats.monthlyCollection || 0, icon: 'cash-outline',         bg: '#0284c7', prefix: '₱' },
+        { label: 'Active Issues',      value: stats.activeRequests    || 0, icon: 'warning-outline',      bg: '#dc2626' },
       ],
-quickActions: [
-  { title: 'User Management', icon: 'people', screen: 'UsersTab', color: '#8b5cf6' },
-  { title: 'Approvals', icon: 'checkmark-circle', screen: 'AdminApprovals', color: '#f59e0b' },
-  { title: 'Visitor Logs', icon: 'qr-code', screen: 'VisitorsTab', color: '#10b981' },
-],
+      hints: ['live from users', 'awaiting admin review', 'live this month', 'pending + urgent'],
+      quickActions: [
+        { title: 'User Management', subtitle: 'View and manage users',       icon: 'people-outline',           screen: 'UsersTab',       color: '#7c3aed', bg: '#f5f3ff' },
+        { title: 'Approvals',       subtitle: 'Review pending requests',     icon: 'checkmark-circle-outline', screen: 'AdminApprovals', color: '#d97706', bg: '#fffbeb' },
+        { title: 'Visitor Logs',    subtitle: 'Full visitor history',        icon: 'qr-code-outline',          screen: 'VisitorsTab',    color: '#16a34a', bg: '#f0fdf4' },
+      ],
     },
     security: {
-      title: 'Security Dashboard',
-      icon: 'lock-closed',
-      color: '#1565c0',
+      title: 'Dashboard',
+      icon: 'lock-closed-outline',
       stats: [
-        { label: 'Visitors Today', key: 'visitorsToday', value: stats.visitorsToday || 0 },
-        { label: 'Pending Approval', key: 'pendingApproval', value: stats.pendingApproval || 0 },
-        { label: 'Active Now', key: 'activeNow', value: stats.activeNow || 0 },
-        { label: 'Completed', key: 'completed', value: stats.completed || 0 },
+        { label: 'Visitors Today',   value: stats.visitorsToday   || 0, icon: 'today-outline',            bg: '#2563eb' },
+        { label: 'Pending Approval', value: stats.pendingApproval || 0, icon: 'alert-circle-outline',     bg: '#16a34a' },
+        { label: 'Active Now',       value: stats.activeNow       || 0, icon: 'radio-button-on-outline',  bg: '#0284c7' },
+        { label: 'Completed',        value: stats.completed       || 0, icon: 'checkmark-circle-outline', bg: '#dc2626' },
       ],
+      hints: ['live today', 'awaiting review', 'inside now', 'today total'],
       quickActions: [
-        { title: 'Approvals', icon: 'checkmark-circle', screen: 'ApprovalsTab', color: '#f59e0b' },
-        { title: 'Visitor Logs', icon: 'time', screen: 'LogsTab', color: '#3b82f6' },
+        { title: 'Approvals',    subtitle: 'Review pending entries',     icon: 'checkmark-circle-outline', screen: 'ApprovalsTab', color: '#d97706', bg: '#fffbeb' },
+        { title: 'Visitor Logs', subtitle: 'Browse all visitor records', icon: 'time-outline',             screen: 'LogsTab',      color: '#2563eb', bg: '#eff6ff' },
       ],
     },
   };
@@ -133,449 +147,418 @@ quickActions: [
   const config = roleConfig[user?.role] || roleConfig.resident;
 
   const formattedDate = new Date().toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
   });
 
-  const statGradients = [
-    { bg: '#2349d8', accent: '#dbeafe' },
-    { bg: '#18a34a', accent: '#dcfce7' },
-    { bg: '#0986c8', accent: '#dbeafe' },
-    { bg: '#e02424', accent: '#fee2e2' },
-  ];
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning,';
+    if (h < 17) return 'Good afternoon,';
+    return 'Good evening,';
+  };
+
+  const roleName = user?.role
+    ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+    : 'User';
+
+  const initials = [user?.firstName?.[0], user?.lastName?.[0]]
+    .filter(Boolean).join('') || 'U';
+
+  const fullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User';
 
   return (
     <View style={styles.container}>
+
+      {/* ── Top Bar ── */}
       <View style={styles.topBar}>
         <View style={styles.topBarLeft}>
-          <View style={styles.topIcon}>
-            <Ionicons name={config.icon} size={20} color={themeColors.primary} />
+          <View style={styles.topLogoCircle}>
+            <Text style={styles.topLogoText}>CW</Text>
           </View>
-            <View style={styles.topTextWrap}>
-              <Text style={styles.topBarTitle} numberOfLines={1}>
-                {config.title}
-              </Text>
-              <Text style={styles.topBarSubtitle} numberOfLines={1}>
-                Casimiro Westville Homes
-              </Text>
+          <View style={styles.topTextWrap}>
+            <Text style={styles.topBarTitle} numberOfLines={1}>Dashboard</Text>
+            <Text style={styles.topBarSubtitle} numberOfLines={1}>Casimiro Westville Homes</Text>
           </View>
         </View>
-        <LogoutButton navigation={navigation} color={themeColors.textPrimary} size={22} />
+
+        <View style={styles.topBarRight}>
+          {/* Bell */}
+          <TouchableOpacity style={styles.bellBtn}>
+            <Ionicons name="notifications-outline" size={18} color="#fff" />
+          </TouchableOpacity>
+
+          {/* User Pill — tapping opens dropdown */}
+          <TouchableOpacity style={styles.userPill} onPress={openDropdown} activeOpacity={0.8}>
+            <View style={styles.userPillAvatar}>
+              <Text style={styles.userPillInitials}>{initials}</Text>
+            </View>
+            <View style={styles.userPillText}>
+              <Text style={styles.userPillName} numberOfLines={1}>{fullName}</Text>
+              <Text style={styles.userPillRole}>● Approved</Text>
+            </View>
+            <Ionicons name="chevron-down" size={12} color="rgba(255,255,255,0.8)" style={{ marginLeft: 2 }} />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* ── Dropdown Modal ── */}
+      <Modal
+        visible={dropdownVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closeDropdown}
+      >
+        <TouchableWithoutFeedback onPress={closeDropdown}>
+          <View style={styles.modalBackdrop}>
+            <TouchableWithoutFeedback>
+              <Animated.View style={[styles.dropdown, { opacity: fadeAnim }]}>
+
+                {/* User Header */}
+                <View style={styles.dropdownHeader}>
+                  <View style={styles.dropdownAvatar}>
+                    <Text style={styles.dropdownAvatarText}>{initials}</Text>
+                  </View>
+                  <View style={styles.dropdownUserInfo}>
+                    <Text style={styles.dropdownName}>{fullName}</Text>
+                    <Text style={styles.dropdownMeta}>
+                      {roleName} · {user?.houseNumber || 'No house'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.dropdownDivider} />
+
+                {/* Dashboard */}
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    closeDropdown();
+                    navigation.navigate('Dashboard');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.dropdownItemIcon, { backgroundColor: '#f0fdf4' }]}>
+                    <Ionicons name="grid-outline" size={17} color="#16a34a" />
+                  </View>
+                  <Text style={styles.dropdownItemText}>Dashboard</Text>
+                </TouchableOpacity>
+
+                {/* Profile Settings */}
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    closeDropdown();
+                    navigation.navigate('ProfileSettings');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.dropdownItemIcon, { backgroundColor: '#f0fdf4' }]}>
+                    <Ionicons name="settings-outline" size={17} color="#16a34a" />
+                  </View>
+                  <Text style={styles.dropdownItemText}>Profile Settings</Text>
+                </TouchableOpacity>
+
+                <View style={styles.dropdownDivider} />
+
+                {/* Logout */}
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    closeDropdown();
+                    logout();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.dropdownItemIcon, { backgroundColor: '#fef2f2' }]}>
+                    <Ionicons name="log-out-outline" size={17} color="#ef4444" />
+                  </View>
+                  <Text style={[styles.dropdownItemText, { color: '#ef4444' }]}>Logout</Text>
+                </TouchableOpacity>
+
+              </Animated.View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a6b3c" />}
       >
+
+        {/* ── Hero Card ── */}
         <View style={styles.heroCard}>
-          <View style={styles.heroImagePlaceholder} />
+          <View style={styles.heroBg} />
           <View style={styles.heroOverlay} />
-
-          <View style={styles.heroContent}>
-            <Text style={styles.heroEyebrow}>Casimiro Westville Homes - Cavite</Text>
-            <Text style={[styles.heroTitle, isNarrowScreen && styles.heroTitleSmall]}>
-              Good day, {user?.firstName || 'User'}
-            </Text>
-            <Text style={styles.heroSubtitle}>
-              {formattedDate} - Your community is running smoothly today.
-            </Text>
-          </View>
-
-          <View style={styles.heroStatsGrid}>
-            {config.stats.slice(0, 4).map((stat, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.heroStatCell,
-                  isVeryNarrowScreen && styles.heroStatCellFull,
-                ]}
-              >
-                <Text style={styles.heroStatValue}>{stat.value}</Text>
-                <Text style={styles.heroStatLabel}>{stat.label}</Text>
+          <View style={styles.heroInner}>
+            <View style={styles.heroLeft}>
+              <Text style={styles.heroEyebrow}>Casimiro Westville Homes · Cavite</Text>
+              <Text style={[styles.heroTitle, isNarrow && { fontSize: 19, lineHeight: 24 }]}>
+                {greeting()}{'\n'}{user?.firstName || 'User'}
+              </Text>
+              <Text style={styles.heroDate}>{formattedDate}</Text>
+              <View style={styles.heroPill}>
+                <View style={styles.heroPillDot} />
+                <Text style={styles.heroPillText}>Community running smoothly</Text>
               </View>
-            ))}
+            </View>
+            <View style={styles.heroRight}>
+              {config.stats.map((stat, i) => (
+                <View key={i} style={[styles.heroStatCell, i === config.stats.length - 1 && { borderBottomWidth: 0 }]}>
+                  <Text style={styles.heroStatValue}>{stat.prefix || ''}{stat.value}</Text>
+                  <Text style={styles.heroStatLabel} numberOfLines={2}>{stat.label}</Text>
+                  <Text style={[styles.heroStatHint, i === 1 && { color: '#fca5a5' }]}>
+                    ↗ {config.hints[i]}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
 
-        <View style={styles.colorStatsGrid}>
-          {config.stats.slice(0, 4).map((stat, index) => {
-            const tone = statGradients[index % statGradients.length];
-            return (
-              <View
-                key={index}
-                style={[
-                  styles.colorStatCard,
-                  { backgroundColor: tone.bg },
-                  isNarrowScreen && styles.colorStatCardFull,
-                ]}
-              >
-                <Ionicons
-                  name={index % 2 === 0 ? 'stats-chart' : 'flash'}
-                  size={22}
-                  color="rgba(255,255,255,0.65)"
-                  style={styles.colorStatIcon}
-                />
-                <Text style={styles.colorStatValue}>{stat.value}</Text>
-                <Text style={styles.colorStatLabel} numberOfLines={2}>
-                  {stat.label}
-                </Text>
-                <Text style={[styles.colorStatHint, { color: tone.accent }]}>Live update</Text>
+        {/* ── Colored Stat Cards ── */}
+        <View style={styles.statGrid}>
+          {config.stats.map((stat, i) => (
+            <View key={i} style={[styles.statCard, { backgroundColor: stat.bg }]}>
+              <View style={styles.statCardBgIcon}>
+                <Ionicons name={stat.icon} size={56} color="rgba(255,255,255,0.15)" />
               </View>
-            );
-          })}
+              <View style={styles.statCardTop}>
+                <Ionicons name={stat.icon} size={18} color="rgba(255,255,255,0.7)" />
+              </View>
+              <Text style={styles.statCardValue}>{stat.prefix || ''}{stat.value}</Text>
+              <Text style={styles.statCardLabel} numberOfLines={2}>{stat.label}</Text>
+              <Text style={styles.statCardHint}>↗ {config.hints[i]}</Text>
+            </View>
+          ))}
         </View>
 
+        {/* ── Quick Actions ── */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
           </View>
-          <View style={styles.quickActionsList}>
-            {config.quickActions.map((action, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.quickActionRow}
-                onPress={() => {
-                  if (action.screen === 'AdminApprovals') {
-                    navigation.navigate('AdminApprovals');
-                  } else {
-                    navigation.navigate(action.screen);
-                  }
-                }}
-              >
-                <View style={[styles.quickActionIconWrap, { backgroundColor: action.color + '15' }]}>
-                  <Ionicons name={action.icon} size={20} color={action.color} />
-                </View>
-                <View style={styles.quickActionBody}>
-                  <Text style={styles.quickActionTitle} numberOfLines={1}>
-                    {action.title}
-                  </Text>
-                  <Text style={styles.quickActionSub}>Tap to open</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
-              </TouchableOpacity>
-            ))}
-          </View>
+          {config.quickActions.map((action, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[styles.actionRow, i < config.quickActions.length - 1 && styles.actionRowDivider]}
+              onPress={() => navigation.navigate(action.screen)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: action.bg }]}>
+                <Ionicons name={action.icon} size={18} color={action.color} />
+              </View>
+              <View style={styles.actionBody}>
+                <Text style={styles.actionTitle}>{action.title}</Text>
+                <Text style={styles.actionSub}>{action.subtitle}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#cbd5e1" />
+            </TouchableOpacity>
+          ))}
         </View>
 
+        {/* ── Recent Activity ── */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Activities</Text>
-          </View>
-          <View style={styles.activityList}>
-            <View style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Ionicons name="notifications" size={18} color={themeColors.primary} />
-              </View>
-              <View style={styles.activityContent}>
-                <Text style={styles.activityText}>System ready</Text>
-                <Text style={styles.activityTime}>Just now</Text>
-              </View>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveBadgeText}>Live</Text>
             </View>
-            <View style={styles.activityDivider} />
-            <View style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Ionicons name="checkmark-circle" size={18} color={themeColors.success} />
-              </View>
-              <View style={styles.activityContent}>
-                <Text style={styles.activityText}>Last login successful</Text>
-                <Text style={styles.activityTime}>Today</Text>
-              </View>
+          </View>
+          <View style={[styles.actionRow, styles.actionRowDivider]}>
+            <View style={[styles.actionIconWrap, { backgroundColor: '#eff6ff' }]}>
+              <Ionicons name="notifications-outline" size={16} color="#2563eb" />
+            </View>
+            <View style={styles.actionBody}>
+              <Text style={styles.actionTitle}>System ready</Text>
+              <Text style={styles.actionSub}>Just now</Text>
+            </View>
+          </View>
+          <View style={styles.actionRow}>
+            <View style={[styles.actionIconWrap, { backgroundColor: '#f0fdf4' }]}>
+              <Ionicons name="checkmark-circle-outline" size={16} color="#16a34a" />
+            </View>
+            <View style={styles.actionBody}>
+              <Text style={styles.actionTitle}>Last login successful</Text>
+              <Text style={styles.actionSub}>Today</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.footerNote}>
-          <Ionicons name="business" size={15} color={themeColors.textSecondary} />
-          <Text style={styles.footerNoteText}>
-            VIMS - {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)} Access
-          </Text>
+        {/* ── Footer ── */}
+        <View style={styles.footer}>
+          <Ionicons name="business-outline" size={12} color="#94a3b8" />
+          <Text style={styles.footerText}>VIMS · {roleName} Access</Text>
         </View>
+
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: pinterestTheme.canvas,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: pinterestTheme.canvas,
-  },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', gap: 10 },
+  loadingText: { fontSize: 14, color: '#64748b', fontWeight: '500' },
+
+  /* Top Bar */
   topBar: {
-    paddingTop: 56,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    paddingTop: 52, paddingHorizontal: 14, paddingBottom: 12,
+    backgroundColor: '#1a6b3c',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  topBarLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 },
+  topLogoCircle: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  topLogoText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+  topTextWrap: { flexShrink: 1, minWidth: 0 },
+  topBarTitle: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
+  topBarSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600', marginTop: 1 },
+  topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  bellBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  userPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20, paddingVertical: 4, paddingLeft: 4, paddingRight: 8,
+  },
+  userPillAvatar: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  userPillInitials: { fontSize: 8, fontWeight: '900', color: '#1a6b3c' },
+  userPillText: { maxWidth: 70 },
+  userPillName: { fontSize: 9, fontWeight: '700', color: '#fff' },
+  userPillRole: { fontSize: 8, fontWeight: '600', color: '#86efac', marginTop: 1 },
+
+  /* Dropdown Modal */
+  modalBackdrop: {
     flex: 1,
-    minWidth: 0,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 105,
+    paddingRight: 12,
   },
-  topTextWrap: {
-    flexShrink: 1,
-    minWidth: 0,
+  dropdown: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: 230,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 10,
+    overflow: 'hidden',
   },
-  topIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#ecfdf5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topBarTitle: {
-    color: themeColors.textPrimary,
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  topBarSubtitle: {
-    color: themeColors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
+  dropdownHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 14,
-    paddingBottom: 30,
   },
-  heroCard: {
-    borderRadius: 22,
-    overflow: 'hidden',
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    backgroundColor: '#0f172a',
-    ...pinterestTheme.cardShadow,
+  dropdownAvatar: {
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center', justifyContent: 'center',
   },
-  heroImagePlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#111827',
+  dropdownAvatarText: { fontSize: 14, fontWeight: '800', color: '#475569' },
+  dropdownUserInfo: { flex: 1 },
+  dropdownName: { fontSize: 13, fontWeight: '800', color: '#0f172a' },
+  dropdownMeta: { fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: '500' },
+  dropdownDivider: { height: 0.5, backgroundColor: '#e2e8f0', marginHorizontal: 14 },
+  dropdownItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
   },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(2, 6, 23, 0.55)',
+  dropdownItemIcon: {
+    width: 32, height: 32, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center',
   },
-  heroContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
-  },
+  dropdownItemText: { fontSize: 13, fontWeight: '700', color: '#0f172a' },
+
+  /* Scroll */
+  content: { flex: 1 },
+  contentContainer: { padding: 12, paddingBottom: 32, gap: 10 },
+
+  /* Hero */
+  heroCard: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#0f172a' },
+  heroBg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#111827' },
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  heroInner: { flexDirection: 'row' },
+  heroLeft: { flex: 1, padding: 16 },
   heroEyebrow: {
-    color: '#86efac',
-    fontSize: 11,
-    fontWeight: '800',
-    marginBottom: 8,
-    textTransform: 'uppercase',
+    color: '#4ade80', fontSize: 9, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8,
   },
-  heroTitle: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '900',
-    lineHeight: 28,
-    marginBottom: 6,
+  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '900', lineHeight: 28, marginBottom: 6 },
+  heroDate: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '500', lineHeight: 16, marginBottom: 10 },
+  heroPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20,
   },
-  heroTitleSmall: {
-    fontSize: 20,
-    lineHeight: 24,
-  },
-  heroSubtitle: {
-    color: 'rgba(255,255,255,0.82)',
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 19,
-  },
-  heroStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.12)',
-  },
+  heroPillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4ade80' },
+  heroPillText: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '600' },
+  heroRight: { width: 120, borderLeftWidth: 0.5, borderLeftColor: 'rgba(255,255,255,0.1)' },
   heroStatCell: {
-    width: '50%',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingVertical: 11, paddingHorizontal: 10,
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.08)',
   },
-  heroStatCellFull: {
-    width: '100%',
-    borderRightWidth: 0,
+  heroStatValue: { color: '#fff', fontSize: 20, fontWeight: '900', lineHeight: 22 },
+  heroStatLabel: { color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: '600', marginTop: 2, lineHeight: 13 },
+  heroStatHint: { color: '#4ade80', fontSize: 9, fontWeight: '700', marginTop: 3 },
+
+  /* Stat Cards */
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statCard: {
+    width: '47.5%', borderRadius: 16, padding: 12, minHeight: 115,
+    overflow: 'hidden', justifyContent: 'flex-end',
   },
-  heroStatValue: {
-    color: 'white',
-    fontSize: 21,
-    fontWeight: '900',
-  },
-  heroStatLabel: {
-    color: 'rgba(255,255,255,0.78)',
-    fontSize: 12,
-    marginTop: 3,
-    fontWeight: '600',
-  },
-  colorStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  colorStatCard: {
-    width: '48.5%',
-    borderRadius: pinterestTheme.cardRadius,
-    padding: 12,
-    marginBottom: 10,
-    minHeight: 116,
-    ...pinterestTheme.cardShadow,
-  },
-  colorStatCardFull: {
-    width: '100%',
-  },
-  colorStatIcon: {
-    alignSelf: 'flex-end',
-    marginBottom: 6,
-  },
-  colorStatValue: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '900',
-    lineHeight: 26,
-  },
-  colorStatLabel: {
-    color: 'white',
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: '700',
-  },
-  colorStatHint: {
-    marginTop: 8,
-    fontSize: 11,
-    fontWeight: '700',
-  },
+  statCardBgIcon: { position: 'absolute', right: -8, bottom: -8 },
+  statCardTop: { marginBottom: 6 },
+  statCardValue: { color: '#fff', fontSize: 28, fontWeight: '900', lineHeight: 30 },
+  statCardLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700', marginTop: 4 },
+  statCardHint: { color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700', marginTop: 5 },
+
+  /* Section Cards */
   sectionCard: {
-    backgroundColor: 'white',
-    borderRadius: pinterestTheme.cardRadius,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    marginBottom: 14,
-    overflow: 'hidden',
-    ...pinterestTheme.cardShadow,
+    backgroundColor: '#fff', borderRadius: 16,
+    borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.06)', overflow: 'hidden',
   },
   sectionHeader: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: themeColors.textPrimary,
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
+  liveBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
-  quickActionsList: {
-    padding: 10,
-    gap: 8,
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#16a34a' },
+  liveBadgeText: { fontSize: 10, fontWeight: '700', color: '#15803d' },
+  actionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
   },
-  quickActionRow: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
-    backgroundColor: '#fafafa',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    gap: 10,
-  },
-  quickActionIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickActionBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  quickActionTitle: {
-    color: themeColors.textPrimary,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  quickActionSub: {
-    color: themeColors.textSecondary,
-    fontSize: 12,
-    marginTop: 1,
-  },
-  activityList: {
-    padding: 12,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  activityDivider: {
-    height: 1,
-    backgroundColor: themeColors.border,
-    marginVertical: 3,
-  },
-  activityIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: themeColors.primary + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  activityContent: {
-    flex: 1,
-  },
-  activityText: {
-    fontSize: 14,
-    color: themeColors.textPrimary,
-    marginBottom: 2,
-    fontWeight: '700',
-  },
-  activityTime: {
-    fontSize: 12,
-    color: themeColors.textSecondary,
-    fontWeight: '500',
-  },
-  footerNote: {
-    marginTop: 2,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-  },
-  footerNoteText: {
-    color: themeColors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  actionRowDivider: { borderBottomWidth: 0.5, borderBottomColor: '#f8fafc' },
+  actionIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  actionBody: { flex: 1, minWidth: 0 },
+  actionTitle: { color: '#0f172a', fontSize: 13, fontWeight: '800' },
+  actionSub: { color: '#94a3b8', fontSize: 11, marginTop: 1 },
+
+  /* Footer */
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 },
+  footerText: { color: '#94a3b8', fontSize: 11, fontWeight: '600' },
 });
 
 export default DashboardScreen;

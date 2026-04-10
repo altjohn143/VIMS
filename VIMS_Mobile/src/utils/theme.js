@@ -1,16 +1,20 @@
 export const themeColors = {
-  primary: '#2224be',
-  primaryLight: '#2224be',
-  primaryDark: '#1a1c8c',
-  success: '#10b981',
+  primary: '#166534',
+  primaryDark: '#14532d',
+  primaryLight: '#22c55e',
+  primarySoft: '#dcfce7',
+  sidebar: '#146c34',
+  sidebarDark: '#0f5a2a',
+  success: '#22c55e',
   warning: '#f59e0b',
   error: '#ef4444',
-  info: '#3b82f6',
-  background: '#f8fafc',
+  info: '#0ea5e9',
+  background: '#f3f5f7',
   cardBackground: '#ffffff',
-  textPrimary: '#1e293b',
+  textPrimary: '#0f172a',
   textSecondary: '#64748b',
-  border: 'rgba(34, 36, 190, 0.1)',
+  border: 'rgba(15, 23, 42, 0.08)',
+  muted: '#e5e7eb'
 };
 
 export const typography = {
@@ -63,6 +67,29 @@ export const pinterestTheme = {
     elevation: 3,
   },
 };
+
+export const statCardStyles = [
+  {
+    bg: 'linear-gradient(135deg, #2349d8 0%, #243fb8 100%)',
+    light: 'rgba(255,255,255,0.16)',
+    accent: '#dbeafe'
+  },
+  {
+    bg: 'linear-gradient(135deg, #18a34a 0%, #17803d 100%)',
+    light: 'rgba(255,255,255,0.16)',
+    accent: '#dcfce7'
+  },
+  {
+    bg: 'linear-gradient(135deg, #0986c8 0%, #0d6997 100%)',
+    light: 'rgba(255,255,255,0.14)',
+    accent: '#dbeafe'
+  },
+  {
+    bg: 'linear-gradient(135deg, #e02424 0%, #b91c1c 100%)',
+    light: 'rgba(255,255,255,0.14)',
+    accent: '#fee2e2'
+  }
+];
 
 export const shadows = {
   small: {

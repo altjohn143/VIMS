@@ -176,7 +176,7 @@ const LoginScreen = ({ navigation }) => {
                     onPress={() => setSelectedRole(role.key)}
                   >
                     <View style={styles.roleIconWrap}>
-                      <Ionicons name={role.icon} size={26} color="#2E6B2E" />
+                      <Ionicons name={role.icon} size={26} color={themeColors.primary} />
                     </View>
                     <View style={styles.roleContent}>
                       <Text style={styles.roleTitle}>{role.label}</Text>
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#5D983E',
+    backgroundColor: themeColors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,

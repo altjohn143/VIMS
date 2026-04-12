@@ -50,6 +50,8 @@ const ResidentTabs = () => {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'ServicesTab') {
             iconName = focused ? 'build' : 'build-outline';
+          } else if (route.name === 'PaymentsTab') {
+            iconName = focused ? 'cash' : 'cash-outline';
           } else if (route.name === 'ProfileTab') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -92,6 +94,8 @@ const AdminTabs = () => {
             iconName = focused ? 'qr-code' : 'qr-code-outline';
           } else if (route.name === 'ServicesTab') {
             iconName = focused ? 'build' : 'build-outline';
+          } else if (route.name === 'PaymentsTab') {
+            iconName = focused ? 'cash' : 'cash-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },

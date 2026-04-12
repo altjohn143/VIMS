@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const User = require('../models/User');
 const Lot = require('../models/Lot');
 const OccupancyHistory = require('../models/OccupancyHistory');
@@ -293,6 +296,61 @@ router.get('/stats/summary', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+console.log('🔧 Loading users route file');
+const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
+if (!fs.existsSync(profilePhotoDir)) {
+  fs.mkdirSync(profilePhotoDir, { recursive: true });
+}
+
+const photoStorage = multer.diskStorage({
+  destination: profilePhotoDir,
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9\.\-]/g, '_');
+    cb(null, `${req.user.id}_${timestamp}_${safeName}`);
+  }
+});
+
+const photoUpload = multer({
+  storage: photoStorage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
+
+router.post('/profile-photo', protect, photoUpload.single('photo'), async (req, res) => {
+  console.log('🔧 Received POST /api/users/profile-photo');
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No photo file uploaded' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    user.profilePhoto = req.file.filename;
+    await user.save();
+
+    const photoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${req.file.filename}`;
+
+    res.json({
+      success: true,
+      message: 'Profile photo uploaded successfully',
+      data: { profilePhoto: req.file.filename, profilePhotoUrl: photoUrl }
+    });
+  } catch (error) {
+    console.error('Upload profile photo error:', error);
+    res.status(500).json({ success: false, error: 'Failed to upload profile photo' });
+  }
+});
+
 // Update user profile
 router.put('/profile', protect, async (req, res) => {
   try {
@@ -374,10 +432,15 @@ router.get('/profile', protect, async (req, res) => {
         error: 'User not found'
       });
     }
+
+    const userObj = user.toObject();
+    if (user.profilePhoto) {
+      userObj.profilePhotoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${user.profilePhoto}`;
+    }
     
     res.json({
       success: true,
-      data: user
+      data: userObj
     });
   } catch (error) {
     console.error('Get profile error:', error);

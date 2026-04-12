@@ -9,15 +9,19 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+    Image,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { themeColors, shadows } from '../utils/theme';
 import api from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LogoutButton from '../components/LogoutButton';
+import UserDropdownMenu from '../components/UserDropdownMenu';
 
 const ProfileScreen = ({ navigation }) => {
+  const { updateUser } = useAuth();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,6 +47,9 @@ const ProfileScreen = ({ navigation }) => {
     vehicles: [{ plateNumber: '', make: '', model: '', color: '' }],
     familyMembers: [{ name: '', relationship: '', age: '', phone: '' }],
   });
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [selectedPhotoUri, setSelectedPhotoUri] = useState(null);
 
   useEffect(() => {
     loadUserProfile();
@@ -68,6 +75,7 @@ const ProfileScreen = ({ navigation }) => {
             vehicles: profileData.vehicles?.length > 0 ? profileData.vehicles : [{ plateNumber: '', make: '', model: '', color: '' }],
             familyMembers: profileData.familyMembers?.length > 0 ? profileData.familyMembers : [{ name: '', relationship: '', age: '', phone: '' }],
           });
+          setProfilePhoto(buildProfilePhotoUrl(profileData.profilePhotoUrl || profileData.profilePhoto || userData.profilePhoto || null));
         }
       }
     } catch (error) {
@@ -83,7 +91,12 @@ const ProfileScreen = ({ navigation }) => {
     try {
       const response = await api.put('/users/profile', formData);
       if (response.data.success) {
-        Alert.alert('Success', 'Profile updated successfully');
+        if (selectedPhotoUri) {
+          await uploadProfilePhoto(selectedPhotoUri);
+          setSelectedPhotoUri(null);
+        } else {
+          Alert.alert('Success', 'Profile updated successfully');
+        }
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to update profile');
@@ -127,6 +140,90 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  const pickProfileImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.status !== 'granted') {
+      Alert.alert('Permission Needed', 'Please grant permission to access your photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    const canceled = result.canceled || result.cancelled;
+    if (canceled) {
+      return;
+    }
+
+    const asset = result.assets?.[0] || result;
+    if (!asset?.uri) {
+      return;
+    }
+
+    setSelectedPhotoUri(asset.uri);
+    Alert.alert('Photo Selected', 'Click "Save Profile Changes" to apply the new photo.');
+  };
+
+  const buildProfilePhotoUrl = (photo) => {
+    if (!photo) return null;
+    if (photo.startsWith('http')) return photo;
+    const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || '';
+    return `${baseUrl}/uploads/profile-photos/${photo}`;
+  };
+
+  const uploadProfilePhoto = async (uri) => {
+    try {
+      setUploadingPhoto(true);
+      const filename = uri.split('/').pop() || 'profile-photo.jpg';
+      const match = filename?.match(/\.(\w+)$/);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      const uploadData = new FormData();
+
+      if (Platform.OS === 'web') {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const file = new File([blob], filename, { type });
+        uploadData.append('photo', file);
+      } else {
+        uploadData.append('photo', {
+          uri,
+          name: filename,
+          type,
+        });
+      }
+
+      const response = await api.post('/users/profile-photo', uploadData, {
+        headers: { 'Content-Type': undefined }
+      });
+
+      if (response.data.success) {
+        const updatedPhoto = response.data.data.profilePhotoUrl || buildProfilePhotoUrl(response.data.data.profilePhoto);
+        setProfilePhoto(updatedPhoto);
+
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          const updatedUser = { ...parsed, profilePhoto: updatedPhoto };
+          await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+          setUser(updatedUser);
+          updateUser(updatedUser);
+        }
+
+        Alert.alert('Success', 'Profile photo updated successfully');
+      }
+    } catch (error) {
+      console.error('Profile photo upload failed:', error);
+      Alert.alert('Error', error.response?.data?.error || 'Failed to upload profile photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const addVehicle = () => {
     setFormData(prev => ({
       ...prev,
@@ -165,23 +262,40 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-<View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="white" />
-  </TouchableOpacity>
-  <Text style={styles.headerTitle}>Profile Settings</Text>
-  <LogoutButton navigation={navigation} color="white" size={24} />
-</View>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profile Settings</Text>
+        <UserDropdownMenu navigation={navigation} />
+      </View>
 
-      <ScrollView style={styles.content}>
-        <View style={[styles.profileCard, shadows.medium]}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-              </Text>
-            </View>
+            <TouchableOpacity onPress={pickProfileImage} activeOpacity={0.8} style={styles.avatarButton}>
+              {selectedPhotoUri ? (
+                <Image source={{ uri: selectedPhotoUri }} style={styles.avatar} />
+              ) : profilePhoto ? (
+                <Image source={{ uri: profilePhoto }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.photoButton} onPress={pickProfileImage} disabled={uploadingPhoto}>
+              <Text style={styles.photoButtonText}>{uploadingPhoto ? 'Uploading...' : 'Change Photo'}</Text>
+            </TouchableOpacity>
           </View>
+          {selectedPhotoUri && (
+            <View style={styles.previewNotice}>
+              <Ionicons name="information-circle" size={16} color={themeColors.secondary} />
+              <Text style={styles.previewText}>Photo selected and ready to save</Text>
+            </View>
+          )}
           <Text style={styles.userName}>{user?.firstName} {user?.lastName}</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>{user?.role?.toUpperCase()}</Text>
@@ -334,20 +448,23 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: themeColors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { backgroundColor: themeColors.primary, paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { backgroundColor: themeColors.primary, paddingTop: 60, paddingBottom: 20, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' },
   backButton: { padding: 8 },
   headerTitle: { color: 'white', fontSize: 20, fontWeight: '600' },
-  content: { flex: 1, padding: 16 },
-  profileCard: { backgroundColor: 'white', borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: themeColors.border },
-  avatarContainer: { marginBottom: 12 },
+  content: { paddingTop: 24, paddingHorizontal: 16, paddingBottom: 24 },
+  profileCard: { backgroundColor: 'white', borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 16 },
+  avatarContainer: { marginBottom: 12, alignItems: 'center' },
   avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: themeColors.primary, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: 'white', fontSize: 36, fontWeight: '600' },
+  avatarButton: { borderRadius: 50, overflow: 'hidden' },
+  photoButton: { marginTop: 12, backgroundColor: '#e5f4ec', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#c7e5d4' },
+  photoButtonText: { color: themeColors.primary, fontWeight: '700' },
   userName: { fontSize: 20, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 8 },
   roleBadge: { backgroundColor: themeColors.primary + '20', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16, marginBottom: 8 },
   roleText: { color: themeColors.primary, fontSize: 12, fontWeight: '600' },
   userEmail: { fontSize: 14, color: themeColors.textSecondary, marginBottom: 4 },
   userHouse: { fontSize: 14, color: themeColors.textSecondary },
-  section: { backgroundColor: 'white', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: themeColors.border },
+  section: { backgroundColor: 'white', borderRadius: 16, padding: 16, marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 16 },
   inputGroup: { marginBottom: 16 },
   label: { fontSize: 14, color: themeColors.textSecondary, marginBottom: 8 },
@@ -368,6 +485,8 @@ const styles = StyleSheet.create({
   cancelButtonText: { color: themeColors.textPrimary, fontSize: 16, fontWeight: '600' },
   changeButton: { backgroundColor: themeColors.primary, marginLeft: 8 },
   changeButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  previewNotice: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e5f4ec', borderRadius: 8, padding: 12, marginTop: 12 },
+  previewText: { fontSize: 14, color: themeColors.secondary, marginLeft: 8, fontWeight: '500' },
 });
 
 export default ProfileScreen;

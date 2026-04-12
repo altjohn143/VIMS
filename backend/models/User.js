@@ -90,7 +90,12 @@ const userSchema = new mongoose.Schema({
     relationship: String,
     age: Number,
     phone: String
-  }]
+  }],
+
+  profilePhoto: {
+    type: String,
+    default: ''
+  }
 
 }, {
   timestamps: true, 

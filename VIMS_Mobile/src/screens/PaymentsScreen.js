@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import UserDropdownMenu from '../components/UserDropdownMenu';
 import { themeColors, shadows } from '../utils/theme';
 import api from '../utils/api';
 import * as ImagePicker from 'expo-image-picker';
@@ -222,7 +223,7 @@ const PaymentsScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payments & Dues</Text>
-        <View style={{ width: 40 }} />
+        <UserDropdownMenu navigation={navigation} />
       </View>
 
       <ScrollView

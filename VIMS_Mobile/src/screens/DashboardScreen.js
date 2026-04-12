@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -27,7 +28,9 @@ const DashboardScreen = ({ navigation }) => {
   const [stats, setStats] = useState({});
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { logout } = useAuth();
+  const { logout, user: authUser } = useAuth();
+
+  const userToShow = authUser || user;
 
   useEffect(() => { loadUserData(); }, []);
 
@@ -144,7 +147,7 @@ const DashboardScreen = ({ navigation }) => {
     },
   };
 
-  const config = roleConfig[user?.role] || roleConfig.resident;
+  const config = roleConfig[userToShow?.role] || roleConfig.resident;
 
   const formattedDate = new Date().toLocaleDateString(undefined, {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -157,14 +160,20 @@ const DashboardScreen = ({ navigation }) => {
     return 'Good evening,';
   };
 
-  const roleName = user?.role
-    ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+  const roleName = userToShow?.role
+    ? userToShow.role.charAt(0).toUpperCase() + userToShow.role.slice(1)
     : 'User';
 
-  const initials = [user?.firstName?.[0], user?.lastName?.[0]]
+  const initials = [userToShow?.firstName?.[0], userToShow?.lastName?.[0]]
     .filter(Boolean).join('') || 'U';
 
-  const fullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User';
+  const avatarUri = userToShow?.profilePhoto
+    ? userToShow.profilePhoto.startsWith('http')
+      ? userToShow.profilePhoto
+      : `${api.defaults.baseURL?.replace(/\/api$/, '')}/uploads/profile-photos/${userToShow.profilePhoto}`
+    : null;
+
+  const fullName = `${userToShow?.firstName || ''} ${userToShow?.lastName || ''}`.trim() || 'User';
 
   return (
     <View style={styles.container}>
@@ -190,7 +199,11 @@ const DashboardScreen = ({ navigation }) => {
           {/* User Pill — tapping opens dropdown */}
           <TouchableOpacity style={styles.userPill} onPress={openDropdown} activeOpacity={0.8}>
             <View style={styles.userPillAvatar}>
-              <Text style={styles.userPillInitials}>{initials}</Text>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.userPillAvatarImage} />
+              ) : (
+                <Text style={styles.userPillInitials}>{initials}</Text>
+              )}
             </View>
             <View style={styles.userPillText}>
               <Text style={styles.userPillName} numberOfLines={1}>{fullName}</Text>
@@ -216,12 +229,16 @@ const DashboardScreen = ({ navigation }) => {
                 {/* User Header */}
                 <View style={styles.dropdownHeader}>
                   <View style={styles.dropdownAvatar}>
-                    <Text style={styles.dropdownAvatarText}>{initials}</Text>
+                    {avatarUri ? (
+                      <Image source={{ uri: avatarUri }} style={styles.dropdownAvatarImage} />
+                    ) : (
+                      <Text style={styles.dropdownAvatarText}>{initials}</Text>
+                    )}
                   </View>
                   <View style={styles.dropdownUserInfo}>
                     <Text style={styles.dropdownName}>{fullName}</Text>
                     <Text style={styles.dropdownMeta}>
-                      {roleName} · {user?.houseNumber || 'No house'}
+                      {roleName} · {userToShow?.houseNumber || 'No house'}
                     </Text>
                   </View>
                 </View>
@@ -435,6 +452,12 @@ const styles = StyleSheet.create({
     width: 22, height: 22, borderRadius: 11,
     backgroundColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  userPillAvatarImage: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
   },
   userPillInitials: { fontSize: 8, fontWeight: '900', color: '#1a6b3c' },
   userPillText: { maxWidth: 70 },
@@ -469,6 +492,12 @@ const styles = StyleSheet.create({
     width: 42, height: 42, borderRadius: 21,
     backgroundColor: '#e2e8f0',
     alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  dropdownAvatarImage: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
   },
   dropdownAvatarText: { fontSize: 14, fontWeight: '800', color: '#475569' },
   dropdownUserInfo: { flex: 1 },

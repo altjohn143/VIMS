@@ -18,7 +18,7 @@ import api from '../utils/api';
 import QRCode from 'react-native-qrcode-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
-import LogoutButton from '../components/LogoutButton';
+import UserDropdownMenu from '../components/UserDropdownMenu';
 
 const VisitorManagementScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
@@ -307,7 +307,7 @@ const VisitorManagementScreen = ({ navigation }) => {
     <TouchableOpacity onPress={() => setHistoryMode(!historyMode)} style={styles.historyButton}>
       <Ionicons name={historyMode ? 'people' : 'time'} size={24} color="white" />
     </TouchableOpacity>
-    <LogoutButton navigation={navigation} color="white" size={24} />
+    <UserDropdownMenu navigation={navigation} />
   </View>
 </View>
 

@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
-import LogoutButton from '../../components/LogoutButton';
+import UserDropdownMenu from '../../components/UserDropdownMenu';
 
 const AdminServiceRequestsScreen = ({ navigation }) => {
   const [requests, setRequests] = useState([]);
@@ -337,7 +337,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     <TouchableOpacity onPress={fetchData} style={styles.refreshButton}>
       <Ionicons name="refresh" size={24} color="white" />
     </TouchableOpacity>
-    <LogoutButton navigation={navigation} color="white" size={24} />
+    <UserDropdownMenu navigation={navigation} />
   </View>
 </View>
 

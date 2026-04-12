@@ -32,15 +32,25 @@ const AppContent = () => {
 
     if (!html || !body || !root) return;
 
+    // Make the web build behave like a centered mobile viewport
     html.style.height = '100%';
     html.style.width = '100%';
+
     body.style.height = '100%';
     body.style.width = '100%';
     body.style.margin = '0';
     body.style.overflow = 'auto';
+    body.style.display = 'flex';
+    body.style.justifyContent = 'center';
+    body.style.alignItems = 'stretch';
+    body.style.backgroundColor = '#111827';
+
     root.style.height = '100%';
     root.style.width = '100%';
-    root.style.maxWidth = '100%';
+    root.style.maxWidth = '480px';
+    root.style.margin = '0 auto';
+    root.style.boxShadow = '0 0 40px rgba(0,0,0,0.45)';
+    root.style.borderRadius = '24px';
   }, []);
 
   if (isLoading) {

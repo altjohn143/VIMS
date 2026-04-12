@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
-import LogoutButton from '../../components/LogoutButton';
+import UserDropdownMenu from '../../components/UserDropdownMenu';
 
 const SecurityVisitorApprovalScreen = ({ navigation }) => {
   const [pendingVisitors, setPendingVisitors] = useState([]);
@@ -210,7 +210,7 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
     <TouchableOpacity onPress={fetchPendingVisitors} style={styles.refreshButton}>
       <Ionicons name="refresh" size={24} color="white" />
     </TouchableOpacity>
-    <LogoutButton navigation={navigation} color="white" size={24} />
+    <UserDropdownMenu navigation={navigation} />
   </View>
 </View>
 

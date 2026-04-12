@@ -13,10 +13,11 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import { themeColors, shadows } from '../utils/theme';
 import api from '../utils/api';
 import { format } from 'date-fns';
-import LogoutButton from '../components/LogoutButton';
+import UserDropdownMenu from '../components/UserDropdownMenu';
 
 const ServiceRequestsScreen = ({ navigation }) => {
   const [requests, setRequests] = useState([]);
@@ -326,7 +327,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
     <TouchableOpacity onPress={fetchRequests} style={styles.refreshButton}>
       <Ionicons name="refresh" size={24} color="white" />
     </TouchableOpacity>
-    <LogoutButton navigation={navigation} color="white" size={24} />
+    <UserDropdownMenu navigation={navigation} />
   </View>
 </View>
 

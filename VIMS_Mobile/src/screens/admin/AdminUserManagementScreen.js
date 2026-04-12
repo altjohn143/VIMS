@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
-import LogoutButton from '../../components/LogoutButton';
+import UserDropdownMenu from '../../components/UserDropdownMenu';
 
 const AdminUserManagementScreen = ({ navigation }) => {
   const [users, setUsers] = useState([]);
@@ -291,7 +291,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
     <TouchableOpacity onPress={fetchUsers} style={styles.refreshButton}>
       <Ionicons name="refresh" size={24} color="white" />
     </TouchableOpacity>
-    <LogoutButton navigation={navigation} color="white" size={24} />
+    <UserDropdownMenu navigation={navigation} />
   </View>
 </View>
 

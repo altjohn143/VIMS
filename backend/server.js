@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
@@ -101,6 +102,7 @@ app.use(cors({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads/profile-photos', express.static(path.join(__dirname, 'uploads/profile-photos')));
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

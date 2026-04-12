@@ -18,7 +18,7 @@ import api from '../../utils/api';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
-import LogoutButton from '../../components/LogoutButton';
+import UserDropdownMenu from '../../components/UserDropdownMenu';
 
 const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
@@ -297,7 +297,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
       <Ionicons name="download" size={24} color="white" />
     </TouchableOpacity>
-    <LogoutButton navigation={navigation} color="white" size={24} />
+    <UserDropdownMenu navigation={navigation} />
   </View>
 </View>
 

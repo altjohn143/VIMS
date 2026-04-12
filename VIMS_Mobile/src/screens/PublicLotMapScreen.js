@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../utils/theme';
 import QRCode from 'react-native-qrcode-svg';
-import LogoutButton from '../components/LogoutButton';
+import UserDropdownMenu from '../components/UserDropdownMenu';
 
 const { width } = Dimensions.get('window');
 
@@ -210,7 +210,7 @@ const PublicLotMapScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Westville Lot Map</Text>
-        <LogoutButton navigation={navigation} color="white" size={24} />
+        <UserDropdownMenu navigation={navigation} />
       </View>
 
       <View style={styles.searchContainer}>

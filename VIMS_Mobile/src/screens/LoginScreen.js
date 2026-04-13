@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   Alert,
   ScrollView,
@@ -17,12 +18,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { themeColors, shadows } from '../utils/theme';
 
+const HERO_ABOUT_FULL =
+  'Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities where families can live comfortably and create a better future.';
+
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
+  const [heroAboutExpanded, setHeroAboutExpanded] = useState(false);
 
   const { login } = useAuth();
 
@@ -45,13 +50,6 @@ const LoginScreen = ({ navigation }) => {
       icon: 'shield-checkmark-outline',
       description: 'Monitor entries and help keep the community safe.',
     },
-  ];
-
-  // ✅ Stats data
-  const stats = [
-    { label: 'Residents', value: '120+' },
-    { label: 'Blocks', value: '3' },
-    { label: 'Est.', value: '2024' },
   ];
 
   const handleLogin = async () => {
@@ -144,46 +142,42 @@ const LoginScreen = ({ navigation }) => {
                   YOUR DREAM LIFE{'\n'}AWAITS IN{'\n'}WESTVILLE HOMES
                 </Text>
 
-                <Text style={styles.heroDescription}>
-                  Standing the test of time, Westville has grown from an innovative real
-                  estate developer into a strong name in the industry, continuously
-                  building quality homes and vibrant communities where families can live
-                  comfortably and create a better future.
-                </Text>
+                {heroAboutExpanded ? (
+                  <Text style={styles.heroDescription}>{HERO_ABOUT_FULL}</Text>
+                ) : null}
 
-                <TouchableOpacity activeOpacity={0.8}>
-                  <Text style={styles.readMoreText}>READ MORE</Text>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setHeroAboutExpanded((v) => !v)}
+                >
+                  <Text style={styles.readMoreText}>
+                    {heroAboutExpanded ? 'READ LESS' : 'READ MORE'}
+                  </Text>
                 </TouchableOpacity>
-              </View>
-
-              {/* ✅ Stats Row */}
-              <View style={styles.statsRow}>
-                {stats.map((stat, index) => (
-                  <View key={index} style={styles.statItem}>
-                    <Text style={styles.statValue}>{stat.value}</Text>
-                    <Text style={styles.statLabel}>{stat.label}</Text>
-                  </View>
-                ))}
               </View>
 
               {/* Role Cards */}
               <View style={styles.roleCardsContainer}>
                 {roles.map((role) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={role.key}
-                    activeOpacity={0.88}
-                    style={styles.roleCard}
                     onPress={() => setSelectedRole(role.key)}
+                    style={({ pressed, hovered }) => [
+                      styles.roleCard,
+                      Platform.OS === 'web' && styles.roleCardWeb,
+                      hovered && styles.roleCardHovered,
+                      pressed && styles.roleCardPressed,
+                    ]}
                   >
                     <View style={styles.roleIconWrap}>
-                      <Ionicons name={role.icon} size={26} color={themeColors.primary} />
+                      <Ionicons name={role.icon} size={26} color="#d1fae5" />
                     </View>
                     <View style={styles.roleContent}>
                       <Text style={styles.roleTitle}>{role.label}</Text>
                       <Text style={styles.roleDesc}>{role.description}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color="#C0C0C0" />
-                  </TouchableOpacity>
+                    <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.45)" />
+                  </Pressable>
                 ))}
               </View>
 
@@ -414,56 +408,49 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // ✅ Stats Row
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '900',
-  },
-  statLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-
   roleCardsContainer: {
     marginBottom: 34,
   },
   roleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 22,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 14,
     minHeight: 86,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
     shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 6,
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  roleCardWeb: {
+    cursor: 'pointer',
+    transition:
+      'background-color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease',
+  },
+  roleCardHovered: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.5)',
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    transform: [{ scale: 1.015 }],
+  },
+  roleCardPressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.992 }],
   },
   roleIconWrap: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#F3F7F1',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -472,14 +459,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   roleTitle: {
-    color: '#2E6B2E',
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 0.4,
     marginBottom: 4,
   },
   roleDesc: {
-    color: '#6F6F6F',
+    color: 'rgba(255,255,255,0.78)',
     fontSize: 11.5,
     lineHeight: 15,
     fontWeight: '500',

@@ -34,6 +34,15 @@ const DashboardScreen = ({ navigation }) => {
 
   useEffect(() => { loadUserData(); }, []);
 
+  useEffect(() => {
+    if (!user?.role) return;
+    const stop = startUnreadCountPolling({
+      intervalMs: 45000,
+      onCount: (count) => setUnreadCount(count),
+    });
+    return stop;
+  }, [user?.role]);
+
   const loadUserData = async () => {
     try {
       const userStr = await AsyncStorage.getItem('user');
@@ -66,9 +75,22 @@ const DashboardScreen = ({ navigation }) => {
     }
   };
 
+  const fetchRecentNotifications = async () => {
+    try {
+      const res = await api.get('/notifications');
+      if (res.data?.success) {
+        const rows = Array.isArray(res.data.data) ? res.data.data : [];
+        setRecentNotifications(rows.slice(0, 3));
+      }
+    } catch (_) {
+      // best-effort; dashboard still works without
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadUserData();
+    await fetchRecentNotifications();
     setRefreshing(false);
   };
 
@@ -403,7 +425,7 @@ const DashboardScreen = ({ navigation }) => {
               <Text style={styles.actionSub}>Today</Text>
             </View>
           </View>
-        </View>
+        ) : null}
 
         {/* ── Footer ── */}
         <View style={styles.footer}>

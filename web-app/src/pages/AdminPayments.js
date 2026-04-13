@@ -67,16 +67,18 @@ import autoTable from 'jspdf-autotable';
 
 const AdminPayments = () => {
   const themeColors = {
-    primary: '#2224be',
+    primary: '#166534',
+    primaryLight: '#22c55e',
+    primaryDark: '#14532d',
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
     info: '#3b82f6',
-    background: '#f8fafc',
+    background: '#f3f5f7',
     cardBackground: '#ffffff',
-    textPrimary: '#1e293b',
+    textPrimary: '#0f172a',
     textSecondary: '#64748b',
-    border: 'rgba(99, 102, 241, 0.1)'
+    border: 'rgba(15, 23, 42, 0.08)'
   };
 
   const [payments, setPayments] = useState([]);
@@ -389,19 +391,58 @@ const AdminPayments = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: themeColors.background }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `,
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        }
+      }}
+    >
       {/* Navigation Bar */}
-      <AppBar position="static" sx={{ bgcolor: themeColors.primary }}>
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={handleBack} sx={{ mr: 2 }}>
+          <IconButton
+            edge="start"
+            onClick={handleBack}
+            sx={{
+              mr: 2,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(34, 197, 94, 0.14)',
+              '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.24)' }
+            }}
+          >
             <ArrowBackIcon />
           </IconButton>
-          <AdminIcon sx={{ mr: 2 }} />
+          <AdminIcon sx={{ mr: 2, color: themeColors.primary }} />
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
             Admin - Payment Management
           </Typography>
-          <IconButton color="inherit" onClick={handleProfileMenuOpen}>
-            <Avatar sx={{ width: 36, height: 36, bgcolor: 'rgba(255,255,255,0.2)' }}>
+          <IconButton onClick={handleProfileMenuOpen}>
+            <Avatar
+              sx={{
+                width: 36,
+                height: 36,
+                bgcolor: themeColors.primary,
+                boxShadow: '0 6px 16px rgba(22,101,52,0.35)'
+              }}
+            >
               {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
             </Avatar>
           </IconButton>
@@ -419,10 +460,36 @@ const AdminPayments = () => {
       </AppBar>
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Paper
+          sx={{
+            mb: 3,
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '22px',
+            color: '#fff',
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+            animation: 'fadeUpSoft .45s ease-out'
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+            Payments Console
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 0.6, color: 'rgba(255,255,255,0.9)' }}>
+            Manage collections, verify incoming payments, and export reports in one place.
+          </Typography>
+        </Paper>
+
         {/* Stats Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3 }}>
+            <Card
+              sx={{
+                borderRadius: '20px',
+                border: `1px solid ${themeColors.border}`,
+                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.07)',
+                animation: 'fadeUpSoft .45s ease-out'
+              }}
+            >
               <CardContent>
                 <Typography variant="body2" color="textSecondary">Total Collected</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.success }}>
@@ -432,7 +499,14 @@ const AdminPayments = () => {
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3 }}>
+            <Card
+              sx={{
+                borderRadius: '20px',
+                border: `1px solid ${themeColors.border}`,
+                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.07)',
+                animation: 'fadeUpSoft .5s ease-out'
+              }}
+            >
               <CardContent>
                 <Typography variant="body2" color="textSecondary">Monthly Collection</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 700 }}>
@@ -442,7 +516,14 @@ const AdminPayments = () => {
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3 }}>
+            <Card
+              sx={{
+                borderRadius: '20px',
+                border: `1px solid ${themeColors.border}`,
+                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.07)',
+                animation: 'fadeUpSoft .55s ease-out'
+              }}
+            >
               <CardContent>
                 <Typography variant="body2" color="textSecondary">Pending Balance</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.warning }}>
@@ -452,7 +533,14 @@ const AdminPayments = () => {
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ borderRadius: 3 }}>
+            <Card
+              sx={{
+                borderRadius: '20px',
+                border: `1px solid ${themeColors.border}`,
+                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.07)',
+                animation: 'fadeUpSoft .6s ease-out'
+              }}
+            >
               <CardContent>
                 <Typography variant="body2" color="textSecondary">Collection Rate</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.info }}>
@@ -464,26 +552,50 @@ const AdminPayments = () => {
         </Grid>
 
         {/* Action Buttons */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setGenerateInvoiceDialogOpen(true)}>
+        <Paper
+          sx={{
+            p: 2,
+            mb: 3,
+            borderRadius: '20px',
+            display: 'flex',
+            gap: 1.25,
+            flexWrap: 'wrap',
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 10px 26px rgba(15, 23, 42, 0.06)'
+          }}
+        >
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setGenerateInvoiceDialogOpen(true)}
+            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}
+          >
             Generate Monthly Invoices
           </Button>
-          <Button variant="outlined" startIcon={<SendIcon />} onClick={() => setReminderDialogOpen(true)}>
+          <Button variant="outlined" startIcon={<SendIcon />} onClick={() => setReminderDialogOpen(true)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
             Send Overdue Reminders
           </Button>
-          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExportExcel}>
+          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExportExcel} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
             Export to Excel
           </Button>
-          <Button variant="outlined" onClick={handleExportPdf}>
+          <Button variant="outlined" onClick={handleExportPdf} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
             Export to PDF
           </Button>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchPayments}>
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchPayments} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
             Refresh
           </Button>
         </Paper>
 
         {/* Filters */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+        <Paper
+          sx={{
+            p: 2,
+            mb: 3,
+            borderRadius: '20px',
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 10px 26px rgba(15, 23, 42, 0.06)'
+          }}
+        >
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={3}>
               <TextField
@@ -535,7 +647,13 @@ const AdminPayments = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={3}>
-              <Button fullWidth variant="outlined" startIcon={<FilterIcon />} onClick={fetchPayments}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<FilterIcon />}
+                onClick={fetchPayments}
+                sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
+              >
                 Apply Filters
               </Button>
             </Grid>
@@ -543,10 +661,17 @@ const AdminPayments = () => {
         </Paper>
 
         {/* Payments Table */}
-        <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        <Paper
+          sx={{
+            borderRadius: '20px',
+            overflow: 'hidden',
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)'
+          }}
+        >
           <TableContainer>
             <Table>
-              <TableHead sx={{ bgcolor: themeColors.background }}>
+              <TableHead sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Resident</TableCell>
@@ -567,7 +692,15 @@ const AdminPayments = () => {
                   <TableRow><TableCell colSpan={10} align="center">No payments found</TableCell></TableRow>
                 ) : (
                   payments.map((payment) => (
-                    <TableRow key={payment._id} hover>
+                    <TableRow
+                      key={payment._id}
+                      hover
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'rgba(22, 163, 74, 0.04)'
+                        }
+                      }}
+                    >
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
                           {payment.invoiceNumber}
@@ -701,7 +834,13 @@ const AdminPayments = () => {
         </Paper>
 
         {/* Confirm Cash Payment Dialog */}
-        <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)} maxWidth="sm" fullWidth>
+        <Dialog
+          open={confirmDialogOpen}
+          onClose={() => setConfirmDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: '18px' } }}
+        >
           <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
             Confirm Cash Payment
           </DialogTitle>
@@ -721,15 +860,15 @@ const AdminPayments = () => {
             )}
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            <Button onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
-            <Button variant="contained" color="success" onClick={handleConfirmCashPayment} disabled={processing}>
+            <Button onClick={() => setConfirmDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
+            <Button variant="contained" color="success" onClick={handleConfirmCashPayment} disabled={processing} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
               {processing ? <CircularProgress size={20} /> : 'Confirm Payment'}
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* QRPh Payment Verification Dialog */}
-        <Dialog open={qrphDialogOpen} onClose={() => setQrphDialogOpen(false)} maxWidth="sm" fullWidth>
+        <Dialog open={qrphDialogOpen} onClose={() => setQrphDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ 
             fontWeight: 600, 
             color: themeColors.textPrimary,
@@ -855,7 +994,7 @@ const AdminPayments = () => {
             )}
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            <Button onClick={() => {
+            <Button sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }} onClick={() => {
               setQrphDialogOpen(false);
               setSelectedQRPhPayment(null);
               setVerificationNotes('');
@@ -868,7 +1007,7 @@ const AdminPayments = () => {
               onClick={handleVerifyQRPhPayment} 
               disabled={processing}
               startIcon={processing ? <CircularProgress size={20} /> : <VerifyIcon />}
-              sx={{ bgcolor: themeColors.success, '&:hover': { bgcolor: '#0da271' } }}
+              sx={{ bgcolor: themeColors.success, '&:hover': { bgcolor: '#0da271' }, borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
             >
               {processing ? 'Verifying...' : 'Verify & Confirm Payment'}
             </Button>
@@ -883,7 +1022,7 @@ const AdminPayments = () => {
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '18px',
               backgroundColor: themeColors.cardBackground,
               maxWidth: '600px'
             }
@@ -1008,12 +1147,12 @@ const AdminPayments = () => {
             )}
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            <Button onClick={() => setImageViewerOpen(false)}>Close</Button>
+            <Button onClick={() => setImageViewerOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Close</Button>
           </DialogActions>
         </Dialog>
 
         {/* Generate Invoices Dialog */}
-        <Dialog open={generateInvoiceDialogOpen} onClose={() => setGenerateInvoiceDialogOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog open={generateInvoiceDialogOpen} onClose={() => setGenerateInvoiceDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
             Generate Monthly Invoices
           </DialogTitle>
@@ -1046,15 +1185,15 @@ const AdminPayments = () => {
             </Alert>
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            <Button onClick={() => setGenerateInvoiceDialogOpen(false)}>Cancel</Button>
-            <Button variant="contained" onClick={handleGenerateInvoices} disabled={processing}>
+            <Button onClick={() => setGenerateInvoiceDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
+            <Button variant="contained" onClick={handleGenerateInvoices} disabled={processing} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
               {processing ? <CircularProgress size={20} /> : 'Generate'}
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* Send Reminders Dialog */}
-        <Dialog open={reminderDialogOpen} onClose={() => setReminderDialogOpen(false)} maxWidth="xs" fullWidth>
+        <Dialog open={reminderDialogOpen} onClose={() => setReminderDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
             Send Overdue Reminders
           </DialogTitle>
@@ -1064,8 +1203,8 @@ const AdminPayments = () => {
             </Alert>
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            <Button onClick={() => setReminderDialogOpen(false)}>Cancel</Button>
-            <Button variant="contained" color="warning" onClick={handleSendReminders} disabled={processing}>
+            <Button onClick={() => setReminderDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
+            <Button variant="contained" color="warning" onClick={handleSendReminders} disabled={processing} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
               {processing ? <CircularProgress size={20} /> : 'Send Reminders'}
             </Button>
           </DialogActions>

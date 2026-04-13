@@ -69,18 +69,18 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
-  primary: '#2224be',
-  primaryLight: '#2224be',
-  primaryDark: '#2224be',
+  primary: '#166534',
+  primaryLight: '#22c55e',
+  primaryDark: '#14532d',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#3b82f6',
-  background: '#f8fafc',
+  background: '#f3f5f7',
   cardBackground: '#ffffff',
-  textPrimary: '#1e293b',
+  textPrimary: '#0f172a',
   textSecondary: '#64748b',
-  border: 'rgba(99, 102, 241, 0.1)'
+  border: 'rgba(15, 23, 42, 0.08)'
 };
 
 const ServiceRequests = () => {
@@ -649,22 +649,41 @@ const ServiceRequests = () => {
   }, [requests]);
 
   return (
-    <Box sx={{ backgroundColor: themeColors.background, minHeight: '100vh' }}>
-      <AppBar position="static" sx={{ 
-        bgcolor: 'white',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-        borderBottom: `1px solid ${themeColors.border}`
-      }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `,
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        }
+      }}
+    >
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
           <IconButton 
             edge="start" 
-            color="inherit" 
             onClick={handleBack} 
             sx={{ 
               mr: 2,
-              color: themeColors.textPrimary,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(34, 197, 94, 0.14)',
               '&:hover': {
-                bgcolor: themeColors.primary + '10'
+                bgcolor: 'rgba(34, 197, 94, 0.24)'
               }
             }}
           >
@@ -679,10 +698,7 @@ const ServiceRequests = () => {
             }} />
             <Typography variant="h6" sx={{ 
               fontWeight: 700,
-              color: themeColors.textPrimary,
-              background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.primaryLight})`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
+              color: themeColors.textPrimary
             }}>
               My Service Requests
             </Typography>
@@ -803,6 +819,25 @@ const ServiceRequests = () => {
       </AppBar>
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Paper
+          sx={{
+            mb: 3,
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '22px',
+            color: '#fff',
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+            animation: 'fadeUpSoft .45s ease-out'
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+            My Service Requests
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 0.6, color: 'rgba(255,255,255,0.9)' }}>
+            Track request progress, submit new concerns, and manage your service history.
+          </Typography>
+        </Paper>
+
         {/* Stats Dashboard */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
@@ -817,8 +852,8 @@ const ServiceRequests = () => {
           ].map((stat, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
               <Card sx={{ 
-                borderRadius: 3, 
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                borderRadius: '20px',
+                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
                 border: `1px solid ${themeColors.border}`,
                 backgroundColor: themeColors.cardBackground,
                 transition: 'transform 0.3s ease, box-shadow 0.3s ease',
@@ -860,8 +895,8 @@ const ServiceRequests = () => {
         <Paper sx={{ 
           p: 3, 
           mb: 3, 
-          borderRadius: 3, 
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          borderRadius: '20px',
+          boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
           border: `1px solid ${themeColors.border}`,
           backgroundColor: themeColors.cardBackground
         }}>
@@ -881,7 +916,8 @@ const ServiceRequests = () => {
                   disabled={!user}
                   sx={{ 
                     bgcolor: themeColors.primary,
-                    borderRadius: 2,
+                    borderRadius: 2.5,
+                    textTransform: 'none',
                     fontWeight: 600,
                     px: 3,
                     '&:hover': {
@@ -901,7 +937,8 @@ const ServiceRequests = () => {
                 onClick={fetchAllRequests}
                 disabled={fetching}
                 sx={{ 
-                  borderRadius: 2,
+                  borderRadius: 2.5,
+                  textTransform: 'none',
                   fontWeight: 600,
                   borderColor: themeColors.border,
                   color: themeColors.textPrimary,
@@ -1021,7 +1058,7 @@ const ServiceRequests = () => {
             mb: 2, 
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
             border: `1px solid ${themeColors.border}`,
-            borderRadius: 2,
+            borderRadius: 2.5,
             overflow: 'hidden'
           }}>
             <Tabs
@@ -1073,8 +1110,8 @@ const ServiceRequests = () => {
         {/* Requests Table */}
         <Paper sx={{ 
           p: 3, 
-          borderRadius: 3, 
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+          borderRadius: '20px',
+          boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
           border: `1px solid ${themeColors.border}`,
           backgroundColor: themeColors.cardBackground
         }}>
@@ -1144,11 +1181,11 @@ const ServiceRequests = () => {
               )}
             </Box>
           ) : (
-            <TableContainer sx={{ borderRadius: 2, border: `1px solid ${themeColors.border}` }}>
+            <TableContainer sx={{ borderRadius: 2.5, border: `1px solid ${themeColors.border}` }}>
               <Table>
                 <TableHead>
                   <TableRow sx={{ 
-                    bgcolor: '#f8fafc',
+                    bgcolor: 'rgba(22, 163, 74, 0.08)',
                     '& th': {
                       fontWeight: 600,
                       color: themeColors.textPrimary,
@@ -1331,7 +1368,7 @@ const ServiceRequests = () => {
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '18px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               border: `1px solid ${themeColors.border}`
             }
@@ -1555,6 +1592,9 @@ const ServiceRequests = () => {
               }}
               sx={{
                 color: themeColors.textSecondary,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
                   bgcolor: themeColors.primary + '08'
                 }
@@ -1568,7 +1608,8 @@ const ServiceRequests = () => {
               disabled={loading || !formData.category || !formData.title || !formData.description || (useDifferentLocation && !formData.alternateLocation)}
               sx={{ 
                 bgcolor: themeColors.primary,
-                borderRadius: 2,
+                borderRadius: 2.5,
+                textTransform: 'none',
                 fontWeight: 600,
                 px: 3,
                 '&:hover': {
@@ -1596,7 +1637,7 @@ const ServiceRequests = () => {
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 3,
+              borderRadius: '18px',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
               border: `1px solid ${themeColors.border}`
             }
@@ -1771,6 +1812,9 @@ const ServiceRequests = () => {
               onClick={() => setOpenDetailsDialog(false)}
               sx={{
                 color: themeColors.textSecondary,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700,
                 '&:hover': {
                   bgcolor: themeColors.primary + '08'
                 }
@@ -1784,7 +1828,8 @@ const ServiceRequests = () => {
                 onClick={() => handleRateService(selectedRequest._id)} 
                 sx={{ 
                   bgcolor: themeColors.primary,
-                  borderRadius: 2,
+                  borderRadius: 2.5,
+                  textTransform: 'none',
                   fontWeight: 600,
                   '&:hover': {
                     bgcolor: themeColors.primaryDark,

@@ -90,6 +90,8 @@ const Register = () => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    middleName: '',
+    dateOfBirth: '',
     email: '',
     phone: '',
     countryCode: '+63',
@@ -217,6 +219,7 @@ const Register = () => {
     switch (name) {
       case 'firstName':
       case 'lastName':
+      case 'middleName':
         filteredValue = value.replace(/[^a-zA-Z\s-]/g, '');
         break;
       case 'phone':
@@ -330,6 +333,21 @@ const Register = () => {
     
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot from the map or dropdown';
 
+    if (formData.middleName.trim() && formData.middleName.length > 50) {
+      newErrors.middleName = 'Middle name must be at most 50 characters';
+    }
+    if (formData.dateOfBirth) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.dateOfBirth)) {
+        newErrors.dateOfBirth = 'Use a valid date';
+      } else {
+        const d = new Date(`${formData.dateOfBirth}T12:00:00`);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (d > today) newErrors.dateOfBirth = 'Date of birth cannot be in the future';
+        if (d.getFullYear() < 1900) newErrors.dateOfBirth = 'Please enter a realistic date of birth';
+      }
+    }
+
     formData.familyMembers.forEach((member, index) => {
       const hasData = member.name || member.relationship || member.otherRelationship || member.age || member.phone;
       if (!hasData) return;
@@ -365,6 +383,8 @@ const Register = () => {
     const registrationData = {
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
+      ...(formData.middleName.trim() ? { middleName: formData.middleName.trim() } : {}),
+      ...(formData.dateOfBirth ? { dateOfBirth: formData.dateOfBirth } : {}),
       email: formData.email.trim(),
       phone: formData.phone,
       password: formData.password,
@@ -411,7 +431,8 @@ const Register = () => {
           }`
         );
       }
-      navigate('/pending-approval');
+      localStorage.setItem('pendingApprovalEmail', registrationData.email.trim().toLowerCase());
+      navigate('/pending-approval', { state: { email: registrationData.email.trim().toLowerCase() } });
     } else {
       setErrors(prev => ({ ...prev, submit: result.error || 'Registration failed' }));
     }
@@ -446,11 +467,15 @@ const Register = () => {
         setFormData((prev) => ({
           ...prev,
           firstName: prev.firstName?.trim() ? prev.firstName : (ocr.firstName || prev.firstName),
-          lastName: prev.lastName?.trim() ? prev.lastName : (ocr.lastName || prev.lastName)
+          lastName: prev.lastName?.trim() ? prev.lastName : (ocr.lastName || prev.lastName),
+          middleName: prev.middleName?.trim() ? prev.middleName : (ocr.middleName || prev.middleName),
+          dateOfBirth: prev.dateOfBirth?.trim()
+            ? prev.dateOfBirth
+            : (/^\d{4}-\d{2}-\d{2}$/.test(ocr.dob || '') ? ocr.dob : prev.dateOfBirth)
         }));
 
         const conf = typeof ocr.confidence === 'number' ? ocr.confidence : null;
-        toast.success(`ID scanned${conf !== null ? ` (confidence ${(conf * 100).toFixed(0)}%)` : ''}. Please review your details.`);
+        toast.success(`Text read from your ID${conf !== null ? ` (confidence ${(conf * 100).toFixed(0)}%)` : ''}. Please review name and date of birth.`);
       }
     } catch (err) {
       const status = err?.response?.status;
@@ -461,7 +486,7 @@ const Register = () => {
         err?.message;
       if (status === 429) {
         setOcrUnavailable(true);
-        toast.error('AI OCR is temporarily unavailable due to quota limits. Please continue filling the form manually.');
+        toast.error('ID scanning is temporarily unavailable. Please continue filling the form manually.');
       } else {
         toast.error(`Couldn't scan ID${status ? ` (${status})` : ''}${serverMessage ? `: ${serverMessage}` : ''}`);
       }
@@ -647,6 +672,38 @@ const Register = () => {
                   required
                   placeholder="Enter last name"
                   inputProps={{ maxLength: 50 }}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              {/* Middle name + date of birth (optional; OCR can suggest) */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Middle name (optional)"
+                  name="middleName"
+                  value={formData.middleName}
+                  onChange={handleChange}
+                  error={!!errors.middleName}
+                  helperText={errors.middleName}
+                  placeholder="If on your ID"
+                  inputProps={{ maxLength: 50 }}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                  sx={fieldSx}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Date of birth (optional)"
+                  name="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={handleChange}
+                  error={!!errors.dateOfBirth}
+                  helperText={errors.dateOfBirth || 'From your ID if readable'}
+                  InputLabelProps={{ shrink: true }}
                   InputProps={{ sx: { borderRadius: 2 } }}
                   sx={fieldSx}
                 />
@@ -1130,7 +1187,7 @@ const Register = () => {
               {ocrUnavailable && (
                 <Box sx={{ mt: 1 }}>
                   <Typography variant="caption" sx={{ display: 'block', color: themeColors.warning }}>
-                    AI OCR autofill hit a quota/limit. You can continue manually, or try again after updating your backend API key and restarting Render.
+                    ID autofill from images hit a limit or error. You can continue manually, or try again later.
                   </Typography>
                   {idDocs.frontImage && idDocs.backImage && (
                     <Button

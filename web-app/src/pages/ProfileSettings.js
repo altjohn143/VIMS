@@ -50,18 +50,18 @@ import toast from 'react-hot-toast';
 const ProfileSettings = () => {
   // Dashboard Theme Colors from Login
   const themeColors = {
-    primary: '#2224be',
-    primaryLight: '#2224be',
-    primaryDark: '#2224be',
+    primary: '#166534',
+    primaryLight: '#22c55e',
+    primaryDark: '#14532d',
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
     info: '#3b82f6',
-    background: '#f8fafc',
+    background: '#f3f5f7',
     cardBackground: '#ffffff',
-    textPrimary: '#1e293b',
+    textPrimary: '#0f172a',
     textSecondary: '#64748b',
-    border: 'rgba(99, 102, 241, 0.1)'
+    border: 'rgba(15, 23, 42, 0.08)'
   };
 
   const [user, setUser] = useState(null);
@@ -433,7 +433,11 @@ const ProfileSettings = () => {
       <Box
         sx={{
           minHeight: '100vh',
-          backgroundColor: themeColors.background,
+          background: `
+            radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+            radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+            ${themeColors.background}
+          `,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -448,13 +452,40 @@ const ProfileSettings = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundColor: themeColors.background
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `,
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        }
       }}
     >
       {/* TOP NAVIGATION BAR */}
-      <AppBar position="static" sx={{ bgcolor: themeColors.primary, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={handleBack} sx={{ mr: 2 }}>
+          <IconButton
+            edge="start"
+            onClick={handleBack}
+            sx={{
+              mr: 2,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(34, 197, 94, 0.14)',
+              '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.24)' }
+            }}
+          >
             <ArrowBackIcon />
           </IconButton>
 
@@ -463,12 +494,16 @@ const ProfileSettings = () => {
           </Typography>
 
           <Button 
-            color="inherit" 
             onClick={handleLogout}
             startIcon={<LogoutIcon />}
             sx={{
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              fontWeight: 700,
+              textTransform: 'none',
+              bgcolor: 'rgba(34, 197, 94, 0.12)',
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                backgroundColor: 'rgba(34, 197, 94, 0.22)'
               }
             }}
           >
@@ -479,45 +514,46 @@ const ProfileSettings = () => {
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-            <SecurityIcon sx={{
-              fontSize: 48,
-              color: themeColors.primary,
-              backgroundColor: themeColors.primary + '15',
-              p: 1,
-              borderRadius: 2
-            }} />
+        <Paper
+          sx={{
+            mb: 4,
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '22px',
+            color: '#fff',
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+            animation: 'fadeUpSoft .45s ease-out'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+            <SecurityIcon sx={{ fontSize: 44, color: '#bef264' }} />
             <Box>
-              <Typography variant="h4" component="h1" sx={{ 
-                fontWeight: 700,
-                color: themeColors.textPrimary,
-                background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.primaryLight})`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
+              <Typography variant="h4" component="h1" sx={{ fontWeight: 800, color: '#fff' }}>
                 Profile Settings
               </Typography>
-              <Typography variant="body1" sx={{ color: themeColors.textSecondary }}>
+              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
                 Update your personal information and security settings
               </Typography>
             </Box>
           </Box>
           {verificationStatus && (
-            <Alert severity={verificationStatus === 'approved' ? 'success' : verificationStatus === 'rejected' ? 'error' : 'info'}>
+            <Alert
+              severity={verificationStatus === 'approved' ? 'success' : verificationStatus === 'rejected' ? 'error' : 'info'}
+              sx={{ mt: 1.5, borderRadius: 2 }}
+            >
               ID Verification Status: <strong>{verificationStatus}</strong>
             </Alert>
           )}
-        </Box>
+        </Paper>
 
         <Grid container spacing={3}>
           {/* Left Column - Basic Info & Profile Picture */}
           <Grid item xs={12} md={4}>
             <Paper sx={{ 
               p: 3, 
-              borderRadius: 3, 
+              borderRadius: '20px', 
               mb: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
               border: `1px solid ${themeColors.border}`,
               backgroundColor: themeColors.cardBackground
             }}>
@@ -602,9 +638,11 @@ const ProfileSettings = () => {
                   onClick={handleOpenPasswordDialog}
                   sx={{ 
                     mt: 1,
-                    borderRadius: 2,
+                    borderRadius: 2.5,
                     borderColor: themeColors.primary,
                     color: themeColors.primary,
+                    textTransform: 'none',
+                    fontWeight: 700,
                     '&:hover': {
                       borderColor: themeColors.primaryDark,
                       backgroundColor: themeColors.primary + '08'
@@ -619,8 +657,8 @@ const ProfileSettings = () => {
             {/* Quick Stats */}
             <Paper sx={{ 
               p: 3, 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              borderRadius: '20px',
+              boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
               border: `1px solid ${themeColors.border}`,
               backgroundColor: themeColors.cardBackground
             }}>
@@ -661,8 +699,8 @@ const ProfileSettings = () => {
           <Grid item xs={12} md={8}>
             <Paper sx={{ 
               p: 3, 
-              borderRadius: 3,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              borderRadius: '20px',
+              boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
               border: `1px solid ${themeColors.border}`,
               backgroundColor: themeColors.cardBackground
             }}>
@@ -1041,9 +1079,11 @@ const ProfileSettings = () => {
                   onClick={handleAddVehicle}
                   sx={{ 
                     mb: 3,
-                    borderRadius: 2,
+                    borderRadius: 2.5,
                     borderColor: themeColors.primary,
                     color: themeColors.primary,
+                    textTransform: 'none',
+                    fontWeight: 700,
                     '&:hover': {
                       borderColor: themeColors.primaryDark,
                       backgroundColor: themeColors.primary + '08'
@@ -1182,9 +1222,11 @@ const ProfileSettings = () => {
                   onClick={handleAddFamilyMember}
                   sx={{ 
                     mb: 3,
-                    borderRadius: 2,
+                    borderRadius: 2.5,
                     borderColor: themeColors.primary,
                     color: themeColors.primary,
+                    textTransform: 'none',
+                    fontWeight: 700,
                     '&:hover': {
                       borderColor: themeColors.primaryDark,
                       backgroundColor: themeColors.primary + '08'
@@ -1203,7 +1245,8 @@ const ProfileSettings = () => {
                     startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
                     sx={{ 
                       px: 4,
-                      borderRadius: 2,
+                      borderRadius: 2.5,
+                      textTransform: 'none',
                       bgcolor: themeColors.primary,
                       '&:hover': {
                         bgcolor: themeColors.primaryDark

@@ -62,16 +62,18 @@ import toast from 'react-hot-toast';
 
 const AdminUserManagement = () => {
   const themeColors = {
-    primary: '#2224be',
+    primary: '#166534',
+    primaryLight: '#22c55e',
+    primaryDark: '#14532d',
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
     info: '#3b82f6',
-    background: '#f8fafc',
+    background: '#f3f5f7',
     cardBackground: '#ffffff',
-    textPrimary: '#1e293b',
+    textPrimary: '#0f172a',
     textSecondary: '#64748b',
-    border: 'rgba(99, 102, 241, 0.1)'
+    border: 'rgba(15, 23, 42, 0.08)'
   };
 
   const [users, setUsers] = useState([]);
@@ -348,7 +350,11 @@ const AdminUserManagement = () => {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        backgroundColor: themeColors.background
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `
       }}>
         <CircularProgress sx={{ color: themeColors.primary }} />
       </Box>
@@ -356,11 +362,43 @@ const AdminUserManagement = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: themeColors.background }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `,
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        }
+      }}
+    >
       {/* Top Navigation */}
-      <AppBar position="static" sx={{ bgcolor: 'white', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
-          <IconButton edge="start" onClick={handleBack} sx={{ mr: 2, color: themeColors.textPrimary }}>
+          <IconButton
+            edge="start"
+            onClick={handleBack}
+            sx={{
+              mr: 2,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              bgcolor: 'rgba(34, 197, 94, 0.14)',
+              '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.24)' }
+            }}
+          >
             <ArrowBackIcon />
           </IconButton>
 
@@ -372,19 +410,32 @@ const AdminUserManagement = () => {
           </Box>
 
           <Button 
-            color="inherit" 
             onClick={fetchUsers}
             startIcon={<RefreshIcon />}
-            sx={{ mr: 2, color: themeColors.textPrimary }}
+            sx={{
+              mr: 2,
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              bgcolor: 'rgba(34, 197, 94, 0.12)',
+              '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.22)' }
+            }}
           >
             Refresh
           </Button>
 
           <Button 
-            color="inherit" 
             onClick={handleLogout}
             startIcon={<LogoutIcon />}
-            sx={{ color: themeColors.textPrimary }}
+            sx={{
+              color: themeColors.primary,
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              bgcolor: 'rgba(34, 197, 94, 0.12)',
+              '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.22)' }
+            }}
           >
             Logout
           </Button>
@@ -392,108 +443,86 @@ const AdminUserManagement = () => {
       </AppBar>
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Paper
+          sx={{
+            mb: 3,
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '22px',
+            color: '#fff',
+            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+            animation: 'fadeUpSoft .45s ease-out'
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+            User Management
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 0.6, color: 'rgba(255,255,255,0.9)' }}>
+            Manage members, approvals, and account status from one admin view.
+          </Typography>
+        </Paper>
+
         {/* Stats Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={1.5}>
-            <Card sx={{ borderRadius: 2, bgcolor: themeColors.primary + '10' }}>
-              <CardContent>
-                <Typography variant="h4" sx={{ color: themeColors.primary, fontWeight: 700 }}>
-                  {stats.total}
-                </Typography>
-                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                  Total Users
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.5}>
-            <Card sx={{ borderRadius: 2, bgcolor: themeColors.info + '10' }}>
-              <CardContent>
-                <Typography variant="h4" sx={{ color: themeColors.info, fontWeight: 700 }}>
-                  {stats.residents}
-                </Typography>
-                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                  Residents
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.5}>
-            <Card sx={{ borderRadius: 2, bgcolor: themeColors.primary + '10' }}>
-              <CardContent>
-                <Typography variant="h4" sx={{ color: themeColors.primary, fontWeight: 700 }}>
-                  {stats.admin}
-                </Typography>
-                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                  Admins
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.5}>
-            <Card sx={{ borderRadius: 2, bgcolor: themeColors.success + '10' }}>
-              <CardContent>
-                <Typography variant="h4" sx={{ color: themeColors.success, fontWeight: 700 }}>
-                  {stats.security}
-                </Typography>
-                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                  Security
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.5}>
-            <Card sx={{ borderRadius: 2, bgcolor: themeColors.success + '10' }}>
-              <CardContent>
-                <Typography variant="h4" sx={{ color: themeColors.success, fontWeight: 700 }}>
-                  {stats.approved}
-                </Typography>
-                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                  Approved
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.5}>
-            <Card sx={{ borderRadius: 2, bgcolor: themeColors.warning + '10' }}>
-              <CardContent>
-                <Typography variant="h4" sx={{ color: themeColors.warning, fontWeight: 700 }}>
-                  {stats.pending}
-                </Typography>
-                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                  Pending
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.5}>
-            <Card sx={{ borderRadius: 2, bgcolor: themeColors.success + '10' }}>
-              <CardContent>
-                <Typography variant="h4" sx={{ color: themeColors.success, fontWeight: 700 }}>
-                  {stats.active}
-                </Typography>
-                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                  Active
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.5}>
-            <Card sx={{ borderRadius: 2, bgcolor: themeColors.error + '10' }}>
-              <CardContent>
-                <Typography variant="h4" sx={{ color: themeColors.error, fontWeight: 700 }}>
-                  {stats.inactive}
-                </Typography>
-                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                  Inactive
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          {[
+            { value: stats.total, label: 'Total Users', helper: 'all accounts', icon: <GroupIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 40 }} />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)', shadow: '0 14px 34px rgba(29,78,216,0.34)' },
+            { value: stats.residents, label: 'Residents', helper: 'community members', icon: <HomeIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 40 }} />, gradient: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', shadow: '0 14px 34px rgba(22,163,74,0.34)' },
+            { value: stats.admin + stats.security, label: 'Staff', helper: 'admins + security', icon: <SecurityIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 40 }} />, gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', shadow: '0 14px 34px rgba(14,165,233,0.34)' },
+            { value: stats.pending, label: 'Pending', helper: 'for approval', icon: <ApproveIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 40 }} />, gradient: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', shadow: '0 14px 34px rgba(220,38,38,0.34)' }
+          ].map((stat, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card
+                sx={{
+                  borderRadius: '20px',
+                  boxShadow: stat.shadow,
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  background: stat.gradient,
+                  color: '#fff',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  transition: 'transform 0.3s ease',
+                  '&:hover': { transform: 'translateY(-4px)', filter: 'brightness(1.02)' },
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    top: -20,
+                    right: -14,
+                    width: 96,
+                    height: 96,
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(255,255,255,0.12)'
+                  }
+                }}
+              >
+                <CardContent sx={{ p: 2.5, position: 'relative', zIndex: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Typography variant="h3" sx={{ fontWeight: 700, color: '#fff' }}>
+                      {stat.value}
+                    </Typography>
+                    {stat.icon}
+                  </Box>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.95)', fontWeight: 700 }}>
+                    {stat.label}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.84)', display: 'block', mt: 0.4 }}>
+                    ↗ {stat.helper}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
 
         {/* Filters and Search */}
-        <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+        <Paper
+          sx={{
+            p: 3,
+            mb: 3,
+            borderRadius: '20px',
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)'
+          }}
+        >
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={4}>
               <TextField
@@ -569,7 +598,7 @@ const AdminUserManagement = () => {
                   setApprovalFilter('all');
                   setActiveTab(0);
                 }}
-                sx={{ borderRadius: 2 }}
+                sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
               >
                 Clear Filters
               </Button>
@@ -591,10 +620,17 @@ const AdminUserManagement = () => {
         </Paper>
 
         {/* Users Table */}
-        <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Paper
+          sx={{
+            borderRadius: '20px',
+            overflow: 'hidden',
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)'
+          }}
+        >
           <TableContainer>
             <Table>
-              <TableHead sx={{ bgcolor: themeColors.primary + '08' }}>
+              <TableHead sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
                 <TableRow>
                   <TableCell>User</TableCell>
                   <TableCell>Contact</TableCell>
@@ -616,7 +652,7 @@ const AdminUserManagement = () => {
                   </TableRow>
                 ) : (
                   filteredUsers.map((user) => (
-                    <TableRow key={user._id} hover>
+                    <TableRow key={user._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Avatar sx={{ bgcolor: getRoleColor(user.role) }}>
@@ -763,7 +799,7 @@ const AdminUserManagement = () => {
           onClose={() => setDetailsOpen(false)}
           maxWidth="md"
           fullWidth
-          PaperProps={{ sx: { borderRadius: 3 } }}
+          PaperProps={{ sx: { borderRadius: '18px' } }}
         >
           {selectedUser && (
             <>
@@ -937,7 +973,7 @@ const AdminUserManagement = () => {
                 </Grid>
               </DialogContent>
               <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-                <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+                <Button onClick={() => setDetailsOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Close</Button>
                 <Button
                   variant="contained"
                   color="error"
@@ -946,6 +982,7 @@ const AdminUserManagement = () => {
                     setDeleteDialogOpen(true);
                   }}
                   startIcon={<DeleteIcon />}
+                  sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                 >
                   Delete User
                 </Button>
@@ -960,7 +997,7 @@ const AdminUserManagement = () => {
           onClose={() => !processing && setDeleteDialogOpen(false)}
           maxWidth="sm"
           fullWidth
-          PaperProps={{ sx: { borderRadius: 3 } }}
+          PaperProps={{ sx: { borderRadius: '18px' } }}
         >
           <DialogTitle sx={{ color: themeColors.error, fontWeight: 600 }}>
             Delete User Account
@@ -1017,6 +1054,7 @@ const AdminUserManagement = () => {
                 setDeleteReason('');
               }}
               disabled={processing}
+              sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
             >
               Cancel
             </Button>
@@ -1026,6 +1064,7 @@ const AdminUserManagement = () => {
               onClick={handleDeleteUser}
               disabled={processing}
               startIcon={processing ? <CircularProgress size={20} /> : <DeleteIcon />}
+              sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
             >
               {processing ? 'Deleting...' : 'Permanently Delete'}
             </Button>

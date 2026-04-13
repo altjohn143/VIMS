@@ -52,6 +52,11 @@ const LoginScreen = ({ navigation }) => {
     },
   ];
 
+<<<<<<< HEAD
+=======
+  // NOTE: Removed hardcoded/mock stats (must be DB-backed).
+
+>>>>>>> a2315937814b40845a08a607b5edc073a9d96f14
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -96,7 +101,10 @@ const LoginScreen = ({ navigation }) => {
           );
           return;
         }
-        navigation.replace('DashboardTab');
+        // IMPORTANT:
+        // Role dashboards are conditionally added by `AppNavigator` only AFTER AuthContext sets `user`.
+        // Navigating immediately can race and trigger "action not handled" warnings.
+        // So we don't manually navigate here; AppNavigator will switch to the correct dashboard automatically.
       }
     } catch (error) {
       Alert.alert('Error', 'Something went wrong');
@@ -156,6 +164,11 @@ const LoginScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
+<<<<<<< HEAD
+=======
+              {/* Stats removed (no mock data) */}
+
+>>>>>>> a2315937814b40845a08a607b5edc073a9d96f14
               {/* Role Cards */}
               <View style={styles.roleCardsContainer}>
                 {roles.map((role) => (

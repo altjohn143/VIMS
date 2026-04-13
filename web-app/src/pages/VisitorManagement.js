@@ -48,29 +48,29 @@ import {
   ExitToApp as ExitToAppIcon,
   Person as PersonIcon,
   Settings as SettingsIcon,
-  Phone as PhoneIcon,
-  Map as MapIcon
+  Phone as PhoneIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import villageLogo from '../assets/village-logo.png';
 
 const VisitorManagement = () => {
-  // Dashboard Theme Colors from Login
+  // Unified theme colors aligned with Dashboard/Login
   const themeColors = {
-    primary: '#2224be',
-    primaryLight: '#2224be',
-    primaryDark: '#2224be',
-    success: '#10b981',
+    primary: '#166534',
+    primaryLight: '#22c55e',
+    primaryDark: '#14532d',
+    success: '#22c55e',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#3b82f6',
-    background: '#f8fafc',
+    info: '#0ea5e9',
+    background: '#f3f5f7',
     cardBackground: '#ffffff',
-    textPrimary: '#1e293b',
+    textPrimary: '#0f172a',
     textSecondary: '#64748b',
-    border: 'rgba(99, 102, 241, 0.1)'
+    border: 'rgba(15, 23, 42, 0.08)'
   };
 
   const [visitors, setVisitors] = useState([]);
@@ -524,24 +524,90 @@ const VisitorManagement = () => {
         minHeight: '100vh',
         backgroundColor: themeColors.background,
         py: 0,
-        px: 0
+        px: 0,
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        },
+        '@media (prefers-reduced-motion: reduce)': {
+          '*': { animation: 'none !important', transition: 'none !important' }
+        }
       }}
     >
       {/* TOP NAVIGATION BAR */}
-      <AppBar position="static" sx={{ bgcolor: themeColors.primary, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-        <Toolbar sx={{ minHeight: '64px' }}>
-          <IconButton edge="start" color="inherit" onClick={handleBack} sx={{ mr: 2 }}>
+      <AppBar
+        position="static"
+        sx={{
+          bgcolor: '#ffffff',
+          color: themeColors.textPrimary,
+          boxShadow: '0 6px 20px rgba(15,23,42,0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
+        <Toolbar sx={{ minHeight: '72px', px: { xs: 2, md: 3 } }}>
+          <IconButton
+            edge="start"
+            onClick={handleBack}
+            sx={{
+              mr: 2,
+              color: themeColors.textPrimary,
+              bgcolor: 'rgba(22,101,52,0.06)',
+              borderRadius: 2,
+              '&:hover': { bgcolor: 'rgba(22,101,52,0.14)' }
+            }}
+          >
             <ArrowBackIcon />
           </IconButton>
 
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
-            {historyMode ? 'Visitor History' : 'Visitor Management'}
-          </Typography>
+          {/* App title & logo */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75, flexGrow: 1, minWidth: 0 }}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                bgcolor: '#ecfdf3',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: `1px solid ${themeColors.border}`,
+                overflow: 'hidden',
+              }}
+            >
+              <Box
+                component="img"
+                src={villageLogo}
+                alt="Casimiro Westville Homes"
+                sx={{ width: '82%', height: '82%', objectFit: 'contain' }}
+              />
+            </Box>
+
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  lineHeight: 1.1,
+                  color: themeColors.textPrimary
+                }}
+              >
+                Casimiro Westville Homes
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.72rem',
+                  color: themeColors.textSecondary,
+                  fontWeight: 600
+                }}
+              >
+                {historyMode ? 'Visitor History' : 'Visitor Management'}
+              </Typography>
+            </Box>
+          </Box>
 
           {/* User Profile Menu */}
           <IconButton
             edge="end"
-            color="inherit"
             onClick={handleProfileMenuOpen}
             sx={{ ml: 1, mr: 0 }}
           >
@@ -549,7 +615,7 @@ const VisitorManagement = () => {
               sx={{ 
                 width: 36, 
                 height: 36, 
-                bgcolor: 'rgba(255,255,255,0.3)',
+                bgcolor: themeColors.primary,
                 fontSize: '0.85rem',
                 fontWeight: 600
               }}
@@ -568,7 +634,7 @@ const VisitorManagement = () => {
                 width: 200,
                 mt: 1.5,
                 borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                boxShadow: '0 18px 40px rgba(15,23,42,0.16)',
                 border: `1px solid ${themeColors.border}`
               }
             }}
@@ -618,22 +684,6 @@ const VisitorManagement = () => {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<MapIcon />}
-              onClick={() => navigate('/lots')}
-              sx={{
-                borderRadius: 2,
-                borderColor: themeColors.primary,
-                color: themeColors.primary,
-                '&:hover': {
-                  backgroundColor: themeColors.primary + '08',
-                  borderColor: themeColors.primaryDark
-                }
-              }}
-            >
-              Interactive Village Map
-            </Button>
             <Button
               variant={historyMode ? "contained" : "outlined"}
               startIcon={<HistoryIcon />}
@@ -690,7 +740,8 @@ const VisitorManagement = () => {
                   transform: 'translateY(-4px)',
                   boxShadow: '0 8px 30px rgba(0,0,0,0.12)'
                 },
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                animation: 'fadeUpSoft 0.5s ease'
               }}>
                 <CardContent sx={{ textAlign: 'center', p: 3 }}>
                   <Typography variant="h3" sx={{ 

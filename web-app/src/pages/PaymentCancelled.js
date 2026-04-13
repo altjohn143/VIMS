@@ -48,17 +48,52 @@ const PaymentCancelled = () => {
   };
   
   const themeColors = {
-    primary: '#2224be',
+    primary: '#166534',
+    primaryDark: '#14532d',
+    primaryLight: '#22c55e',
     error: '#ef4444',
-    background: '#f8fafc',
-    textPrimary: '#1e293b',
-    textSecondary: '#64748b'
+    background: '#f3f5f7',
+    textPrimary: '#0f172a',
+    textSecondary: '#64748b',
+    border: 'rgba(15, 23, 42, 0.08)'
   };
   
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: themeColors.background }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `
+      }}
+    >
       <Container maxWidth="sm" sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', py: 4 }}>
-        <Paper sx={{ p: 4, borderRadius: 3, textAlign: 'center', width: '100%' }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: '22px',
+            textAlign: 'center',
+            width: '100%',
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 16px 36px rgba(15, 23, 42, 0.10)',
+            bgcolor: themeColors.cardBackground || '#fff'
+          }}
+        >
+          <Box
+            sx={{
+              mb: 2.5,
+              py: 1.8,
+              borderRadius: 3,
+              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+              color: '#fff'
+            }}
+          >
+            <Typography sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+              Payment Status
+            </Typography>
+          </Box>
           <CancelIcon sx={{ fontSize: 80, color: themeColors.error, mb: 2 }} />
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 700, color: themeColors.textPrimary }}>
             Payment Cancelled
@@ -78,7 +113,10 @@ const PaymentCancelled = () => {
               startIcon={<RefreshIcon />}
               sx={{ 
                 bgcolor: themeColors.primary,
-                '&:hover': { bgcolor: '#1a1c9e' }
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700,
+                '&:hover': { bgcolor: themeColors.primaryDark }
               }}
             >
               Try Again
@@ -87,6 +125,11 @@ const PaymentCancelled = () => {
               variant="outlined"
               onClick={handleGoToDashboard}
               startIcon={<HomeIcon />}
+              sx={{
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 700
+              }}
             >
               Back to Dashboard
             </Button>

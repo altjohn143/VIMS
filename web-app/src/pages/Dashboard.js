@@ -891,7 +891,7 @@ const Dashboard = () => {
                         fontWeight: 700
                       }}
                     />
-                    {section === 'dashboard' ? null : <KeyboardArrowRightIcon sx={{ opacity: 0.5 }} />}
+                    {/* No chevron for single-link sections */}
                   </ListItemButton>
                 )}
               </Box>
@@ -903,25 +903,6 @@ const Dashboard = () => {
       <Box sx={{ px: sidebarOpen ? 1.75 : 1, pb: 2, pt: 1.5 }}>
         {sidebarOpen ? (
           <>
-            <Paper
-              elevation={0}
-              sx={{
-                bgcolor: 'rgba(255,255,255,0.10)',
-                borderRadius: '14px',
-                color: 'white',
-                px: 1.5,
-                py: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                mb: 1,
-                border: '1px solid rgba(255,255,255,0.08)'
-              }}
-            >
-              <CheckCircleIcon sx={{ fontSize: 18, color: '#a7f3d0' }} />
-              <Typography sx={{ fontSize: '0.84rem', fontWeight: 700 }}>System OK</Typography>
-            </Paper>
-
             <Button
               onClick={handleLogout}
               fullWidth
@@ -944,11 +925,6 @@ const Dashboard = () => {
           </>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <IconButton
-              sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.08)', '&:hover': { bgcolor: 'rgba(255,255,255,0.14)' } }}
-            >
-              <CheckCircleIcon />
-            </IconButton>
             <IconButton
               onClick={handleLogout}
               sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}

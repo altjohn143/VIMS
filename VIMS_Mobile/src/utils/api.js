@@ -17,15 +17,21 @@ const MANUAL_IP = '192.168.1.141'; // CHANGE THIS TO YOUR ACTUAL IP
 // - API_URL kept for backward compatibility with existing setup
 const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL || process.env.API_URL;
 
-// Option 2: Auto-detect using Expo's debugger host (works for both emulator and physical device)
-// This gets the IP from the Expo development server
+// Option 2: Auto-detect using Expo's debugger host.
+// IMPORTANT: If Expo reports 'localhost' or '127.0.0.1', we fall back to MANUAL_IP so
+// physical devices don't try to connect to their own localhost.
 const getLocalIP = () => {
   try {
     // Gets the host IP from Expo config in SDK 50+
     const debuggerHost = Constants.expoConfig?.hostUri;
     if (debuggerHost) {
       const ip = debuggerHost.split(':')[0];
-      console.log('📡 Detected local IP:', ip);
+      console.log('📡 Detected debugger host:', debuggerHost);
+      if (ip === 'localhost' || ip === '127.0.0.1') {
+        console.log('⚠️ Debugger host is localhost; using MANUAL_IP instead:', MANUAL_IP);
+        return MANUAL_IP;
+      }
+      console.log('📡 Using detected local IP:', ip);
       return ip;
     }
   } catch (error) {
@@ -139,6 +145,20 @@ const api = axios.create({
 
 api.interceptors.request.use(
   async (config) => {
+    // If we're sending FormData, do NOT force JSON content-type.
+    // Let Axios/browser set the correct multipart boundary; otherwise multer receives no files.
+    const isFormData =
+      typeof FormData !== 'undefined' &&
+      config.data &&
+      (config.data instanceof FormData ||
+        Object.prototype.toString.call(config.data) === '[object FormData]');
+    if (isFormData) {
+      if (config.headers) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
+    }
+
     // Skip adding token for auth endpoints (login, register, check-availability)
     const skipAuthPaths = ['/auth/login', '/auth/register', '/auth/check-availability'];
     const shouldSkipAuth = skipAuthPaths.some(path => config.url?.includes(path));

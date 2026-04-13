@@ -124,6 +124,29 @@ router.get('/resident/dashboard', protect, authorize('resident'), async (req, re
   }
 });
 
+// Security dashboard stats
+router.get('/security/dashboard', protect, authorize('security'), async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [visitorsToday, pendingApproval, activeNow, completed] = await Promise.all([
+      Visitor.countDocuments({ createdAt: { $gte: today } }),
+      Visitor.countDocuments({ status: 'pending' }),
+      Visitor.countDocuments({ status: 'active' }),
+      Visitor.countDocuments({ status: 'completed', updatedAt: { $gte: today } }),
+    ]);
+
+    return res.json({
+      success: true,
+      data: { visitorsToday, pendingApproval, activeNow, completed },
+    });
+  } catch (error) {
+    console.error('Security dashboard error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to load security dashboard' });
+  }
+});
+
 router.post('/', protect, authorize('resident'), async (req, res) => {
   try {
     const {

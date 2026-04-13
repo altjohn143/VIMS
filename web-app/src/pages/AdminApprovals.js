@@ -43,16 +43,18 @@ import toast from 'react-hot-toast';
 
 const AdminApprovals = () => {
   const themeColors = {
-    primary: '#2224be',
+    primary: '#166534',
+    primaryLight: '#22c55e',
+    primaryDark: '#14532d',
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
     info: '#3b82f6',
-    background: '#f8fafc',
+    background: '#f3f5f7',
     cardBackground: '#ffffff',
-    textPrimary: '#1e293b',
+    textPrimary: '#0f172a',
     textSecondary: '#64748b',
-    border: 'rgba(99, 102, 241, 0.1)'
+    border: 'rgba(15, 23, 42, 0.08)'
   };
 
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -204,32 +206,56 @@ const AdminApprovals = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: themeColors.background }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `,
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' }
+        }
+      }}
+    >
       {/* Top Navigation */}
-      <AppBar position="static" sx={{ bgcolor: themeColors.primary, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+      <AppBar
+        position="sticky"
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.92)',
+          color: themeColors.textPrimary,
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 6px 24px rgba(15, 23, 42, 0.06)',
+          borderBottom: `1px solid ${themeColors.border}`
+        }}
+      >
         <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={handleBack} sx={{ mr: 2 }}>
+          <IconButton edge="start" onClick={handleBack} sx={{ mr: 2, color: themeColors.textPrimary, bgcolor: 'rgba(15,23,42,0.04)', border: `1px solid ${themeColors.border}`, '&:hover': { bgcolor: 'rgba(15,23,42,0.08)' } }}>
             <ArrowBackIcon />
           </IconButton>
 
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 800 }}>
             Pending Approvals
           </Typography>
           <Button
-            color="inherit"
             onClick={() => navigate('/admin/verifications')}
-            sx={{ mr: 1 }}
+            sx={{ mr: 1, color: themeColors.primary, borderRadius: '12px', textTransform: 'none', fontWeight: 700, '&:hover': { backgroundColor: themeColors.primary + '10' } }}
           >
             Verification Queue
           </Button>
 
           <Button 
-            color="inherit" 
             onClick={handleLogout}
             startIcon={<LogoutIcon />}
             sx={{
+              color: themeColors.error,
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 700,
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                backgroundColor: 'rgba(239,68,68,0.08)'
               }
             }}
           >
@@ -238,30 +264,33 @@ const AdminApprovals = () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 3 }}>
         {/* Header */}
-        <Paper sx={{ 
-          p: 3, 
+        <Paper sx={{
+          p: 3,
           mb: 4, 
-          borderRadius: 3, 
-          backgroundColor: themeColors.cardBackground,
-          border: `1px solid ${themeColors.border}`,
+          borderRadius: '20px',
+          color: 'white',
+          background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.primaryDark} 100%)`,
+          border: '1px solid rgba(255,255,255,0.10)',
+          boxShadow: '0 16px 36px rgba(22,101,52,0.24)',
           display: 'flex',
           alignItems: 'center',
-          gap: 2
+          gap: 2,
+          animation: 'fadeUpSoft 0.45s ease'
         }}>
           <VerifiedIcon sx={{ 
             fontSize: 48, 
-            color: themeColors.primary,
-            backgroundColor: themeColors.primary + '15',
+            color: '#d9f99d',
+            backgroundColor: 'rgba(255,255,255,0.15)',
             p: 1,
             borderRadius: 2
           }} />
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.textPrimary }}>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: 'white' }}>
               Resident Approvals
             </Typography>
-            <Typography variant="body1" sx={{ color: themeColors.textSecondary }}>
+            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.86)', fontWeight: 600 }}>
               Review and approve new resident registrations
             </Typography>
           </Box>
@@ -271,9 +300,10 @@ const AdminApprovals = () => {
           <Paper sx={{ 
             p: 5, 
             textAlign: 'center', 
-            borderRadius: 3,
+            borderRadius: '20px',
             backgroundColor: themeColors.cardBackground,
-            border: `1px solid ${themeColors.border}`
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 12px 26px rgba(15,23,42,0.06)'
           }}>
             <VerifiedIcon sx={{ fontSize: 64, color: themeColors.success, opacity: 0.5, mb: 2 }} />
             <Typography variant="h6" sx={{ color: themeColors.textPrimary, mb: 1 }}>
@@ -287,14 +317,16 @@ const AdminApprovals = () => {
           <TableContainer 
             component={Paper} 
             sx={{ 
-              borderRadius: 3,
+              borderRadius: '20px',
               backgroundColor: themeColors.cardBackground,
               border: `1px solid ${themeColors.border}`,
-              overflow: 'hidden'
+              overflow: 'hidden',
+              boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+              animation: 'fadeUpSoft 0.58s ease'
             }}
           >
             <Table>
-              <TableHead sx={{ backgroundColor: themeColors.primary + '08' }}>
+              <TableHead sx={{ backgroundColor: '#f8fafc' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, color: themeColors.textPrimary }}>Resident</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: themeColors.textPrimary }}>Contact</TableCell>
@@ -311,7 +343,7 @@ const AdminApprovals = () => {
                   <TableRow 
                     key={user._id}
                     sx={{ 
-                      '&:hover': { backgroundColor: themeColors.primary + '04' },
+                      '&:hover': { backgroundColor: '#f8fafc' },
                       transition: 'background-color 0.2s'
                     }}
                   >
@@ -347,7 +379,8 @@ const AdminApprovals = () => {
                         sx={{ 
                           backgroundColor: themeColors.primary + '10',
                           color: themeColors.primary,
-                          fontWeight: 500
+                          fontWeight: 700,
+                          borderRadius: '999px'
                         }}
                       />
                     </TableCell>
@@ -433,7 +466,7 @@ const AdminApprovals = () => {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 3,
+            borderRadius: '20px',
             backgroundColor: themeColors.cardBackground
           }
         }}
@@ -543,8 +576,10 @@ const AdminApprovals = () => {
                 onClick={() => setDetailsOpen(false)}
                 sx={{ 
                   color: themeColors.textSecondary,
+                  textTransform: 'none',
+                  fontWeight: 700,
                   '&:hover': { backgroundColor: themeColors.primary + '08' },
-                  borderRadius: 2
+                  borderRadius: '10px'
                 }}
               >
                 Close
@@ -556,7 +591,9 @@ const AdminApprovals = () => {
                 disabled={processing || !selectedUser.canApprove}
                 startIcon={processing ? <CircularProgress size={20} /> : <ApproveIcon />}
                 sx={{ 
-                  borderRadius: 2,
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 700,
                   bgcolor: themeColors.success,
                   '&:hover': { bgcolor: themeColors.success + 'dd' }
                 }}
@@ -576,7 +613,7 @@ const AdminApprovals = () => {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 3,
+            borderRadius: '20px',
             backgroundColor: themeColors.cardBackground
           }
         }}
@@ -619,8 +656,10 @@ const AdminApprovals = () => {
             disabled={processing}
             sx={{ 
               color: themeColors.textSecondary,
+              textTransform: 'none',
+              fontWeight: 700,
               '&:hover': { backgroundColor: themeColors.primary + '08' },
-              borderRadius: 2
+              borderRadius: '10px'
             }}
           >
             Cancel
@@ -632,7 +671,9 @@ const AdminApprovals = () => {
             disabled={processing}
             startIcon={processing ? <CircularProgress size={20} /> : <RejectIcon />}
             sx={{ 
-              borderRadius: 2,
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 700,
               bgcolor: themeColors.error,
               '&:hover': { bgcolor: themeColors.error + 'dd' }
             }}

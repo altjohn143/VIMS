@@ -5,9 +5,90 @@ const fs = require('fs');
 const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
-const { queueIdentityVerification, classifyVerificationResult, extractIdFieldsFromImages, listGeminiModels } = require('../services/aiVerificationService');
+const { queueIdentityVerification, classifyVerificationResult, listGeminiModels } = require('../services/aiVerificationService');
+const { extractIdFieldsFromImagePaths, resolveUploadedPaths } = require('../services/tesseractIdOcrService');
 
 const router = express.Router();
+
+function normalizeNameValue(s) {
+  return String(s || '')
+    .toUpperCase()
+    .replace(/[^A-ZÀ-ÿ\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeName(s) {
+  return normalizeNameValue(s)
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function tokenMatchRatio(expected, actual) {
+  const exp = tokenizeName(expected);
+  const act = tokenizeName(actual);
+  if (exp.length === 0 || act.length === 0) return 0;
+  const actSet = new Set(act);
+  const hits = exp.filter((t) => actSet.has(t)).length;
+  return hits / exp.length;
+}
+
+function computeLocalAutoApproval({ user, ocr }) {
+  const flags = [];
+  const reasons = [];
+
+  const expectedFullName = `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim();
+  const ocrFullName = `${ocr.firstName || ''} ${ocr.middleName || ''} ${ocr.lastName || ''}`.trim();
+
+  const lastExact = normalizeNameValue(user.lastName) && normalizeNameValue(ocr.lastName) &&
+    normalizeNameValue(user.lastName) === normalizeNameValue(ocr.lastName);
+  const firstRatio = tokenMatchRatio(user.firstName, ocr.firstName);
+  const middleOk = !user.middleName
+    ? true
+    : tokenMatchRatio(user.middleName, ocr.middleName) >= 1;
+  const dobOk = !user.dateOfBirth
+    ? true
+    : (String(user.dateOfBirth).trim() === String(ocr.dob || '').trim());
+
+  if (!lastExact) {
+    flags.push('name_mismatch');
+    reasons.push('Last name mismatch');
+  }
+  if (firstRatio < 0.8) {
+    flags.push('name_mismatch');
+    reasons.push('Given name mismatch');
+  }
+  if (!middleOk) {
+    flags.push('name_mismatch');
+    reasons.push('Middle name mismatch');
+  }
+  if (!dobOk) {
+    flags.push('dob_mismatch');
+    reasons.push('Date of birth mismatch');
+  }
+
+  const confidence = typeof ocr.confidence === 'number' ? ocr.confidence : 0.35;
+  // Score: OCR confidence + name match signals + DOB + id number
+  const score =
+    0.45 * Math.max(0, Math.min(1, confidence)) +
+    0.25 * (lastExact ? 1 : 0) +
+    0.2 * Math.max(0, Math.min(1, firstRatio)) +
+    0.05 * (middleOk ? 1 : 0) +
+    0.05 * (dobOk ? 1 : 0);
+
+  // Per requirement: if resident uploads ID images, auto-approve.
+  // We still compute score/flags for audit and admin visibility.
+  const approved = true;
+
+  return {
+    approved,
+    score: Math.max(0, Math.min(1, score)),
+    flags: Array.from(new Set(flags)),
+    reason: approved
+      ? `Auto-approved after ID upload (score ${score.toFixed(2)}).`
+      : (reasons.length ? `Needs manual review: ${reasons.join(', ')}.` : 'Needs manual review.')
+  };
+}
 
 const uploadDir = path.join(__dirname, '../uploads/ids');
 if (!fs.existsSync(uploadDir)) {
@@ -84,6 +165,52 @@ router.post(
         await verification.save();
       }
 
+      // Free local OCR + rules-based auto approval (no billed API keys)
+      try {
+        const { front, back } = resolveUploadedPaths(frontImage, backImage);
+        const ocr = await extractIdFieldsFromImagePaths(front, back);
+        const ocrFullName = `${ocr.firstName || ''} ${ocr.middleName || ''} ${ocr.lastName || ''}`.trim();
+
+        const localDecision = computeLocalAutoApproval({ user, ocr });
+        verification.aiResult = {
+          score: localDecision.score ?? null,
+          ocrName: ocrFullName,
+          ocrDob: ocr.dob || '',
+          flags: localDecision.flags,
+          providerRaw: { engine: ocr.engine, confidence: ocr.confidence, idNumber: ocr.idNumber || '' }
+        };
+
+        if (localDecision.approved) {
+          verification.status = 'approved';
+          verification.reviewNotes = localDecision.reason;
+          verification.rejectReason = '';
+          verification.reviewedBy = null;
+          verification.reviewedAt = new Date();
+
+          await verification.save();
+          return res.json({
+            success: true,
+            message: 'ID uploaded and documents approved. Account still requires admin approval.',
+            data: verification
+          });
+        }
+
+        // Not auto-approved: route to manual review by default.
+        verification.status = 'manual_review';
+        verification.reviewNotes = localDecision.reason;
+        verification.rejectReason = '';
+        await verification.save();
+
+        return res.json({
+          success: true,
+          message: 'ID uploaded and routed to manual review',
+          data: verification
+        });
+      } catch (ocrError) {
+        console.error('Local OCR auto-approval error:', ocrError?.message || ocrError);
+        // Fall through to existing AI/webhook flow as a best-effort (may still be configured in some environments)
+      }
+
       let queueResult = { mode: 'local_stub' };
       try {
         queueResult = await queueIdentityVerification(verification);
@@ -137,18 +264,14 @@ router.post(
   ]),
   async (req, res) => {
     try {
-      const geminiApiKey = process.env.GEMINI_API_KEY;
-      if (!geminiApiKey) {
-        return res.status(503).json({ success: false, error: 'OCR service is not configured' });
-      }
-
       const frontImage = req.files?.frontImage?.[0]?.filename || null;
       const backImage = req.files?.backImage?.[0]?.filename || null;
       if (!frontImage || !backImage) {
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
       }
 
-      const result = await extractIdFieldsFromImages({ frontImage, backImage }, geminiApiKey);
+      const { front, back } = resolveUploadedPaths(frontImage, backImage);
+      const result = await extractIdFieldsFromImagePaths(front, back);
       return res.json({ success: true, data: result });
     } catch (error) {
       const upstreamStatus = error?.response?.status;

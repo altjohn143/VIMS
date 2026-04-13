@@ -5,7 +5,8 @@ import {
   Container, Box, TextField, Button, Typography, Paper,
   CircularProgress, Alert, Dialog, DialogTitle, DialogContent,
   DialogActions, IconButton, InputAdornment, Divider, Grid,
-  Card, CardContent, Chip, Avatar
+  Card, CardContent, Chip, Avatar,
+  Drawer, List, ListItemButton, ListItemText
 } from '@mui/material';
 import {
   Visibility, VisibilityOff, Security as SecurityIcon,
@@ -17,15 +18,25 @@ import {
   YouTube as YouTubeIcon, LinkedIn as LinkedInIcon,
   Phone as PhoneIcon, LocationOn as LocationIcon,
   Star as StarIcon,
+  Menu as MenuIcon,
 } from '@mui/icons-material';
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
 const T = {
-  dark: '#1a3a0a',
-  primary: '#2d5016',
-  light: '#5a8a1a',
-  accent: '#9dcc55',
-  bg: '#f5f0e8',
+  // Palette tuned to match your screenshot’s green overlay + navbar
+  dark: '#0b3d1f',      // deepest green (hero overlay / nav depth)
+  primary: '#0f5a2a',   // main green (sections)
+  light: '#2f8f46',     // mid green (hero / highlights)
+  accent: '#7CDB6B',    // bright CTA green
+  bg: '#f6faf7',        // clean off-white background
+};
+
+const noRedErrorFieldSx = {
+  '& .MuiFormLabel-root.Mui-error': { color: '#475569' },
+  '& .MuiFormHelperText-root.Mui-error': { color: '#64748b' },
+  '& .MuiOutlinedInput-root.Mui-error fieldset': { borderColor: 'rgba(15, 23, 42, 0.24)' },
+  '& .MuiOutlinedInput-root.Mui-error:hover fieldset': { borderColor: 'rgba(15, 23, 42, 0.35)' },
+  '& .MuiOutlinedInput-root.Mui-error.Mui-focused fieldset': { borderColor: T.primary },
 };
 
 const ROLES = [
@@ -116,6 +127,70 @@ const Reveal = ({ children, sx = {}, delayMs = 0 }) => {
   );
 };
 
+const MiniCalendar = ({ currentDate, onPrevMonth, onNextMonth, compact = false, showFooter = false, onClose }) => {
+  const yr = currentDate.getFullYear();
+  const mo = currentDate.getMonth();
+  const first = new Date(yr, mo, 1).getDay();
+  const days = new Date(yr, mo + 1, 0).getDate();
+  const td = new Date();
+
+  const cells = [];
+  for (let i = 0; i < first; i++) cells.push(<Box key={`e${i}`} />);
+  for (let d = 1; d <= days; d++) {
+    const isT = d === td.getDate() && mo === td.getMonth() && yr === td.getFullYear();
+    cells.push(
+      <Box
+        key={d}
+        sx={{
+          textAlign: 'center',
+          py: compact ? '5px' : '8px',
+          borderRadius: '50%',
+          backgroundColor: isT ? T.primary : 'transparent',
+          color: isT ? 'white' : '#333',
+          fontSize: compact ? '0.78rem' : '0.85rem',
+          fontWeight: isT ? (compact ? 700 : 800) : (compact ? 400 : 500),
+          cursor: compact ? 'pointer' : 'default',
+          '&:hover': { backgroundColor: isT ? T.dark : '#e8f5e9' },
+        }}
+      >
+        {d}
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+        <IconButton size="small" onClick={onPrevMonth}>
+          <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
+        </IconButton>
+        <Typography sx={{ fontWeight: compact ? 700 : 800, color: T.primary, fontSize: compact ? '0.9rem' : '1rem' }}>
+          {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+        </Typography>
+        <IconButton size="small" onClick={onNextMonth}>
+          <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
+        </IconButton>
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
+        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+          <Typography key={d} sx={{ textAlign: 'center', fontSize: compact ? '0.68rem' : '0.72rem', fontWeight: compact ? 700 : 800, color: '#888' }}>{d}</Typography>
+        ))}
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+        {cells}
+      </Box>
+      {showFooter && (
+        <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography sx={{ fontSize: '0.72rem', color: '#888' }}>
+            Today: {new Date().toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </Typography>
+          <Button size="small" onClick={onClose} sx={{ color: T.primary, fontSize: '0.72rem', textTransform: 'none', fontWeight: 600 }}>Close</Button>
+        </Box>
+      )}
+    </Box>
+  );
+};
+
 const ANNOUNCEMENTS = [
   { id: 1, category: 'Security', date: 'March 10, 2026', title: 'Enhanced Gate Security Protocol Starting April 2026', body: 'Effective April 1, 2026, all visitors must present a valid government-issued ID and be registered in our VIMS visitor portal before entry. Homeowners are requested to pre-register expected visitors through the resident portal. QR code stickers will also be distributed for faster vehicle entry.', color: '#ef4444' },
   { id: 2, category: 'Maintenance', date: 'March 8, 2026', title: 'Scheduled Water Service Interruption – March 15, 2026', body: 'Water service will be temporarily interrupted on March 15, 2026 from 8:00 AM to 5:00 PM due to scheduled maintenance of the main water line on Casimiro Street. All residents are advised to store sufficient water. We apologize for the inconvenience.', color: '#f59e0b' },
@@ -126,14 +201,14 @@ const ANNOUNCEMENTS = [
 ];
 
 const OFFICIALS = [
-  { name: 'Eduardo M. Santos', position: 'HOA President', description: 'Leads the Homeowners Association in promoting community welfare, overseeing governance, and representing residents in all official matters.', avatar: 'ES', dept: 'Executive Board' },
-  { name: 'Maria Luisa R. Cruz', position: 'HOA Vice President', description: 'Assists the HOA President and oversees community programs, including environmental projects and resident welfare initiatives.', avatar: 'MC', dept: 'Executive Board' },
-  { name: 'Jose Antonio B. Reyes', position: 'HOA Secretary', description: 'Manages official correspondence, maintains community records, and handles documentation for all HOA meetings and resolutions.', avatar: 'JR', dept: 'Executive Board' },
-  { name: 'Cynthia L. Flores', position: 'HOA Treasurer', description: 'Oversees the collection of HOA dues, manages community funds, and prepares financial reports for the general assembly.', avatar: 'CF', dept: 'Executive Board' },
-  { name: 'Roberto D. Mercado', position: 'Security Committee Head', description: 'Coordinates all security operations including guard schedules, CCTV monitoring, visitor management, and emergency response.', avatar: 'RM', dept: 'Security Committee' },
-  { name: 'Angelica P. Torres', position: 'Facilities & Maintenance Head', description: 'Oversees maintenance of community facilities, roads, drainage, landscaping, and common areas within the village.', avatar: 'AT', dept: 'Maintenance Committee' },
-  { name: 'Dennis F. Garcia', position: 'Community Relations Officer', description: 'Handles resident concerns, mediates disputes, and organizes community events and programs to strengthen neighborly bonds.', avatar: 'DG', dept: 'Community Relations' },
-  { name: 'Patricia V. Lim', position: 'IT & Systems Coordinator', description: 'Manages the Village Information Management System (VIMS), resident portal, and all digital infrastructure of the community.', avatar: 'PL', dept: 'IT Committee' },
+  { name: 'Eduardo M. Santos', position: 'HOA President', description: 'Leads the Homeowners Association in promoting community welfare, overseeing governance, and representing residents in all official matters.', avatar: 'ES' },
+  { name: 'Maria Luisa R. Cruz', position: 'HOA Vice President', description: 'Assists the HOA President and oversees community programs, including environmental projects and resident welfare initiatives.', avatar: 'MC' },
+  { name: 'Jose Antonio B. Reyes', position: 'HOA Secretary', description: 'Manages official correspondence, maintains community records, and handles documentation for all HOA meetings and resolutions.', avatar: 'JR' },
+  { name: 'Cynthia L. Flores', position: 'HOA Treasurer', description: 'Oversees the collection of HOA dues, manages community funds, and prepares financial reports for the general assembly.', avatar: 'CF' },
+  { name: 'Roberto D. Mercado', position: 'Security Committee Head', description: 'Coordinates all security operations including guard schedules, CCTV monitoring, visitor management, and emergency response.', avatar: 'RM' },
+  { name: 'Angelica P. Torres', position: 'Facilities & Maintenance Head', description: 'Oversees maintenance of community facilities, roads, drainage, landscaping, and common areas within the village.', avatar: 'AT' },
+  { name: 'Dennis F. Garcia', position: 'Community Relations Officer', description: 'Handles resident concerns, mediates disputes, and organizes community events and programs to strengthen neighborly bonds.', avatar: 'DG' },
+  { name: 'Patricia V. Lim', position: 'IT & Systems Coordinator', description: 'Manages the Village Information Management System (VIMS), resident portal, and all digital infrastructure of the community.', avatar: 'PL' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -221,19 +296,19 @@ const ContactPage = ({ onClose }) => {
                   <Typography sx={{ color: '#888', fontSize: '0.85rem', mb: 3 }}>Fill out the form below and we'll respond as soon as possible.</Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
-                      <TextField fullWidth label="Full Name" value={form.name} onChange={e => { setForm({ ...form, name: e.target.value }); setErrors({ ...errors, name: '' }); }}
+                      <TextField sx={noRedErrorFieldSx} fullWidth label="Full Name" value={form.name} onChange={e => { setForm({ ...form, name: e.target.value }); setErrors({ ...errors, name: '' }); }}
                         error={!!errors.name} helperText={errors.name} InputProps={{ sx: { borderRadius: 2 } }} />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField fullWidth label="Email Address" value={form.email} onChange={e => { setForm({ ...form, email: e.target.value }); setErrors({ ...errors, email: '' }); }}
+                      <TextField sx={noRedErrorFieldSx} fullWidth label="Email Address" value={form.email} onChange={e => { setForm({ ...form, email: e.target.value }); setErrors({ ...errors, email: '' }); }}
                         error={!!errors.email} helperText={errors.email} InputProps={{ sx: { borderRadius: 2 } }} />
                     </Grid>
                     <Grid item xs={12}>
-                      <TextField fullWidth label="Subject" value={form.subject} onChange={e => { setForm({ ...form, subject: e.target.value }); setErrors({ ...errors, subject: '' }); }}
+                      <TextField sx={noRedErrorFieldSx} fullWidth label="Subject" value={form.subject} onChange={e => { setForm({ ...form, subject: e.target.value }); setErrors({ ...errors, subject: '' }); }}
                         error={!!errors.subject} helperText={errors.subject} InputProps={{ sx: { borderRadius: 2 } }} />
                     </Grid>
                     <Grid item xs={12}>
-                      <TextField fullWidth label="Message" multiline rows={5} value={form.message} onChange={e => { setForm({ ...form, message: e.target.value }); setErrors({ ...errors, message: '' }); }}
+                      <TextField sx={noRedErrorFieldSx} fullWidth label="Message" multiline rows={5} value={form.message} onChange={e => { setForm({ ...form, message: e.target.value }); setErrors({ ...errors, message: '' }); }}
                         error={!!errors.message} helperText={errors.message} InputProps={{ sx: { borderRadius: 2 } }} />
                     </Grid>
                     <Grid item xs={12}>
@@ -354,6 +429,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const calendarRef = useRef(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const homeRef = useRef(null);
   const announcementRef = useRef(null);
   const officialsRef = useRef(null);
@@ -380,24 +456,180 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
     </Typography>
   );
 
+  const handleNavKey = (key) => {
+    switch (key) {
+      case 'home': scrollTo(homeRef); break;
+      case 'announcement': scrollTo(announcementRef); break;
+      case 'officials': scrollTo(officialsRef); break;
+      case 'contact': scrollTo(contactRef); break;
+      case 'about': scrollTo(aboutRef); break;
+      case 'calendar': scrollTo(calendarSectionRef); break;
+      default: break;
+    }
+  };
+
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: T.dark, display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        // White page background (requested). Hero keeps its own image/overlay.
+        backgroundColor: '#ffffff',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+        '@keyframes fadeIn': {
+          from: { opacity: 0 },
+          to: { opacity: 1 },
+        },
+        '@keyframes glowPulse': {
+          '0%, 100%': { opacity: 0.42 },
+          '50%': { opacity: 0.72 },
+        },
+        '@keyframes heroZoom': {
+          from: { transform: 'scale(1.02)' },
+          to: { transform: 'scale(1.10)' },
+        },
+        '@keyframes floatY': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        '@keyframes cardPop': {
+          from: { opacity: 0, transform: 'translateY(12px) scale(0.985)' },
+          to: { opacity: 1, transform: 'translateY(0) scale(1)' },
+        },
+        '@media (prefers-reduced-motion: reduce)': {
+          '*': { animation: 'none !important', transition: 'none !important' },
+        },
+      }}
+    >
 
       {/* BG */}
-      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: '45%', backgroundImage: 'url(https://images.unsplash.com/photo-1605146769289-440113cc3d00?w=1200&q=80)', backgroundSize: 'cover', backgroundPosition: 'center top', '&::after': { content: '""', position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(20,50,5,0.55) 0%, rgba(20,50,5,0.85) 80%, #1a3a0a 100%)' } }} />
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: { xs: '54%', md: '45%' },
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'url(https://images.unsplash.com/photo-1605146769289-440113cc3d00?w=1600&q=80)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center top',
+            filter: 'saturate(1.08) contrast(1.04)',
+            animation: 'heroZoom 18s ease-in-out infinite alternate',
+            transformOrigin: 'center',
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            // overlay aligned with screenshot: dark green wash + readable text
+            background: `linear-gradient(
+              to bottom,
+              rgba(11, 61, 31, 0.55) 0%,
+              rgba(11, 61, 31, 0.78) 55%,
+              rgba(11, 61, 31, 0.92) 88%,
+              ${T.dark} 100%
+            )`,
+          }}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            background: `radial-gradient(circle at 18% 12%, rgba(47, 143, 70, 0.22), transparent 42%),
+                         radial-gradient(circle at 82% 18%, rgba(124, 219, 107, 0.18), transparent 44%)`,
+            animation: 'glowPulse 7.5s ease-in-out infinite',
+          }}
+        />
+      </Box>
 
       {/* NAVBAR */}
-      <Box sx={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 2, md: 5 }, py: 2, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: { xs: 2, md: 5 },
+          py: 1.75,
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
+          bgcolor: 'rgba(11, 61, 31, 0.38)',
+          backdropFilter: 'blur(12px)',
+          animation: 'fadeUpSoft 0.55s ease',
+        }}
+      >
 
         {/* Logo */}
         <Box onClick={() => window.location.reload()} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
-          <Box sx={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg, ${T.light}, ${T.primary})`, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.3)' }}>
+          <Box
+            sx={{
+              width: 44,
+              height: 44,
+              borderRadius: '14px',
+              background: `linear-gradient(135deg, ${T.light}, ${T.primary})`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid rgba(255,255,255,0.22)',
+              boxShadow: '0 10px 24px rgba(0,0,0,0.22)',
+            }}
+          >
             <HomeIcon sx={{ fontSize: 22, color: 'white' }} />
           </Box>
           <Box>
             <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', lineHeight: 1.1 }}>WESTVILLE CASIMIRO</Typography>
             <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', letterSpacing: '0.05em' }}>HOMES</Typography>
           </Box>
+        </Box>
+
+        <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1 }}>
+          <Button
+            variant="outlined"
+            onClick={onBrowseLots}
+            sx={{
+              borderColor: 'rgba(255,255,255,0.30)',
+              color: 'rgba(255,255,255,0.92)',
+              borderRadius: 999,
+              px: 1.6,
+              py: 0.75,
+              fontWeight: 700,
+              fontSize: '0.72rem',
+              textTransform: 'none',
+              '&:hover': { borderColor: T.accent, color: T.accent, bgcolor: 'rgba(124, 219, 107, 0.12)' },
+              '&:active': { transform: 'translateY(1px) scale(0.99)' },
+              transition: 'transform 0.15s ease',
+            }}
+          >
+            View Map
+          </Button>
+          <IconButton
+            onClick={() => setMobileNavOpen(true)}
+            sx={{
+              color: 'white',
+              bgcolor: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.14)' },
+              '&:active': { transform: 'translateY(1px) scale(0.98)' },
+              transition: 'transform 0.15s ease',
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
         </Box>
 
         {/* Nav */}
@@ -417,93 +649,435 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
             {showCalendar && (
               <Box sx={{ position: 'absolute', top: '160%', right: 0, width: 280, backgroundColor: 'white', borderRadius: 2, boxShadow: '0 8px 32px rgba(0,0,0,0.25)', p: 2, zIndex: 999, border: '1px solid rgba(45,80,22,0.15)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}>
-                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
-                  </IconButton>
-                  <Typography sx={{ fontWeight: 700, color: T.primary, fontSize: '0.9rem' }}>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</Typography>
-                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}>
-                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
-                  </IconButton>
-                </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
-                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => <Typography key={d} sx={{ textAlign: 'center', fontSize: '0.68rem', fontWeight: 700, color: '#888' }}>{d}</Typography>)}
-                </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-                  {(() => {
-                    const yr = currentDate.getFullYear(), mo = currentDate.getMonth();
-                    const first = new Date(yr, mo, 1).getDay();
-                    const days = new Date(yr, mo + 1, 0).getDate();
-                    const td = new Date();
-                    const cells = [];
-                    for (let i = 0; i < first; i++) cells.push(<Box key={`e${i}`} />);
-                    for (let d = 1; d <= days; d++) {
-                      const isT = d === td.getDate() && mo === td.getMonth() && yr === td.getFullYear();
-                      cells.push(<Box key={d} sx={{ textAlign: 'center', py: '5px', borderRadius: '50%', backgroundColor: isT ? T.primary : 'transparent', color: isT ? 'white' : '#333', fontSize: '0.78rem', fontWeight: isT ? 700 : 400, cursor: 'pointer', '&:hover': { backgroundColor: isT ? T.dark : '#e8f5e9' } }}>{d}</Box>);
-                    }
-                    return cells;
-                  })()}
-                </Box>
-                <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#888' }}>Today: {new Date().toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}</Typography>
-                  <Button size="small" onClick={() => setShowCalendar(false)} sx={{ color: T.primary, fontSize: '0.72rem', textTransform: 'none', fontWeight: 600 }}>Close</Button>
-                </Box>
+                <MiniCalendar
+                  currentDate={currentDate}
+                  compact
+                  showFooter
+                  onClose={() => setShowCalendar(false)}
+                  onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+                  onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+                />
               </Box>
             )}
           </Box>
         </Box>
       </Box>
 
+      <Drawer
+        anchor="right"
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        PaperProps={{
+          sx: {
+            width: 320,
+            bgcolor: 'rgba(11, 61, 31, 0.92)',
+            backdropFilter: 'blur(14px)',
+            color: 'white',
+            borderLeft: '1px solid rgba(255,255,255,0.12)',
+          },
+        }}
+      >
+        <Box sx={{ p: 2.25, borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+          <Typography sx={{ fontWeight: 900, letterSpacing: '0.06em' }}>Menu</Typography>
+          <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', mt: 0.5 }}>
+            Westville Casimiro Homes
+          </Typography>
+        </Box>
+        <List sx={{ p: 1.25 }}>
+          {[
+            { label: 'Home', key: 'home' },
+            { label: 'Announcements', key: 'announcement' },
+            { label: 'Officials', key: 'officials' },
+            { label: 'Contact', key: 'contact' },
+            { label: 'About Us', key: 'about' },
+          ].map((i) => (
+            <ListItemButton
+              key={i.key}
+              onClick={() => {
+                setMobileNavOpen(false);
+                handleNavKey(i.key);
+              }}
+              sx={{
+                borderRadius: 2,
+                mb: 0.75,
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+              }}
+            >
+              <ListItemText
+                primary={i.label}
+                primaryTypographyProps={{ fontWeight: 700, fontSize: '0.95rem' }}
+              />
+            </ListItemButton>
+          ))}
+        </List>
+        <Box sx={{ p: 2.25, mt: 'auto', borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<MapIcon />}
+            onClick={() => {
+              setMobileNavOpen(false);
+              onBrowseLots();
+            }}
+            sx={{
+              borderColor: 'rgba(255,255,255,0.30)',
+              color: 'rgba(255,255,255,0.92)',
+              borderRadius: 2.5,
+              py: 1.1,
+              fontWeight: 800,
+              textTransform: 'none',
+              '&:hover': { borderColor: T.accent, color: T.accent, bgcolor: 'rgba(124, 219, 107, 0.12)' },
+              '&:active': { transform: 'translateY(1px) scale(0.99)' },
+              transition: 'transform 0.15s ease',
+            }}
+          >
+            Browse Lots
+          </Button>
+        </Box>
+      </Drawer>
+
       {/* HERO */}
-      <Box ref={homeRef} sx={{ position: 'relative', zIndex: 5, px: { xs: 3, md: 6 }, pt: { xs: 4, md: 6 }, pb: 2, maxWidth: 680 }}>
+      <Box
+        ref={homeRef}
+        sx={{
+          position: 'relative',
+          zIndex: 5,
+          px: { xs: 3, md: 6 },
+          pt: { xs: 4, md: 6 },
+          pb: { xs: 3, md: 2 },
+          maxWidth: 760,
+          animation: 'fadeUpSoft 0.75s ease',
+        }}
+      >
         <Typography sx={{ fontSize: { xs: '2.2rem', md: '3.2rem' }, fontWeight: 900, color: 'white', lineHeight: 1.1, textTransform: 'uppercase', textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 2 }}>
-          YOUR DREAM LIFE AWAITS asdasd<br />IN WESTVILLE HOMES
+        <Typography sx={{ fontSize: { xs: '2.2rem', md: '3.2rem' }, fontWeight: 900, color: 'white', lineHeight: 1.1, textTransform: 'uppercase', textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 2 }}>
+          YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES
         </Typography>
         <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem', mb: 3, maxWidth: 500, lineHeight: 1.6 }}>
           Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
         </Typography>
-        <Typography onClick={() => scrollTo(aboutRef)} sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.1em', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 4, '&:hover': { color: T.accent } }}>
-          READ MORE
+        {/* ... rest of your code remains unchanged ... */}
         </Typography>
+        <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem', mb: 3, maxWidth: 500, lineHeight: 1.6 }}>
+          Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Button
+            variant="contained"
+            onClick={() => scrollTo(aboutRef)}
+            sx={{
+              bgcolor: T.accent,
+              color: T.dark,
+              borderRadius: 999,
+              px: 2.4,
+              py: 1.1,
+              fontWeight: 900,
+              textTransform: 'none',
+              boxShadow: '0 14px 34px rgba(0,0,0,0.28)',
+              '&:hover': { bgcolor: '#8CF07B', transform: 'translateY(-1px)' },
+              '&:active': { transform: 'translateY(1px) scale(0.99)' },
+              transition: 'transform 0.2s ease, background-color 0.2s ease',
+            }}
+          >
+            Read more
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={onBrowseLots}
+            sx={{
+              borderColor: 'rgba(255,255,255,0.40)',
+              color: 'rgba(255,255,255,0.92)',
+              borderRadius: 999,
+              px: 2.2,
+              py: 1.05,
+              fontWeight: 900,
+              textTransform: 'none',
+              '&:hover': { borderColor: T.accent, color: T.accent, bgcolor: 'rgba(124, 219, 107, 0.12)' },
+              '&:active': { transform: 'translateY(1px) scale(0.99)' },
+              transition: 'transform 0.15s ease',
+            }}
+          >
+            View map
+          </Button>
+          <Box
+            sx={{
+              ml: { xs: 0, md: 1 },
+              display: { xs: 'none', md: 'flex' },
+              gap: 1.25,
+              alignItems: 'center',
+              px: 1.5,
+              py: 1,
+              borderRadius: 999,
+              bgcolor: 'rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              animation: 'floatY 6s ease-in-out infinite',
+            }}
+          >
+            {[
+              { k: '200+', l: 'Total lots' },
+              { k: '45', l: 'Active residents' },
+              { k: '98%', l: 'Collection rate' },
+            ].map((s) => (
+              <Box key={s.l} sx={{ minWidth: 98, textAlign: 'center' }}>
+                <Typography sx={{ color: 'white', fontWeight: 900, lineHeight: 1, fontSize: '1.05rem' }}>
+                  {s.k}
+                </Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.70)', fontSize: '0.72rem', fontWeight: 700, mt: 0.25 }}>
+                  {s.l}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
       </Box>
 
       {/* ROLE CARDS */}
-      <Box sx={{ position: 'relative', zIndex: 5, backgroundColor: T.primary, mt: 'auto', pt: 5, pb: 5, px: { xs: 2, md: 6 } }}>
-        <Grid container spacing={3} justifyContent="center">
-          {ROLES.map((role) => (
-            <Grid item xs={12} sm={4} key={role.key}>
-              <Card onClick={() => onRoleSelect(role.key)} sx={{ borderRadius: 3, overflow: 'hidden', cursor: 'pointer', backgroundColor: 'white', boxShadow: '0 8px 32px rgba(0,0,0,0.25)', transition: 'all 0.3s', '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 16px 48px rgba(0,0,0,0.35)' } }}>
-                <Box sx={{ height: 160, backgroundImage: `url(${role.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
-                  <Box sx={{ position: 'absolute', bottom: -24, left: '50%', transform: 'translateX(-50%)', width: 56, height: 56, borderRadius: '50%', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', border: '3px solid #e8f5e9' }}>{role.icon}</Box>
-                </Box>
-                <CardContent sx={{ pt: 5, pb: 3, textAlign: 'center', px: 3 }}>
-                  <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: T.primary, letterSpacing: '0.08em', mb: 1 }}>{role.label}</Typography>
-                  <Typography sx={{ fontSize: '0.8rem', color: '#555', mb: 2.5, lineHeight: 1.5 }}>{role.description}</Typography>
-                  <Button variant="contained" onClick={(e) => { e.stopPropagation(); onRoleSelect(role.key); }}
-                    sx={{ backgroundColor: T.primary, color: 'white', borderRadius: 5, px: 3, py: 0.8, fontSize: '0.78rem', fontWeight: 600, textTransform: 'none', '&:hover': { backgroundColor: T.dark } }}>
-                    Click here
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-
-        {/* Browse Lots */}
-        <Box sx={{ mt: 4, borderTop: '1px solid rgba(255,255,255,0.12)', pt: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 2, px: { xs: 0, md: 2 } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ width: 52, height: 52, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <MapIcon sx={{ fontSize: 26, color: T.accent }} />
-            </Box>
-            <Box>
-              <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '1rem' }}>Not a resident yet?</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem' }}>Browse available lots on the interactive village map — no account needed.</Typography>
-            </Box>
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 5,
+          // White section to match screenshot’s clean layout
+          backgroundColor: '#ffffff',
+          mt: 'auto',
+          pt: { xs: 5, md: 6 },
+          pb: { xs: 5, md: 6 },
+          px: { xs: 2, md: 6 },
+          boxShadow: '0 -18px 44px rgba(15, 23, 42, 0.06)',
+        }}
+      >
+        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+          <Box sx={{ textAlign: 'center', mb: 3.5, animation: 'fadeUpSoft 0.8s ease' }}>
+            <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+              Community Portal
+            </Typography>
+            <Typography sx={{ color: T.primary, fontWeight: 900, fontSize: { xs: '1.35rem', md: '1.65rem' }, mt: 0.8 }}>
+              Who are you logging in as?
+            </Typography>
+            <Typography sx={{ color: 'rgba(15, 23, 42, 0.72)', fontWeight: 600, fontSize: '0.9rem', mt: 0.6 }}>
+              Select your role to access your personalized dashboard and community features.
+            </Typography>
           </Box>
-          <Button variant="outlined" startIcon={<MapIcon />} onClick={onBrowseLots}
-            sx={{ borderColor: T.accent, color: T.accent, borderRadius: 5, px: 3, py: 1, fontWeight: 700, fontSize: '0.85rem', textTransform: 'none', whiteSpace: 'nowrap', flexShrink: 0, '&:hover': { backgroundColor: 'rgba(157,204,85,0.12)', borderColor: '#b8e05a' } }}>
-            Browse Available Lots
-          </Button>
+
+          <Grid container spacing={3} justifyContent="center">
+            {ROLES.map((role) => (
+              <Grid item xs={12} sm={4} key={role.key}>
+                <Card
+                  onClick={() => onRoleSelect(role.key)}
+                  sx={{
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    backgroundColor: 'white',
+                    boxShadow: '0 10px 42px rgba(0,0,0,0.28)',
+                    transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+                    animation: 'cardPop 0.6s ease both',
+                    '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 18px 62px rgba(0,0,0,0.40)' },
+                    '&:active': { transform: 'translateY(-4px)' },
+                  }}
+                >
+                  <Box sx={{ height: 160, backgroundImage: `url(${role.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+                    <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(2,6,23,0.08), rgba(2,6,23,0.38))' }} />
+                    <Box sx={{ position: 'absolute', bottom: -24, left: '50%', transform: 'translateX(-50%)', width: 56, height: 56, borderRadius: '50%', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 24px rgba(0,0,0,0.22)', border: '3px solid #e8f5e9' }}>{role.icon}</Box>
+                  </Box>
+                  <CardContent sx={{ pt: 5, pb: 3, textAlign: 'center', px: 3 }}>
+                    <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: T.primary, letterSpacing: '0.08em', mb: 1 }}>{role.label}</Typography>
+                    <Typography sx={{ fontSize: '0.8rem', color: '#555', mb: 2.5, lineHeight: 1.5 }}>{role.description}</Typography>
+                    <Button variant="contained" onClick={(e) => { e.stopPropagation(); onRoleSelect(role.key); }}
+                    sx={{
+                      backgroundColor: T.primary,
+                      color: 'white',
+                      borderRadius: 999,
+                      px: 3,
+                      py: 0.9,
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      textTransform: 'none',
+                      boxShadow: '0 10px 20px rgba(15,90,42,0.30)',
+                      '&:hover': { backgroundColor: T.dark, transform: 'translateY(-1px)' },
+                      '&:active': { transform: 'translateY(1px) scale(0.99)' },
+                      transition: 'transform 0.15s ease, background-color 0.15s ease',
+                    }}>
+                      Click here
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+
+          {/* Browse Lots */}
+          <Box sx={{ mt: 4, borderTop: '1px solid rgba(15, 23, 42, 0.12)', pt: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 2, px: { xs: 0, md: 2 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ width: 52, height: 52, borderRadius: 2, backgroundColor: 'rgba(15, 90, 42, 0.08)', border: '1.5px solid rgba(15, 90, 42, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <MapIcon sx={{ fontSize: 26, color: T.accent }} />
+              </Box>
+              <Box>
+                <Typography sx={{ color: T.primary, fontWeight: 700, fontSize: '1rem' }}>Not a resident yet?</Typography>
+                <Typography sx={{ color: 'rgba(15, 23, 42, 0.64)', fontSize: '0.84rem', fontWeight: 600 }}>
+                  Browse available lots on the interactive village map — no account needed.
+                </Typography>
+              </Box>
+            </Box>
+            <Button variant="outlined" startIcon={<MapIcon />} onClick={onBrowseLots}
+              sx={{
+                borderColor: T.primary,
+                color: T.primary,
+                borderRadius: 999,
+                px: 3,
+                py: 1.05,
+                fontWeight: 900,
+                fontSize: '0.85rem',
+                textTransform: 'none',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                '&:hover': { backgroundColor: 'rgba(15, 90, 42, 0.06)', borderColor: T.dark },
+                '&:active': { transform: 'translateY(1px) scale(0.99)' },
+                transition: 'transform 0.15s ease',
+              }}>
+              Browse Available Lots
+            </Button>
+          </Box>
+
+          <Box sx={{ mt: { xs: 5, md: 6 }, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 3, md: 3.5 }, background: 'linear-gradient(135deg, #1f5f33 0%, #2f7a43 100%)' }}>
+            <Grid container spacing={2} justifyContent="center">
+              {[
+                { k: '200+', l: 'TOTAL LOTS', icon: <MapIcon sx={{ fontSize: 16 }} /> },
+                { k: '45', l: 'ACTIVE RESIDENTS', icon: <HomeIcon sx={{ fontSize: 16 }} /> },
+                { k: '98%', l: 'COLLECTION RATE', icon: <SecurityIcon sx={{ fontSize: 16 }} /> },
+                { k: '4.9', l: 'COMMUNITY RATING', icon: <StarIcon sx={{ fontSize: 16 }} /> },
+              ].map((s) => (
+                <Grid item xs={6} md={3} key={s.l}>
+                  <Box sx={{ textAlign: 'center', color: 'white' }}>
+                    <Box sx={{ width: 28, height: 28, mx: 'auto', borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)' }}>
+                      {s.icon}
+                    </Box>
+                    <Typography sx={{ mt: 0.8, fontWeight: 900, fontSize: { xs: '1.5rem', md: '1.7rem' }, lineHeight: 1 }}>{s.k}</Typography>
+                    <Typography sx={{ mt: 0.3, fontWeight: 800, color: 'rgba(255,255,255,0.78)', fontSize: '0.66rem', letterSpacing: '0.07em' }}>{s.l}</Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+
+          <Box sx={{ mt: 0, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 4, md: 5 }, backgroundColor: '#d9e8b6' }}>
+            <Grid container spacing={3} alignItems="center">
+              <Grid item xs={12} md={6}>
+                <Typography sx={{ color: '#9bb558', fontWeight: 900, fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                  What we offer
+                </Typography>
+                <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: { xs: '1.75rem', md: '2rem' }, lineHeight: 1.05, mt: 1 }}>
+                  A Complete Community
+                  <br />
+                  Living Experience
+                </Typography>
+                <Typography sx={{ color: 'rgba(15, 23, 42, 0.62)', fontWeight: 700, fontSize: '0.84rem', mt: 1.2, maxWidth: 460, lineHeight: 1.6 }}>
+                  Casimiro Westville Homes is designed to provide everything your family needs - from modern utilities to lush green spaces and a strong, secure community.
+                </Typography>
+
+                <Box sx={{ mt: 2.2, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.1 }}>
+                  {[
+                    { label: 'High-Speed Internet' },
+                    { label: 'Water & Utilities' },
+                    { label: 'Waste Management' },
+                    { label: 'Maintenance Team' },
+                    { label: 'Parks & Greenery' },
+                    { label: 'Visitor Parking' },
+                  ].map((f) => (
+                    <Box key={f.label} sx={{ backgroundColor: '#f6f8ee', borderRadius: 1.5, border: '1px solid rgba(15, 90, 42, 0.10)', px: 1.15, py: 0.75, display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                      <Box sx={{ width: 16, height: 16, borderRadius: '50%', bgcolor: 'rgba(15, 90, 42, 0.12)', color: T.primary, fontSize: '0.65rem', fontWeight: 900, display: 'grid', placeItems: 'center' }}>+</Box>
+                      <Typography sx={{ color: '#1f2937', fontWeight: 700, fontSize: '0.72rem' }}>{f.label}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Box sx={{ maxWidth: 430, ml: { xs: 0, md: 'auto' } }}>
+                  <Box component="img" src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&q=80" alt="Model house" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
+                  <Box sx={{ mt: 1.3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.1 }}>
+                    <Box component="img" src="https://images.unsplash.com/photo-1448630360428-65456885c650?w=600&q=80" alt="Park" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                    <Box component="img" src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=80" alt="Community homes" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                  </Box>
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
+
+          <Box sx={{ mt: { xs: 5, md: 7 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+              <Box>
+                <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                  Stay informed
+                </Typography>
+                <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: { xs: '1.25rem', md: '1.45rem' }, mt: 0.8 }}>
+                  Latest announcements
+                </Typography>
+              </Box>
+              <Button
+                variant="text"
+                onClick={() => scrollTo(announcementRef)}
+                sx={{ color: T.primary, fontWeight: 900, textTransform: 'none', '&:hover': { bgcolor: 'rgba(15, 90, 42, 0.06)' } }}
+              >
+                View all
+              </Button>
+            </Box>
+
+            <Grid container spacing={2.5}>
+              {ANNOUNCEMENTS.slice(0, 3).map((ann) => (
+                <Grid item xs={12} md={4} key={ann.id}>
+                  <Card
+                    onClick={() => scrollTo(announcementRef)}
+                    sx={{
+                      borderRadius: 3,
+                      bgcolor: 'rgba(255,255,255,0.95)',
+                      border: '1px solid rgba(255,255,255,0.14)',
+                      cursor: 'pointer',
+                      transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+                      boxShadow: '0 10px 28px rgba(0,0,0,0.22)',
+                      '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 16px 40px rgba(0,0,0,0.30)' },
+                    }}
+                  >
+                    <CardContent sx={{ p: 2.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.25 }}>
+                        <Chip
+                          label={ann.category}
+                          size="small"
+                          sx={{
+                            bgcolor: ann.color + '1A',
+                            color: ann.color,
+                            fontWeight: 900,
+                            fontSize: '0.7rem',
+                          }}
+                        />
+                        <Typography sx={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>{ann.date}</Typography>
+                      </Box>
+                      <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: '0.95rem', lineHeight: 1.35 }}>
+                        {ann.title}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          mt: 1.1,
+                          color: '#475569',
+                          fontWeight: 600,
+                          fontSize: '0.82rem',
+                          lineHeight: 1.6,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {ann.body}
+                      </Typography>
+                      <Typography sx={{ mt: 1.6, color: T.primary, fontWeight: 900, fontSize: '0.8rem' }}>
+                        Read more →
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
         </Box>
       </Box>
 
@@ -624,52 +1198,11 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             </Reveal>
             <Reveal delayMs={80} sx={{ maxWidth: 420 }}>
               <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: 2, border: '1px solid rgba(45,80,22,0.15)' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}>
-                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
-                  </IconButton>
-                  <Typography sx={{ fontWeight: 800, color: T.primary, fontSize: '1rem' }}>
-                    {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                  </Typography>
-                  <IconButton size="small" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}>
-                    <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
-                  </IconButton>
-                </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
-                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                    <Typography key={d} sx={{ textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: '#888' }}>{d}</Typography>
-                  ))}
-                </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-                  {(() => {
-                    const yr = currentDate.getFullYear(), mo = currentDate.getMonth();
-                    const first = new Date(yr, mo, 1).getDay();
-                    const days = new Date(yr, mo + 1, 0).getDate();
-                    const td = new Date();
-                    const cells = [];
-                    for (let i = 0; i < first; i++) cells.push(<Box key={`e${i}`} />);
-                    for (let d = 1; d <= days; d++) {
-                      const isT = d === td.getDate() && mo === td.getMonth() && yr === td.getFullYear();
-                      cells.push(
-                        <Box
-                          key={d}
-                          sx={{
-                            textAlign: 'center',
-                            py: '8px',
-                            borderRadius: '50%',
-                            backgroundColor: isT ? T.primary : 'transparent',
-                            color: isT ? 'white' : '#333',
-                            fontSize: '0.85rem',
-                            fontWeight: isT ? 800 : 500
-                          }}
-                        >
-                          {d}
-                        </Box>
-                      );
-                    }
-                    return cells;
-                  })()}
-                </Box>
+                <MiniCalendar
+                  currentDate={currentDate}
+                  onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+                  onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+                />
               </Box>
             </Reveal>
           </Container>
@@ -751,10 +1284,66 @@ const Login = () => {
   if (!selectedRole) return <LandingPage onRoleSelect={setSelectedRole} onBrowseLots={() => navigate('/lots')} />;
 
   return (
-    <Box sx={{ minHeight: '100vh', background: `linear-gradient(135deg, ${T.dark} 0%, ${T.primary} 50%, #4a7a20 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4, px: 2, position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: -100, right: -100, width: 400, height: 400, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }, '&::after': { content: '""', position: 'absolute', bottom: -150, left: -100, width: 500, height: 500, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' } }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        // login background aligned with screenshot's deep green
+        background: `radial-gradient(circle at 18% 12%, rgba(47,143,70,0.35), transparent 55%),
+                     radial-gradient(circle at 82% 18%, rgba(124,219,107,0.22), transparent 60%),
+                     linear-gradient(135deg, ${T.dark} 0%, ${T.primary} 55%, #137d3a 100%)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 4,
+        px: 2,
+        position: 'relative',
+        overflow: 'hidden',
+        '@keyframes fadeUpSoft': {
+          from: { opacity: 0, transform: 'translateY(14px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+        '@media (prefers-reduced-motion: reduce)': {
+          '*': { animation: 'none !important', transition: 'none !important' },
+        },
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: -110,
+          right: -120,
+          width: 420,
+          height: 420,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.045)',
+          filter: 'blur(0px)',
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: -170,
+          left: -120,
+          width: 520,
+          height: 520,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.035)',
+        },
+      }}
+    >
       <Container maxWidth="sm">
         <Button startIcon={<ArrowBackIcon />} onClick={() => { setSelectedRole(null); setErrors({}); setFormData({ email: '', password: '' }); }}
-          sx={{ color: 'rgba(255,255,255,0.8)', mb: 3, '&:hover': { color: 'white', backgroundColor: 'rgba(255,255,255,0.1)' }, borderRadius: 2, textTransform: 'none' }}>
+          sx={{
+            color: 'rgba(255,255,255,0.86)',
+            mb: 3,
+            borderRadius: 999,
+            textTransform: 'none',
+            fontWeight: 800,
+            px: 2,
+            py: 0.9,
+            bgcolor: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            '&:hover': { color: 'white', backgroundColor: 'rgba(255,255,255,0.10)' },
+            '&:active': { transform: 'translateY(1px) scale(0.99)' },
+            transition: 'transform 0.15s ease',
+          }}>
           Back to Home
         </Button>
 
@@ -768,12 +1357,22 @@ const Login = () => {
           </Box>
         </Box>
 
-        <Paper sx={{ borderRadius: 3, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.15)', p: { xs: 3, md: 4 }, backgroundColor: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px)' }}>
+        <Paper
+          sx={{
+            borderRadius: 4,
+            boxShadow: '0 24px 70px rgba(0,0,0,0.35)',
+            border: '1px solid rgba(255,255,255,0.16)',
+            p: { xs: 3, md: 4 },
+            backgroundColor: 'rgba(255,255,255,0.97)',
+            backdropFilter: 'blur(20px)',
+            animation: 'fadeUpSoft 0.6s ease',
+          }}
+        >
           <Typography variant="h5" sx={{ fontWeight: 700, color: themeColors.textPrimary, mb: 0.5 }}>Welcome back</Typography>
           <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 3 }}>Sign in to your {roleInfo.label.toLowerCase()} account</Typography>
 
           {isLocked && <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }} icon={<SecurityIcon />}>Account locked. Try again in {formatTime(lockTimer)}</Alert>}
-          {errors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{errors.submit}</Alert>}
+          {errors.submit && <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>{errors.submit}</Alert>}
           {errors.submit?.includes('pending admin approval') && (
             <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }} icon={<TimeIcon />}>
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Account Pending Approval</Typography>
@@ -782,16 +1381,77 @@ const Login = () => {
           )}
 
           <Box component="form" onSubmit={handleSubmit}>
-            <TextField fullWidth label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} error={!!errors.email} helperText={errors.email} margin="normal"
-              InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} /></InputAdornment>, sx: { borderRadius: 2 } }} />
-            <TextField fullWidth label="Password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange} error={!!errors.password} helperText={errors.password} margin="normal"
-              InputProps={{ startAdornment: <InputAdornment position="start"><KeyIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} /></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>, sx: { borderRadius: 2 } }} />
+            <TextField
+              sx={noRedErrorFieldSx}
+              fullWidth
+              label="Email Address"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              error={!!errors.email}
+              helperText={errors.email}
+              margin="normal"
+              InputLabelProps={{ sx: { fontWeight: 700 } }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><EmailIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} /></InputAdornment>,
+                sx: {
+                  borderRadius: 3,
+                  bgcolor: '#ffffff',
+                  boxShadow: '0 10px 22px rgba(15, 23, 42, 0.05)',
+                }
+              }}
+            />
+            <TextField
+              sx={noRedErrorFieldSx}
+              fullWidth
+              label="Password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleChange}
+              error={!!errors.password}
+              helperText={errors.password}
+              margin="normal"
+              InputLabelProps={{ sx: { fontWeight: 700 } }}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><KeyIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} /></InputAdornment>,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      size="small"
+                      sx={{ '&:active': { transform: 'scale(0.96)' }, transition: 'transform 0.12s ease' }}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+                sx: {
+                  borderRadius: 3,
+                  bgcolor: '#ffffff',
+                  boxShadow: '0 10px 22px rgba(15, 23, 42, 0.05)',
+                }
+              }}
+            />
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5, mb: 2 }}>
               <Button size="small" onClick={() => setShowForgotPassword(true)} sx={{ color: themeColors.primary, textTransform: 'none', fontSize: '0.8rem' }}>Forgot Password?</Button>
             </Box>
             <Button type="submit" fullWidth variant="contained" disabled={loading || isLocked}
-              sx={{ backgroundColor: themeColors.primary, '&:hover': { backgroundColor: themeColors.primaryDark }, py: 1.5, borderRadius: 2, fontWeight: 600, fontSize: '1rem', textTransform: 'none', boxShadow: '0 4px 14px rgba(45,80,22,0.4)' }}>
+              sx={{
+                backgroundColor: themeColors.primary,
+                '&:hover': { backgroundColor: themeColors.primaryDark, transform: 'translateY(-1px)' },
+                '&:active': { transform: 'translateY(1px) scale(0.99)' },
+                py: 1.5,
+                borderRadius: 999,
+                fontWeight: 900,
+                fontSize: '1rem',
+                textTransform: 'none',
+                boxShadow: '0 16px 34px rgba(15, 90, 42, 0.28)',
+                transition: 'transform 0.15s ease, background-color 0.15s ease',
+              }}>
               {loading ? <CircularProgress size={22} color="inherit" /> : `Sign In as ${roleInfo.label}`}
             </Button>
 
@@ -816,7 +1476,7 @@ const Login = () => {
         <DialogTitle sx={{ fontWeight: 600 }}>Reset Password</DialogTitle>
         <DialogContent sx={{ p: 3, pt: 1 }}>
           <Typography variant="body2" sx={{ mb: 2, color: themeColors.textSecondary }}>Enter your email and we'll send you a reset link.</Typography>
-          <TextField fullWidth label="Email Address" type="email" name="email" value={formData.email} onChange={handleChange}
+          <TextField sx={noRedErrorFieldSx} fullWidth label="Email Address" type="email" name="email" value={formData.email} onChange={handleChange}
             InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>, sx: { borderRadius: 2 } }} />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

@@ -47,7 +47,7 @@ const PaymentSuccessScreen = ({ navigation, route }) => {
   };
 
   const handleGoToDashboard = () => {
-    navigation.navigate('DashboardTab');
+    navigation.navigate('ResidentDashboard');
   };
 
   const formatCurrency = (amount) => {

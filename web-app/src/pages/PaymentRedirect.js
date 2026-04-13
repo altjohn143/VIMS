@@ -81,18 +81,53 @@ const PaymentRedirect = () => {
   };
   
   const themeColors = {
-    primary: '#2224be',
+    primary: '#166534',
+    primaryDark: '#14532d',
+    primaryLight: '#22c55e',
     success: '#10b981',
     error: '#ef4444',
-    background: '#f8fafc',
-    textPrimary: '#1e293b',
-    textSecondary: '#64748b'
+    background: '#f3f5f7',
+    textPrimary: '#0f172a',
+    textSecondary: '#64748b',
+    border: 'rgba(15, 23, 42, 0.08)'
   };
   
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: themeColors.background }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(circle at top left, rgba(34,197,94,0.06), transparent 24%),
+          radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
+          ${themeColors.background}
+        `
+      }}
+    >
       <Container maxWidth="sm" sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', py: 4 }}>
-        <Paper sx={{ p: 4, borderRadius: 3, textAlign: 'center', width: '100%' }}>
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: '22px',
+            textAlign: 'center',
+            width: '100%',
+            border: `1px solid ${themeColors.border}`,
+            boxShadow: '0 16px 36px rgba(15, 23, 42, 0.10)',
+            bgcolor: '#fff'
+          }}
+        >
+          <Box
+            sx={{
+              mb: 2.5,
+              py: 1.8,
+              borderRadius: 3,
+              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+              color: '#fff'
+            }}
+          >
+            <Typography sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
+              Secure Payment
+            </Typography>
+          </Box>
           {loading ? (
             <>
               <Box sx={{ mb: 3 }}>
@@ -104,7 +139,14 @@ const PaymentRedirect = () => {
                 <Typography variant="body2" color="textSecondary">
                   Please wait while we prepare your secure payment.
                 </Typography>
-                <LinearProgress sx={{ mt: 3, borderRadius: 2 }} />
+                <LinearProgress
+                  sx={{
+                    mt: 3,
+                    borderRadius: 2,
+                    bgcolor: 'rgba(22, 163, 74, 0.12)',
+                    '& .MuiLinearProgress-bar': { bgcolor: themeColors.primary }
+                  }}
+                />
               </Box>
             </>
           ) : error ? (
@@ -121,7 +163,10 @@ const PaymentRedirect = () => {
                 sx={{ 
                   mr: 2,
                   bgcolor: themeColors.primary,
-                  '&:hover': { bgcolor: '#1a1c9e' }
+                  borderRadius: 2.5,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  '&:hover': { bgcolor: themeColors.primaryDark }
                 }}
               >
                 Try Again
@@ -130,6 +175,11 @@ const PaymentRedirect = () => {
                 variant="outlined" 
                 onClick={handleGoBack}
                 startIcon={<ArrowBackIcon />}
+                sx={{
+                  borderRadius: 2.5,
+                  textTransform: 'none',
+                  fontWeight: 700
+                }}
               >
                 Back to Payments
               </Button>

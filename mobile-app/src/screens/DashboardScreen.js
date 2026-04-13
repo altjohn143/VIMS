@@ -93,10 +93,10 @@ const DashboardScreen = ({ navigation, route }) => {
           { title: 'Service Requests', icon: 'tools', screen: 'ServiceRequests' }
         ],
         payments: [
-          { title: 'Pay Dues', icon: 'currency-usd', screen: 'Payments' }
+          { title: 'Pay Dues', icon: 'currency-usd', screen: 'ServiceRequests' }
         ],
         community: [
-          { title: 'Announcements', icon: 'bullhorn', screen: 'Announcements' }
+          { title: 'Community Info', icon: 'bullhorn', screen: 'Dashboard' }
         ],
         settings: [
           { title: 'Profile Settings', icon: 'cog', screen: 'ProfileSettings' }
@@ -115,20 +115,20 @@ const DashboardScreen = ({ navigation, route }) => {
       color: themeColors.primary,
       features: {
         visitors: [
-          { title: 'Visitor Management', icon: 'account-group', screen: 'AdminVisitorManagement' }
+          { title: 'Visitor Management', icon: 'account-group', screen: 'Visitors' }
         ],
         users: [
-          { title: 'User Management', icon: 'account-multiple', screen: 'AdminUsers' },
-          { title: 'Approval Requests', icon: 'shield-check', screen: 'AdminApprovals' }
+          { title: 'User Management', icon: 'account-multiple', screen: 'ProfileSettings' },
+          { title: 'Approval Requests', icon: 'shield-check', screen: 'AdminServiceRequests' }
         ],
         services: [
           { title: 'Service Requests', icon: 'tools', screen: 'AdminServiceRequests' }
         ],
         finance: [
-          { title: 'Financial Overview', icon: 'chart-bar', screen: 'AdminFinance' }
+          { title: 'Financial Overview', icon: 'chart-bar', screen: 'AdminServiceRequests' }
         ],
         announcements: [
-          { title: 'Create Announcements', icon: 'bullhorn', screen: 'AdminAnnouncements' }
+          { title: 'Create Announcements', icon: 'bullhorn', screen: 'AdminServiceRequests' }
         ],
         settings: [
           { title: 'System Settings', icon: 'cog', screen: 'ProfileSettings' }
@@ -147,20 +147,20 @@ const DashboardScreen = ({ navigation, route }) => {
       color: themeColors.primary,
       features: {
         scanner: [
-          { title: 'QR Code Scanner', icon: 'qrcode-scan', screen: 'SecurityScanner' }
+          { title: 'QR Code Scan', icon: 'qrcode-scan', screen: 'QRCodeDisplay' }
         ],
         visitors: [
           { title: 'Visitor Approvals', icon: 'check-circle', screen: 'SecurityVisitorApproval' },
-          { title: 'Visitor Logs', icon: 'history', screen: 'SecurityVisitorLogs' }
+          { title: 'Visitor Logs', icon: 'history', screen: 'SecurityVisitorApproval' }
         ],
         patrol: [
-          { title: 'Patrol Schedule', icon: 'calendar', screen: 'SecuritySchedule' }
+          { title: 'Patrol Schedule', icon: 'calendar', screen: 'SecurityVisitorApproval' }
         ],
         services: [
-          { title: 'Service Requests', icon: 'tools', screen: 'SecurityServiceRequests' }
+          { title: 'Service Requests', icon: 'tools', screen: 'ServiceRequests' }
         ],
         incidents: [
-          { title: 'Incident Reports', icon: 'alert', screen: 'SecurityIncidents' }
+          { title: 'Incident Reports', icon: 'alert', screen: 'SecurityVisitorApproval' }
         ],
         settings: [
           { title: 'Profile Settings', icon: 'cog', screen: 'ProfileSettings' }
@@ -174,6 +174,16 @@ const DashboardScreen = ({ navigation, route }) => {
       ]
     }
   };
+
+  const registeredScreens = new Set([
+    'Dashboard',
+    'Visitors',
+    'ServiceRequests',
+    'AdminServiceRequests',
+    'SecurityVisitorApproval',
+    'ProfileSettings',
+    'QRCodeDisplay'
+  ]);
 
   // API Helper (keeping your existing functionality)
   const apiRequest = async (endpoint, options = {}) => {
@@ -395,7 +405,12 @@ const DashboardScreen = ({ navigation, route }) => {
   const handleNavigation = (screen) => {
     setSidebarOpen(false);
     if (screen) {
-      navigation.navigate(screen);
+      if (registeredScreens.has(screen)) {
+        navigation.navigate(screen);
+      } else {
+        console.warn(`Dashboard navigation target missing: ${screen}`);
+        Alert.alert('Unavailable', 'This section is not available in the current build.');
+      }
     }
   };
 

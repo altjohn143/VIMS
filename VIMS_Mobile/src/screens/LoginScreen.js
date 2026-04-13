@@ -52,11 +52,8 @@ const LoginScreen = ({ navigation }) => {
     },
   ];
 
-<<<<<<< HEAD
-=======
-  // NOTE: Removed hardcoded/mock stats (must be DB-backed).
+// NOTE: Removed hardcoded/mock stats (must be DB-backed).
 
->>>>>>> a2315937814b40845a08a607b5edc073a9d96f14
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -164,11 +161,8 @@ const LoginScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-<<<<<<< HEAD
-=======
               {/* Stats removed (no mock data) */}
 
->>>>>>> a2315937814b40845a08a607b5edc073a9d96f14
               {/* Role Cards */}
               <View style={styles.roleCardsContainer}>
                 {roles.map((role) => (

@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { themeColors, pinterestTheme } from '../utils/theme';
 import api from '../utils/api';
+import { startUnreadCountPolling } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DashboardScreen = ({ navigation }) => {
@@ -26,6 +27,7 @@ const DashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({});
+  const [unreadCount, setUnreadCount] = useState(0);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { logout, user: authUser } = useAuth();
@@ -425,7 +427,7 @@ const DashboardScreen = ({ navigation }) => {
               <Text style={styles.actionSub}>Today</Text>
             </View>
           </View>
-        ) : null}
+        </View>
 
         {/* ── Footer ── */}
         <View style={styles.footer}>

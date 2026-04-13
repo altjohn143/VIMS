@@ -16,12 +16,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../utils/theme';
 import QRCode from 'react-native-qrcode-svg';
-<<<<<<< HEAD
 import UserDropdownMenu from '../components/UserDropdownMenu';
-=======
-import LogoutButton from '../components/LogoutButton';
 import api from '../utils/api';
->>>>>>> a2315937814b40845a08a607b5edc073a9d96f14
 
 const { width } = Dimensions.get('window');
 

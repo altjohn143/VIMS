@@ -4,11 +4,8 @@
     "slug": "vims-mobile-7euufkub27o94cpv6tbz",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
       "backgroundColor": "#2224be"
     },
     "assetBundlePatterns": [
@@ -20,7 +17,6 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2224be"
       },
       "package": "com.yourcompany.vims",
@@ -28,9 +24,6 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [

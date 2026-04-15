@@ -35,6 +35,7 @@ import AdminAnnouncementsScreen from '../screens/admin/AdminAnnouncementsScreen'
 // Security Screens
 import SecurityVisitorApprovalScreen from '../screens/security/SecurityVisitorApprovalScreen';
 import SecurityVisitorLogsScreen from '../screens/security/SecurityVisitorLogsScreen';
+import SecurityQrScannerScreen from '../screens/security/SecurityQrScannerScreen';
 import SecurityServiceRequestsScreen from '../screens/security/SecurityServiceRequestsScreen';
 import SecurityPatrolScheduleScreen from '../screens/security/SecurityPatrolScheduleScreen';
 import SecurityIncidentsScreen from '../screens/security/SecurityIncidentsScreen';
@@ -145,6 +146,8 @@ const SecurityTabs = () => {
             iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline';
           } else if (route.name === 'LogsTab') {
             iconName = focused ? 'time' : 'time-outline';
+          } else if (route.name === 'ScannerTab') {
+            iconName = focused ? 'qr-code' : 'qr-code-outline';
           } else if (route.name === 'ProfileTab') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -165,6 +168,7 @@ const SecurityTabs = () => {
     >
       <Tab.Screen name="DashboardTab" component={DashboardScreen} options={{ title: 'Dashboard' }} />
       <Tab.Screen name="ApprovalsTab" component={SecurityVisitorApprovalScreen} options={{ title: 'Approvals' }} />
+      <Tab.Screen name="ScannerTab" component={SecurityQrScannerScreen} options={{ title: 'Scanner' }} />
       <Tab.Screen name="LogsTab" component={SecurityVisitorLogsScreen} options={{ title: 'Logs' }} />
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>

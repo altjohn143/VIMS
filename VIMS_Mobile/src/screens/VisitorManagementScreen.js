@@ -11,6 +11,7 @@ import {
   Modal,
   RefreshControl,
   FlatList,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../utils/theme';
@@ -19,6 +20,7 @@ import QRCode from 'react-native-qrcode-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../components/UserDropdownMenu';
+import { Camera, CameraView } from 'expo-camera';
 
 const VisitorManagementScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
@@ -32,6 +34,11 @@ const VisitorManagementScreen = ({ navigation }) => {
   const [historyMode, setHistoryMode] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerField, setDatePickerField] = useState('');
+  const [pickerMode, setPickerMode] = useState('date');
+  const [pendingDateValue, setPendingDateValue] = useState(null);
+  const [showConfirmScanner, setShowConfirmScanner] = useState(false);
+  const [isConfirmingScan, setIsConfirmingScan] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState(false);
 
   const [formData, setFormData] = useState({
     visitorName: '',
@@ -107,11 +114,43 @@ const VisitorManagementScreen = ({ navigation }) => {
     }
   };
 
+  const openDateTimePicker = (field) => {
+    setDatePickerField(field);
+    setPendingDateValue(formData[field] || new Date());
+    setPickerMode('date');
+    setShowDatePicker(true);
+  };
+
   const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setFormData(prev => ({ ...prev, [datePickerField]: selectedDate }));
+    if (!selectedDate || event?.type === 'dismissed') {
+      setShowDatePicker(false);
+      setPickerMode('date');
+      setPendingDateValue(null);
+      return;
     }
+
+    if (Platform.OS === 'android') {
+      if (pickerMode === 'date') {
+        const currentValue = formData[datePickerField] || new Date();
+        const mergedDate = new Date(selectedDate);
+        mergedDate.setHours(currentValue.getHours(), currentValue.getMinutes(), 0, 0);
+        setPendingDateValue(mergedDate);
+        setPickerMode('time');
+        setShowDatePicker(true);
+        return;
+      }
+
+      const baseDate = pendingDateValue || formData[datePickerField] || new Date();
+      const mergedDateTime = new Date(baseDate);
+      mergedDateTime.setHours(selectedDate.getHours(), selectedDate.getMinutes(), 0, 0);
+      setFormData(prev => ({ ...prev, [datePickerField]: mergedDateTime }));
+      setPendingDateValue(null);
+      setPickerMode('date');
+      setShowDatePicker(false);
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, [datePickerField]: selectedDate }));
   };
 
   const handleCreateVisitor = async () => {
@@ -188,15 +227,58 @@ const VisitorManagementScreen = ({ navigation }) => {
     );
   };
 
-  const getStatusChip = (status) => {
+  const requestCameraPermission = async () => {
+    if (typeof Camera?.requestCameraPermissionsAsync === 'function') {
+      return Camera.requestCameraPermissionsAsync();
+    }
+    if (typeof Camera?.requestPermissionsAsync === 'function') {
+      return Camera.requestPermissionsAsync();
+    }
+    return { granted: false };
+  };
+
+  const openResidentScanner = async () => {
+    if (!hasCameraPermission) {
+      const result = await requestCameraPermission();
+      if (!result.granted) {
+        Alert.alert('Camera Required', 'Please allow camera access to confirm visitor arrival.');
+        return;
+      }
+      setHasCameraPermission(true);
+    }
+    setShowConfirmScanner(true);
+  };
+
+  const handleResidentConfirmScan = async ({ data }) => {
+    if (isConfirmingScan || !data) return;
+    setIsConfirmingScan(true);
+    try {
+      const response = await api.post('/visitors/confirm-arrival', { scanValue: data });
+      if (response.data?.success) {
+        Alert.alert('Confirmed', 'Visitor arrival confirmed successfully.');
+        setShowConfirmScanner(false);
+        fetchVisitors();
+      }
+    } catch (error) {
+      Alert.alert('Unable to Confirm', error?.response?.data?.error || 'Failed to confirm visitor');
+    } finally {
+      setTimeout(() => setIsConfirmingScan(false), 800);
+    }
+  };
+
+  const getStatusChip = (status, visitor = null) => {
     const config = {
       pending: { label: 'Pending', color: themeColors.warning, icon: 'time', bg: themeColors.warning + '20' },
       approved: { label: 'Approved', color: themeColors.success, icon: 'checkmark-circle', bg: themeColors.success + '20' },
       rejected: { label: 'Rejected', color: themeColors.error, icon: 'close-circle', bg: themeColors.error + '20' },
+      confirmed: { label: 'Confirmed', color: themeColors.success, icon: 'shield-checkmark', bg: themeColors.success + '20' },
       active: { label: 'Active', color: themeColors.info, icon: 'radio-button-on', bg: themeColors.info + '20' },
       completed: { label: 'Completed', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
       cancelled: { label: 'Cancelled', color: themeColors.error, icon: 'ban', bg: themeColors.error + '20' },
     };
+    if (status === 'active' && visitor?.residentEntryConfirmedAt) {
+      return config.confirmed;
+    }
     return config[status] || config.pending;
   };
 
@@ -233,7 +315,7 @@ const VisitorManagementScreen = ({ navigation }) => {
   };
 
   const renderVisitorCard = ({ item }) => {
-    const status = getStatusChip(item.status);
+    const status = getStatusChip(item.status, item);
     const isQRValid = ['approved', 'active', 'completed'].includes(item.status);
     const isPending = item.status === 'pending';
 
@@ -291,6 +373,14 @@ const VisitorManagementScreen = ({ navigation }) => {
               )}
             </View>
           </View>
+          {item.residentEntryConfirmedAt ? (
+            <View style={styles.confirmedRow}>
+              <Ionicons name="shield-checkmark" size={16} color={themeColors.success} />
+              <Text style={styles.confirmedText}>
+                Confirmed at residence: {formatDate(item.residentEntryConfirmedAt)}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -358,6 +448,15 @@ const VisitorManagementScreen = ({ navigation }) => {
         </View>
       )}
 
+      {!historyMode && (
+        <View style={styles.confirmBar}>
+          <TouchableOpacity style={styles.confirmScanButton} onPress={openResidentScanner}>
+            <Ionicons name="scan" size={18} color="white" />
+            <Text style={styles.confirmScanText}>Confirm Visitor via QR Scan</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <FlatList
         data={getFilteredVisitors()}
         renderItem={renderVisitorCard}
@@ -378,21 +477,17 @@ const VisitorManagementScreen = ({ navigation }) => {
                 : "You don't have any rejected visitor passes"
               }
             </Text>
-            {!historyMode && (
-              <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateModal(true)}>
-                <Ionicons name="add" size={20} color="white" />
-                <Text style={styles.createButtonText}>Create New Pass</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateModal(true)}>
+              <Ionicons name="add" size={20} color="white" />
+              <Text style={styles.createButtonText}>Create New Pass</Text>
+            </TouchableOpacity>
           </View>
         }
       />
 
-      {!historyMode && (
-        <TouchableOpacity style={styles.fab} onPress={() => setShowCreateModal(true)}>
-          <Ionicons name="add" size={30} color="white" />
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity style={styles.fab} onPress={() => setShowCreateModal(true)}>
+        <Ionicons name="add" size={30} color="white" />
+      </TouchableOpacity>
 
       {/* Create Visitor Modal */}
       <Modal
@@ -479,10 +574,7 @@ const VisitorManagementScreen = ({ navigation }) => {
               <Text style={styles.label}>Expected Arrival *</Text>
               <TouchableOpacity
                 style={styles.datePickerButton}
-                onPress={() => {
-                  setDatePickerField('expectedArrival');
-                  setShowDatePicker(true);
-                }}
+                onPress={() => openDateTimePicker('expectedArrival')}
               >
                 <Ionicons name="calendar" size={20} color={themeColors.textSecondary} />
                 <Text style={styles.dateText}>
@@ -495,10 +587,7 @@ const VisitorManagementScreen = ({ navigation }) => {
               <Text style={styles.label}>Expected Departure *</Text>
               <TouchableOpacity
                 style={styles.datePickerButton}
-                onPress={() => {
-                  setDatePickerField('expectedDeparture');
-                  setShowDatePicker(true);
-                }}
+                onPress={() => openDateTimePicker('expectedDeparture')}
               >
                 <Ionicons name="calendar" size={20} color={themeColors.textSecondary} />
                 <Text style={styles.dateText}>
@@ -632,17 +721,17 @@ const VisitorManagementScreen = ({ navigation }) => {
                   )}
 
                   <View style={[styles.statusBadge, { 
-                    backgroundColor: getStatusChip(selectedVisitor.status).bg,
+                    backgroundColor: getStatusChip(selectedVisitor.status, selectedVisitor).bg,
                     alignSelf: 'center',
                     marginTop: 16,
                   }]}>
                     <Ionicons 
-                      name={getStatusChip(selectedVisitor.status).icon} 
+                      name={getStatusChip(selectedVisitor.status, selectedVisitor).icon} 
                       size={16} 
-                      color={getStatusChip(selectedVisitor.status).color} 
+                      color={getStatusChip(selectedVisitor.status, selectedVisitor).color} 
                     />
-                    <Text style={[styles.statusText, { color: getStatusChip(selectedVisitor.status).color }]}>
-                      {getStatusChip(selectedVisitor.status).label.toUpperCase()}
+                    <Text style={[styles.statusText, { color: getStatusChip(selectedVisitor.status, selectedVisitor).color }]}>
+                      {getStatusChip(selectedVisitor.status, selectedVisitor).label.toUpperCase()}
                     </Text>
                   </View>
                 </View>
@@ -655,12 +744,35 @@ const VisitorManagementScreen = ({ navigation }) => {
       {/* Date Picker */}
       {showDatePicker && (
         <DateTimePicker
-          value={formData[datePickerField]}
-          mode="datetime"
+          value={pendingDateValue || formData[datePickerField] || new Date()}
+          mode={Platform.OS === 'android' ? pickerMode : 'datetime'}
           display="default"
           onChange={handleDateChange}
         />
       )}
+
+      <Modal
+        visible={showConfirmScanner}
+        animationType="slide"
+        onRequestClose={() => setShowConfirmScanner(false)}
+      >
+        <View style={styles.scannerContainer}>
+          <View style={styles.scannerHeader}>
+            <Text style={styles.scannerTitle}>Confirm Visitor Arrival</Text>
+            <TouchableOpacity onPress={() => setShowConfirmScanner(false)}>
+              <Ionicons name="close" size={28} color="white" />
+            </TouchableOpacity>
+          </View>
+          <CameraView
+            style={styles.cameraView}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onBarcodeScanned={isConfirmingScan ? undefined : handleResidentConfirmScan}
+          />
+          <View style={styles.scannerHintWrap}>
+            <Text style={styles.scannerHint}>Scan the visitor pass when they arrive at your home.</Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -721,6 +833,29 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: themeColors.border,
+  },
+  confirmBar: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
+  },
+  confirmScanButton: {
+    backgroundColor: themeColors.success,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  confirmScanText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 14,
   },
   tab: {
     flexDirection: 'row',
@@ -816,6 +951,20 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: themeColors.border,
+  },
+  confirmedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: themeColors.success + '15',
+    borderRadius: 8,
+    padding: 8,
+  },
+  confirmedText: {
+    marginLeft: 8,
+    color: themeColors.success,
+    fontWeight: '600',
+    fontSize: 12,
   },
   createdText: {
     fontSize: 12,
@@ -1044,6 +1193,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: themeColors.textPrimary,
     fontWeight: '500',
+  },
+  scannerContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  scannerHeader: {
+    paddingTop: 54,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  scannerTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  cameraView: {
+    flex: 1,
+  },
+  scannerHintWrap: {
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  scannerHint: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 13,
   },
 });
 

@@ -60,6 +60,14 @@ const visitorSchema = new mongoose.Schema({
     type: Date
   },
 
+  residentEntryConfirmedAt: {
+    type: Date
+  },
+
+  overstayNotifiedAt: {
+    type: Date
+  },
+
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected', 'active', 'completed', 'cancelled'],

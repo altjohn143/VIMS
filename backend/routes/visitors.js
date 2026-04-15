@@ -43,6 +43,49 @@ const decodeScanValue = (rawValue = '') => {
   return value;
 };
 
+const findVisitorByScanValue = async (scanValue) => {
+  const normalized = decodeScanValue(scanValue);
+  if (!normalized) return null;
+
+  let visitor = await Visitor.findOne({ qrToken: normalized }).populate(
+    'residentId',
+    'firstName lastName houseNumber phone email'
+  );
+
+  if (!visitor) {
+    visitor = await Visitor.findOne({ qrCode: normalized }).populate(
+      'residentId',
+      'firstName lastName houseNumber phone email'
+    );
+  }
+
+  return visitor;
+};
+
+const notifyResidentOverstays = async (filter = {}) => {
+  const now = new Date();
+  const overdueVisitors = await Visitor.find({
+    ...filter,
+    status: { $in: ['approved', 'active'] },
+    expectedDeparture: { $lt: now },
+    overstayNotifiedAt: { $exists: false }
+  });
+
+  if (overdueVisitors.length === 0) return;
+
+  for (const visitor of overdueVisitors) {
+    await createInAppNotification({
+      userId: visitor.residentId,
+      type: 'visitor_overstay',
+      title: 'Visitor overstaying alert',
+      body: `${visitor.visitorName} has exceeded departure time. Security personnel will proceed to your address.`,
+      metadata: { visitorId: visitor._id, status: visitor.status, expectedDeparture: visitor.expectedDeparture }
+    });
+    visitor.overstayNotifiedAt = now;
+    await visitor.save();
+  }
+};
+
 router.get('/test', (req, res) => {
   console.log('/api/visitors/test route hit!');
   res.json({ 
@@ -520,6 +563,13 @@ router.put('/:id/entry', protect, authorize('security'), async (req, res) => {
     if (securityNotes) visitor.securityNotes = securityNotes;
     
     await visitor.save();
+    await createInAppNotification({
+      userId: visitor.residentId,
+      type: 'visitor',
+      title: 'Visitor at the gate',
+      body: `Your visitor ${visitor.visitorName} is approved and heading to your place.`,
+      metadata: { visitorId: visitor._id, event: 'entry_logged' }
+    });
     
     res.json({
       success: true,
@@ -584,6 +634,13 @@ router.put('/:id/exit', protect, authorize('security'), async (req, res) => {
     if (securityNotes) visitor.securityNotes += (visitor.securityNotes ? '\n' : '') + securityNotes;
     
     await visitor.save();
+    await createInAppNotification({
+      userId: visitor.residentId,
+      type: 'visitor',
+      title: 'Visitor pass completed',
+      body: `${visitor.visitorName} has exited. Visitor pass is now completed and no longer valid.`,
+      metadata: { visitorId: visitor._id, event: 'exit_logged' }
+    });
     
     res.json({
       success: true,
@@ -602,6 +659,7 @@ router.put('/:id/exit', protect, authorize('security'), async (req, res) => {
 
 router.get('/my', protect, authorize('resident'), async (req, res) => {
   try {
+    await notifyResidentOverstays({ residentId: req.user.id });
     const visitors = await Visitor.find({ residentId: req.user.id })
       .sort({ createdAt: -1 });
     
@@ -649,6 +707,7 @@ router.get('/debug/all', async (req, res) => {
 
 router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
   try {
+    await notifyResidentOverstays();
     const { status, date } = req.query;
     
     let filter = {};
@@ -678,6 +737,125 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
       success: false,
       error: 'Failed to get visitors'
     });
+  }
+});
+
+router.post('/scan-action', protect, authorize('security'), async (req, res) => {
+  try {
+    const scanValue = req.body?.scanValue || req.body?.qrCode || '';
+    const securityNotes = req.body?.securityNotes || '';
+    const visitor = await findVisitorByScanValue(scanValue);
+
+    if (!visitor) {
+      return res.status(404).json({ success: false, error: 'Invalid QR code' });
+    }
+
+    if (visitor.status === 'approved') {
+      visitor.actualEntry = new Date();
+      visitor.status = 'active';
+      if (securityNotes) visitor.securityNotes = securityNotes;
+      await visitor.save();
+      await createInAppNotification({
+        userId: visitor.residentId,
+        type: 'visitor',
+        title: 'Visitor at the gate',
+        body: `Your visitor ${visitor.visitorName} is approved and heading to your place.`,
+        metadata: { visitorId: visitor._id, event: 'entry_scan' }
+      });
+
+      return res.json({
+        success: true,
+        message: 'Visitor entry logged via QR scan',
+        data: { visitor, action: 'entry_logged' }
+      });
+    }
+
+    if (visitor.status === 'active') {
+      visitor.actualExit = new Date();
+      visitor.status = 'completed';
+      if (securityNotes) {
+        visitor.securityNotes += (visitor.securityNotes ? '\n' : '') + securityNotes;
+      }
+      await visitor.save();
+      await createInAppNotification({
+        userId: visitor.residentId,
+        type: 'visitor',
+        title: 'Visitor pass completed',
+        body: `${visitor.visitorName} has exited. Visitor pass is now completed and no longer valid.`,
+        metadata: { visitorId: visitor._id, event: 'exit_scan' }
+      });
+
+      return res.json({
+        success: true,
+        message: 'Visitor exit logged via QR scan',
+        data: { visitor, action: 'exit_logged' }
+      });
+    }
+
+    if (visitor.status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'Visitor pass is already completed and no longer valid.'
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+      error: `Visitor pass is currently ${visitor.status} and cannot be scanned for gate action.`
+    });
+  } catch (error) {
+    console.error('Security scan action error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to process QR scan action' });
+  }
+});
+
+router.post('/confirm-arrival', protect, authorize('resident'), async (req, res) => {
+  try {
+    const scanValue = req.body?.scanValue || req.body?.qrCode || '';
+    const visitor = await findVisitorByScanValue(scanValue);
+
+    if (!visitor) {
+      return res.status(404).json({ success: false, error: 'Invalid QR code' });
+    }
+
+    if (String(visitor.residentId?._id || visitor.residentId) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: 'This pass does not belong to your account.' });
+    }
+
+    if (visitor.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        error: `Visitor must be active before resident confirmation (current: ${visitor.status}).`
+      });
+    }
+
+    if (visitor.residentEntryConfirmedAt) {
+      return res.json({
+        success: true,
+        message: 'Visitor already confirmed.',
+        data: { visitor, alreadyConfirmed: true }
+      });
+    }
+
+    visitor.residentEntryConfirmedAt = new Date();
+    await visitor.save();
+
+    await createInAppNotification({
+      userId: visitor.residentId,
+      type: 'visitor',
+      title: 'Visitor confirmed',
+      body: `${visitor.visitorName} has been confirmed at your residence.`,
+      metadata: { visitorId: visitor._id, event: 'resident_confirmed' }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Visitor confirmed successfully.',
+      data: { visitor, confirmed: true }
+    });
+  } catch (error) {
+    console.error('Resident confirm arrival error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to confirm visitor arrival' });
   }
 });
 

@@ -180,14 +180,19 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     }
   };
 
-  const getStatusChip = (status) => {
+
+  const getStatusChip = (status, visitor = null) => {
     const config = {
       pending: { label: 'Pending', color: themeColors.warning, icon: 'time', bg: themeColors.warning + '20' },
       approved: { label: 'Approved', color: themeColors.success, icon: 'checkmark-circle', bg: themeColors.success + '20' },
+      confirmed: { label: 'Confirmed', color: themeColors.success, icon: 'shield-checkmark', bg: themeColors.success + '20' },
       active: { label: 'Active', color: themeColors.info, icon: 'radio-button-on', bg: themeColors.info + '20' },
       completed: { label: 'Completed', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
       rejected: { label: 'Rejected', color: themeColors.error, icon: 'close-circle', bg: themeColors.error + '20' },
     };
+    if (status === 'active' && visitor?.residentEntryConfirmedAt) {
+      return config.confirmed;
+    }
     return config[status] || config.pending;
   };
 
@@ -201,7 +206,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   };
 
   const renderVisitorCard = ({ item }) => {
-    const status = getStatusChip(item.status);
+    const status = getStatusChip(item.status, item);
     const canLogEntry = item.status === 'approved' && !item.actualEntry;
     const canLogExit = item.status === 'active' && !item.actualExit;
 
@@ -294,6 +299,12 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   </TouchableOpacity>
   <Text style={styles.headerTitle}>Visitor Logs</Text>
   <View style={styles.headerRight}>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('ScannerTab')}
+      style={styles.scannerJumpButton}
+    >
+      <Ionicons name="qr-code" size={18} color="white" />
+    </TouchableOpacity>
     <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
       <Ionicons name="download" size={24} color="white" />
     </TouchableOpacity>
@@ -414,9 +425,9 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
                 <Text style={styles.detailName}>{selectedVisitor.visitorName}</Text>
                 <Text style={styles.detailPhone}>{selectedVisitor.visitorPhone}</Text>
 
-                <View style={[styles.statusBadge, { backgroundColor: getStatusChip(selectedVisitor.status).bg, alignSelf: 'flex-start' }]}>
-                  <Text style={[styles.statusText, { color: getStatusChip(selectedVisitor.status).color }]}>
-                    {getStatusChip(selectedVisitor.status).label.toUpperCase()}
+                <View style={[styles.statusBadge, { backgroundColor: getStatusChip(selectedVisitor.status, selectedVisitor).bg, alignSelf: 'flex-start' }]}>
+                  <Text style={[styles.statusText, { color: getStatusChip(selectedVisitor.status, selectedVisitor).color }]}>
+                    {getStatusChip(selectedVisitor.status, selectedVisitor).label.toUpperCase()}
                   </Text>
                 </View>
 
@@ -597,6 +608,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
     </View>
   );
 };
@@ -629,6 +641,10 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     padding: 8,
+  },
+  scannerJumpButton: {
+    padding: 8,
+    marginRight: 2,
   },
   statsScroll: {
     backgroundColor: 'white',

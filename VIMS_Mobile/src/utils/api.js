@@ -76,6 +76,12 @@ if (ENV_API_URL) {
   BASE_URL = ENV_API_URL;
 }
 
+// Web cannot reach a backend bound to a different localhost process.
+// If env points to localhost on web, rewrite it to LAN IP automatically.
+if (BASE_URL && Platform.OS === 'web' && BASE_URL.includes('localhost')) {
+  BASE_URL = BASE_URL.replace('localhost', localIP);
+}
+
 if (!BASE_URL && Platform.OS === 'android') {
   // Check if running on emulator by looking for common emulator indicators
   const isEmulator = 

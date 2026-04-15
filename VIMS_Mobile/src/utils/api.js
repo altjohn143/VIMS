@@ -58,7 +58,9 @@ const IOS_SIMULATOR_URL = 'http://localhost:5000/api';
 
 // For Physical Device (using detected or manual IP)
 const PHYSICAL_DEVICE_URL = `http://${localIP}:${PORT}/api`;
-const WEB_LOCALHOST_URL = `http://localhost:${PORT}/api`;
+// On some setups (especially Windows), another local service can bind 127.0.0.1:5000
+// while the backend listens on 0.0.0.0:5000. Using LAN IP avoids hitting the wrong app.
+const WEB_LAN_URL = `http://${localIP}:${PORT}/api`;
 
 // For Physical Device using Ngrok (for testing over internet)
 // const NGROK_URL = 'https://your-ngrok-subdomain.ngrok.io/api';
@@ -103,8 +105,8 @@ if (!BASE_URL && Platform.OS === 'android') {
     console.log('📱 Running on physical iOS device');
   }
 } else if (!BASE_URL) {
-  // Web runs in desktop browser, so localhost is usually correct
-  BASE_URL = Platform.OS === 'web' ? WEB_LOCALHOST_URL : PHYSICAL_DEVICE_URL;
+  // Prefer LAN IP on web to avoid localhost/127.0.0.1 port collisions.
+  BASE_URL = Platform.OS === 'web' ? WEB_LAN_URL : PHYSICAL_DEVICE_URL;
 }
 
 // ============================================

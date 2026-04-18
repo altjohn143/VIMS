@@ -47,8 +47,20 @@ const PendingApprovalScreen = ({ navigation }) => {
   };
 
   const handleCheckStatus = () => {
-    // If approved, AppNavigator will route automatically after re-login.
-    navigation.navigate('Login');
+    Alert.alert(
+      'Check Status',
+      'To refresh your approval status, please log out then log in again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          onPress: async () => {
+            await logout();
+            // AppNavigator will route to Login automatically.
+          },
+        },
+      ]
+    );
   };
 
   const handleContactAdmin = () => {

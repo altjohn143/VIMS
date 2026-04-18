@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { themeColors, shadows } from '../utils/theme';
 import api from '../utils/api';
@@ -39,6 +40,19 @@ const RegisterScreen = ({ navigation, route }) => {
           },
         })
     : null;
+
+  const safeGoToLogin = useCallback(() => {
+    const names = navigation?.getState?.()?.routeNames || [];
+    if (names.includes('Login')) {
+      navigation.navigate('Login');
+      return;
+    }
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+      return;
+    }
+    // Last resort: do nothing (prevents "action not handled" warning)
+  }, [navigation]);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -81,7 +95,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [dobTemp, setDobTemp] = useState(null);
 
   useEffect(() => {
-    fetchLots();
+    fetchLots(); 
   }, []);
 
   useEffect(() => {
@@ -191,9 +205,14 @@ const RegisterScreen = ({ navigation, route }) => {
         Alert.alert('Permission needed', 'Please allow photo access to upload your ID.');
         return;
       }
+      const imagesMediaTypes =
+        ImagePicker?.MediaType?.Images
+          ? [ImagePicker.MediaType.Images]
+          : ImagePicker.MediaTypeOptions.Images;
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.85,
+        // expo-image-picker expects a MediaType or array; array is the most compatible.
+        mediaTypes: imagesMediaTypes,
+        quality: 1,
       });
       if (result.canceled) return;
       const uri = result.assets?.[0]?.uri || null;
@@ -207,7 +226,8 @@ const RegisterScreen = ({ navigation, route }) => {
       setLastOcrSignature('');
       setLastOcrAt(0);
     } catch (e) {
-      Alert.alert('Error', 'Failed to pick image.');
+      console.error('pickIdImage error:', e);
+      Alert.alert('Error', e?.message || 'Failed to pick image.');
     }
   }, []);
 
@@ -236,20 +256,46 @@ const RegisterScreen = ({ navigation, route }) => {
         fd.append('frontImage', frontBlob, 'front.jpg');
         fd.append('backImage', backBlob, 'back.jpg');
       } else {
-        const mkFile = (uri, name) => {
-          const lower = String(uri).toLowerCase();
-          const type = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
-          return { uri, name, type };
+        const ensureFileUriAsync = async (uri, name) => {
+          const u = String(uri || '');
+          // On Android, ImagePicker commonly returns content:// URIs which are
+          // not reliably uploadable via Axios multipart. Copy to cache to get file://.
+          if (Platform.OS === 'android' && u.startsWith('content://')) {
+            const ext = u.toLowerCase().includes('.png') ? 'png' : 'jpg';
+            const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+            const safeBase = name.replace(/\.[^.]+$/, '');
+            const dest = `${baseDir}${safeBase}_${Date.now()}.${ext}`;
+            await FileSystem.copyAsync({ from: u, to: dest });
+            return dest;
+          }
+          return u;
         };
-        fd.append('frontImage', mkFile(frontUri, 'front.jpg'));
-        fd.append('backImage', mkFile(backUri, 'back.jpg'));
+
+        const mkFileAsync = async (uri, name) => {
+          const fileUri = await ensureFileUriAsync(uri, name);
+          const lower = String(fileUri).toLowerCase();
+          const type = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+          return { uri: fileUri, name, type };
+        };
+
+        fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
+        fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
       }
 
-      // Let Axios set the correct multipart boundary.
-      const res = await api.post('/verifications/ocr-id', fd);
+      // RN note: Axios multipart uploads can fail with "Network Error" even when the
+      // server is reachable. Use fetch for this endpoint to reliably send FormData.
+      const url = `${api.defaults.baseURL}/verifications/ocr-id`;
+      const r = await fetch(url, {
+        method: 'POST',
+        body: fd,
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+      const data = await r.json().catch(() => null);
 
-      if (res.data?.success) {
-        const ocr = res.data.data || {};
+      if (r.ok && data?.success) {
+        const ocr = data.data || {};
         setFormData((prev) => ({
           ...prev,
           firstName: prev.firstName?.trim() ? prev.firstName : (ocr.firstName || prev.firstName),
@@ -261,12 +307,12 @@ const RegisterScreen = ({ navigation, route }) => {
         }));
       } else {
         setOcrUnavailable(true);
+        if (!r.ok) {
+          Alert.alert('OCR failed', data?.error || data?.details || 'Failed to OCR ID');
+        }
       }
     } catch (e) {
-      const msg = e?.response?.data?.error || e?.response?.data?.details || null;
-      if (msg) {
-        Alert.alert('OCR failed', msg);
-      }
+      Alert.alert('OCR failed', e?.message || 'Failed to OCR ID');
       // Don’t permanently disable OCR on a single failure (often a transient upload issue).
     } finally {
       setOcrLoading(false);
@@ -375,6 +421,42 @@ const RegisterScreen = ({ navigation, route }) => {
       const response = await api.post('/auth/register', registrationData);
       
       if (response.data.success) {
+        // If resident selected ID images, upload them so admin can view/approve immediately.
+        const { frontUri, backUri } = idDocs || {};
+        if (frontUri && backUri && Platform.OS !== 'web') {
+          try {
+            const ensureFileUriAsync = async (uri, name) => {
+              const u = String(uri || '');
+              if (Platform.OS === 'android' && u.startsWith('content://')) {
+                const ext = u.toLowerCase().includes('.png') ? 'png' : 'jpg';
+                const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+                const safeBase = name.replace(/\.[^.]+$/, '');
+                const dest = `${baseDir}${safeBase}_${Date.now()}.${ext}`;
+                await FileSystem.copyAsync({ from: u, to: dest });
+                return dest;
+              }
+              return u;
+            };
+
+            const mkFileAsync = async (uri, name) => {
+              const fileUri = await ensureFileUriAsync(uri, name);
+              const lower = String(fileUri).toLowerCase();
+              const type = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+              return { uri: fileUri, name, type };
+            };
+
+            const fd = new FormData();
+            fd.append('email', registrationData.email);
+            fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
+            fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
+
+            const url = `${api.defaults.baseURL}/verifications/upload-id`;
+            await fetch(url, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
+          } catch (e) {
+            // Non-blocking: registration succeeded; ID upload can be retried later.
+            console.error('upload-id after register failed:', e);
+          }
+        }
         setShowSuccessModal(true);
       }
     } catch (error) {
@@ -699,7 +781,7 @@ const RegisterScreen = ({ navigation, route }) => {
 
           <View style={styles.loginLink}>
             <Text style={styles.loginText}>Already have an account?</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <TouchableOpacity onPress={safeGoToLogin}>
               <Text style={styles.loginButtonText}>Sign In</Text>
             </TouchableOpacity>
           </View>
@@ -786,7 +868,7 @@ const RegisterScreen = ({ navigation, route }) => {
             <View style={styles.successIconContainer}><Ionicons name="checkmark" size={50} color="white" /></View>
             <Text style={styles.successTitle}>Registration Successful!</Text>
             <Text style={styles.successMessage}>Your account has been created successfully.{'\n\n'}Please wait for admin approval before you can log in.</Text>
-            <TouchableOpacity style={styles.successButton} onPress={() => { setShowSuccessModal(false); navigation.navigate('Login'); }}>
+            <TouchableOpacity style={styles.successButton} onPress={() => { setShowSuccessModal(false); safeGoToLogin(); }}>
               <Text style={styles.successButtonText}>Go to Login</Text>
             </TouchableOpacity>
           </View>

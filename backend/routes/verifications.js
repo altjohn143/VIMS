@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
@@ -344,6 +345,48 @@ router.get('/admin/queue', protect, authorize('admin'), async (req, res) => {
     res.json({ success: true, count: rows.length, data: rows });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to get verification queue' });
+  }
+});
+
+router.get('/admin/by-user/:userId', protect, authorize('admin'), async (req, res) => {
+  try {
+    const verification = await IdentityVerification.findOne({ userId: req.params.userId })
+      .populate('userId', 'firstName lastName email houseNumber')
+      .populate('reviewedBy', 'firstName lastName')
+      .sort({ updatedAt: -1 });
+    if (!verification) return res.status(404).json({ success: false, error: 'Verification not found' });
+    return res.json({ success: true, data: verification });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Failed to get verification by user' });
+  }
+});
+
+router.get('/admin/:id/images', protect, authorize('admin'), async (req, res) => {
+  try {
+    const verification = await IdentityVerification.findById(req.params.id).select('frontImage backImage selfieImage');
+    if (!verification) return res.status(404).json({ success: false, error: 'Verification not found' });
+
+    const toDataUrl = (filename) => {
+      if (!filename) return null;
+      const abs = path.join(uploadDir, filename);
+      if (!fs.existsSync(abs)) return null;
+      const buf = fs.readFileSync(abs);
+      // Best-effort mime guess
+      const lower = String(filename).toLowerCase();
+      const mime = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      return `data:${mime};base64,${buf.toString('base64')}`;
+    };
+
+    return res.json({
+      success: true,
+      data: {
+        front: toDataUrl(verification.frontImage),
+        back: toDataUrl(verification.backImage),
+        selfie: toDataUrl(verification.selfieImage),
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Failed to load verification images' });
   }
 });
 

@@ -77,7 +77,7 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
 
     const verificationRecords = await IdentityVerification.find({
       userId: { $in: pendingUsers.map((user) => user._id) }
-    }).select('userId status updatedAt');
+    }).select('userId status updatedAt frontImage backImage selfieImage');
 
     const verificationMap = new Map(
       verificationRecords.map((record) => [String(record.userId), record])
@@ -85,11 +85,14 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
 
     const data = pendingUsers.map((user) => {
       const verification = verificationMap.get(String(user._id));
+      const hasUploadedId = !!(verification?.frontImage && verification?.backImage);
       return {
         ...user.toObject(),
         verificationStatus: verification?.status || 'pending_upload',
         verificationUpdatedAt: verification?.updatedAt || null,
-        canApprove: verification?.status === 'approved'
+        verificationId: verification?._id || null,
+        hasUploadedId,
+        canApprove: hasUploadedId
       };
     });
     
@@ -133,11 +136,15 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
       });
     }
 
-    const verification = await IdentityVerification.findOne({ userId: user._id });
-    if (!verification || verification.status !== 'approved') {
+    // Updated rule: Admin can approve once resident has uploaded front/back ID images.
+    // (Verification status may still be queued/manual/approved/rejected; that is a separate workflow.)
+    const verification = await IdentityVerification.findOne({ userId: user._id })
+      .select('status frontImage backImage updatedAt');
+    const hasUploadedId = !!(verification?.frontImage && verification?.backImage);
+    if (!hasUploadedId) {
       return res.status(400).json({
         success: false,
-        error: 'Resident cannot be approved until ID verification status is approved.'
+        error: 'Resident cannot be approved until front/back ID images are uploaded.'
       });
     }
     

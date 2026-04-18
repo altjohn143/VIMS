@@ -11,6 +11,7 @@ import {
   Modal,
   RefreshControl,
   FlatList,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../../utils/theme';
@@ -29,6 +30,9 @@ const AdminApprovalsScreen = ({ navigation }) => {
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
   const [approvingUserId, setApprovingUserId] = useState(null);
+  const [idModalOpen, setIdModalOpen] = useState(false);
+  const [idImages, setIdImages] = useState({ front: null, back: null, selfie: null });
+  const [idLoading, setIdLoading] = useState(false);
 
   useEffect(() => {
     fetchPendingApprovals();
@@ -166,8 +170,38 @@ const AdminApprovalsScreen = ({ navigation }) => {
     }
   };
 
+  const formatVerificationStatus = (s) => {
+    const val = String(s || '').trim();
+    if (!val) return 'pending_upload';
+    return val;
+  };
+
+  const viewUploadedId = async (user) => {
+    const verificationId = user?.verificationId;
+    if (!verificationId) {
+      Alert.alert('No ID found', 'This resident has not uploaded an ID yet.');
+      return;
+    }
+    setIdLoading(true);
+    setIdModalOpen(true);
+    try {
+      const res = await api.get(`/verifications/admin/${verificationId}/images`);
+      if (res.data?.success) {
+        setIdImages(res.data.data || { front: null, back: null, selfie: null });
+      } else {
+        Alert.alert('Error', res.data?.error || 'Failed to load ID images');
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to load ID images');
+    } finally {
+      setIdLoading(false);
+    }
+  };
+
   const renderUserCard = ({ item }) => {
     const isApproving = approvingUserId === item._id;
+    const canApprove = !!item?.canApprove;
+    const hasUploadedId = !!item?.hasUploadedId;
     
     return (
       <View style={[styles.userCard, shadows.small]}>
@@ -193,6 +227,22 @@ const AdminApprovalsScreen = ({ navigation }) => {
             <Text style={styles.detailText}>House {item.houseNumber || 'N/A'}</Text>
           </View>
           <View style={styles.detailRow}>
+            <Ionicons
+              name="id-card"
+              size={16}
+              color={hasUploadedId ? themeColors.success : themeColors.warning}
+            />
+            <Text style={styles.detailText}>
+              ID: {hasUploadedId ? 'uploaded' : 'not uploaded'} • Status: {formatVerificationStatus(item.verificationStatus).replace(/_/g, ' ')}
+            </Text>
+          </View>
+          {hasUploadedId ? (
+            <TouchableOpacity style={styles.viewIdLink} onPress={() => viewUploadedId(item)} disabled={idLoading}>
+              <Ionicons name="image-outline" size={14} color={themeColors.primary} />
+              <Text style={styles.viewIdLinkText}>View uploaded ID</Text>
+            </TouchableOpacity>
+          ) : null}
+          <View style={styles.detailRow}>
             <Ionicons name="time" size={16} color={themeColors.textSecondary} />
             <Text style={styles.detailText}>Registered: {formatDate(item.createdAt)}</Text>
           </View>
@@ -200,9 +250,19 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
         <View style={styles.userActions}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.approveButton]}
-            onPress={() => directApprove(item._id)}
-            disabled={processing}
+            style={[
+              styles.actionButton,
+              styles.approveButton,
+              (!canApprove || processing) && styles.actionButtonDisabled,
+            ]}
+            onPress={() => {
+              if (!canApprove) {
+                Alert.alert('Cannot Approve Yet', 'Resident must upload front/back ID images first.');
+                return;
+              }
+              directApprove(item._id);
+            }}
+            disabled={processing || !canApprove}
           >
             {isApproving ? (
               <ActivityIndicator size="small" color="white" />
@@ -272,6 +332,50 @@ const AdminApprovalsScreen = ({ navigation }) => {
           </View>
         }
       />
+
+      <Modal visible={idModalOpen} animationType="slide" transparent onRequestClose={() => setIdModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.idModalCard}>
+            <View style={styles.idModalHeader}>
+              <Text style={styles.idModalTitle}>Uploaded ID</Text>
+              <TouchableOpacity onPress={() => setIdModalOpen(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            {idLoading ? (
+              <View style={{ paddingVertical: 18 }}>
+                <ActivityIndicator size="large" color={themeColors.primary} />
+              </View>
+            ) : (
+              <ScrollView>
+                {idImages.front ? (
+                  <>
+                    <Text style={styles.idImageLabel}>Front</Text>
+                    <Image source={{ uri: idImages.front }} style={styles.idImage} resizeMode="contain" />
+                  </>
+                ) : null}
+                {idImages.back ? (
+                  <>
+                    <Text style={styles.idImageLabel}>Back</Text>
+                    <Image source={{ uri: idImages.back }} style={styles.idImage} resizeMode="contain" />
+                  </>
+                ) : null}
+                {idImages.selfie ? (
+                  <>
+                    <Text style={styles.idImageLabel}>Selfie</Text>
+                    <Image source={{ uri: idImages.selfie }} style={styles.idImage} resizeMode="contain" />
+                  </>
+                ) : null}
+                {!idImages.front && !idImages.back && !idImages.selfie ? (
+                  <Text style={{ color: themeColors.textSecondary, textAlign: 'center', paddingVertical: 16 }}>
+                    No images available.
+                  </Text>
+                ) : null}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Details Modal */}
       <Modal
@@ -589,6 +693,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 4,
   },
+  actionButtonDisabled: {
+    opacity: 0.6,
+  },
   approveButton: {
     backgroundColor: themeColors.success,
   },
@@ -600,6 +707,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  viewIdLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    marginBottom: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+    backgroundColor: themeColors.primary + '10',
+  },
+  viewIdLinkText: {
+    color: themeColors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  idModalCard: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    maxHeight: '85%',
+  },
+  idModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+  },
+  idModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: themeColors.textPrimary,
+  },
+  idImageLabel: {
+    marginTop: 10,
+    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: '800',
+    color: themeColors.textSecondary,
+  },
+  idImage: {
+    width: '100%',
+    height: 260,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   emptyContainer: {
     alignItems: 'center',

@@ -44,7 +44,7 @@ const UserDropdownMenu = ({ navigation }) => {
   const onLogout = async () => {
     closeMenu();
     await logout();
-    navigation.replace('Login');
+    // Don't navigate; AppNavigator will switch to auth stack.
   };
 
   return (

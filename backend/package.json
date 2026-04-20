@@ -9,6 +9,7 @@
     "server": "node server.js",
     "seed": "node seed.js",
     "reset": "node reset-db.js",
+    "cleanup:orphan-verifications": "node scripts/delete-orphan-verifications.js",
     "start": "node server.js"
   },
   "dependencies": {

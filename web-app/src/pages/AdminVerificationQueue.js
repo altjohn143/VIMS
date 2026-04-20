@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container, Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody,
-  Button, Chip, FormControl, InputLabel, Select, MenuItem, AppBar, Toolbar, IconButton
+  Button, Chip, FormControl, InputLabel, Select, MenuItem, AppBar, Toolbar, IconButton, Tooltip
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -117,7 +117,9 @@ const AdminVerificationQueue = () => {
             </Typography>
           </Box>
           <Typography variant="body1" sx={{ mt: 0.6, color: 'rgba(255,255,255,0.9)' }}>
-            Review AI-screened verification results and complete approval decisions.
+            Review AI-screened verification results and complete approval decisions. Rows with no email are usually
+            legacy or orphaned records (user removed from the database while the verification document remained); hover
+            “—” for details.
           </Typography>
         </Paper>
 
@@ -176,7 +178,24 @@ const AdminVerificationQueue = () => {
                       || [r.userId?.firstName, r.userId?.lastName].filter(Boolean).join(' ')
                       || '—'}
                   </TableCell>
-                  <TableCell>{r.displayEmail || r.userId?.email || '—'}</TableCell>
+                  <TableCell>
+                    {r.queueMeta?.isOrphanVerification ? (
+                      <Tooltip
+                        title={
+                          `No user account in the database for this verification (user may have been deleted), and no email was stored on the record (older uploads). ` +
+                          `userId: ${r.queueMeta?.userIdRef || '—'}. Name may be OCR-only and unreliable.`
+                        }
+                        placement="top"
+                        arrow
+                      >
+                        <Box component="span" sx={{ cursor: 'help', borderBottom: '1px dashed #94a3b8' }}>
+                          —
+                        </Box>
+                      </Tooltip>
+                    ) : (
+                      r.displayEmail || r.userId?.email || '—'
+                    )}
+                  </TableCell>
                   <TableCell><Chip size="small" color={statusColor(r.status)} label={r.status} /></TableCell>
                   <TableCell>{r.aiResult?.score ?? '-'}</TableCell>
                   <TableCell>{(r.aiResult?.flags || []).join(', ') || '-'}</TableCell>

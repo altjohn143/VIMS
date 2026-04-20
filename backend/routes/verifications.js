@@ -374,11 +374,28 @@ router.get('/admin/queue', protect, authorize('admin'), async (req, res) => {
           (row.residentDisplayName || '').trim() ||
           ocrName ||
           'Unknown resident';
-        const displayEmail = emailFromUser || (row.residentEmail || '').trim() || '—';
+        const snapshotEmail = (row.residentEmail || '').trim();
+        const displayEmail = emailFromUser || snapshotEmail || '—';
+        const userRef = u?._id || (row.userId && typeof row.userId === 'object' ? row.userId._id : row.userId);
+        const hasUserInDb = !!(u && u.email);
+        /** No User doc (e.g. deleted) and no email captured at upload → queue row is a leftover IdentityVerification doc */
+        const isOrphanVerification = !hasUserInDb && !snapshotEmail;
         return {
           ...row,
           displayResidentName,
-          displayEmail
+          displayEmail,
+          queueMeta: {
+            hasUserInDb,
+            isOrphanVerification,
+            userIdRef: userRef ? String(userRef) : '',
+            nameSource: nameFromUser
+              ? 'user'
+              : (row.residentDisplayName || '').trim()
+                ? 'snapshot'
+                : ocrName
+                  ? 'ocr'
+                  : 'none'
+          }
         };
       })
     );

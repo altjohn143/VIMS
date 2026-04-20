@@ -77,8 +77,7 @@ function computeLocalAutoApproval({ user, ocr }) {
     0.05 * (middleOk ? 1 : 0) +
     0.05 * (dobOk ? 1 : 0);
 
-  // Per requirement: if resident uploads ID images, auto-approve.
-  // We still compute score/flags for audit and admin visibility.
+  // After upload, treat as documents verified for automation (account approval is still User.isApproved).
   const approved = true;
 
   return {
@@ -140,6 +139,9 @@ router.post(
       const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
+      const snapEmail = user.email || '';
+      const snapName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+
       const frontImage = req.files?.frontImage?.[0]?.filename || null;
       const backImage = req.files?.backImage?.[0]?.filename || null;
       const selfieImage = req.files?.selfieImage?.[0]?.filename || null;
@@ -151,6 +153,8 @@ router.post(
       if (!verification) {
         verification = await IdentityVerification.create({
           userId: user._id,
+          residentEmail: snapEmail,
+          residentDisplayName: snapName,
           frontImage,
           backImage,
           selfieImage,
@@ -160,6 +164,8 @@ router.post(
         verification.frontImage = frontImage;
         verification.backImage = backImage;
         verification.selfieImage = selfieImage;
+        verification.residentEmail = snapEmail;
+        verification.residentDisplayName = snapName;
         verification.status = 'queued_ai';
         verification.rejectReason = '';
         verification.reviewNotes = '';
@@ -182,16 +188,17 @@ router.post(
         };
 
         if (localDecision.approved) {
-          verification.status = 'approved';
+          verification.documentsVerified = true;
+          verification.status = 'documents_verified';
           verification.reviewNotes = localDecision.reason;
           verification.rejectReason = '';
           verification.reviewedBy = null;
-          verification.reviewedAt = new Date();
+          verification.reviewedAt = null;
 
           await verification.save();
           return res.json({
             success: true,
-            message: 'ID uploaded and documents approved. Account still requires admin approval.',
+            message: 'ID uploaded and documents verified. Your resident account still requires an administrator to approve it before you can log in.',
             data: verification
           });
         }
@@ -230,6 +237,9 @@ router.post(
             flags: verification.aiResult.flags
           });
           verification.status = decision.status;
+          if (decision.status === 'documents_verified') {
+            verification.documentsVerified = true;
+          }
           verification.reviewNotes = decision.reason;
           verification.rejectReason = decision.status === 'rejected' ? decision.reason : '';
         }
@@ -320,6 +330,9 @@ router.post('/webhooks/ai-result', async (req, res) => {
     verification.aiResult = { score, ocrName, ocrDob, flags, providerRaw };
     const decision = classifyVerificationResult({ score, flags });
     verification.status = decision.status;
+    if (decision.status === 'documents_verified') {
+      verification.documentsVerified = true;
+    }
     verification.reviewedBy = null;
     verification.reviewedAt = null;
     verification.reviewNotes = decision.reason;
@@ -341,8 +354,36 @@ router.get('/admin/queue', protect, authorize('admin'), async (req, res) => {
     const rows = await IdentityVerification.find(filter)
       .populate('userId', 'firstName lastName email houseNumber')
       .populate('reviewedBy', 'firstName lastName')
-      .sort({ updatedAt: -1 });
-    res.json({ success: true, count: rows.length, data: rows });
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    const data = await Promise.all(
+      rows.map(async (row) => {
+        let u = row.userId;
+        if (!u || typeof u !== 'object' || !u.email) {
+          const rawId = u && typeof u === 'object' && u._id ? u._id : u;
+          u = rawId ? await User.findById(rawId).select('firstName lastName email houseNumber').lean() : null;
+        }
+        const nameFromUser = u
+          ? `${u.firstName || ''} ${u.lastName || ''}`.trim()
+          : '';
+        const emailFromUser = u?.email || '';
+        const ocrName = row.aiResult?.ocrName ? String(row.aiResult.ocrName).trim() : '';
+        const displayResidentName =
+          nameFromUser ||
+          (row.residentDisplayName || '').trim() ||
+          ocrName ||
+          'Unknown resident';
+        const displayEmail = emailFromUser || (row.residentEmail || '').trim() || '—';
+        return {
+          ...row,
+          displayResidentName,
+          displayEmail
+        };
+      })
+    );
+
+    res.json({ success: true, count: data.length, data });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to get verification queue' });
   }
@@ -395,6 +436,7 @@ router.put('/admin/:id/approve', protect, authorize('admin'), async (req, res) =
     const verification = await IdentityVerification.findById(req.params.id);
     if (!verification) return res.status(404).json({ success: false, error: 'Verification not found' });
     verification.status = 'approved';
+    verification.documentsVerified = true;
     verification.reviewedBy = req.user._id;
     verification.reviewedAt = new Date();
     verification.reviewNotes = req.body.reviewNotes || '';

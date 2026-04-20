@@ -46,6 +46,48 @@ const PendingApproval = () => {
     return (fromState || fromStorage || user?.email || '').toLowerCase();
   }, [location.state, user?.email]);
 
+  /** Snapshot from Register navigation (instant). API fills the same fields after fetch. */
+  const registrationFromNav = location.state?.registration;
+
+  const documentStatusLabel = (documents) => {
+    if (!documents) return 'checking…';
+    if (documents.verified) return 'verified';
+    const s = documents.status || 'pending_upload';
+    const map = {
+      pending_upload: 'upload required',
+      queued_ai: 'processing',
+      ai_processing: 'processing',
+      ai_flagged: 'needs review',
+      manual_review: 'under review',
+      documents_verified: 'verified',
+      approved: 'verified',
+      rejected: 'rejected'
+    };
+    return map[s] || s;
+  };
+
+  const displayProfile = useMemo(() => {
+    const fromApi = pendingStatus
+      ? {
+          firstName: pendingStatus.firstName,
+          lastName: pendingStatus.lastName,
+          email: pendingStatus.email || email,
+          phone: pendingStatus.phone,
+          houseNumber: pendingStatus.houseNumber,
+        }
+      : null;
+    const fromAuth = user
+      ? {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          houseNumber: user.houseNumber,
+        }
+      : null;
+    return { ...(registrationFromNav || {}), ...(fromApi || {}), ...(fromAuth || {}) };
+  }, [pendingStatus, registrationFromNav, email, user]);
+
   useEffect(() => {
     // Poll quickly so UI updates within seconds after ID upload/admin action.
     let stopped = false;
@@ -158,7 +200,11 @@ const PendingApproval = () => {
 
           {/* Welcome Message */}
           <Typography variant="body1" sx={{ color: '#64748b', mb: 3 }}>
-            Hello <strong>{user?.firstName} {user?.lastName}</strong>!
+            Hello{' '}
+            <strong>
+              {displayProfile.firstName || '—'} {displayProfile.lastName || ''}
+            </strong>
+            !
           </Typography>
 
           {/* Live status */}
@@ -178,14 +224,16 @@ const PendingApproval = () => {
               <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <Chip
                   size="small"
+                  color={pendingStatus?.documents?.verified ? 'success' : 'default'}
                   icon={<VerifiedIcon fontSize="small" />}
-                  label={`Documents: ${pendingStatus?.documents?.status || 'pending_upload'}`}
+                  label={`Documents (ID): ${documentStatusLabel(pendingStatus?.documents)}`}
                   sx={{ fontWeight: 700 }}
                 />
                 <Chip
                   size="small"
+                  color={pendingStatus?.isApproved ? 'success' : 'warning'}
                   icon={<TimeIcon fontSize="small" />}
-                  label={`Account: ${pendingStatus?.isApproved ? 'approved' : 'pending admin'}`}
+                  label={`Resident account: ${pendingStatus?.isApproved ? 'approved' : 'pending admin review'}`}
                   sx={{ fontWeight: 700 }}
                 />
               </Box>
@@ -194,8 +242,9 @@ const PendingApproval = () => {
 
           {/* Main Message */}
           <Typography variant="body2" sx={{ color: '#64748b', mb: 4, lineHeight: 1.8 }}>
-            Your registration is submitted. Your uploaded ID can be verified automatically, but your
-            account still requires final admin approval before you can log in.
+            Your registration is submitted. When your ID is accepted, <strong>documents</strong> show as verified above.
+            A village <strong>administrator must still approve your resident account</strong> (separate step) before you can
+            sign in — even if your ID already passed automated checks.
           </Typography>
 
           {/* User Info Card */}
@@ -223,22 +272,22 @@ const PendingApproval = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <EmailIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} />
                   <Typography variant="body2" sx={{ color: '#1e293b' }}>
-                    {user?.email}
+                    {displayProfile.email || email || '—'}
                   </Typography>
                 </Box>
                 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <PhoneIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} />
                   <Typography variant="body2" sx={{ color: '#1e293b' }}>
-                    {user?.phone || 'Not provided'}
+                    {displayProfile.phone || 'Not provided'}
                   </Typography>
                 </Box>
                 
-                {user?.houseNumber && (
+                {displayProfile.houseNumber && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <HomeIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} />
                     <Typography variant="body2" sx={{ color: '#1e293b' }}>
-                      House {user.houseNumber}
+                      House {displayProfile.houseNumber}
                     </Typography>
                   </Box>
                 )}

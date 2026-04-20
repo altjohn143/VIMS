@@ -13,7 +13,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const statusColor = (status) => {
-  if (status === 'approved') return 'success';
+  if (status === 'approved' || status === 'documents_verified') return 'success';
   if (status === 'rejected' || status === 'ai_flagged') return 'error';
   if (status === 'manual_review') return 'warning';
   return 'default';
@@ -141,7 +141,8 @@ const AdminVerificationQueue = () => {
                 <MenuItem value="ai_processing">AI Processing</MenuItem>
                 <MenuItem value="ai_flagged">AI Flagged</MenuItem>
                 <MenuItem value="manual_review">Manual Review</MenuItem>
-                <MenuItem value="approved">Approved</MenuItem>
+                <MenuItem value="documents_verified">Documents verified (auto)</MenuItem>
+                <MenuItem value="approved">Approved (admin)</MenuItem>
                 <MenuItem value="rejected">Rejected</MenuItem>
               </Select>
             </FormControl>
@@ -170,8 +171,12 @@ const AdminVerificationQueue = () => {
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}>
-                  <TableCell>{r.userId?.firstName} {r.userId?.lastName}</TableCell>
-                  <TableCell>{r.userId?.email}</TableCell>
+                  <TableCell>
+                    {r.displayResidentName
+                      || [r.userId?.firstName, r.userId?.lastName].filter(Boolean).join(' ')
+                      || '—'}
+                  </TableCell>
+                  <TableCell>{r.displayEmail || r.userId?.email || '—'}</TableCell>
                   <TableCell><Chip size="small" color={statusColor(r.status)} label={r.status} /></TableCell>
                   <TableCell>{r.aiResult?.score ?? '-'}</TableCell>
                   <TableCell>{(r.aiResult?.flags || []).join(', ') || '-'}</TableCell>

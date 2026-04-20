@@ -13,9 +13,11 @@ import { themeColors } from '../utils/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LogoutButton from '../components/LogoutButton';
 
-const PendingApprovalScreen = ({ navigation }) => {
+const PendingApprovalScreen = ({ navigation, route }) => {
   const { logout } = useAuth();
   const [user, setUser] = useState(null);
+
+  const registration = route?.params?.registration;
 
   useEffect(() => {
     loadUser();
@@ -27,6 +29,8 @@ const PendingApprovalScreen = ({ navigation }) => {
       setUser(JSON.parse(userStr));
     }
   };
+
+  const displayUser = registration || user;
 
   const handleLogout = async () => {
     Alert.alert(
@@ -79,7 +83,7 @@ const PendingApprovalScreen = ({ navigation }) => {
         <Text style={styles.title}>Pending Approval</Text>
         
         <Text style={styles.welcomeText}>
-          Hello <Text style={styles.userName}>{user?.firstName} {user?.lastName}</Text>!
+          Hello <Text style={styles.userName}>{displayUser?.firstName} {displayUser?.lastName}</Text>!
         </Text>
 
         <Text style={styles.message}>
@@ -96,18 +100,18 @@ const PendingApprovalScreen = ({ navigation }) => {
 
           <View style={styles.infoRow}>
             <Ionicons name="mail" size={16} color={themeColors.textSecondary} />
-            <Text style={styles.infoText}>{user?.email}</Text>
+            <Text style={styles.infoText}>{displayUser?.email}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Ionicons name="call" size={16} color={themeColors.textSecondary} />
-            <Text style={styles.infoText}>{user?.phone || 'Not provided'}</Text>
+            <Text style={styles.infoText}>{displayUser?.phone || 'Not provided'}</Text>
           </View>
 
-          {user?.houseNumber && (
+          {displayUser?.houseNumber && (
             <View style={styles.infoRow}>
               <Ionicons name="home" size={16} color={themeColors.textSecondary} />
-              <Text style={styles.infoText}>House {user.houseNumber}</Text>
+              <Text style={styles.infoText}>House {displayUser.houseNumber}</Text>
             </View>
           )}
         </View>

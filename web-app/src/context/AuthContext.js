@@ -129,9 +129,9 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('user', JSON.stringify(user));
           setLastActivity();
           setAuthHeaders();
+          toast.success(response.data.message);
         }
-        
-        toast.success(response.data.message);
+        // Pending residents: no toast here — Register page redirects to /pending-approval immediately
         return { success: true, user, message: response.data.message };
       }
     } catch (error) {

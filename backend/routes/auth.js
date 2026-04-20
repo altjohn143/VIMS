@@ -569,20 +569,38 @@ router.post('/pending-status', async (req, res) => {
     const { email } = req.body || {};
     if (!email) return res.status(400).json({ success: false, error: 'Email is required' });
 
-    const user = await User.findOne({ email: String(email).toLowerCase() }).select('email role isApproved isActive');
+    const user = await User.findOne({ email: String(email).toLowerCase() }).select(
+      'email role isApproved isActive firstName lastName phone houseNumber houseBlock houseLot'
+    );
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-    const verification = await IdentityVerification.findOne({ userId: user._id }).select('status updatedAt reviewNotes');
+    const verification = await IdentityVerification.findOne({ userId: user._id }).select(
+      'status updatedAt reviewNotes documentsVerified'
+    );
+
+    const docStatus = verification?.status || 'pending_upload';
+    const documentsVerifiedFlag =
+      !!verification?.documentsVerified ||
+      ['documents_verified', 'approved'].includes(docStatus);
 
     return res.json({
       success: true,
       data: {
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone || '',
+        houseNumber: user.houseNumber || '',
+        houseBlock: user.houseBlock || '',
+        houseLot: user.houseLot || '',
         role: user.role,
         isApproved: !!user.isApproved,
         isActive: !!user.isActive,
+        /** Resident account still needs admin approval in User Approvals (separate from ID verification). */
+        accountPendingAdmin: user.role === 'resident' && !user.isApproved,
         documents: {
-          status: verification?.status || 'pending_upload',
+          verified: documentsVerifiedFlag,
+          status: docStatus,
           updatedAt: verification?.updatedAt || null,
           reviewNotes: verification?.reviewNotes || ''
         }

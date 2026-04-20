@@ -197,9 +197,9 @@ function classifyVerificationResult({ score, flags = [] }) {
 
   if (hasValidScore && numericScore >= AUTO_APPROVE_SCORE_THRESHOLD && normalizedFlags.length === 0) {
     return {
-      status: 'approved',
+      status: 'documents_verified',
       decision: 'auto_approve',
-      reason: `AI score ${numericScore.toFixed(2)} met auto-approve threshold with no flags.`
+      reason: `AI score ${numericScore.toFixed(2)} met threshold with no flags. Documents verified; account still requires admin approval.`
     };
   }
 

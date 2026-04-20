@@ -410,29 +410,46 @@ const Register = () => {
     
     const result = await register(registrationData);
     if (result.success) {
-      try {
-        if (idDocs.frontImage && idDocs.backImage) {
-          const multipart = new FormData();
-          multipart.append('email', registrationData.email.toLowerCase());
-          multipart.append('frontImage', idDocs.frontImage);
-          multipart.append('backImage', idDocs.backImage);
-          if (idDocs.selfieImage) multipart.append('selfieImage', idDocs.selfieImage);
-          await axios.post('/api/verifications/upload-id', multipart);
-        }
-      } catch (uploadError) {
-        const status = uploadError?.response?.status;
-        const serverMessage =
-          uploadError?.response?.data?.error ||
-          uploadError?.response?.data?.message ||
-          uploadError?.message;
-        toast.error(
-          `Registration succeeded, but ID upload failed${status ? ` (${status})` : ''}${
-            serverMessage ? `: ${serverMessage}` : '.'
-          }`
-        );
+      const emailLower = registrationData.email.trim().toLowerCase();
+      const regUser = result.user;
+      localStorage.setItem('pendingApprovalEmail', emailLower);
+      navigate('/pending-approval', {
+        state: {
+          email: emailLower,
+          registration: {
+            firstName: registrationData.firstName,
+            lastName: registrationData.lastName,
+            email: emailLower,
+            phone: registrationData.phone,
+            houseNumber: regUser?.houseNumber || registrationData.selectedLot || '',
+          },
+        },
+      });
+
+      // ID upload after redirect so the user lands on Pending Approval immediately
+      if (idDocs.frontImage && idDocs.backImage) {
+        (async () => {
+          try {
+            const multipart = new FormData();
+            multipart.append('email', emailLower);
+            multipart.append('frontImage', idDocs.frontImage);
+            multipart.append('backImage', idDocs.backImage);
+            if (idDocs.selfieImage) multipart.append('selfieImage', idDocs.selfieImage);
+            await axios.post('/api/verifications/upload-id', multipart);
+          } catch (uploadError) {
+            const status = uploadError?.response?.status;
+            const serverMessage =
+              uploadError?.response?.data?.error ||
+              uploadError?.response?.data?.message ||
+              uploadError?.message;
+            toast.error(
+              `Registration succeeded, but ID upload failed${status ? ` (${status})` : ''}${
+                serverMessage ? `: ${serverMessage}` : '.'
+              }`
+            );
+          }
+        })();
       }
-      localStorage.setItem('pendingApprovalEmail', registrationData.email.trim().toLowerCase());
-      navigate('/pending-approval', { state: { email: registrationData.email.trim().toLowerCase() } });
     } else {
       setErrors(prev => ({ ...prev, submit: result.error || 'Registration failed' }));
     }

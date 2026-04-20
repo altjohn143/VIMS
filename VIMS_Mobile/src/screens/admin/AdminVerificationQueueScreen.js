@@ -68,6 +68,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
     return {
       total: rows.length,
       manual: by('manual_review'),
+      docVerified: by('documents_verified'),
       approved: by('approved'),
       rejected: by('rejected'),
     };
@@ -76,7 +77,8 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
   const statusChips = [
     { key: 'all', label: `All (${stats.total})` },
     { key: 'manual_review', label: `Manual (${stats.manual})` },
-    { key: 'approved', label: `Approved (${stats.approved})` },
+    { key: 'documents_verified', label: `Doc OK (${stats.docVerified})` },
+    { key: 'approved', label: `Admin (${stats.approved})` },
     { key: 'rejected', label: `Rejected (${stats.rejected})` },
   ];
 
@@ -126,6 +128,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
   const getStatusStyle = (s) => {
     const map = {
       approved: { color: themeColors.success, bg: themeColors.success + '20', icon: 'checkmark-circle' },
+      documents_verified: { color: themeColors.success, bg: themeColors.success + '20', icon: 'checkmark-circle' },
       rejected: { color: themeColors.error, bg: themeColors.error + '20', icon: 'close-circle' },
       manual_review: { color: themeColors.warning, bg: themeColors.warning + '20', icon: 'hand-left' },
       queued_ai: { color: themeColors.info, bg: themeColors.info + '20', icon: 'time' },
@@ -137,15 +140,17 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
   const renderItem = ({ item }) => {
     const user = item?.userId;
     const st = getStatusStyle(item?.status);
+    const displayName = (item.displayResidentName || `${user?.firstName || ''} ${user?.lastName || ''}`).trim();
+    const displayEmail = item.displayEmail || user?.email;
     return (
       <TouchableOpacity style={[styles.card, shadows.small]} onPress={() => openDetails(item)}>
         <View style={styles.cardTop}>
           <View style={styles.userBlock}>
             <Text style={styles.userName} numberOfLines={1}>
-              {(user?.firstName || '') + ' ' + (user?.lastName || '')}
+              {displayName || '—'}
             </Text>
             <Text style={styles.userMeta} numberOfLines={1}>
-              {user?.email || 'N/A'} • House {user?.houseNumber || 'N/A'}
+              {displayEmail || 'N/A'} • House {user?.houseNumber || 'N/A'}
             </Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: st.bg }]}>
@@ -230,10 +235,13 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
 
             <ScrollView>
               <Text style={styles.detailHeadline}>
-                {selected?.userId?.firstName} {selected?.userId?.lastName}
+                {selected?.displayResidentName ||
+                  `${selected?.userId?.firstName || ''} ${selected?.userId?.lastName || ''}`.trim() ||
+                  '—'}
               </Text>
               <Text style={styles.detailMeta}>
-                {selected?.userId?.email || 'N/A'} • House {selected?.userId?.houseNumber || 'N/A'}
+                {selected?.displayEmail || selected?.userId?.email || 'N/A'} • House{' '}
+                {selected?.userId?.houseNumber || 'N/A'}
               </Text>
 
               <View style={styles.detailDivider} />

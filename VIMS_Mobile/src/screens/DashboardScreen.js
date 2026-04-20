@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import { themeColors, pinterestTheme } from '../utils/theme';
 import api from '../utils/api';
 import { startUnreadCountPolling } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,13 +27,38 @@ const DashboardScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { logout, user: authUser } = useAuth();
 
   const userToShow = authUser || user;
 
-  useEffect(() => { loadUserData(); }, []);
+  const formatPeso = (n) => Math.round(Number(n) || 0).toLocaleString('en-PH');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const userStr = await AsyncStorage.getItem('user');
+        const userData = authUser || (userStr ? JSON.parse(userStr) : null);
+        if (!userData) {
+          if (!cancelled) setLoading(false);
+          return;
+        }
+        if (!cancelled) setUser(userData);
+        await fetchDashboardData(userData);
+        await fetchRecentNotifications();
+      } catch (error) {
+        console.error('Error loading user:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser?.id]);
 
   useEffect(() => {
     if (!user?.role) return;
@@ -45,32 +69,45 @@ const DashboardScreen = ({ navigation }) => {
     return stop;
   }, [user?.role]);
 
-  const loadUserData = async () => {
-    try {
-      const userStr = await AsyncStorage.getItem('user');
-      if (userStr) {
-        const userData = JSON.parse(userStr);
-        setUser(userData);
-        await fetchDashboardData(userData);
-      }
-    } catch (error) {
-      console.error('Error loading user:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchDashboardData = async (userData) => {
+    const role = userData?.role;
     try {
-      const endpoints = {
-        resident: '/visitors/resident/dashboard',
-        admin: '/service-requests/admin/dashboard',
-        security: '/visitors/pending',
-      };
-      const endpoint = endpoints[userData.role];
-      if (endpoint) {
-        const response = await api.get(endpoint);
-        if (response.data.success) setStats(response.data.data);
+      if (role === 'resident') {
+        const response = await api.get('/visitors/resident/dashboard');
+        if (response.data.success) {
+          const payload = response.data.data || {};
+          setStats(payload.stats || {});
+        }
+        return;
+      }
+
+      if (role === 'admin') {
+        const [usersRes, payRes, svcRes] = await Promise.all([
+          api.get('/users/stats/summary'),
+          api.get('/payments/admin/stats'),
+          api.get('/service-requests/admin/dashboard'),
+        ]);
+        const u = usersRes.data?.success ? usersRes.data.data : {};
+        const p = payRes.data?.success ? payRes.data.data : {};
+        const s = svcRes.data?.success ? svcRes.data.data : {};
+        const activeIssues =
+          (s.pendingRequests || 0) +
+          (s.underReviewRequests || 0) +
+          (s.assignedRequests || 0) +
+          (s.inProgressRequests || 0);
+        setStats({
+          totalUsers: u.residents ?? 0,
+          pendingApprovals: u.pendingApproval ?? 0,
+          monthlyCollection: p.monthlyCollected ?? 0,
+          activeRequests: activeIssues,
+        });
+        return;
+      }
+
+      if (role === 'security') {
+        const response = await api.get('/visitors/security/dashboard');
+        if (response.data.success) setStats(response.data.data || {});
+        return;
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -82,7 +119,7 @@ const DashboardScreen = ({ navigation }) => {
       const res = await api.get('/notifications');
       if (res.data?.success) {
         const rows = Array.isArray(res.data.data) ? res.data.data : [];
-        setRecentNotifications(rows.slice(0, 3));
+        setRecentActivity(rows.slice(0, 3));
       }
     } catch (_) {
       // best-effort; dashboard still works without
@@ -91,9 +128,17 @@ const DashboardScreen = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadUserData();
-    await fetchRecentNotifications();
-    setRefreshing(false);
+    try {
+      const userStr = await AsyncStorage.getItem('user');
+      const userData = authUser || (userStr ? JSON.parse(userStr) : null);
+      if (userData) {
+        setUser(userData);
+        await fetchDashboardData(userData);
+        await fetchRecentNotifications();
+      }
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const openDropdown = () => {
@@ -142,12 +187,12 @@ const DashboardScreen = ({ navigation }) => {
       title: 'Dashboard',
       icon: 'shield-checkmark-outline',
       stats: [
-        { label: 'Total Residents',    value: stats.totalUsers        || 0, icon: 'people-outline',       bg: '#2563eb' },
-        { label: 'Pending Approvals',  value: stats.pendingApprovals  || 0, icon: 'alert-circle-outline', bg: '#16a34a' },
-        { label: 'Monthly Collection', value: stats.monthlyCollection || 0, icon: 'cash-outline',         bg: '#0284c7', prefix: '₱' },
-        { label: 'Active Issues',      value: stats.activeRequests    || 0, icon: 'warning-outline',      bg: '#dc2626' },
+        { label: 'Total Residents',    value: stats.totalUsers        ?? 0, icon: 'people-outline',       bg: '#2563eb' },
+        { label: 'Pending Approvals',  value: stats.pendingApprovals  ?? 0, icon: 'alert-circle-outline', bg: '#16a34a' },
+        { label: 'Monthly Collection', value: formatPeso(stats.monthlyCollection ?? 0), icon: 'cash-outline',         bg: '#0284c7', prefix: '₱' },
+        { label: 'Active Issues',      value: stats.activeRequests    ?? 0, icon: 'warning-outline',      bg: '#dc2626' },
       ],
-      hints: ['live from users', 'awaiting admin review', 'live this month', 'pending + urgent'],
+      hints: ['all resident accounts', 'awaiting admin review', 'paid this month', 'open service requests'],
       quickActions: [
         { title: 'User Management', subtitle: 'View and manage users',       icon: 'people-outline',           screen: 'UsersTab',       color: '#7c3aed', bg: '#f5f3ff' },
         { title: 'Approvals',       subtitle: 'Review pending requests',     icon: 'checkmark-circle-outline', screen: 'AdminApprovals', color: '#d97706', bg: '#fffbeb' },
@@ -337,7 +382,7 @@ const DashboardScreen = ({ navigation }) => {
             <View style={styles.heroLeft}>
               <Text style={styles.heroEyebrow}>Casimiro Westville Homes · Cavite</Text>
               <Text style={[styles.heroTitle, isNarrow && { fontSize: 19, lineHeight: 24 }]}>
-                {greeting()}{'\n'}{user?.firstName || 'User'}
+                {greeting()}{'\n'}{userToShow?.firstName || 'User'}
               </Text>
               <Text style={styles.heroDate}>{formattedDate}</Text>
               <View style={styles.heroPill}>
@@ -400,7 +445,7 @@ const DashboardScreen = ({ navigation }) => {
           ))}
         </View>
 
-        {/* ── Recent Activity ── */}
+        {/* ── Recent Activity (notifications from API) ── */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Activity</Text>
@@ -409,24 +454,32 @@ const DashboardScreen = ({ navigation }) => {
               <Text style={styles.liveBadgeText}>Live</Text>
             </View>
           </View>
-          <View style={[styles.actionRow, styles.actionRowDivider]}>
-            <View style={[styles.actionIconWrap, { backgroundColor: '#eff6ff' }]}>
-              <Ionicons name="notifications-outline" size={16} color="#2563eb" />
+          {recentActivity.length === 0 ? (
+            <View style={[styles.actionRow, { borderBottomWidth: 0 }]}>
+              <View style={[styles.actionIconWrap, { backgroundColor: '#f1f5f9' }]}>
+                <Ionicons name="notifications-off-outline" size={16} color="#94a3b8" />
+              </View>
+              <View style={styles.actionBody}>
+                <Text style={styles.actionTitle}>No recent notifications</Text>
+                <Text style={styles.actionSub}>Pull to refresh</Text>
+              </View>
             </View>
-            <View style={styles.actionBody}>
-              <Text style={styles.actionTitle}>System ready</Text>
-              <Text style={styles.actionSub}>Just now</Text>
-            </View>
-          </View>
-          <View style={styles.actionRow}>
-            <View style={[styles.actionIconWrap, { backgroundColor: '#f0fdf4' }]}>
-              <Ionicons name="checkmark-circle-outline" size={16} color="#16a34a" />
-            </View>
-            <View style={styles.actionBody}>
-              <Text style={styles.actionTitle}>Last login successful</Text>
-              <Text style={styles.actionSub}>Today</Text>
-            </View>
-          </View>
+          ) : (
+            recentActivity.map((n, i) => (
+              <View
+                key={n._id || String(i)}
+                style={[styles.actionRow, i < recentActivity.length - 1 && styles.actionRowDivider]}
+              >
+                <View style={[styles.actionIconWrap, { backgroundColor: '#eff6ff' }]}>
+                  <Ionicons name="notifications-outline" size={16} color="#2563eb" />
+                </View>
+                <View style={styles.actionBody}>
+                  <Text style={styles.actionTitle} numberOfLines={1}>{n.title || 'Notification'}</Text>
+                  <Text style={styles.actionSub} numberOfLines={2}>{n.body || ''}</Text>
+                </View>
+              </View>
+            ))
+          )}
         </View>
 
         {/* ── Footer ── */}

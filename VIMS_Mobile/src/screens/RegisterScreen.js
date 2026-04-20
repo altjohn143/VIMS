@@ -79,7 +79,6 @@ const RegisterScreen = ({ navigation, route }) => {
   const [availability, setAvailability] = useState({ email: null, phone: null });
   const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
   const [showMapModal, setShowMapModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showLotDropdown, setShowLotDropdown] = useState(false);
   const [showCountryCodeDropdown, setShowCountryCodeDropdown] = useState(false);
 
@@ -421,43 +420,56 @@ const RegisterScreen = ({ navigation, route }) => {
       const response = await api.post('/auth/register', registrationData);
       
       if (response.data.success) {
-        // If resident selected ID images, upload them so admin can view/approve immediately.
+        const registeredUser = response.data.user || null;
+
+        // If resident selected ID images, upload in background after navigating away
         const { frontUri, backUri } = idDocs || {};
         if (frontUri && backUri && Platform.OS !== 'web') {
-          try {
-            const ensureFileUriAsync = async (uri, name) => {
-              const u = String(uri || '');
-              if (Platform.OS === 'android' && u.startsWith('content://')) {
-                const ext = u.toLowerCase().includes('.png') ? 'png' : 'jpg';
-                const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
-                const safeBase = name.replace(/\.[^.]+$/, '');
-                const dest = `${baseDir}${safeBase}_${Date.now()}.${ext}`;
-                await FileSystem.copyAsync({ from: u, to: dest });
-                return dest;
-              }
-              return u;
-            };
+          (async () => {
+            try {
+              const ensureFileUriAsync = async (uri, name) => {
+                const u = String(uri || '');
+                if (Platform.OS === 'android' && u.startsWith('content://')) {
+                  const ext = u.toLowerCase().includes('.png') ? 'png' : 'jpg';
+                  const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+                  const safeBase = name.replace(/\.[^.]+$/, '');
+                  const dest = `${baseDir}${safeBase}_${Date.now()}.${ext}`;
+                  await FileSystem.copyAsync({ from: u, to: dest });
+                  return dest;
+                }
+                return u;
+              };
 
-            const mkFileAsync = async (uri, name) => {
-              const fileUri = await ensureFileUriAsync(uri, name);
-              const lower = String(fileUri).toLowerCase();
-              const type = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
-              return { uri: fileUri, name, type };
-            };
+              const mkFileAsync = async (uri, name) => {
+                const fileUri = await ensureFileUriAsync(uri, name);
+                const lower = String(fileUri).toLowerCase();
+                const type = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+                return { uri: fileUri, name, type };
+              };
 
-            const fd = new FormData();
-            fd.append('email', registrationData.email);
-            fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
-            fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
+              const fd = new FormData();
+              fd.append('email', registrationData.email);
+              fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
+              fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
 
-            const url = `${api.defaults.baseURL}/verifications/upload-id`;
-            await fetch(url, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
-          } catch (e) {
-            // Non-blocking: registration succeeded; ID upload can be retried later.
-            console.error('upload-id after register failed:', e);
-          }
+              const url = `${api.defaults.baseURL}/verifications/upload-id`;
+              await fetch(url, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
+            } catch (e) {
+              console.error('upload-id after register failed:', e);
+            }
+          })();
         }
-        setShowSuccessModal(true);
+
+        navigation.replace('PendingApproval', {
+          registration: registeredUser
+            ? { ...registeredUser, phone: registrationData.phone }
+            : {
+                firstName: registrationData.firstName,
+                lastName: registrationData.lastName,
+                email: registrationData.email,
+                phone: registrationData.phone,
+              },
+        });
       }
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'Registration failed. Please try again.';
@@ -861,19 +873,6 @@ const RegisterScreen = ({ navigation, route }) => {
         onSelectLot={handleLotSelect}
       />
 
-      {/* Success Modal */}
-      <Modal visible={showSuccessModal} transparent animationType="fade" onRequestClose={() => setShowSuccessModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.successModal}>
-            <View style={styles.successIconContainer}><Ionicons name="checkmark" size={50} color="white" /></View>
-            <Text style={styles.successTitle}>Registration Successful!</Text>
-            <Text style={styles.successMessage}>Your account has been created successfully.{'\n\n'}Please wait for admin approval before you can log in.</Text>
-            <TouchableOpacity style={styles.successButton} onPress={() => { setShowSuccessModal(false); safeGoToLogin(); }}>
-              <Text style={styles.successButtonText}>Go to Login</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };

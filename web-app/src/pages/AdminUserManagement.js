@@ -96,9 +96,13 @@ const AdminUserManagement = () => {
     security: 0,
     approved: 0,
     pending: 0,
+    moveOut: 0,
     active: 0,
     inactive: 0
   });
+  const [moveOutDialogOpen, setMoveOutDialogOpen] = useState(false);
+  const [moveOutAction, setMoveOutAction] = useState('approve'); // approve | deny
+  const [moveOutNotes, setMoveOutNotes] = useState('');
   
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -141,9 +145,11 @@ const AdminUserManagement = () => {
       filtered = filtered.filter(user => user.role === 'resident');
     } else if (tab === 2) { // Pending approval
       filtered = filtered.filter(user => user.role === 'resident' && !user.isApproved);
-    } else if (tab === 3) { // Admin & Security
+    } else if (tab === 3) { // Move-out requests
+      filtered = filtered.filter(user => user.role === 'resident' && user.moveOutStatus === 'pending');
+    } else if (tab === 4) { // Admin & Security
       filtered = filtered.filter(user => ['admin', 'security'].includes(user.role));
-    } else if (tab === 4) { // Inactive
+    } else if (tab === 5) { // Inactive
       filtered = filtered.filter(user => !user.isActive);
     }
 
@@ -175,6 +181,7 @@ const AdminUserManagement = () => {
           security: allUsers.filter(u => u.role === 'security').length,
           approved: allUsers.filter(u => u.isApproved).length,
           pending: allUsers.filter(u => !u.isApproved).length,
+          moveOut: allUsers.filter(u => u.role === 'resident' && u.moveOutStatus === 'pending').length,
           active: allUsers.filter(u => u.isActive).length,
           inactive: allUsers.filter(u => !u.isActive).length
         };
@@ -297,6 +304,39 @@ const AdminUserManagement = () => {
     } catch (error) {
       console.error('Error toggling approval:', error);
       toast.error(error.response?.data?.error || 'Failed to update approval status');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const openMoveOutDialog = (user, action) => {
+    setSelectedUser(user);
+    setMoveOutAction(action);
+    setMoveOutNotes(action === 'approve' ? 'Move-out approved by admin' : 'Move-out request denied');
+    setMoveOutDialogOpen(true);
+  };
+
+  const submitMoveOutDecision = async () => {
+    if (!selectedUser) return;
+    try {
+      setProcessing(true);
+      const token = localStorage.getItem('token');
+      const url =
+        moveOutAction === 'approve'
+          ? `/api/users/${selectedUser._id}/move-out/approve`
+          : `/api/users/${selectedUser._id}/move-out/deny`;
+      const body = { notes: moveOutNotes };
+      const res = await axios.put(url, body, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data?.success) {
+        toast.success(res.data.message || `Move-out ${moveOutAction}d`);
+        setMoveOutDialogOpen(false);
+        setSelectedUser(null);
+        fetchUsers();
+      } else {
+        toast.error(res.data?.error || 'Failed to update move-out');
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Failed to update move-out');
     } finally {
       setProcessing(false);
     }
@@ -614,6 +654,7 @@ const AdminUserManagement = () => {
             <Tab label={`All (${stats.total})`} />
             <Tab label={`Residents (${stats.residents})`} />
             <Tab label={`Pending (${stats.pending})`} />
+            <Tab label={`Move-out (${stats.moveOut})`} />
             <Tab label={`Staff (${stats.admin + stats.security})`} />
             <Tab label={`Inactive (${stats.inactive})`} />
           </Tabs>
@@ -759,6 +800,29 @@ const AdminUserManagement = () => {
                                 <ApproveIcon />
                               </IconButton>
                             </Tooltip>
+                          )}
+
+                          {user.role === 'resident' && user.moveOutStatus === 'pending' && (
+                            <>
+                              <Tooltip title="Approve move-out">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => openMoveOutDialog(user, 'approve')}
+                                  sx={{ color: themeColors.success }}
+                                >
+                                  <ApproveIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Deny move-out">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => openMoveOutDialog(user, 'deny')}
+                                  sx={{ color: themeColors.warning }}
+                                >
+                                  <BlockIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </>
                           )}
                           
                           <Tooltip title={user.isActive ? 'Deactivate' : 'Activate'}>
@@ -1070,6 +1134,45 @@ const AdminUserManagement = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+      {/* Move-out Approve/Deny Dialog */}
+      <Dialog
+        open={moveOutDialogOpen}
+        onClose={() => !processing && setMoveOutDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>
+          {moveOutAction === 'approve' ? 'Approve move-out' : 'Deny move-out'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: themeColors.textSecondary, mb: 2 }}>
+            Resident: <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> • House {selectedUser?.houseNumber || 'N/A'}
+          </Typography>
+          <TextField
+            fullWidth
+            label="Notes (optional)"
+            value={moveOutNotes}
+            onChange={(e) => setMoveOutNotes(e.target.value)}
+            multiline
+            minRows={3}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setMoveOutDialogOpen(false)} disabled={processing} sx={{ textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={submitMoveOutDecision}
+            disabled={processing}
+            variant="contained"
+            color={moveOutAction === 'approve' ? 'success' : 'warning'}
+            sx={{ textTransform: 'none', fontWeight: 800 }}
+          >
+            {processing ? 'Processing…' : (moveOutAction === 'approve' ? 'Approve' : 'Deny')}
+          </Button>
+        </DialogActions>
+      </Dialog>
       </Container>
     </Box>
   );

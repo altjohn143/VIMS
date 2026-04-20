@@ -458,6 +458,156 @@ router.get('/profile', protect, async (req, res) => {
   }
 });
 
+// Resident: request move-out (does NOT delete account; admin must approve)
+router.post('/move-out/request', protect, authorize('resident'), async (req, res) => {
+  try {
+    const { reason = '' } = req.body || {};
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    if (!user.isActive) {
+      return res.status(400).json({ success: false, error: 'Account is inactive. Please contact admin.' });
+    }
+    if (!user.isApproved) {
+      return res.status(400).json({ success: false, error: 'Account must be approved before requesting move-out.' });
+    }
+    if (user.moveOutStatus === 'pending') {
+      return res.status(400).json({ success: false, error: 'Move-out request is already pending admin review.' });
+    }
+    if (!user.houseBlock || !user.houseLot) {
+      return res.status(400).json({ success: false, error: 'No lot is associated with this account.' });
+    }
+
+    user.moveOutStatus = 'pending';
+    user.moveOutRequestedAt = new Date();
+    user.moveOutReason = String(reason || '').trim();
+    user.moveOutReviewedAt = null;
+    user.moveOutReviewedBy = null;
+    user.moveOutReviewNotes = '';
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Move-out request submitted. An admin will review and confirm your move-out.',
+      data: {
+        moveOutStatus: user.moveOutStatus,
+        moveOutRequestedAt: user.moveOutRequestedAt,
+      }
+    });
+  } catch (error) {
+    console.error('Move-out request error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to submit move-out request' });
+  }
+});
+
+// Admin: list move-out requests
+router.get('/move-out/requests', protect, authorize('admin'), async (req, res) => {
+  try {
+    const rows = await User.find({ role: 'resident', moveOutStatus: 'pending' })
+      .select('-password')
+      .sort({ moveOutRequestedAt: -1 });
+    return res.json({ success: true, count: rows.length, data: rows });
+  } catch (error) {
+    console.error('List move-out requests error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to load move-out requests' });
+  }
+});
+
+// Admin: approve move-out (vacate lot + deactivate resident; keep user record)
+router.put('/:id/move-out/approve', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { notes = '' } = req.body || {};
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (user.role !== 'resident') return res.status(400).json({ success: false, error: 'Only residents can move out' });
+    if (user.moveOutStatus !== 'pending') {
+      return res.status(400).json({ success: false, error: 'No pending move-out request for this user' });
+    }
+
+    const lotId = user.houseBlock && user.houseLot ? `${user.houseBlock}-${user.houseLot}` : null;
+    if (lotId) {
+      const lot = await Lot.findOne({ lotId });
+      if (lot) {
+        const previousStatus = lot.status;
+        const previousOccupiedBy = lot.occupiedBy;
+        // Vacate only if this user is the occupant (or lot is occupied with no occupant set)
+        if (!lot.occupiedBy || String(lot.occupiedBy) === String(user._id)) {
+          lot.status = 'vacant';
+          lot.occupiedBy = null;
+          lot.occupiedAt = null;
+          await lot.save();
+          await OccupancyHistory.create({
+            lotId,
+            residentId: user._id,
+            action: 'move_out',
+            previousStatus,
+            newStatus: 'vacant',
+            reason: 'Move-out approved by admin',
+            performedBy: req.user._id
+          });
+          console.log(`✅ Lot ${lotId} vacated (move-out) for ${user.email}`);
+        } else {
+          console.log(`⚠️ Lot ${lotId} occupied by different user; skipping vacate`);
+          await OccupancyHistory.create({
+            lotId,
+            residentId: previousOccupiedBy || user._id,
+            action: 'status_update',
+            previousStatus,
+            newStatus: lot.status,
+            reason: 'Move-out approved but lot occupied by different resident',
+            performedBy: req.user._id
+          });
+        }
+      }
+    }
+
+    user.moveOutStatus = 'approved';
+    user.moveOutReviewedAt = new Date();
+    user.moveOutReviewedBy = req.user._id;
+    user.moveOutReviewNotes = String(notes || '').trim();
+    user.movedOutAt = new Date();
+    user.isActive = false;
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Move-out approved. Lot has been vacated and resident account is deactivated.',
+      data: { id: user._id, moveOutStatus: user.moveOutStatus, movedOutAt: user.movedOutAt, isActive: user.isActive, lotId }
+    });
+  } catch (error) {
+    console.error('Approve move-out error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to approve move-out' });
+  }
+});
+
+// Admin: deny move-out request
+router.put('/:id/move-out/deny', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { notes = '' } = req.body || {};
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (user.role !== 'resident') return res.status(400).json({ success: false, error: 'Only residents can move out' });
+    if (user.moveOutStatus !== 'pending') {
+      return res.status(400).json({ success: false, error: 'No pending move-out request for this user' });
+    }
+
+    user.moveOutStatus = 'denied';
+    user.moveOutReviewedAt = new Date();
+    user.moveOutReviewedBy = req.user._id;
+    user.moveOutReviewNotes = String(notes || '').trim();
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Move-out request denied.',
+      data: { id: user._id, moveOutStatus: user.moveOutStatus }
+    });
+  } catch (error) {
+    console.error('Deny move-out error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to deny move-out request' });
+  }
+});
+
 // Update user status (activate/deactivate)
 router.put('/:id/status', protect, authorize('admin'), async (req, res) => {
   try {

@@ -110,6 +110,39 @@ const userSchema = new mongoose.Schema({
     default: ''
   }
 
+  ,
+  // Move-out workflow (resident requests; admin approves/denies)
+  moveOutStatus: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'denied'],
+    default: 'none'
+  },
+  moveOutRequestedAt: {
+    type: Date,
+    default: null
+  },
+  moveOutReason: {
+    type: String,
+    default: ''
+  },
+  moveOutReviewedAt: {
+    type: Date,
+    default: null
+  },
+  moveOutReviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  moveOutReviewNotes: {
+    type: String,
+    default: ''
+  },
+  movedOutAt: {
+    type: Date,
+    default: null
+  }
+
 }, {
   timestamps: true, 
   toJSON: { virtuals: true },

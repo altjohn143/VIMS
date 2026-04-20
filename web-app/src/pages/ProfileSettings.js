@@ -95,6 +95,9 @@ const ProfileSettings = () => {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
+  const [moveOutDialogOpen, setMoveOutDialogOpen] = useState(false);
+  const [moveOutReason, setMoveOutReason] = useState('');
+  const [moveOutSubmitting, setMoveOutSubmitting] = useState(false);
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -164,6 +167,32 @@ const ProfileSettings = () => {
 
     fetchUserProfile();
   }, [getCurrentUser, navigate]);
+
+  const submitMoveOutRequest = async () => {
+    if (!user) return;
+    try {
+      setMoveOutSubmitting(true);
+      const token = localStorage.getItem('token') || '';
+      const res = await axios.post(
+        '/api/users/move-out/request',
+        { reason: moveOutReason.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data?.success) {
+        toast.success(res.data.message || 'Move-out request submitted');
+        setMoveOutDialogOpen(false);
+        setMoveOutReason('');
+        const refreshed = await axios.get('/api/users/profile', { headers: { Authorization: `Bearer ${token}` } });
+        if (refreshed.data?.success) setUser(refreshed.data.data);
+      } else {
+        toast.error(res.data?.error || 'Failed to submit move-out request');
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Failed to submit move-out request');
+    } finally {
+      setMoveOutSubmitting(false);
+    }
+  };
 
   // Profile Functions
   const handleInputChange = (e, section, index) => {
@@ -625,6 +654,47 @@ const ProfileSettings = () => {
 
               <Divider sx={{ my: 3, borderColor: themeColors.border }} />
 
+              {/* Move-out (Residents) */}
+              {user?.role === 'resident' && (
+                <Box>
+                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
+                    <HomeIcon />
+                    Move-out
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
+                    Request to vacate your lot. An admin must approve the request to update the lot and deactivate the account.
+                  </Typography>
+
+                  <Box sx={{ mt: 1.5, display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Chip
+                      size="small"
+                      label={`Status: ${user?.moveOutStatus || 'none'}`}
+                      sx={{
+                        bgcolor: (user?.moveOutStatus === 'pending' ? themeColors.warning : user?.moveOutStatus === 'approved' ? themeColors.success : themeColors.border) + '15',
+                        color: user?.moveOutStatus === 'pending' ? themeColors.warning : user?.moveOutStatus === 'approved' ? themeColors.success : themeColors.textSecondary,
+                        fontWeight: 700,
+                        textTransform: 'capitalize'
+                      }}
+                    />
+                    <Button
+                      variant="outlined"
+                      disabled={!user?.isApproved || !user?.isActive || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved'}
+                      onClick={() => setMoveOutDialogOpen(true)}
+                      sx={{
+                        borderRadius: 2.5,
+                        borderColor: themeColors.warning,
+                        color: themeColors.warning,
+                        textTransform: 'none',
+                        fontWeight: 800,
+                        '&:hover': { backgroundColor: themeColors.warning + '08' }
+                      }}
+                    >
+                      Request move-out
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+
               {/* Security Section */}
               <Box>
                 <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
@@ -653,6 +723,37 @@ const ProfileSettings = () => {
                 </Button>
               </Box>
             </Paper>
+
+            {/* Move-out Request Dialog */}
+            <Dialog open={moveOutDialogOpen} onClose={() => !moveOutSubmitting && setMoveOutDialogOpen(false)} fullWidth maxWidth="sm">
+              <DialogTitle sx={{ fontWeight: 800 }}>Request move-out</DialogTitle>
+              <DialogContent>
+                <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 2 }}>
+                  This will notify the admin to review your request. Once approved, your lot will be set to vacant and your account will be deactivated.
+                </Typography>
+                <TextField
+                  fullWidth
+                  label="Reason (optional)"
+                  value={moveOutReason}
+                  onChange={(e) => setMoveOutReason(e.target.value)}
+                  multiline
+                  minRows={3}
+                />
+              </DialogContent>
+              <DialogActions sx={{ p: 2 }}>
+                <Button onClick={() => setMoveOutDialogOpen(false)} disabled={moveOutSubmitting} sx={{ textTransform: 'none' }}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={submitMoveOutRequest}
+                  disabled={moveOutSubmitting}
+                  sx={{ bgcolor: themeColors.warning, '&:hover': { bgcolor: '#d97706' }, textTransform: 'none', fontWeight: 800 }}
+                >
+                  {moveOutSubmitting ? 'Submitting…' : 'Submit request'}
+                </Button>
+              </DialogActions>
+            </Dialog>
 
             {/* Quick Stats */}
             <Paper sx={{ 

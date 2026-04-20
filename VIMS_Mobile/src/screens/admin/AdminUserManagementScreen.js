@@ -40,6 +40,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
     pending: 0,
     active: 0,
     inactive: 0,
+    moveOut: 0,
   });
 
   useEffect(() => {
@@ -68,6 +69,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
           pending: allUsers.filter(u => !u.isApproved && u.role === 'resident').length,
           active: allUsers.filter(u => u.isActive).length,
           inactive: allUsers.filter(u => !u.isActive).length,
+          moveOut: allUsers.filter(u => u.role === 'resident' && u.moveOutStatus === 'pending').length,
         });
       }
     } catch (error) {
@@ -106,7 +108,11 @@ const AdminUserManagementScreen = ({ navigation }) => {
     // Status filter
     if (statusFilter !== 'all') {
       const isActive = statusFilter === 'active';
-      filtered = filtered.filter(user => user.isActive === isActive);
+      if (statusFilter === 'moveout') {
+        filtered = filtered.filter(u => u.role === 'resident' && u.moveOutStatus === 'pending');
+      } else {
+        filtered = filtered.filter(user => user.isActive === isActive);
+      }
     }
 
     setFilteredUsers(filtered);
@@ -137,6 +143,41 @@ const AdminUserManagementScreen = ({ navigation }) => {
             }
           },
         },
+      ]
+    );
+  };
+
+  const handleMoveOutDecision = async (user, action) => {
+    if (!user) return;
+    Alert.alert(
+      action === 'approve' ? 'Approve move-out' : 'Deny move-out',
+      `Resident: ${user.firstName} ${user.lastName}\nHouse: ${user.houseNumber || 'N/A'}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: action === 'approve' ? 'Approve' : 'Deny',
+          style: action === 'approve' ? 'default' : 'destructive',
+          onPress: async () => {
+            setProcessing(true);
+            try {
+              const url =
+                action === 'approve'
+                  ? `/users/${user._id}/move-out/approve`
+                  : `/users/${user._id}/move-out/deny`;
+              const res = await api.put(url, { notes: action === 'approve' ? 'Move-out approved by admin' : 'Move-out request denied' });
+              if (res.data?.success) {
+                Alert.alert('Success', res.data.message || `Move-out ${action}d`);
+                fetchUsers();
+              } else {
+                Alert.alert('Error', res.data?.error || 'Failed to update move-out');
+              }
+            } catch (e) {
+              Alert.alert('Error', e?.response?.data?.error || 'Failed to update move-out');
+            } finally {
+              setProcessing(false);
+            }
+          }
+        }
       ]
     );
   };
@@ -265,6 +306,26 @@ const AdminUserManagementScreen = ({ navigation }) => {
               {item.isActive ? 'Deactivate' : 'Activate'}
             </Text>
           </TouchableOpacity>
+
+          {isResident && item.moveOutStatus === 'pending' && (
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.approveMoveOutButton]}
+                onPress={() => handleMoveOutDecision(item, 'approve')}
+              >
+                <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
+                <Text style={[styles.actionButtonText, { color: themeColors.success }]}>Move-out</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.denyMoveOutButton]}
+                onPress={() => handleMoveOutDecision(item, 'deny')}
+              >
+                <Ionicons name="close-circle" size={20} color={themeColors.warning} />
+                <Text style={[styles.actionButtonText, { color: themeColors.warning }]}>Deny</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
           <TouchableOpacity
             style={[styles.actionButton, styles.deleteButton]}
             onPress={() => {
@@ -386,6 +447,15 @@ const AdminUserManagementScreen = ({ navigation }) => {
           >
             <View style={[styles.statusDot, { backgroundColor: themeColors.error }]} />
             <Text style={[styles.filterText, statusFilter === 'inactive' && styles.activeFilterText]}>Inactive</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'moveout' && styles.activeFilter]}
+            onPress={() => setStatusFilter(statusFilter === 'moveout' ? 'all' : 'moveout')}
+          >
+            <View style={[styles.statusDot, { backgroundColor: themeColors.warning }]} />
+            <Text style={[styles.filterText, statusFilter === 'moveout' && styles.activeFilterText]}>
+              Move-out ({stats.moveOut})
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -848,6 +918,12 @@ const styles = StyleSheet.create({
     // inherits
   },
   deleteButton: {
+    // inherits
+  },
+  approveMoveOutButton: {
+    // inherits
+  },
+  denyMoveOutButton: {
     // inherits
   },
   emptyContainer: {

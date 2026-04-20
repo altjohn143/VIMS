@@ -25,6 +25,7 @@ const ProfileScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [moveOutSubmitting, setMoveOutSubmitting] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -103,6 +104,35 @@ const ProfileScreen = ({ navigation }) => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const requestMoveOut = async () => {
+    Alert.alert(
+      'Request move-out',
+      'This will notify the admin to review your move-out request. Once approved, your lot will be set to vacant and your account will be deactivated.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Submit',
+          onPress: async () => {
+            try {
+              setMoveOutSubmitting(true);
+              const res = await api.post('/users/move-out/request', { reason: '' });
+              if (res.data?.success) {
+                Alert.alert('Submitted', res.data.message || 'Move-out request submitted');
+                await loadUserProfile();
+              } else {
+                Alert.alert('Error', res.data?.error || 'Failed to submit move-out request');
+              }
+            } catch (e) {
+              Alert.alert('Error', e?.response?.data?.error || 'Failed to submit move-out request');
+            } finally {
+              setMoveOutSubmitting(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleChangePassword = async () => {
@@ -358,6 +388,33 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
+        {user?.role === 'resident' && (
+          <View style={[styles.section, shadows.small]}>
+            <Text style={styles.sectionTitle}>Move-out</Text>
+            <Text style={styles.helperText}>
+              Request to vacate your lot. An admin must approve the request to update the lot and deactivate the account.
+            </Text>
+            <View style={styles.moveOutRow}>
+              <View style={styles.moveOutStatusPill}>
+                <Text style={styles.moveOutStatusText}>
+                  Status: {user?.moveOutStatus || 'none'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.moveOutButton, (moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved') && styles.moveOutButtonDisabled]}
+                onPress={requestMoveOut}
+                disabled={moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved'}
+              >
+                {moveOutSubmitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.moveOutButtonText}>Request</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         <View style={[styles.section, shadows.small]}>
           <Text style={styles.sectionTitle}>Security</Text>
           <TouchableOpacity style={styles.securityButton} onPress={() => setShowPasswordModal(true)}>
@@ -466,6 +523,13 @@ const styles = StyleSheet.create({
   userHouse: { fontSize: 14, color: themeColors.textSecondary },
   section: { backgroundColor: 'white', borderRadius: 16, padding: 16, marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 16 },
+  helperText: { fontSize: 12, color: themeColors.textSecondary, marginTop: -10, marginBottom: 12, lineHeight: 16 },
+  moveOutRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  moveOutStatusPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: themeColors.warning + '15', borderWidth: 1, borderColor: themeColors.warning + '35' },
+  moveOutStatusText: { fontSize: 12, fontWeight: '700', color: themeColors.warning, textTransform: 'capitalize' },
+  moveOutButton: { backgroundColor: themeColors.warning, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, minWidth: 92, alignItems: 'center' },
+  moveOutButtonDisabled: { opacity: 0.6 },
+  moveOutButtonText: { color: 'white', fontSize: 13, fontWeight: '800' },
   inputGroup: { marginBottom: 16 },
   label: { fontSize: 14, color: themeColors.textSecondary, marginBottom: 8 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#f8fafc' },

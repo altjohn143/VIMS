@@ -181,6 +181,7 @@ const DashboardScreen = ({ navigation }) => {
       quickActions: [
         { title: 'Visitor Pass',     subtitle: 'Manage visitor QR codes',     icon: 'qr-code-outline', screen: 'VisitorsTab', color: '#16a34a', bg: '#f0fdf4' },
         { title: 'Service Requests', subtitle: 'Submit maintenance requests', icon: 'build-outline',   screen: 'ServicesTab', color: '#d97706', bg: '#fffbeb' },
+        { title: 'AI Assistant',     subtitle: 'Ask VIMS questions',          icon: 'sparkles-outline', screen: 'Chatbot', color: '#2563eb', bg: '#eff6ff' },
       ],
     },
     admin: {
@@ -197,6 +198,7 @@ const DashboardScreen = ({ navigation }) => {
         { title: 'User Management', subtitle: 'View and manage users',       icon: 'people-outline',           screen: 'UsersTab',       color: '#7c3aed', bg: '#f5f3ff' },
         { title: 'Approvals',       subtitle: 'Review pending requests',     icon: 'checkmark-circle-outline', screen: 'AdminApprovals', color: '#d97706', bg: '#fffbeb' },
         { title: 'Visitor Logs',    subtitle: 'Full visitor history',        icon: 'qr-code-outline',          screen: 'VisitorsTab',    color: '#16a34a', bg: '#f0fdf4' },
+        { title: 'AI Assistant',    subtitle: 'Ask VIMS questions',          icon: 'sparkles-outline',         screen: 'Chatbot',        color: '#2563eb', bg: '#eff6ff' },
       ],
     },
     security: {
@@ -212,6 +214,7 @@ const DashboardScreen = ({ navigation }) => {
       quickActions: [
         { title: 'Approvals',    subtitle: 'Review pending entries',     icon: 'checkmark-circle-outline', screen: 'ApprovalsTab', color: '#d97706', bg: '#fffbeb' },
         { title: 'Visitor Logs', subtitle: 'Browse all visitor records', icon: 'time-outline',             screen: 'LogsTab',      color: '#2563eb', bg: '#eff6ff' },
+        { title: 'AI Assistant', subtitle: 'Ask VIMS questions',         icon: 'sparkles-outline',         screen: 'Chatbot',      color: '#16a34a', bg: '#f0fdf4' },
       ],
     },
   };

@@ -15,6 +15,20 @@ const paymentSchema = new mongoose.Schema({
   billingPeriod: { month: Number, year: Number },
   receiptNumber: { type: String, sparse: true },
   receiptImage: { type: String, default: null }, // Added: stores the filename of uploaded receipt
+  receiptAi: {
+    fraudScore: { type: Number, min: 0, max: 1, default: null },
+    flags: { type: [String], default: [] },
+    recommendation: { type: String, enum: ['likely_legit', 'needs_review', 'likely_fraud'], default: 'needs_review' },
+    explanation: { type: String, default: '' },
+    extracted: {
+      amount: { type: String, default: '' },
+      refNo: { type: String, default: '' },
+      date: { type: String, default: '' },
+      merchant: { type: String, default: '' }
+    },
+    analyzedAt: { type: Date, default: null },
+    model: { type: String, default: '' }
+  },
   description: { type: String },
   notes: { type: String },
   processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

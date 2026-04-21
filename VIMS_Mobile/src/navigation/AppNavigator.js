@@ -45,6 +45,7 @@ import AdminPaymentsScreen from '../screens/admin/AdminPaymentsScreen';
 import PaymentRedirectScreen from '../screens/PaymentRedirectScreen';
 import PaymentSuccessScreen from '../screens/PaymentSuccessScreen';
 import PaymentCancelledScreen from '../screens/PaymentCancelledScreen';
+import ChatbotScreen from '../screens/ChatbotScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -221,6 +222,7 @@ const AppNavigator = () => {
       <Stack.Screen name="PaymentRedirect" component={PaymentRedirectScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
       <Stack.Screen name="PaymentCancelled" component={PaymentCancelledScreen} />
+      <Stack.Screen name="Chatbot" component={ChatbotScreen} />
 
     </Stack.Navigator>
   );

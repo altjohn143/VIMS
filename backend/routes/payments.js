@@ -5,6 +5,7 @@ const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 const { createInAppNotification } = require('../services/inAppNotificationService');
+const { analyzeReceiptFraud } = require('../services/openaiReceiptFraudService');
 
 // ========== PAYMENT ROUTES ==========
 
@@ -208,6 +209,43 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
     payment.status = 'pending';
     payment.receiptImage = receiptFile ? receiptFile.filename : null; // Store the filename
     payment.notes = `QRPh payment submitted. Receipt: ${receiptFile ? receiptFile.filename : 'No receipt uploaded'}`;
+    if (receiptFile?.filename) {
+      try {
+        const resident = await User.findById(req.user.id).select('firstName lastName houseNumber email');
+        const receiptAbsPath = path.join(uploadDir, receiptFile.filename);
+        const analysis = await analyzeReceiptFraud({
+          receiptAbsPath,
+          paymentContext: {
+            expectedAmount: payment.amount,
+            expectedReferenceNumber: referenceNumber || '',
+            invoiceNumber: payment.invoiceNumber || '',
+            residentName: resident ? `${resident.firstName || ''} ${resident.lastName || ''}`.trim() : '',
+            residentEmail: resident?.email || '',
+            houseNumber: resident?.houseNumber || '',
+            dueDate: payment.dueDate ? new Date(payment.dueDate).toISOString() : ''
+          }
+        });
+        payment.receiptAi = {
+          fraudScore: analysis.fraudScore,
+          flags: analysis.flags,
+          recommendation: analysis.recommendation,
+          explanation: analysis.explanation,
+          extracted: analysis.extracted,
+          analyzedAt: new Date(),
+          model: analysis.model
+        };
+      } catch (aiError) {
+        payment.receiptAi = {
+          fraudScore: null,
+          flags: ['ai_unavailable'],
+          recommendation: 'needs_review',
+          explanation: `Receipt AI analysis unavailable: ${aiError.message || 'Unknown error'}`,
+          extracted: { amount: '', refNo: '', date: '', merchant: '' },
+          analyzedAt: new Date(),
+          model: ''
+        };
+      }
+    }
     await payment.save();
     
     console.log(`QRPh payment submitted for invoice ${payment.invoiceNumber}. Reference: ${referenceNumber}`);

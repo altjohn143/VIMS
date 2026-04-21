@@ -6,87 +6,16 @@ const os = require('os');
 const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
-const { queueIdentityVerification, classifyVerificationResult, listGeminiModels } = require('../services/aiVerificationService');
-const { extractIdFieldsFromImagePaths, resolveUploadedPaths } = require('../services/tesseractIdOcrService');
+const { extractIdFieldsFromImagePaths } = require('../services/openaiIdOcrService');
+const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
+const { getOpenAIModel } = require('../services/openaiClient');
 
 const router = express.Router();
 
-function normalizeNameValue(s) {
-  return String(s || '')
-    .toUpperCase()
-    .replace(/[^A-ZÀ-ÿ\s-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function tokenizeName(s) {
-  return normalizeNameValue(s)
-    .split(/\s+/)
-    .filter(Boolean);
-}
-
-function tokenMatchRatio(expected, actual) {
-  const exp = tokenizeName(expected);
-  const act = tokenizeName(actual);
-  if (exp.length === 0 || act.length === 0) return 0;
-  const actSet = new Set(act);
-  const hits = exp.filter((t) => actSet.has(t)).length;
-  return hits / exp.length;
-}
-
-function computeLocalAutoApproval({ user, ocr }) {
-  const flags = [];
-  const reasons = [];
-
-  const expectedFullName = `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim();
-  const ocrFullName = `${ocr.firstName || ''} ${ocr.middleName || ''} ${ocr.lastName || ''}`.trim();
-
-  const lastExact = normalizeNameValue(user.lastName) && normalizeNameValue(ocr.lastName) &&
-    normalizeNameValue(user.lastName) === normalizeNameValue(ocr.lastName);
-  const firstRatio = tokenMatchRatio(user.firstName, ocr.firstName);
-  const middleOk = !user.middleName
-    ? true
-    : tokenMatchRatio(user.middleName, ocr.middleName) >= 1;
-  const dobOk = !user.dateOfBirth
-    ? true
-    : (String(user.dateOfBirth).trim() === String(ocr.dob || '').trim());
-
-  if (!lastExact) {
-    flags.push('name_mismatch');
-    reasons.push('Last name mismatch');
-  }
-  if (firstRatio < 0.8) {
-    flags.push('name_mismatch');
-    reasons.push('Given name mismatch');
-  }
-  if (!middleOk) {
-    flags.push('name_mismatch');
-    reasons.push('Middle name mismatch');
-  }
-  if (!dobOk) {
-    flags.push('dob_mismatch');
-    reasons.push('Date of birth mismatch');
-  }
-
-  const confidence = typeof ocr.confidence === 'number' ? ocr.confidence : 0.35;
-  // Score: OCR confidence + name match signals + DOB + id number
-  const score =
-    0.45 * Math.max(0, Math.min(1, confidence)) +
-    0.25 * (lastExact ? 1 : 0) +
-    0.2 * Math.max(0, Math.min(1, firstRatio)) +
-    0.05 * (middleOk ? 1 : 0) +
-    0.05 * (dobOk ? 1 : 0);
-
-  // After upload, treat as documents verified for automation (account approval is still User.isApproved).
-  const approved = true;
-
+function resolveUploadedPaths(filenameFront, filenameBack) {
   return {
-    approved,
-    score: Math.max(0, Math.min(1, score)),
-    flags: Array.from(new Set(flags)),
-    reason: approved
-      ? `Auto-approved after ID upload (score ${score.toFixed(2)}).`
-      : (reasons.length ? `Needs manual review: ${reasons.join(', ')}.` : 'Needs manual review.')
+    front: path.join(uploadDir, filenameFront),
+    back: path.join(uploadDir, filenameBack)
   };
 }
 
@@ -113,14 +42,12 @@ router.get('/ping', (req, res) => {
   });
 });
 
-router.get('/gemini-models', protect, authorize('admin'), async (req, res) => {
+router.get('/openai-model', protect, authorize('admin'), async (req, res) => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return res.status(503).json({ success: false, error: 'GEMINI_API_KEY is not configured' });
-    const models = await listGeminiModels(apiKey);
-    return res.json({ success: true, count: models.length, data: models });
+    if (!process.env.OPENAI_API_KEY) return res.status(503).json({ success: false, error: 'OPENAI_API_KEY is not configured' });
+    return res.json({ success: true, model: getOpenAIModel() });
   } catch (error) {
-    return res.status(500).json({ success: false, error: 'Failed to list Gemini models', details: error.message || 'Unknown error' });
+    return res.status(500).json({ success: false, error: 'Failed to load model', details: error.message || 'Unknown error' });
   }
 });
 
@@ -172,22 +99,21 @@ router.post(
         await verification.save();
       }
 
-      // Free local OCR + rules-based auto approval (no billed API keys)
       try {
         const { front, back } = resolveUploadedPaths(frontImage, backImage);
         const ocr = await extractIdFieldsFromImagePaths(front, back);
         const ocrFullName = `${ocr.firstName || ''} ${ocr.middleName || ''} ${ocr.lastName || ''}`.trim();
 
-        const localDecision = computeLocalAutoApproval({ user, ocr });
+        const localDecision = verifyUserAgainstOcr({ user, ocr });
         verification.aiResult = {
           score: localDecision.score ?? null,
           ocrName: ocrFullName,
           ocrDob: ocr.dob || '',
           flags: localDecision.flags,
-          providerRaw: { engine: ocr.engine, confidence: ocr.confidence, idNumber: ocr.idNumber || '' }
+          providerRaw: { engine: ocr.engine, confidence: ocr.confidence, idNumber: ocr.idNumber || '', ocrAddress: ocr.address || '' }
         };
 
-        if (localDecision.approved) {
+        if (localDecision.decision === 'documents_verified') {
           verification.documentsVerified = true;
           verification.status = 'documents_verified';
           verification.reviewNotes = localDecision.reason;
@@ -203,10 +129,9 @@ router.post(
           });
         }
 
-        // Not auto-approved: route to manual review by default.
-        verification.status = 'manual_review';
+        verification.status = localDecision.decision === 'rejected' ? 'rejected' : 'manual_review';
         verification.reviewNotes = localDecision.reason;
-        verification.rejectReason = '';
+        verification.rejectReason = localDecision.decision === 'rejected' ? localDecision.reason : '';
         await verification.save();
 
         return res.json({
@@ -214,52 +139,18 @@ router.post(
           message: 'ID uploaded and routed to manual review',
           data: verification
         });
-      } catch (ocrError) {
-        console.error('Local OCR auto-approval error:', ocrError?.message || ocrError);
-        // Fall through to existing AI/webhook flow as a best-effort (may still be configured in some environments)
-      }
-
-      let queueResult = { mode: 'local_stub' };
-      try {
-        queueResult = await queueIdentityVerification(verification);
-        verification.status = 'ai_processing';
-        if (queueResult.mode === 'gemini_direct' && queueResult.result) {
-          const aiResult = queueResult.result;
-          verification.aiResult = {
-            score: aiResult.score ?? null,
-            ocrName: aiResult.ocrName || '',
-            ocrDob: aiResult.ocrDob || '',
-            flags: Array.isArray(aiResult.flags) ? aiResult.flags : [],
-            providerRaw: aiResult.providerRaw || null
-          };
-          const decision = classifyVerificationResult({
-            score: verification.aiResult.score,
-            flags: verification.aiResult.flags
-          });
-          verification.status = decision.status;
-          if (decision.status === 'documents_verified') {
-            verification.documentsVerified = true;
-          }
-          verification.reviewNotes = decision.reason;
-          verification.rejectReason = decision.status === 'rejected' ? decision.reason : '';
-        }
       } catch (aiError) {
-        console.error('AI verification error (fallback to manual review):', aiError?.response?.data || aiError.message || aiError);
+        console.error('OpenAI verification error (fallback to manual review):', aiError?.response?.data || aiError.message || aiError);
         verification.status = 'manual_review';
         verification.reviewNotes = 'AI verification service unavailable. Routed to manual review.';
         verification.rejectReason = '';
+        await verification.save();
+        return res.json({
+          success: true,
+          message: 'ID uploaded and routed to manual review',
+          data: verification
+        });
       }
-      await verification.save();
-
-      res.json({
-        success: true,
-        message: queueResult.mode === 'gemini_direct'
-          ? 'ID uploaded and processed by AI'
-          : verification.status === 'manual_review'
-            ? 'ID uploaded and routed to manual review'
-            : 'ID uploaded and queued for AI verification',
-        data: verification
-      });
     } catch (error) {
       console.error('Upload ID error:', error);
       res.status(500).json({ success: false, error: 'Failed to upload ID' });
@@ -328,18 +219,19 @@ router.post('/webhooks/ai-result', async (req, res) => {
     if (!verification) return res.status(404).json({ success: false, error: 'Verification not found' });
 
     verification.aiResult = { score, ocrName, ocrDob, flags, providerRaw };
-    const decision = classifyVerificationResult({ score, flags });
-    verification.status = decision.status;
-    if (decision.status === 'documents_verified') {
-      verification.documentsVerified = true;
-    }
+    const numericScore = Number(score);
+    const decision = Number.isFinite(numericScore) && numericScore >= 0.9 && (!flags || flags.length === 0)
+      ? 'documents_verified'
+      : 'manual_review';
+    verification.status = decision;
+    if (decision === 'documents_verified') verification.documentsVerified = true;
     verification.reviewedBy = null;
     verification.reviewedAt = null;
-    verification.reviewNotes = decision.reason;
-    verification.rejectReason = decision.status === 'rejected' ? decision.reason : '';
+    verification.reviewNotes = decision === 'documents_verified' ? 'AI verified documents.' : 'AI flagged for manual review.';
+    verification.rejectReason = '';
     await verification.save();
 
-    res.json({ success: true, data: { verificationId: verification._id, status: verification.status, decision: decision.decision } });
+    res.json({ success: true, data: { verificationId: verification._id, status: verification.status, decision } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to process AI result' });
   }

@@ -264,6 +264,8 @@ try {
   console.log('/api/incidents routes imported');
   const patrolRoutes = require('./routes/patrols');
   console.log('/api/patrols routes imported');
+  const aiRoutes = require('./routes/ai');
+  console.log('/api/ai routes imported');
 
   // Register routes
   app.use('/api/payments', paymentRoutes);
@@ -295,6 +297,8 @@ try {
   console.log('/api/incidents routes registered');
   app.use('/api/patrols', patrolRoutes);
   console.log('/api/patrols routes registered');
+  app.use('/api/ai', aiRoutes);
+  console.log('/api/ai routes registered');
 
   console.log('All routes registered successfully!');
   startReportScheduler();
@@ -335,6 +339,7 @@ app.get('/api/debug/routes', (req, res) => {
 
 app.get('/api/debug/env-check', (req, res) => {
   res.json({
+    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
     hasPaymongoSecret: !!process.env.PAYMONGO_SECRET_KEY,
     hasPaymongoPublic: !!process.env.PAYMONGO_PUBLIC_KEY,
     hasWebhookSecret: !!process.env.PAYMONGO_WEBHOOK_SECRET,

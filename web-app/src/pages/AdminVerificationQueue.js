@@ -6,7 +6,8 @@ import {
 import {
   ArrowBack as ArrowBackIcon,
   AdminPanelSettings as AdminIcon,
-  VerifiedUser as VerifiedUserIcon
+  VerifiedUser as VerifiedUserIcon,
+  SmartToy as SmartToyIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -96,6 +97,15 @@ const AdminVerificationQueue = () => {
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Verification Queue
           </Typography>
+          <Button
+            size="small"
+            startIcon={<SmartToyIcon />}
+            onClick={() => navigate('/ai-assistant')}
+            sx={{ ml: 'auto', borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
+            variant="outlined"
+          >
+            AI Assistant
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -167,6 +177,7 @@ const AdminVerificationQueue = () => {
                 <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>AI Score</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Flags</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>OCR Name/DOB</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -199,6 +210,14 @@ const AdminVerificationQueue = () => {
                   <TableCell><Chip size="small" color={statusColor(r.status)} label={r.status} /></TableCell>
                   <TableCell>{r.aiResult?.score ?? '-'}</TableCell>
                   <TableCell>{(r.aiResult?.flags || []).join(', ') || '-'}</TableCell>
+                  <TableCell>
+                    <Typography variant="caption" sx={{ display: 'block' }}>
+                      {r.aiResult?.ocrName || '-'}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#64748b' }}>
+                      {r.aiResult?.ocrDob || '-'}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Button size="small" onClick={() => approve(r._id)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
                       Approve

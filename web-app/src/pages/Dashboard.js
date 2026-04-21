@@ -560,6 +560,12 @@ const Dashboard = () => {
       subtitle: user.role === 'admin' ? 'Track active concerns' : 'Create a service request',
       icon: <BuildIcon />,
       link: user.role === 'admin' ? '/admin/service-requests' : '/service-requests'
+    },
+    {
+      title: 'AI Assistant',
+      subtitle: 'Ask VIMS workflow questions',
+      icon: <QrCodeScannerIcon />,
+      link: '/ai-assistant'
     }
   ];
 

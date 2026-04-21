@@ -31,6 +31,7 @@ import AdminReportSchedules from './pages/AdminReportSchedules';
 import AdminReports from './pages/AdminReports';
 import Announcements from './pages/Announcements';
 import AdminAnnouncements from './pages/AdminAnnouncements';
+import Chatbot from './pages/Chatbot';
 
 // NEW PAYMENT PAGES
 import PaymentRedirect from './pages/PaymentRedirect';
@@ -130,6 +131,7 @@ function App() {
             <Route path="/payments" element={<ResidentRoute><Payments /></ResidentRoute>} />
             <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/ai-assistant" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
 
             {/* NEW PAYMENT ROUTES */}
             <Route path="/payment-redirect" element={<ProtectedRoute><PaymentRedirect /></ProtectedRoute>} />

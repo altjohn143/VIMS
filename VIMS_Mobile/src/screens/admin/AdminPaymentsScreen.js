@@ -12,7 +12,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   FlatList,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -208,6 +209,13 @@ const AdminPaymentsScreen = ({ navigation }) => {
     return configs[method] || { label: method?.toUpperCase() || 'N/A', color: themeColors.textSecondary };
   };
 
+  const getReceiptAiMeta = (receiptAi) => {
+    if (!receiptAi) return { label: 'AI not analyzed', color: themeColors.textSecondary };
+    if (receiptAi.recommendation === 'likely_legit') return { label: 'AI: Likely legit', color: themeColors.success };
+    if (receiptAi.recommendation === 'likely_fraud') return { label: 'AI: Likely fraud', color: themeColors.error };
+    return { label: 'AI: Needs review', color: themeColors.warning };
+  };
+
   const filteredPayments = payments.filter(payment => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -218,6 +226,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const renderPaymentCard = ({ item: payment }) => {
     const status = getStatusChip(payment.status, payment.dueDate);
     const methodConfig = getPaymentMethodConfig(payment.paymentMethod);
+    const receiptAiMeta = getReceiptAiMeta(payment.receiptAi);
     
     return (
       <View style={[styles.paymentCard, shadows.small]}>
@@ -257,6 +266,12 @@ const AdminPaymentsScreen = ({ navigation }) => {
             <Text style={styles.referenceText}>Ref: {payment.referenceNumber}</Text>
           )}
         </View>
+        <View style={[styles.methodBadge, { backgroundColor: receiptAiMeta.color + '20', marginBottom: 10, alignSelf: 'flex-start' }]}>
+          <Text style={[styles.methodText, { color: receiptAiMeta.color }]}>{receiptAiMeta.label}</Text>
+        </View>
+        {payment.receiptAi?.flags?.length > 0 && (
+          <Text style={styles.referenceText}>Flags: {payment.receiptAi.flags.slice(0, 2).join(', ')}</Text>
+        )}
         
         <View style={styles.actionButtons}>
           {payment.status === 'pending' && payment.paymentMethod === 'cash' && (
@@ -307,7 +322,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment Management</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={() => navigation.navigate('Chatbot')} style={styles.backButton}>
+          <Ionicons name="sparkles-outline" size={22} color="white" />
+        </TouchableOpacity>
       </View>
 
       {/* Stats Cards */}
@@ -461,6 +478,20 @@ const AdminPaymentsScreen = ({ navigation }) => {
                     </View>
                   )}
                 </View>
+                {selectedPayment?.receiptAi && (
+                  <View style={[styles.verifyDetails, { marginTop: 8 }]}>
+                    <Text style={[styles.verifyLabel, { fontWeight: '700', marginBottom: 8 }]}>AI Receipt Analysis</Text>
+                    <Text style={[styles.verifyValue, { color: getReceiptAiMeta(selectedPayment.receiptAi).color }]}>
+                      {getReceiptAiMeta(selectedPayment.receiptAi).label}
+                    </Text>
+                    <Text style={styles.verifyValue}>
+                      Fraud score: {typeof selectedPayment.receiptAi.fraudScore === 'number' ? selectedPayment.receiptAi.fraudScore.toFixed(2) : 'N/A'}
+                    </Text>
+                    {selectedPayment.receiptAi.flags?.length > 0 && (
+                      <Text style={styles.verifyValue}>Flags: {selectedPayment.receiptAi.flags.join(', ')}</Text>
+                    )}
+                  </View>
+                )}
                 
                 <TextInput
                   style={styles.notesInput}

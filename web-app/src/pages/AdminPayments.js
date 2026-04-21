@@ -51,6 +51,7 @@ import {
   FilterList as FilterIcon,
   AdminPanelSettings as AdminIcon,
   Settings as SettingsIcon,
+  SmartToy as SmartToyIcon,
   VerifiedUser as VerifyIcon,
   QrCode as QrCodeIcon,
   Image as ImageIcon,
@@ -390,6 +391,18 @@ const AdminPayments = () => {
     );
   };
 
+  const getReceiptAiChip = (receiptAi) => {
+    if (!receiptAi) return <Chip label="Not analyzed" size="small" variant="outlined" />;
+    const recommendation = receiptAi.recommendation || 'needs_review';
+    if (recommendation === 'likely_legit') {
+      return <Chip size="small" color="success" label="AI: Likely legit" />;
+    }
+    if (recommendation === 'likely_fraud') {
+      return <Chip size="small" color="error" label="AI: Likely fraud" />;
+    }
+    return <Chip size="small" color="warning" label="AI: Needs review" />;
+  };
+
   return (
     <Box
       sx={{
@@ -447,6 +460,10 @@ const AdminPayments = () => {
             </Avatar>
           </IconButton>
           <Menu anchorEl={profileAnchorEl} open={Boolean(profileAnchorEl)} onClose={handleProfileMenuClose}>
+            <MenuItem component={Link} to="/ai-assistant" onClick={handleProfileMenuClose}>
+              <ListItemIcon><SmartToyIcon fontSize="small" /></ListItemIcon>
+              AI Assistant
+            </MenuItem>
             <MenuItem component={Link} to="/profile" onClick={handleProfileMenuClose}>
               <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
               Profile Settings
@@ -682,14 +699,15 @@ const AdminPayments = () => {
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Payment Method</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Reference #</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>AI Receipt Risk</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={10} align="center"><CircularProgress /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} align="center"><CircularProgress /></TableCell></TableRow>
                 ) : payments.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} align="center">No payments found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} align="center">No payments found</TableCell></TableRow>
                 ) : (
                   payments.map((payment) => (
                     <TableRow
@@ -732,6 +750,14 @@ const AdminPayments = () => {
                             {payment.referenceNumber}
                           </Typography>
                         ) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {getReceiptAiChip(payment.receiptAi)}
+                        {payment.receiptAi?.flags?.length > 0 && (
+                          <Typography variant="caption" sx={{ display: 'block', color: themeColors.textSecondary, mt: 0.4 }}>
+                            {payment.receiptAi.flags.slice(0, 2).join(', ')}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell align="center">
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -968,6 +994,25 @@ const AdminPayments = () => {
                     </Grid>
                   </Grid>
                 </Paper>
+                {selectedQRPhPayment.receiptAi && (
+                  <Paper sx={{ p: 2, mb: 2, bgcolor: '#f8fafc', borderRadius: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>AI Receipt Analysis</Typography>
+                    <Box sx={{ mb: 1 }}>{getReceiptAiChip(selectedQRPhPayment.receiptAi)}</Box>
+                    <Typography variant="caption" sx={{ color: themeColors.textSecondary, display: 'block' }}>
+                      Fraud score: {typeof selectedQRPhPayment.receiptAi.fraudScore === 'number' ? selectedQRPhPayment.receiptAi.fraudScore.toFixed(2) : 'N/A'}
+                    </Typography>
+                    {selectedQRPhPayment.receiptAi.flags?.length > 0 && (
+                      <Typography variant="caption" sx={{ color: themeColors.textSecondary, display: 'block' }}>
+                        Flags: {selectedQRPhPayment.receiptAi.flags.join(', ')}
+                      </Typography>
+                    )}
+                    {selectedQRPhPayment.receiptAi.explanation && (
+                      <Typography variant="caption" sx={{ color: themeColors.textSecondary, display: 'block', mt: 0.5 }}>
+                        {selectedQRPhPayment.receiptAi.explanation}
+                      </Typography>
+                    )}
+                  </Paper>
+                )}
 
                 <TextField
                   fullWidth

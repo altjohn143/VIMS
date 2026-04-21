@@ -8,7 +8,7 @@ const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { extractIdFieldsFromImagePaths } = require('../services/openaiIdOcrService');
 const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
-const { getOpenAIModel } = require('../services/openaiClient');
+const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
 
 const router = express.Router();
 
@@ -45,7 +45,13 @@ router.get('/ping', (req, res) => {
 router.get('/openai-model', protect, authorize('admin'), async (req, res) => {
   try {
     if (!process.env.OPENAI_API_KEY) return res.status(503).json({ success: false, error: 'OPENAI_API_KEY is not configured' });
-    return res.json({ success: true, model: getOpenAIModel() });
+    return res.json({
+      success: true,
+      models: {
+        high: getOpenAIHighModel(),
+        low: getOpenAILowModel()
+      }
+    });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Failed to load model', details: error.message || 'Unknown error' });
   }

@@ -1,6 +1,7 @@
 const OpenAI = require('openai');
 
-const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1';
+const DEFAULT_HIGH_MODEL = process.env.OPENAI_MODEL_HIGH || process.env.OPENAI_MODEL || 'gpt-4.1';
+const DEFAULT_LOW_MODEL = process.env.OPENAI_MODEL_LOW || 'gpt-4.1-mini';
 const REQUEST_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 45000);
 
 let cachedClient = null;
@@ -18,11 +19,21 @@ function getOpenAIClient() {
   return cachedClient;
 }
 
-function getOpenAIModel() {
-  return DEFAULT_MODEL;
+function getOpenAIHighModel() {
+  return DEFAULT_HIGH_MODEL;
+}
+
+function getOpenAILowModel() {
+  return DEFAULT_LOW_MODEL;
+}
+
+function getOpenAIModel(mode = 'high') {
+  return mode === 'low' ? getOpenAILowModel() : getOpenAIHighModel();
 }
 
 module.exports = {
   getOpenAIClient,
-  getOpenAIModel
+  getOpenAIModel,
+  getOpenAIHighModel,
+  getOpenAILowModel
 };

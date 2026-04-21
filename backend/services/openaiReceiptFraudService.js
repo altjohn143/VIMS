@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getOpenAIClient, getOpenAIModel } = require('./openaiClient');
+const { getOpenAIClient, getOpenAIHighModel } = require('./openaiClient');
 
 function toDataUrl(absPath) {
   const ext = path.extname(absPath || '').toLowerCase();
@@ -18,7 +18,7 @@ function toDataUrl(absPath) {
 
 async function analyzeReceiptFraud({ receiptAbsPath, paymentContext }) {
   const client = getOpenAIClient();
-  const model = getOpenAIModel();
+  const model = getOpenAIHighModel();
   const response = await client.responses.create({
     model,
     input: [

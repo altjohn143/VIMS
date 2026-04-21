@@ -1,7 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { protect } = require('../middleware/auth');
-const { getOpenAIClient, getOpenAIModel } = require('../services/openaiClient');
+const { getOpenAIClient, getOpenAILowModel } = require('../services/openaiClient');
 
 const router = express.Router();
 
@@ -35,7 +35,7 @@ router.post('/chat', protect, chatLimiter, async (req, res) => {
     if (message.length > 2000) return res.status(400).json({ success: false, error: 'message exceeds 2000 characters' });
     if (!process.env.OPENAI_API_KEY) return res.status(503).json({ success: false, error: 'OPENAI_API_KEY is not configured' });
 
-    const model = getOpenAIModel();
+    const model = getOpenAILowModel();
     const client = getOpenAIClient();
     const response = await client.responses.create({
       model,

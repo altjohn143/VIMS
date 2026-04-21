@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getOpenAIClient, getOpenAIModel } = require('./openaiClient');
+const { getOpenAIClient, getOpenAIHighModel } = require('./openaiClient');
 
 function toDataUrl(absPath) {
   const ext = path.extname(absPath || '').toLowerCase();
@@ -22,7 +22,7 @@ function normalizeDate(v) {
 
 async function extractIdFieldsFromImagePaths(frontAbsPath, backAbsPath) {
   const client = getOpenAIClient();
-  const model = getOpenAIModel();
+  const model = getOpenAIHighModel();
   const response = await client.responses.create({
     model,
     input: [

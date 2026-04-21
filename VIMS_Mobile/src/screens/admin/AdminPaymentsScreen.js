@@ -579,7 +579,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
           </View>
           {selectedImage && (
             <Image
-              source={{ uri: `http://192.168.1.5:5000/api/payments/receipt-image/${selectedImage}` }}
+              source={{ uri: `${api.defaults.baseURL}/payments/receipt-image/${selectedImage}` }}
               style={styles.fullImage}
               resizeMode="contain"
             />

@@ -47,7 +47,7 @@ const Chatbot = () => {
             VIMS AI Assistant
           </Typography>
           <Typography variant="body2" sx={{ color: '#64748b', mb: 2 }}>
-            Ask about registration, visitors, payments, announcements, and workflows.
+            Ask about registration, visitors, payments, announcements, lot recommendations, and village workflows.
           </Typography>
           <Box sx={{ minHeight: 360, maxHeight: 460, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 2, p: 1.5, mb: 2 }}>
             {messages.length === 0 && (

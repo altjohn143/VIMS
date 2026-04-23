@@ -43,7 +43,7 @@ const ChatbotScreen = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.messages}>
-        {messages.length === 0 && <Text style={styles.empty}>Ask about VIMS workflows and features.</Text>}
+        {messages.length === 0 && <Text style={styles.empty}>Ask about VIMS workflows, lot recommendations, pricing, and availability.</Text>}
         {messages.map((m, idx) => (
           <View key={idx} style={[styles.bubble, m.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
             <Text style={styles.bubbleText}>{m.content}</Text>

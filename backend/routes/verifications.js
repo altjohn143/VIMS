@@ -8,6 +8,7 @@ const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { extractIdFieldsFromImagePaths } = require('../services/openaiIdOcrService');
 const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
+const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
 
 const router = express.Router();
@@ -82,6 +83,62 @@ router.post(
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
       }
 
+      const { front, back } = resolveUploadedPaths(frontImage, backImage);
+      let ocr = null;
+      try {
+        ocr = await extractIdFieldsFromImagePaths(front, back);
+      } catch (ocrError) {
+        console.error('OCR extraction failed, saving verification for manual review:', ocrError?.response?.data || ocrError.message || ocrError);
+        let verification = await IdentityVerification.findOne({ userId: user._id });
+        if (!verification) {
+          verification = await IdentityVerification.create({
+            userId: user._id,
+            residentEmail: snapEmail,
+            residentDisplayName: snapName,
+            frontImage,
+            backImage,
+            selfieImage,
+            status: 'manual_review',
+            reviewNotes: 'OCR failed while extracting ID details. Routed to manual review.',
+            rejectReason: ''
+          });
+        } else {
+          verification.frontImage = frontImage;
+          verification.backImage = backImage;
+          verification.selfieImage = selfieImage;
+          verification.residentEmail = snapEmail;
+          verification.residentDisplayName = snapName;
+          verification.status = 'manual_review';
+          verification.reviewNotes = 'OCR failed while extracting ID details. Routed to manual review.';
+          verification.rejectReason = '';
+          await verification.save();
+        }
+
+        return res.json({
+          success: true,
+          message: 'ID uploaded but OCR failed. The ID has been routed to manual review.',
+          data: verification
+        });
+      }
+
+      const duplicate = await detectDuplicateIdentity({ ocr, excludeUserId: user._id });
+      if (duplicate.found) {
+        const cleanupFiles = [front, back];
+        cleanupFiles.forEach((filePath) => {
+          try {
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+          } catch (cleanupError) {
+            console.warn('Failed to remove duplicate upload file:', filePath, cleanupError.message || cleanupError);
+          }
+        });
+
+        return res.status(409).json({
+          success: false,
+          error: duplicate.reason || 'Duplicate identity detected. This ID is already linked to another resident account.'
+        });
+      }
+
+      const ocrFullName = `${ocr.firstName || ''} ${ocr.middleName || ''} ${ocr.lastName || ''}`.trim();
       let verification = await IdentityVerification.findOne({ userId: user._id });
       if (!verification) {
         verification = await IdentityVerification.create({
@@ -105,58 +162,41 @@ router.post(
         await verification.save();
       }
 
-      try {
-        const { front, back } = resolveUploadedPaths(frontImage, backImage);
-        const ocr = await extractIdFieldsFromImagePaths(front, back);
-        const ocrFullName = `${ocr.firstName || ''} ${ocr.middleName || ''} ${ocr.lastName || ''}`.trim();
+      const localDecision = verifyUserAgainstOcr({ user, ocr });
+      verification.aiResult = {
+        score: localDecision.score ?? null,
+        ocrName: ocrFullName,
+        ocrDob: ocr.dob || '',
+        flags: localDecision.flags,
+        providerRaw: { engine: ocr.engine, confidence: ocr.confidence, idNumber: ocr.idNumber || '', ocrAddress: ocr.address || '' }
+      };
 
-        const localDecision = verifyUserAgainstOcr({ user, ocr });
-        verification.aiResult = {
-          score: localDecision.score ?? null,
-          ocrName: ocrFullName,
-          ocrDob: ocr.dob || '',
-          flags: localDecision.flags,
-          providerRaw: { engine: ocr.engine, confidence: ocr.confidence, idNumber: ocr.idNumber || '', ocrAddress: ocr.address || '' }
-        };
-
-        if (localDecision.decision === 'documents_verified') {
-          verification.documentsVerified = true;
-          verification.status = 'documents_verified';
-          verification.reviewNotes = localDecision.reason;
-          verification.rejectReason = '';
-          verification.reviewedBy = null;
-          verification.reviewedAt = null;
-
-          await verification.save();
-          return res.json({
-            success: true,
-            message: 'ID uploaded and documents verified. Your resident account still requires an administrator to approve it before you can log in.',
-            data: verification
-          });
-        }
-
-        verification.status = localDecision.decision === 'rejected' ? 'rejected' : 'manual_review';
+      if (localDecision.decision === 'documents_verified') {
+        verification.documentsVerified = true;
+        verification.status = 'documents_verified';
         verification.reviewNotes = localDecision.reason;
-        verification.rejectReason = localDecision.decision === 'rejected' ? localDecision.reason : '';
-        await verification.save();
-
-        return res.json({
-          success: true,
-          message: 'ID uploaded and routed to manual review',
-          data: verification
-        });
-      } catch (aiError) {
-        console.error('OpenAI verification error (fallback to manual review):', aiError?.response?.data || aiError.message || aiError);
-        verification.status = 'manual_review';
-        verification.reviewNotes = 'AI verification service unavailable. Routed to manual review.';
         verification.rejectReason = '';
+        verification.reviewedBy = null;
+        verification.reviewedAt = null;
+
         await verification.save();
         return res.json({
           success: true,
-          message: 'ID uploaded and routed to manual review',
+          message: 'ID uploaded and documents verified. Your resident account still requires an administrator to approve it before you can log in.',
           data: verification
         });
       }
+
+      verification.status = localDecision.decision === 'rejected' ? 'rejected' : 'manual_review';
+      verification.reviewNotes = localDecision.reason;
+      verification.rejectReason = localDecision.decision === 'rejected' ? localDecision.reason : '';
+      await verification.save();
+
+      return res.json({
+        success: true,
+        message: 'ID uploaded and routed to manual review',
+        data: verification
+      });
     } catch (error) {
       console.error('Upload ID error:', error);
       res.status(500).json({ success: false, error: 'Failed to upload ID' });

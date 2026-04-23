@@ -113,6 +113,7 @@ const Register = () => {
   const [lastOcrSignature, setLastOcrSignature] = useState('');
   const [lastOcrAt, setLastOcrAt] = useState(0);
   const [ocrUnavailable, setOcrUnavailable] = useState(false);
+  const [ocrIdNumber, setOcrIdNumber] = useState('');
 
   const [availableLots, setAvailableLots] = useState([]);
   const [allLots, setAllLots] = useState([]);
@@ -393,6 +394,7 @@ const Register = () => {
       countryCode: formData.countryCode,
       noVehicles: formData.noVehicles,
       soloResident: formData.soloResident,
+      ...(ocrIdNumber.trim() ? { idNumber: ocrIdNumber.trim() } : {}),
       vehicles: formData.noVehicles
         ? []
         : formData.vehicles.filter(v => v.plateNumber || v.make || v.model || v.color),
@@ -490,6 +492,9 @@ const Register = () => {
             ? prev.dateOfBirth
             : (/^\d{4}-\d{2}-\d{2}$/.test(ocr.dob || '') ? ocr.dob : prev.dateOfBirth)
         }));
+        if (ocr.idNumber) {
+          setOcrIdNumber(ocr.idNumber);
+        }
 
         const conf = typeof ocr.confidence === 'number' ? ocr.confidence : null;
         toast.success(`Text read from your ID${conf !== null ? ` (confidence ${(conf * 100).toFixed(0)}%)` : ''}. Please review name and date of birth.`);
@@ -1152,6 +1157,7 @@ const Register = () => {
                         const file = e.target.files?.[0] || null;
                         setOcrUnavailable(false);
                         setLastOcrSignature('');
+                        setOcrIdNumber('');
                         setIdDocs((prev) => {
                           const next = { ...prev, frontImage: file };
                           queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
@@ -1173,6 +1179,7 @@ const Register = () => {
                         const file = e.target.files?.[0] || null;
                         setOcrUnavailable(false);
                         setLastOcrSignature('');
+                        setOcrIdNumber('');
                         setIdDocs((prev) => {
                           const next = { ...prev, backImage: file };
                           queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));

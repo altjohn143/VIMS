@@ -8,6 +8,7 @@ const Lot = require('../models/Lot');
 const IdentityVerification = require('../models/IdentityVerification');
 const { protect } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
+const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 
 const LOGIN_LIMIT_WINDOW_MINUTES = Number(process.env.LOGIN_LIMIT_WINDOW_MINUTES || 15);
 const LOGIN_LIMIT_MAX_ATTEMPTS = Number(process.env.LOGIN_LIMIT_MAX_ATTEMPTS || 10);
@@ -144,6 +145,17 @@ router.post('/register', async (req, res) => {
         success: false,
         error: 'User already exists with this email'
       });
+    }
+
+    if (req.body.idNumber) {
+      const duplicate = await detectDuplicateIdentity({ idNumber: req.body.idNumber, excludeUserId: null });
+      if (duplicate.found) {
+        console.log('Duplicate ID detected during registration:', req.body.idNumber);
+        return res.status(409).json({
+          success: false,
+          error: duplicate.reason || 'This identity document is already linked to an existing resident account.'
+        });
+      }
     }
 
     // Security hardening: self-registration is resident-only.

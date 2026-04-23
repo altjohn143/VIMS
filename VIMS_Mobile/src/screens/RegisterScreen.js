@@ -88,6 +88,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [ocrUnavailable, setOcrUnavailable] = useState(false);
   const [lastOcrSignature, setLastOcrSignature] = useState('');
   const [lastOcrAt, setLastOcrAt] = useState(0);
+  const [ocrIdNumber, setOcrIdNumber] = useState('');
 
   // DOB picker
   const [dobPickerOpen, setDobPickerOpen] = useState(false);
@@ -224,6 +225,7 @@ const RegisterScreen = ({ navigation, route }) => {
       setOcrUnavailable(false);
       setLastOcrSignature('');
       setLastOcrAt(0);
+      setOcrIdNumber('');
     } catch (e) {
       console.error('pickIdImage error:', e);
       Alert.alert('Error', e?.message || 'Failed to pick image.');
@@ -304,6 +306,9 @@ const RegisterScreen = ({ navigation, route }) => {
             ? prev.dateOfBirth
             : (/^\d{4}-\d{2}-\d{2}$/.test(String(ocr.dob || '')) ? ocr.dob : prev.dateOfBirth),
         }));
+        if (ocr.idNumber) {
+          setOcrIdNumber(ocr.idNumber);
+        }
       } else {
         setOcrUnavailable(true);
         if (!r.ok) {
@@ -414,7 +419,8 @@ const RegisterScreen = ({ navigation, route }) => {
         password: formData.password,
         role: 'resident',
         selectedLot: formData.selectedLot,
-        countryCode: formData.countryCode
+        countryCode: formData.countryCode,
+        ...(ocrIdNumber.trim() ? { idNumber: ocrIdNumber.trim() } : {})
       };
 
       const response = await api.post('/auth/register', registrationData);

@@ -114,6 +114,11 @@ router.post(
           await verification.save();
         }
 
+        // Update user's profile photo if selfie was provided
+        if (selfieImage) {
+          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+        }
+
         return res.json({
           success: true,
           message: 'ID uploaded but OCR failed. The ID has been routed to manual review.',
@@ -180,6 +185,12 @@ router.post(
         verification.reviewedAt = null;
 
         await verification.save();
+
+        // Update user's profile photo if selfie was provided
+        if (selfieImage) {
+          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+        }
+
         return res.json({
           success: true,
           message: 'ID uploaded and documents verified. Your resident account still requires an administrator to approve it before you can log in.',
@@ -191,6 +202,11 @@ router.post(
       verification.reviewNotes = localDecision.reason;
       verification.rejectReason = localDecision.decision === 'rejected' ? localDecision.reason : '';
       await verification.save();
+
+      // Update user's profile photo if selfie was provided
+      if (selfieImage) {
+        await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+      }
 
       return res.json({
         success: true,
@@ -421,6 +437,37 @@ router.get('/files/:filename', protect, authorize('admin'), (req, res) => {
   const target = path.join(uploadDir, req.params.filename);
   if (!fs.existsSync(target)) return res.status(404).json({ success: false, error: 'File not found' });
   return res.sendFile(target);
+});
+
+// Allow users to view their own uploaded ID images
+router.get('/my-files/:filename', protect, async (req, res) => {
+  try {
+    const { filename } = req.params;
+    
+    // Verify the file belongs to the current user
+    const verification = await IdentityVerification.findOne({ 
+      userId: req.user._id,
+      $or: [
+        { frontImage: filename },
+        { backImage: filename },
+        { selfieImage: filename }
+      ]
+    });
+    
+    if (!verification) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+    
+    const target = path.join(uploadDir, filename);
+    if (!fs.existsSync(target)) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+    
+    return res.sendFile(target);
+  } catch (error) {
+    console.error('Error serving user file:', error);
+    res.status(500).json({ success: false, error: 'Failed to serve file' });
+  }
 });
 
 module.exports = router;

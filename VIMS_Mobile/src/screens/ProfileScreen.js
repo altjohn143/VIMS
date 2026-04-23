@@ -51,6 +51,8 @@ const ProfileScreen = ({ navigation }) => {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedPhotoUri, setSelectedPhotoUri] = useState(null);
+  const [uploadedDocuments, setUploadedDocuments] = useState(null);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
 
   useEffect(() => {
     loadUserProfile();
@@ -79,11 +81,36 @@ const ProfileScreen = ({ navigation }) => {
           setProfilePhoto(buildProfilePhotoUrl(profileData.profilePhotoUrl || profileData.profilePhoto || userData.profilePhoto || null));
         }
       }
+      
+      // Load uploaded documents
+      await loadUploadedDocuments();
     } catch (error) {
       console.error('Error loading profile:', error);
       Alert.alert('Error', 'Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUploadedDocuments = async () => {
+    try {
+      setLoadingDocuments(true);
+      const response = await api.get('/verifications/me');
+      if (response.data.success && response.data.data) {
+        const verification = response.data.data;
+        setUploadedDocuments({
+          frontImage: verification.frontImage,
+          backImage: verification.backImage,
+          selfieImage: verification.selfieImage,
+          status: verification.status,
+          documentsVerified: verification.documentsVerified
+        });
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      // Don't show error alert for documents, as they might not have uploaded any yet
+    } finally {
+      setLoadingDocuments(false);
     }
   };
 
@@ -203,6 +230,12 @@ const ProfileScreen = ({ navigation }) => {
     if (photo.startsWith('http')) return photo;
     const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || '';
     return `${baseUrl}/uploads/profile-photos/${photo}`;
+  };
+
+  const buildDocumentUrl = (filename) => {
+    if (!filename) return null;
+    const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || '';
+    return `${baseUrl}/api/verifications/my-files/${filename}`;
   };
 
   const uploadProfilePhoto = async (uri) => {
@@ -388,6 +421,94 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Uploaded Documents Section */}
+        <View style={[styles.section, shadows.small]}>
+          <Text style={styles.sectionTitle}>Uploaded Documents</Text>
+          {loadingDocuments ? (
+            <View style={styles.loadingDocuments}>
+              <ActivityIndicator size="small" color={themeColors.primary} />
+              <Text style={styles.loadingDocumentsText}>Loading documents...</Text>
+            </View>
+          ) : uploadedDocuments ? (
+            <View style={styles.documentsContainer}>
+              {uploadedDocuments.selfieImage && (
+                <View style={styles.documentItem}>
+                  <Text style={styles.documentLabel}>Profile Picture</Text>
+                  <TouchableOpacity 
+                    style={styles.documentImageContainer}
+                    onPress={() => {
+                      // Could open image viewer modal here
+                    }}
+                  >
+                    <Image 
+                      source={{ uri: buildDocumentUrl(uploadedDocuments.selfieImage) }} 
+                      style={styles.documentImage} 
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                </View>
+              )}
+              
+              <View style={styles.documentRow}>
+                {uploadedDocuments.frontImage && (
+                  <View style={styles.documentItem}>
+                    <Text style={styles.documentLabel}>ID Front</Text>
+                    <TouchableOpacity 
+                      style={styles.documentImageContainer}
+                      onPress={() => {
+                        // Could open image viewer modal here
+                      }}
+                    >
+                      <Image 
+                        source={{ uri: buildDocumentUrl(uploadedDocuments.frontImage) }} 
+                        style={styles.documentImage} 
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                )}
+                
+                {uploadedDocuments.backImage && (
+                  <View style={styles.documentItem}>
+                    <Text style={styles.documentLabel}>ID Back</Text>
+                    <TouchableOpacity 
+                      style={styles.documentImageContainer}
+                      onPress={() => {
+                        // Could open image viewer modal here
+                      }}
+                    >
+                      <Image 
+                        source={{ uri: buildDocumentUrl(uploadedDocuments.backImage) }} 
+                        style={styles.documentImage} 
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.verificationStatus}>
+                <Ionicons 
+                  name={uploadedDocuments.documentsVerified ? "checkmark-circle" : "time"} 
+                  size={16} 
+                  color={uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning} 
+                />
+                <Text style={[styles.verificationStatusText, { 
+                  color: uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning 
+                }]}>
+                  {uploadedDocuments.documentsVerified ? 'Documents Verified' : 'Verification Pending'}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.noDocuments}>
+              <Ionicons name="document" size={48} color={themeColors.textSecondary} />
+              <Text style={styles.noDocumentsText}>No documents uploaded yet</Text>
+              <Text style={styles.noDocumentsSubtext}>Documents are uploaded during registration</Text>
+            </View>
+          )}
+        </View>
+
         {user?.role === 'resident' && (
           <View style={[styles.section, shadows.small]}>
             <Text style={styles.sectionTitle}>Move-out</Text>
@@ -551,6 +672,19 @@ const styles = StyleSheet.create({
   changeButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
   previewNotice: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e5f4ec', borderRadius: 8, padding: 12, marginTop: 12 },
   previewText: { fontSize: 14, color: themeColors.secondary, marginLeft: 8, fontWeight: '500' },
+  loadingDocuments: { alignItems: 'center', padding: 20 },
+  loadingDocumentsText: { fontSize: 14, color: themeColors.textSecondary, marginTop: 8 },
+  documentsContainer: { gap: 16 },
+  documentRow: { flexDirection: 'row', gap: 12 },
+  documentItem: { flex: 1 },
+  documentLabel: { fontSize: 14, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 8 },
+  documentImageContainer: { borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: themeColors.border },
+  documentImage: { width: '100%', height: 120 },
+  verificationStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, backgroundColor: '#f8fafc', borderRadius: 8 },
+  verificationStatusText: { fontSize: 14, fontWeight: '600', marginLeft: 8 },
+  noDocuments: { alignItems: 'center', padding: 32 },
+  noDocumentsText: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary, marginTop: 16 },
+  noDocumentsSubtext: { fontSize: 14, color: themeColors.textSecondary, marginTop: 4, textAlign: 'center' },
 });
 
 export default ProfileScreen;

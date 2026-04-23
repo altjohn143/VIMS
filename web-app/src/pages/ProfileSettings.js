@@ -98,6 +98,12 @@ const ProfileSettings = () => {
   const [moveOutDialogOpen, setMoveOutDialogOpen] = useState(false);
   const [moveOutReason, setMoveOutReason] = useState('');
   const [moveOutSubmitting, setMoveOutSubmitting] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadedDocuments, setUploadedDocuments] = useState(null);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -132,6 +138,7 @@ const ProfileSettings = () => {
         if (data.success) {
           const userData = data.data;
           setUser(userData);
+          setProfilePhoto(userData.profilePhotoUrl || null);
           setFormData({
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
@@ -151,10 +158,19 @@ const ProfileSettings = () => {
             }
           });
           if (verificationResponse.data?.success) {
-            setVerificationStatus(verificationResponse.data.data?.status || null);
+            const verificationData = verificationResponse.data.data;
+            setVerificationStatus(verificationData?.status || null);
+            setUploadedDocuments({
+              frontImage: verificationData?.frontImage,
+              backImage: verificationData?.backImage,
+              selfieImage: verificationData?.selfieImage,
+              status: verificationData?.status,
+              documentsVerified: verificationData?.documentsVerified
+            });
           }
         } catch (verificationError) {
           setVerificationStatus(null);
+          setUploadedDocuments(null);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -192,6 +208,52 @@ const ProfileSettings = () => {
     } finally {
       setMoveOutSubmitting(false);
     }
+  };
+
+  const handleProfilePhotoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image file size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+      const token = localStorage.getItem('token') || '';
+      const formData = new FormData();
+      formData.append('photo', file);
+
+      const response = await axios.post('/api/users/profile-photo', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.success) {
+        setProfilePhoto(response.data.data.profilePhotoUrl);
+        toast.success('Profile photo updated successfully');
+      }
+    } catch (error) {
+      console.error('Profile photo upload error:', error);
+      toast.error(error.response?.data?.error || 'Failed to upload profile photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const buildDocumentUrl = (filename) => {
+    if (!filename) return null;
+    return `/api/verifications/my-files/${filename}`;
   };
 
   // Profile Functions
@@ -589,6 +651,7 @@ const ProfileSettings = () => {
               <Box sx={{ textAlign: 'center' }}>
                 <Box sx={{ position: 'relative', display: 'inline-block' }}>
                   <Avatar
+                    src={profilePhoto}
                     sx={{
                       width: 120,
                       height: 120,
@@ -602,16 +665,29 @@ const ProfileSettings = () => {
                     {user?.lastName?.charAt(0)}
                   </Avatar>
                   <IconButton
+                    component="label"
+                    disabled={uploadingPhoto}
                     sx={{
                       position: 'absolute',
                       bottom: 8,
                       right: 8,
                       bgcolor: 'white',
                       '&:hover': { bgcolor: 'grey.100' },
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      opacity: uploadingPhoto ? 0.6 : 1
                     }}
                   >
-                    <CameraIcon />
+                    {uploadingPhoto ? (
+                      <CircularProgress size={20} />
+                    ) : (
+                      <CameraIcon />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={handleProfilePhotoUpload}
+                    />
                   </IconButton>
                 </Box>
                 <Typography variant="h6" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
@@ -694,6 +770,124 @@ const ProfileSettings = () => {
                   </Box>
                 </Box>
               )}
+
+              <Divider sx={{ my: 3, borderColor: themeColors.border }} />
+
+              {/* Uploaded Documents Section */}
+              <Box>
+                <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
+                  <PersonIcon />
+                  Uploaded Documents
+                </Typography>
+                
+                {loadingDocuments ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 3 }}>
+                    <CircularProgress size={24} />
+                    <Typography variant="body2" sx={{ ml: 2, color: themeColors.textSecondary }}>
+                      Loading documents...
+                    </Typography>
+                  </Box>
+                ) : uploadedDocuments ? (
+                  <Box sx={{ mt: 2 }}>
+                    {uploadedDocuments.selfieImage && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
+                          Profile Picture
+                        </Typography>
+                        <Box
+                          component="img"
+                          src={buildDocumentUrl(uploadedDocuments.selfieImage)}
+                          alt="Profile Picture"
+                          sx={{
+                            width: '100%',
+                            maxWidth: 200,
+                            height: 150,
+                            objectFit: 'cover',
+                            borderRadius: 2,
+                            border: `1px solid ${themeColors.border}`,
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => window.open(buildDocumentUrl(uploadedDocuments.selfieImage), '_blank')}
+                        />
+                      </Box>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      {uploadedDocuments.frontImage && (
+                        <Box sx={{ flex: 1, minWidth: 150 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
+                            ID Front
+                          </Typography>
+                          <Box
+                            component="img"
+                            src={buildDocumentUrl(uploadedDocuments.frontImage)}
+                            alt="ID Front"
+                            sx={{
+                              width: '100%',
+                              height: 120,
+                              objectFit: 'cover',
+                              borderRadius: 2,
+                              border: `1px solid ${themeColors.border}`,
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => window.open(buildDocumentUrl(uploadedDocuments.frontImage), '_blank')}
+                          />
+                        </Box>
+                      )}
+                      
+                      {uploadedDocuments.backImage && (
+                        <Box sx={{ flex: 1, minWidth: 150 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
+                            ID Back
+                          </Typography>
+                          <Box
+                            component="img"
+                            src={buildDocumentUrl(uploadedDocuments.backImage)}
+                            alt="ID Back"
+                            sx={{
+                              width: '100%',
+                              height: 120,
+                              objectFit: 'cover',
+                              borderRadius: 2,
+                              border: `1px solid ${themeColors.border}`,
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => window.open(buildDocumentUrl(uploadedDocuments.backImage), '_blank')}
+                          />
+                        </Box>
+                      )}
+                    </Box>
+                    
+                    <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <VerifiedUserIcon 
+                        sx={{ 
+                          color: uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning,
+                          fontSize: 18
+                        }} 
+                      />
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning,
+                          fontWeight: 600
+                        }}
+                      >
+                        {uploadedDocuments.documentsVerified ? 'Documents Verified' : 'Verification Pending'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 3 }}>
+                    <PersonIcon sx={{ fontSize: 48, color: themeColors.textSecondary, mb: 1 }} />
+                    <Typography variant="body1" sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
+                      No documents uploaded yet
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: themeColors.textSecondary, mt: 0.5 }}>
+                      Documents are uploaded during registration
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
 
               {/* Security Section */}
               <Box>

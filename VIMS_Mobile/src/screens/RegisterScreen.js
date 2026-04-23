@@ -83,7 +83,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [showCountryCodeDropdown, setShowCountryCodeDropdown] = useState(false);
 
   // OCR (backend-based)
-  const [idDocs, setIdDocs] = useState({ frontUri: null, backUri: null });
+  const [idDocs, setIdDocs] = useState({ frontUri: null, backUri: null, selfieUri: null });
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrUnavailable, setOcrUnavailable] = useState(false);
   const [lastOcrSignature, setLastOcrSignature] = useState('');
@@ -232,6 +232,34 @@ const RegisterScreen = ({ navigation, route }) => {
     }
   }, []);
 
+  const pickSelfieImage = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow photo access to upload your profile picture.');
+        return;
+      }
+      const imagesMediaTypes =
+        ImagePicker?.MediaType?.Images
+          ? [ImagePicker.MediaType.Images]
+          : ImagePicker.MediaTypeOptions.Images;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: imagesMediaTypes,
+        quality: 1,
+      });
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri || null;
+      if (!uri) return;
+      setIdDocs((p) => ({
+        ...p,
+        selfieUri: uri,
+      }));
+    } catch (e) {
+      console.error('pickSelfieImage error:', e);
+      Alert.alert('Error', e?.message || 'Failed to pick image.');
+    }
+  }, []);
+
   const tryOcrAutofill = useCallback(async () => {
     if (ocrLoading || ocrUnavailable) return;
     const { frontUri, backUri } = idDocs;
@@ -322,6 +350,12 @@ const RegisterScreen = ({ navigation, route }) => {
       setOcrLoading(false);
     }
   }, [idDocs, lastOcrAt, lastOcrSignature, ocrLoading, ocrUnavailable]);
+
+  useEffect(() => {
+    if (!idDocs.frontUri || !idDocs.backUri) return;
+    if (ocrLoading || ocrUnavailable) return;
+    tryOcrAutofill();
+  }, [idDocs.frontUri, idDocs.backUri, ocrLoading, ocrUnavailable, tryOcrAutofill]);
 
   useEffect(() => {
     const checkEmailAvailability = async () => {
@@ -429,7 +463,7 @@ const RegisterScreen = ({ navigation, route }) => {
         const registeredUser = response.data.user || null;
 
         // If resident selected ID images, upload in background after navigating away
-        const { frontUri, backUri } = idDocs || {};
+        const { frontUri, backUri, selfieUri } = idDocs || {};
         if (frontUri && backUri && Platform.OS !== 'web') {
           (async () => {
             try {
@@ -457,6 +491,9 @@ const RegisterScreen = ({ navigation, route }) => {
               fd.append('email', registrationData.email);
               fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
               fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
+              if (selfieUri) {
+                fd.append('selfieImage', await mkFileAsync(selfieUri, 'selfie.jpg'));
+              }
 
               const url = `${api.defaults.baseURL}/verifications/upload-id`;
               await fetch(url, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
@@ -655,18 +692,27 @@ const RegisterScreen = ({ navigation, route }) => {
                 <Text style={styles.ocrBtnText}>{idDocs.backUri ? 'Back selected' : 'Pick back'}</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[styles.ocrBtn, { marginTop: 10, borderColor: themeColors.primary }]}
-              onPress={tryOcrAutofill}
-              disabled={ocrLoading || !idDocs.frontUri || !idDocs.backUri || ocrUnavailable}
-            >
-              <Text style={[styles.ocrBtnText, { color: themeColors.primary }]}>
-                {ocrUnavailable ? 'OCR unavailable (try later)' : 'Run OCR autofill'}
+            {ocrUnavailable ? (
+              <Text style={styles.ocrHint}>
+                OCR unavailable. Please try again later.
               </Text>
-            </TouchableOpacity>
-            <Text style={styles.ocrHint}>
-              Tip: OCR won’t overwrite fields you already typed.
+            ) : (
+              <Text style={styles.ocrHint}>
+                OCR will run automatically once both front and back ID images are selected.
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.ocrBox}>
+            <View style={styles.ocrTitleRow}>
+              <Text style={styles.ocrTitle}>Profile Picture (optional)</Text>
+            </View>
+            <Text style={styles.ocrSub}>
+              Upload a selfie to set as your profile picture.
             </Text>
+            <TouchableOpacity style={styles.ocrBtn} onPress={pickSelfieImage}>
+              <Text style={styles.ocrBtnText}>{idDocs.selfieUri ? 'Selfie selected' : 'Pick selfie'}</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputContainer}>

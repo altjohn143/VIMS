@@ -148,32 +148,24 @@ const ProfileSettings = () => {
           });
         }
 
-        // Fetch verification data (optional - don't block profile loading)
         try {
           const verificationResponse = await axios.get('/api/verifications/me', {
             headers: {
               Authorization: `Bearer ${token}`
-            },
-            timeout: 5000 // 5 second timeout
+            }
           });
-          if (verificationResponse.data?.success && verificationResponse.data.data) {
+          if (verificationResponse.data?.success) {
             const verificationData = verificationResponse.data.data;
-            setVerificationStatus(verificationData.status || null);
+            setVerificationStatus(verificationData?.status || null);
             setUploadedDocuments({
-              frontImage: verificationData.frontImage,
-              backImage: verificationData.backImage,
-              selfieImage: verificationData.selfieImage,
-              status: verificationData.status,
-              documentsVerified: verificationData.documentsVerified
+              frontImage: verificationData?.frontImage,
+              backImage: verificationData?.backImage,
+              selfieImage: verificationData?.selfieImage,
+              status: verificationData?.status,
+              documentsVerified: verificationData?.documentsVerified
             });
-          } else {
-            // No verification data available
-            setVerificationStatus(null);
-            setUploadedDocuments(null);
           }
         } catch (verificationError) {
-          console.log('Verification data fetch failed (this is normal for new users):', verificationError.message);
-          // Don't show error to user - verification is optional
           setVerificationStatus(null);
           setUploadedDocuments(null);
         }
@@ -259,29 +251,6 @@ const ProfileSettings = () => {
   const buildDocumentUrl = (filename) => {
     if (!filename) return null;
     return `/api/verifications/my-files/${filename}`;
-  };
-
-  const handleViewDocument = async (filename) => {
-    try {
-      // Fetch the file with authentication
-      const response = await axios.get(`/api/verifications/my-files/${filename}`, {
-        responseType: 'blob',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`
-        }
-      });
-
-      // Create a blob URL and open in new tab
-      const blob = new Blob([response.data]);
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-
-      // Cleanup
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
-    } catch (error) {
-      console.error('Error viewing document:', error);
-      toast.error('Failed to load document. Please try again.');
-    }
   };
 
   // Profile Functions
@@ -808,7 +777,7 @@ const ProfileSettings = () => {
                   Uploaded Documents
                 </Typography>
                 
-                {uploadedDocuments && (uploadedDocuments.frontImage || uploadedDocuments.backImage || uploadedDocuments.selfieImage) ? (
+                {uploadedDocuments ? (
                   <Box sx={{ mt: 2 }}>
                     {uploadedDocuments.selfieImage && (
                       <Box sx={{ mb: 2 }}>
@@ -826,10 +795,9 @@ const ProfileSettings = () => {
                             objectFit: 'cover',
                             borderRadius: 2,
                             border: `1px solid ${themeColors.border}`,
-                            cursor: 'pointer',
-                            '&:hover': { opacity: 0.8 }
+                            cursor: 'pointer'
                           }}
-                          onClick={() => handleViewDocument(uploadedDocuments.selfieImage)}
+                          onClick={() => window.open(buildDocumentUrl(uploadedDocuments.selfieImage), '_blank')}
                         />
                       </Box>
                     )}
@@ -850,10 +818,9 @@ const ProfileSettings = () => {
                               objectFit: 'cover',
                               borderRadius: 2,
                               border: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer',
-                              '&:hover': { opacity: 0.8 }
+                              cursor: 'pointer'
                             }}
-                            onClick={() => handleViewDocument(uploadedDocuments.frontImage)}
+                            onClick={() => window.open(buildDocumentUrl(uploadedDocuments.frontImage), '_blank')}
                           />
                         </Box>
                       )}
@@ -873,10 +840,9 @@ const ProfileSettings = () => {
                               objectFit: 'cover',
                               borderRadius: 2,
                               border: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer',
-                              '&:hover': { opacity: 0.8 }
+                              cursor: 'pointer'
                             }}
-                            onClick={() => handleViewDocument(uploadedDocuments.backImage)}
+                            onClick={() => window.open(buildDocumentUrl(uploadedDocuments.backImage), '_blank')}
                           />
                         </Box>
                       )}
@@ -907,7 +873,7 @@ const ProfileSettings = () => {
                       No documents uploaded yet
                     </Typography>
                     <Typography variant="body2" sx={{ color: themeColors.textSecondary, mt: 0.5 }}>
-                      Complete identity verification to upload documents
+                      Documents are uploaded during registration
                     </Typography>
                   </Box>
                 )}

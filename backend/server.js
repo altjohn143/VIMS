@@ -48,7 +48,7 @@ const allowedOriginSet = new Set([...allowedOrigins, ...frontendUrlsFromEnv]);
 // Also allow any IP in the 192.168.x.x range for mobile devices
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, Expo Go, or curl requests)
     if (!origin) return callback(null, true);
     
     // Check if origin is allowed
@@ -79,6 +79,11 @@ app.use(cors({
       return callback(null, true);
     }
     
+    // Allow Vercel deployment
+    if (origin.includes('vercel.app') || origin.includes('vims')) {
+      return callback(null, true);
+    }
+    
     return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
@@ -91,7 +96,8 @@ app.use(cors({
     'If-Modified-Since',
     'Accept',
     'Origin',
-    'X-Requested-With'
+    'X-Requested-With',
+    'User-Agent'
   ],
   exposedHeaders: ['Content-Length', 'Content-Type', 'Authorization'],
   maxAge: 86400,

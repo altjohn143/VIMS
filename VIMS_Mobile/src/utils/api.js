@@ -148,11 +148,14 @@ console.log('========================================');
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: 60000, // Increased timeout to 60 seconds for slow networks
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'User-Agent': 'VIMSMobileApp/1.0'
   },
+  // Allow all status codes to be handled
+  validateStatus: () => true,
 });
 
 // ============================================
@@ -229,15 +232,34 @@ api.interceptors.response.use(
     
     // Handle network errors
     else if (!error.response) {
-      Alert.alert(
-        'Connection Error', 
-        `Cannot connect to server at ${BASE_URL}\n\n` +
-        `Make sure:\n` +
-        `1. Backend is running (node server.js)\n` +
-        `2. Your phone and computer are on the same WiFi\n` +
-        `3. Firewall allows port 5000\n\n` +
-        `Current IP: ${localIP}`
-      );
+      console.error('Full error details:', {
+        code: error.code,
+        message: error.message,
+        config: error.config,
+        errno: error.errno,
+        syscall: error.syscall
+      });
+      
+      // Provide helpful error message based on URL
+      if (BASE_URL.includes('localhost') || BASE_URL.includes('192.168')) {
+        Alert.alert(
+          'Connection Error', 
+          `Cannot connect to local server at ${BASE_URL}\n\n` +
+          `Make sure:\n` +
+          `1. Backend is running (node server.js)\n` +
+          `2. Your phone and computer are on the same WiFi\n` +
+          `3. Firewall allows port 5000\n` +
+          `4. Phone and computer are on same network`
+        );
+      } else {
+        Alert.alert(
+          'Network Error', 
+          `Cannot connect to ${BASE_URL}\n\n` +
+          `Error: ${error.message}\n\n` +
+          `This may be a temporary connection issue.\n` +
+          `Please check your internet connection and try again.`
+        );
+      }
     }
     
     // Handle server errors
@@ -252,6 +274,25 @@ api.interceptors.response.use(
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
+
+// Retry wrapper for API calls with exponential backoff
+export const apiWithRetry = async (requestFn, maxRetries = 3) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await requestFn();
+    } catch (error) {
+      // Only retry on network errors, not on 4xx/5xx status codes
+      if (error.response || i === maxRetries - 1) {
+        throw error;
+      }
+      
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = Math.pow(2, i) * 1000;
+      console.log(`🔄 Retrying after ${delay}ms (attempt ${i + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+};
 
 // Test connection to backend
 export const testConnection = async () => {

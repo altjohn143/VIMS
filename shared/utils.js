@@ -1,18 +1,20 @@
 // Shared utilities for VIMS 30% MVP
 
 export const getApiUrl = () => {
-  // For web
-  if (typeof window !== 'undefined') {
-    return 'http://localhost:5000/api';
-  }
+  // Production URL for deployed apps
+  return 'https://vims-backend.onrender.com/api';
   
-  // For React Native
-  if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
-    // You can store IP in AsyncStorage or get from user input
-    return 'http://YOUR_COMPUTER_IP:5000/api'; // Replace with actual IP
-  }
+  // Development fallbacks (uncomment for local development):
+  // if (typeof window !== 'undefined') {
+  //   return 'http://localhost:5000/api';
+  // }
   
-  return 'http://localhost:5000/api';
+  // For React Native development
+  // if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
+  //   return 'http://YOUR_COMPUTER_IP:5000/api'; // Replace with actual IP
+  // }
+  
+  // return 'http://localhost:5000/api';
 };
 
 export const handleApiError = (error) => {

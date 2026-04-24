@@ -417,16 +417,31 @@ router.post('/send-reminders', protect, authorize('admin'), async (req, res) => 
 // Admin: Get stats
 router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
   try {
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const [totalCollected, monthlyCollected] = await Promise.all([
-      Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Payment.aggregate([{ $match: { status: 'paid', paymentDate: { $gte: startOfMonth } } }, { $group: { _id: null, total: { $sum: '$amount' } } }])
+    const { year, month } = req.query;
+    let startDate, endDate;
+
+    if (year && month) {
+      // Specific month
+      startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+    } else {
+      // Current month by default
+      startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      endDate = new Date();
+    }
+
+    const [totalCollected, monthlyCollected, paymentCount] = await Promise.all([
+      Payment.aggregate([{ $match: { status: 'completed' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Payment.aggregate([{ $match: { status: 'completed', createdAt: { $gte: startDate, $lte: endDate } } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+      Payment.countDocuments({ status: 'completed', createdAt: { $gte: startDate, $lte: endDate } })
     ]);
+
     res.json({
       success: true,
       data: {
         totalCollected: totalCollected[0]?.total || 0,
-        monthlyCollected: monthlyCollected[0]?.total || 0
+        monthlyCollected: monthlyCollected[0]?.total || 0,
+        paymentCount: monthlyCollected[0]?.count || paymentCount || 0
       }
     });
   } catch (error) {

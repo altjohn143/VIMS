@@ -12,6 +12,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from '../../config';
 
 const themeColors = {
   primary: '#2224be',
@@ -25,7 +26,7 @@ const themeColors = {
   border: '#e5e7eb'
 };
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = Config.getApiUrl();
 
 const LoginScreen = ({ navigation }) => {
   const [role, setRole] = useState(null);

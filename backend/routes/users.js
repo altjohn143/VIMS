@@ -679,4 +679,38 @@ router.get('*', (req, res) => {
   });
 });
 
+// Get user registration stats by month/year (admin only)
+router.get('/stats/registrations', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { year, month } = req.query;
+    let startDate, endDate;
+
+    if (year && month) {
+      // Specific month
+      startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+    } else {
+      // Current month by default
+      startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      endDate = new Date();
+    }
+
+    const count = await User.countDocuments({
+      role: 'resident',
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+
+    res.json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    console.error('Get registration stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get registration stats'
+    });
+  }
+});
+
 module.exports = router;

@@ -19,8 +19,9 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
+import Config from '../../config';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = Config.getApiUrl();
 const { width, height } = Dimensions.get('window');
 
 const AdminServiceRequestsScreen = ({ navigation }) => {

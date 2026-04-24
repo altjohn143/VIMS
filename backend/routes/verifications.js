@@ -116,7 +116,21 @@ router.post(
 
         // Update user's profile photo if selfie was provided
         if (selfieImage) {
-          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+          // Copy selfie to profile-photos directory
+          const sourcePath = path.join(uploadDir, selfieImage);
+          const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
+          if (!fs.existsSync(profilePhotoDir)) {
+            fs.mkdirSync(profilePhotoDir, { recursive: true });
+          }
+          const destPath = path.join(profilePhotoDir, selfieImage);
+          try {
+            fs.copyFileSync(sourcePath, destPath);
+            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+          } catch (copyError) {
+            console.error('Failed to copy selfie to profile photos:', copyError);
+            // Still update profilePhoto even if copy fails
+            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+          }
         }
 
         return res.json({
@@ -188,7 +202,21 @@ router.post(
 
         // Update user's profile photo if selfie was provided
         if (selfieImage) {
-          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+          // Copy selfie to profile-photos directory
+          const sourcePath = path.join(uploadDir, selfieImage);
+          const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
+          if (!fs.existsSync(profilePhotoDir)) {
+            fs.mkdirSync(profilePhotoDir, { recursive: true });
+          }
+          const destPath = path.join(profilePhotoDir, selfieImage);
+          try {
+            fs.copyFileSync(sourcePath, destPath);
+            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+          } catch (copyError) {
+            console.error('Failed to copy selfie to profile photos:', copyError);
+            // Still update profilePhoto even if copy fails
+            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+          }
         }
 
         return res.json({
@@ -205,7 +233,21 @@ router.post(
 
       // Update user's profile photo if selfie was provided
       if (selfieImage) {
-        await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+        // Copy selfie to profile-photos directory
+        const sourcePath = path.join(uploadDir, selfieImage);
+        const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
+        if (!fs.existsSync(profilePhotoDir)) {
+          fs.mkdirSync(profilePhotoDir, { recursive: true });
+        }
+        const destPath = path.join(profilePhotoDir, selfieImage);
+        try {
+          fs.copyFileSync(sourcePath, destPath);
+          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+        } catch (copyError) {
+          console.error('Failed to copy selfie to profile photos:', copyError);
+          // Still update profilePhoto even if copy fails
+          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+        }
       }
 
       return res.json({

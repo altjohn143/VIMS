@@ -17,6 +17,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import Config from '../../config';
 
 const SecurityVisitorApprovalScreen = ({ navigation, route }) => {
   const [pendingVisitors, setPendingVisitors] = useState([]);
@@ -32,7 +33,7 @@ const SecurityVisitorApprovalScreen = ({ navigation, route }) => {
   const [securityNotes, setSecurityNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_BASE_URL = Config.getApiUrl();
   
   useEffect(() => {
     loadUserData();

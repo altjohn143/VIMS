@@ -101,9 +101,6 @@ const ProfileSettings = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState(null);
-  const [loadingDocuments, setLoadingDocuments] = useState(false);
-  const [profilePhoto, setProfilePhoto] = useState(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -780,14 +777,7 @@ const ProfileSettings = () => {
                   Uploaded Documents
                 </Typography>
                 
-                {loadingDocuments ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 3 }}>
-                    <CircularProgress size={24} />
-                    <Typography variant="body2" sx={{ ml: 2, color: themeColors.textSecondary }}>
-                      Loading documents...
-                    </Typography>
-                  </Box>
-                ) : uploadedDocuments ? (
+                {uploadedDocuments ? (
                   <Box sx={{ mt: 2 }}>
                     {uploadedDocuments.selfieImage && (
                       <Box sx={{ mb: 2 }}>

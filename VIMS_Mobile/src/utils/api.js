@@ -8,9 +8,12 @@ import Constants from 'expo-constants';
 // BACKEND CONFIGURATION
 // ============================================
 
-// Option 1: Set your computer's IP address manually (RECOMMENDED for physical devices)
+// PRODUCTION URL (highest priority)
+const PRODUCTION_URL = 'https://vims-backend.onrender.com/api';
+
+// Option 1: Set your computer's IP address manually (for development only)
 // Run 'ipconfig' on Windows or 'ifconfig' on Mac/Linux to find your IP
-const MANUAL_IP = '192.168.1.141'; // CHANGE THIS TO YOUR ACTUAL IP
+const MANUAL_IP = '192.168.1.141'; // CHANGE THIS TO YOUR ACTUAL IP FOR DEVELOPMENT
 
 // Env override support:
 // - EXPO_PUBLIC_API_URL is the Expo-recommended client env key
@@ -71,8 +74,13 @@ const WEB_LAN_URL = `http://${localIP}:${PORT}/api`;
 
 let BASE_URL;
 
-// Highest priority: explicit environment override
-if (ENV_API_URL) {
+// Highest priority: Production URL (for deployed apps)
+if (!__DEV__) {
+  // In production builds, always use production URL
+  BASE_URL = PRODUCTION_URL;
+  console.log('🚀 Production build detected - using production URL');
+} else if (ENV_API_URL) {
+  // Second priority: explicit environment override
   BASE_URL = ENV_API_URL;
 }
 
@@ -122,10 +130,10 @@ if (!BASE_URL && Platform.OS === 'android') {
 // You can also manually override by setting an environment variable
 // For development, you can uncomment one of these:
 
-// BASE_URL = 'http://192.168.1.5:5000/api';  // Your computer's IP
-// BASE_URL = 'http://10.0.2.2:5000/api';     // Android Emulator
-// BASE_URL = 'http://localhost:5000/api';    // iOS Simulator
-// BASE_URL = 'https://vims-backend.onrender.com/api'; // Production
+// BASE_URL = 'http://192.168.1.5:5000/api';  // Your computer's IP (development)
+// BASE_URL = 'http://10.0.2.2:5000/api';     // Android Emulator (development)
+// BASE_URL = 'http://localhost:5000/api';    // iOS Simulator (development)
+// BASE_URL = 'https://vims-backend.onrender.com/api'; // Production (already set above)
 
 console.log('========================================');
 console.log('🔧 API Configuration:');

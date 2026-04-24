@@ -51,4 +51,48 @@ router.put('/:id/status', protect, authorize('security', 'admin'), async (req, r
   }
 });
 
+// Get daily incident stats for a specific date
+router.get('/stats/daily', protect, authorize('security', 'admin'), async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ success: false, error: 'Date parameter is required' });
+    }
+
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const totalIncidents = await Incident.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    });
+    const resolvedIncidents = await Incident.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+      status: 'resolved'
+    });
+    const pendingIncidents = await Incident.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+      status: 'pending'
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalIncidents,
+        resolvedIncidents,
+        pendingIncidents
+      }
+    });
+
+  } catch (error) {
+    console.error('Get daily incident stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get daily incident statistics'
+    });
+  }
+});
+
 module.exports = router;

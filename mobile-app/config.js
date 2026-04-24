@@ -2,15 +2,15 @@
 
 const Config = {
   // Backend API configuration
-  API_BASE_URL: 'http://192.168.1.100:5000/api', // Change this to your computer's IP
+  API_BASE_URL: 'https://vims-backend.onrender.com/api', // Production URL on Render
   
   // Function to detect and get the correct API URL
   getApiUrl: () => {
-    // In development, you might want to store this in AsyncStorage
+    // In production, always use the production URL
     return Config.API_BASE_URL;
   },
   
-  // Update the API URL
+  // Update the API URL (for development/testing only)
   setApiUrl: (newUrl) => {
     Config.API_BASE_URL = newUrl.endsWith('/api') ? newUrl : `${newUrl}/api`;
     return Config.API_BASE_URL;

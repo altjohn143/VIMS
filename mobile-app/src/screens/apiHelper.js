@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from '../../config';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = Config.getApiUrl();
 
 export const api = {
   async get(endpoint) {

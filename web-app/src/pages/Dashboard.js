@@ -67,6 +67,8 @@ import {
   Apartment as ApartmentIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import AdminDashboardGraphs from '../components/AdminDashboardGraphs';
+import SecurityDashboardGraphs from '../components/SecurityDashboardGraphs';
 
 const themeColors = {
   primary: '#166534',
@@ -161,6 +163,31 @@ const Dashboard = () => {
     };
     checkAuth();
   }, [getCurrentUser, navigate, location]);
+
+  // Fetch fresh user profile data including profile photo
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.id) return;
+
+      try {
+        const token = localStorage.getItem('token') || '';
+        const response = await axios.get('/api/users/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (response.data.success) {
+          const userData = response.data.data;
+          setUser(prevUser => ({ ...prevUser, ...userData }));
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!isMobile) {
@@ -424,10 +451,10 @@ const Dashboard = () => {
         ]
       },
       stats: [
-        { label: 'Total Residents', value: '45', helper: '+2 vs. last month' },
-        { label: 'Pending Approvals', value: '3', helper: '-1 since yesterday' },
-        { label: 'Monthly Collection', value: '₱45K', helper: '+11% vs. last month' },
-        { label: 'Active Issues', value: '7', helper: '+2 this week' }
+        { label: 'Total Residents', value: liveStats.totalResidents?.toString() || '0', helper: 'registered users' },
+        { label: 'Pending Approvals', value: pendingApprovals.length.toString(), helper: 'awaiting review' },
+        { label: 'Monthly Collection', value: liveStats.monthlyCollection || '₱0', helper: 'this month' },
+        { label: 'Active Issues', value: liveStats.activeIssues?.toString() || '0', helper: 'needs attention' }
       ]
     },
     security: {
@@ -450,10 +477,10 @@ const Dashboard = () => {
         ]
       },
       stats: [
-        { label: 'Visitors Today', value: '12', helper: 'active movement' },
-        { label: 'Active on Premises', value: '3', helper: 'currently inside' },
-        { label: 'Pending Checkouts', value: '2', helper: 'for review' },
-        { label: 'Alerts Today', value: '1', helper: 'needs attention' }
+        { label: 'Visitors Today', value: liveStats.visitorsToday?.toString() || '0', helper: 'total visitors' },
+        { label: 'Active on Premises', value: liveStats.activePremises?.toString() || '0', helper: 'currently inside' },
+        { label: 'Pending Checkouts', value: liveStats.pendingCheckouts?.toString() || '0', helper: 'for review' },
+        { label: 'Alerts Today', value: liveStats.alertsToday?.toString() || '0', helper: 'needs attention' }
       ]
     }
   };
@@ -707,6 +734,7 @@ const Dashboard = () => {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
               <Avatar
+                src={user.profilePhotoUrl}
                 sx={{
                   width: 42,
                   height: 42,
@@ -750,6 +778,7 @@ const Dashboard = () => {
         ) : (
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Avatar
+              src={user.profilePhotoUrl}
               sx={{
                 width: 42,
                 height: 42,
@@ -1051,6 +1080,7 @@ const Dashboard = () => {
             }}
           >
             <Avatar
+              src={user.profilePhotoUrl}
               sx={{
                 width: 38,
                 height: 38,
@@ -1104,7 +1134,7 @@ const Dashboard = () => {
           >
             <MenuItem disabled sx={{ opacity: 1, py: 1.75 }}>
               <ListItemIcon>
-                <Avatar sx={{ width: 36, height: 36, bgcolor: themeColors.primary }}>
+                <Avatar src={user.profilePhotoUrl} sx={{ width: 36, height: 36, bgcolor: themeColors.primary }}>
                   {user.firstName?.charAt(0)}
                   {user.lastName?.charAt(0)}
                 </Avatar>
@@ -1813,6 +1843,27 @@ const Dashboard = () => {
                   </Box>
                 </Paper>
               </Grid>
+
+              {/* Analytics Graphs for Admin and Security */}
+              {(user.role === 'admin' || user.role === 'security') && (
+                <Grid item xs={12}>
+                  <Paper
+                    sx={{
+                      borderRadius: '20px',
+                      border: `1px solid ${themeColors.border}`,
+                      boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+                      overflow: 'hidden',
+                      animation: 'slideUpSoft 1s ease'
+                    }}
+                  >
+                    {user.role === 'admin' ? (
+                      <AdminDashboardGraphs />
+                    ) : (
+                      <SecurityDashboardGraphs />
+                    )}
+                  </Paper>
+                </Grid>
+              )}
 
               {isMobile && !sidebarOpen && (
                 <Grid item xs={12}>

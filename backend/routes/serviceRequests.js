@@ -473,6 +473,50 @@ router.get('/stats/summary', protect, async (req, res) => {
   }
 });
 
+// Get daily service request stats for a specific date
+router.get('/stats/daily', protect, async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ success: false, error: 'Date parameter is required' });
+    }
+
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const totalRequests = await ServiceRequest.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    });
+    const pendingRequests = await ServiceRequest.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+      status: 'pending'
+    });
+    const completedRequests = await ServiceRequest.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+      status: 'completed'
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalRequests,
+        pendingRequests,
+        completedRequests
+      }
+    });
+
+  } catch (error) {
+    console.error('Get daily service request stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get daily service request statistics'
+    });
+  }
+});
+
 router.put('/:id/assign-staff', protect, authorize('admin'), async (req, res) => {
   try {
     const { assignedTo, adminNotes } = req.body;

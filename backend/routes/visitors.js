@@ -894,6 +894,50 @@ router.get('/stats/summary', protect, async (req, res) => {
   }
 });
 
+// Get daily visitor stats for a specific date
+router.get('/stats/daily', protect, async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ success: false, error: 'Date parameter is required' });
+    }
+
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const totalVisitors = await Visitor.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    });
+    const approvedVisitors = await Visitor.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+      status: 'approved'
+    });
+    const pendingVisitors = await Visitor.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+      status: 'pending'
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalVisitors,
+        approvedVisitors,
+        pendingVisitors
+      }
+    });
+
+  } catch (error) {
+    console.error('Get daily visitor stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get daily visitor statistics'
+    });
+  }
+});
+
 // Get all visitors (admin only - includes security approvals)
 router.get('/admin/all', protect, authorize('admin'), async (req, res) => {
   try {

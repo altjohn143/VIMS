@@ -2,7 +2,12 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { protect } = require('../middleware/auth');
 const Lot = require('../models/Lot');
-const { getOpenAIClient, getOpenAILowModel } = require('../services/openaiClient');
+const Payment = require('../models/Payment');
+const User = require('../models/User');
+const Visitor = require('../models/Visitor');
+const Incident = require('../models/Incident');
+const ServiceRequest = require('../models/ServiceRequest');
+const { getOpenAIClient, getOpenAIHighModel } = require('../services/openaiClient');
 
 const router = express.Router();
 
@@ -95,6 +100,247 @@ router.post('/chat', protect, chatLimiter, async (req, res) => {
       success: false,
       error: 'Failed to generate AI response',
       details: error.message || 'Unknown error'
+    });
+  }
+});
+
+const reportLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Admin AI Reports
+router.post('/reports/admin/financial', protect, reportLimiter, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Admin access required' });
+    }
+
+    const { period = 'monthly', year = new Date().getFullYear(), month = new Date().getMonth() + 1 } = req.body;
+
+    // Get financial data
+    const startDate = period === 'monthly' 
+      ? new Date(year, month - 1, 1)
+      : new Date(year, 0, 1);
+    const endDate = period === 'monthly'
+      ? new Date(year, month, 0, 23, 59, 59)
+      : new Date(year, 11, 31, 23, 59, 59);
+
+    const payments = await Payment.find({
+      createdAt: { $gte: startDate, $lte: endDate },
+      status: 'completed'
+    }).populate('user', 'firstName lastName houseNumber');
+
+    const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const paymentCount = payments.length;
+
+    // Get user stats
+    const totalUsers = await User.countDocuments({ role: 'resident' });
+    const newUsers = await User.countDocuments({
+      role: 'resident',
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+
+    const dataContext = `
+Financial Data for ${period === 'monthly' ? `${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year}` : `Year ${year}`}:
+- Total Revenue: ₱${totalRevenue.toLocaleString()}
+- Number of Payments: ${paymentCount}
+- Total Residents: ${totalUsers}
+- New Residents: ${newUsers}
+- Average Payment: ₱${paymentCount > 0 ? Math.round(totalRevenue / paymentCount).toLocaleString() : 0}
+
+Recent Payments:
+${payments.slice(0, 10).map(p => `- ${p.user?.firstName} ${p.user?.lastName} (${p.user?.houseNumber}): ₱${p.amount} on ${new Date(p.createdAt).toLocaleDateString()}`).join('\n')}
+    `.trim();
+
+    const model = getOpenAIHighModel();
+    const client = getOpenAIClient();
+    const response = await client.responses.create({
+      model,
+      input: [
+        {
+          role: 'system',
+          content: [{ type: 'input_text', text: 'You are a financial analyst for a village management system. Generate comprehensive financial reports with insights, trends, and recommendations based on the provided data. Be professional and detailed.' }]
+        },
+        {
+          role: 'user',
+          content: [{ type: 'input_text', text: `Generate a detailed financial report for ${period === 'monthly' ? 'the month' : 'the year'} based on this data:\n\n${dataContext}` }]
+        }
+      ]
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        report: response.output_text || 'Unable to generate financial report.',
+        period,
+        year,
+        month: period === 'monthly' ? month : null,
+        summary: {
+          totalRevenue,
+          paymentCount,
+          totalUsers,
+          newUsers
+        }
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate financial report',
+      details: error.message
+    });
+  }
+});
+
+// Security AI Reports - Visitor Report
+router.post('/reports/security/visitors', protect, reportLimiter, async (req, res) => {
+  try {
+    if (req.user.role !== 'security') {
+      return res.status(403).json({ success: false, error: 'Security access required' });
+    }
+
+    const { period = 'daily', date = new Date().toISOString().split('T')[0] } = req.body;
+
+    const startDate = period === 'daily' 
+      ? new Date(date)
+      : new Date(new Date(date).getTime() - 6 * 24 * 60 * 60 * 1000);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    const visitors = await Visitor.find({
+      createdAt: { $gte: startDate, $lte: endDate }
+    }).populate('user', 'firstName lastName houseNumber').sort({ createdAt: -1 });
+
+    const totalVisitors = visitors.length;
+    const approvedVisitors = visitors.filter(v => v.status === 'approved').length;
+    const pendingVisitors = visitors.filter(v => v.status === 'pending').length;
+    const rejectedVisitors = visitors.filter(v => v.status === 'rejected').length;
+
+    const dataContext = `
+Visitor Data for ${period === 'daily' ? date : `week ending ${date}`}:
+- Total Visitors: ${totalVisitors}
+- Approved: ${approvedVisitors}
+- Pending: ${pendingVisitors}
+- Rejected: ${rejectedVisitors}
+- Approval Rate: ${totalVisitors > 0 ? Math.round((approvedVisitors / totalVisitors) * 100) : 0}%
+
+Recent Visitors:
+${visitors.slice(0, 15).map(v => `- ${v.visitorName} visiting ${v.user?.firstName} ${v.user?.lastName} (${v.user?.houseNumber}): ${v.status} - ${v.purpose} at ${new Date(v.createdAt).toLocaleTimeString()}`).join('\n')}
+    `.trim();
+
+    const model = getOpenAIHighModel();
+    const client = getOpenAIClient();
+    const response = await client.responses.create({
+      model,
+      input: [
+        {
+          role: 'system',
+          content: [{ type: 'input_text', text: 'You are a security analyst for a village management system. Generate detailed visitor reports with security insights, patterns, and recommendations based on the provided data. Focus on security implications and visitor management efficiency.' }]
+        },
+        {
+          role: 'user',
+          content: [{ type: 'input_text', text: `Generate a comprehensive visitor report for ${period === 'daily' ? 'today' : 'this week'} based on this data:\n\n${dataContext}` }]
+        }
+      ]
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        report: response.output_text || 'Unable to generate visitor report.',
+        period,
+        date,
+        summary: {
+          totalVisitors,
+          approvedVisitors,
+          pendingVisitors,
+          rejectedVisitors
+        }
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate visitor report',
+      details: error.message
+    });
+  }
+});
+
+// Security AI Reports - Incident Report
+router.post('/reports/security/incidents', protect, reportLimiter, async (req, res) => {
+  try {
+    if (req.user.role !== 'security') {
+      return res.status(403).json({ success: false, error: 'Security access required' });
+    }
+
+    const { period = 'weekly', date = new Date().toISOString().split('T')[0] } = req.body;
+
+    const startDate = period === 'weekly' 
+      ? new Date(new Date(date).getTime() - 6 * 24 * 60 * 60 * 1000)
+      : new Date(date);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    const incidents = await Incident.find({
+      createdAt: { $gte: startDate, $lte: endDate }
+    }).populate('reportedBy', 'firstName lastName').sort({ createdAt: -1 });
+
+    const totalIncidents = incidents.length;
+    const resolvedIncidents = incidents.filter(i => i.status === 'resolved').length;
+    const pendingIncidents = incidents.filter(i => i.status === 'pending').length;
+    const urgentIncidents = incidents.filter(i => i.priority === 'urgent').length;
+
+    const dataContext = `
+Incident Data for ${period === 'weekly' ? `week ending ${date}` : date}:
+- Total Incidents: ${totalIncidents}
+- Resolved: ${resolvedIncidents}
+- Pending: ${pendingIncidents}
+- Urgent: ${urgentIncidents}
+- Resolution Rate: ${totalIncidents > 0 ? Math.round((resolvedIncidents / totalIncidents) * 100) : 0}%
+
+Recent Incidents:
+${incidents.slice(0, 10).map(i => `- ${i.title}: ${i.description.substring(0, 100)}... Priority: ${i.priority}, Status: ${i.status}, Reported by: ${i.reportedBy?.firstName} ${i.reportedBy?.lastName} at ${new Date(i.createdAt).toLocaleString()}`).join('\n')}
+    `.trim();
+
+    const model = getOpenAIHighModel();
+    const client = getOpenAIClient();
+    const response = await client.responses.create({
+      model,
+      input: [
+        {
+          role: 'system',
+          content: [{ type: 'input_text', text: 'You are a security analyst for a village management system. Generate detailed incident reports with security analysis, risk assessment, and recommendations based on the provided data. Focus on security patterns, response effectiveness, and preventive measures.' }]
+        },
+        {
+          role: 'user',
+          content: [{ type: 'input_text', text: `Generate a comprehensive incident report for ${period === 'weekly' ? 'this week' : 'today'} based on this data:\n\n${dataContext}` }]
+        }
+      ]
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        report: response.output_text || 'Unable to generate incident report.',
+        period,
+        date,
+        summary: {
+          totalIncidents,
+          resolvedIncidents,
+          pendingIncidents,
+          urgentIncidents
+        }
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate incident report',
+      details: error.message
     });
   }
 });

@@ -148,24 +148,32 @@ const ProfileSettings = () => {
           });
         }
 
+        // Fetch verification data (optional - don't block profile loading)
         try {
           const verificationResponse = await axios.get('/api/verifications/me', {
             headers: {
               Authorization: `Bearer ${token}`
-            }
+            },
+            timeout: 5000 // 5 second timeout
           });
-          if (verificationResponse.data?.success) {
+          if (verificationResponse.data?.success && verificationResponse.data.data) {
             const verificationData = verificationResponse.data.data;
-            setVerificationStatus(verificationData?.status || null);
+            setVerificationStatus(verificationData.status || null);
             setUploadedDocuments({
-              frontImage: verificationData?.frontImage,
-              backImage: verificationData?.backImage,
-              selfieImage: verificationData?.selfieImage,
-              status: verificationData?.status,
-              documentsVerified: verificationData?.documentsVerified
+              frontImage: verificationData.frontImage,
+              backImage: verificationData.backImage,
+              selfieImage: verificationData.selfieImage,
+              status: verificationData.status,
+              documentsVerified: verificationData.documentsVerified
             });
+          } else {
+            // No verification data available
+            setVerificationStatus(null);
+            setUploadedDocuments(null);
           }
         } catch (verificationError) {
+          console.log('Verification data fetch failed (this is normal for new users):', verificationError.message);
+          // Don't show error to user - verification is optional
           setVerificationStatus(null);
           setUploadedDocuments(null);
         }
@@ -777,7 +785,7 @@ const ProfileSettings = () => {
                   Uploaded Documents
                 </Typography>
                 
-                {uploadedDocuments ? (
+                {uploadedDocuments && (uploadedDocuments.frontImage || uploadedDocuments.backImage || uploadedDocuments.selfieImage) ? (
                   <Box sx={{ mt: 2 }}>
                     {uploadedDocuments.selfieImage && (
                       <Box sx={{ mb: 2 }}>
@@ -873,7 +881,7 @@ const ProfileSettings = () => {
                       No documents uploaded yet
                     </Typography>
                     <Typography variant="body2" sx={{ color: themeColors.textSecondary, mt: 0.5 }}>
-                      Documents are uploaded during registration
+                      Complete identity verification to upload documents
                     </Typography>
                   </Box>
                 )}

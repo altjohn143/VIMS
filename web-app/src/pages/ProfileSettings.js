@@ -261,6 +261,29 @@ const ProfileSettings = () => {
     return `/api/verifications/my-files/${filename}`;
   };
 
+  const handleViewDocument = async (filename) => {
+    try {
+      // Fetch the file with authentication
+      const response = await axios.get(`/api/verifications/my-files/${filename}`, {
+        responseType: 'blob',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      });
+
+      // Create a blob URL and open in new tab
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+
+      // Cleanup
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      toast.error('Failed to load document. Please try again.');
+    }
+  };
+
   // Profile Functions
   const handleInputChange = (e, section, index) => {
     const { name, value } = e.target;
@@ -803,9 +826,10 @@ const ProfileSettings = () => {
                             objectFit: 'cover',
                             borderRadius: 2,
                             border: `1px solid ${themeColors.border}`,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            '&:hover': { opacity: 0.8 }
                           }}
-                          onClick={() => window.open(buildDocumentUrl(uploadedDocuments.selfieImage), '_blank')}
+                          onClick={() => handleViewDocument(uploadedDocuments.selfieImage)}
                         />
                       </Box>
                     )}
@@ -826,9 +850,10 @@ const ProfileSettings = () => {
                               objectFit: 'cover',
                               borderRadius: 2,
                               border: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              '&:hover': { opacity: 0.8 }
                             }}
-                            onClick={() => window.open(buildDocumentUrl(uploadedDocuments.frontImage), '_blank')}
+                            onClick={() => handleViewDocument(uploadedDocuments.frontImage)}
                           />
                         </Box>
                       )}
@@ -848,9 +873,10 @@ const ProfileSettings = () => {
                               objectFit: 'cover',
                               borderRadius: 2,
                               border: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              '&:hover': { opacity: 0.8 }
                             }}
-                            onClick={() => window.open(buildDocumentUrl(uploadedDocuments.backImage), '_blank')}
+                            onClick={() => handleViewDocument(uploadedDocuments.backImage)}
                           />
                         </Box>
                       )}

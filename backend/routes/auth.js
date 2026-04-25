@@ -560,7 +560,8 @@ router.post('/forgot-password', async (req, res) => {
     try {
       console.log('📤 Attempting to send email via Resend...');
       await resend.emails.send({
-        from: 'VIMS System <noreply@vims-system.com>',
+        //from: 'VIMS System <noreply@vims-system.com>',
+        from: 'VIMS System <noreply@casimiro-westville-homes-vims.online>',
         to: user.email,
         subject: 'Password Reset Request',
         html: `

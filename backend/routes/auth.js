@@ -11,6 +11,7 @@ const IdentityVerification = require('../models/IdentityVerification');
 const { protect } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
+const { createInAppNotification } = require('../services/inAppNotificationService');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -628,6 +629,18 @@ router.post('/reset-password', async (req, res) => {
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
     await user.save();
+    
+    // Create in-app notification
+    await createInAppNotification({
+      userId: user._id,
+      type: 'security',
+      title: 'Password Changed',
+      body: 'Your password has been successfully changed. If you did not make this change, please contact support immediately.',
+      metadata: {
+        action: 'password_reset',
+        timestamp: new Date().toISOString()
+      }
+    });
     
     console.log('Password reset successful for:', user.email);
     

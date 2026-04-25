@@ -9,10 +9,13 @@ import {
   Alert,
   CircularProgress,
   InputAdornment,
+  IconButton,
 } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import LockIcon from '@mui/icons-material/Lock';
 import LockResetIcon from '@mui/icons-material/LockReset';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
 
@@ -34,6 +37,8 @@ const ResetPassword = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [token, setToken] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const tokenFromUrl = searchParams.get('token');
@@ -196,7 +201,7 @@ const ResetPassword = () => {
               fullWidth
               label="New Password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={handleChange}
               sx={{ mb: 2 }}
@@ -204,6 +209,21 @@ const ResetPassword = () => {
                 startAdornment: (
                   <InputAdornment position="start">
                     <LockIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? (
+                        <VisibilityOffIcon fontSize="small" />
+                      ) : (
+                        <VisibilityIcon fontSize="small" />
+                      )}
+                    </IconButton>
                   </InputAdornment>
                 ),
                 sx: { borderRadius: 2 }
@@ -215,7 +235,7 @@ const ResetPassword = () => {
               fullWidth
               label="Confirm New Password"
               name="confirmPassword"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               value={formData.confirmPassword}
               onChange={handleChange}
               sx={{ mb: 3 }}
@@ -223,6 +243,21 @@ const ResetPassword = () => {
                 startAdornment: (
                   <InputAdornment position="start">
                     <LockIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showConfirmPassword ? (
+                        <VisibilityOffIcon fontSize="small" />
+                      ) : (
+                        <VisibilityIcon fontSize="small" />
+                      )}
+                    </IconButton>
                   </InputAdornment>
                 ),
                 sx: { borderRadius: 2 }

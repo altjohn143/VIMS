@@ -31,6 +31,8 @@ const T = {
   bg: '#f6faf7',        // clean off-white background
 };
 
+const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
+
 const noRedErrorFieldSx = {
   '& .MuiFormLabel-root.Mui-error': { color: '#475569' },
   '& .MuiFormHelperText-root.Mui-error': { color: '#64748b' },
@@ -1288,7 +1290,7 @@ const Login = () => {
     setForgotLoading(true);
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

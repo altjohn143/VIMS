@@ -14,6 +14,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import LockIcon from '@mui/icons-material/Lock';
 import LockResetIcon from '@mui/icons-material/LockReset';
 
+const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
+
 const themeColors = {
   dark: '#1E2A1E',
   primary: '#2E6B2E',
@@ -72,7 +74,7 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

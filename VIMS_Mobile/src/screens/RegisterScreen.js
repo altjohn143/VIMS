@@ -576,8 +576,9 @@ const RegisterScreen = ({ navigation, route }) => {
               fd.append('email', formData.email);
               fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
               fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
-              if (selfieUri) {
-                fd.append('selfieImage', await mkFileAsync(selfieUri, 'selfie.jpg'));
+              const selfieUriToUpload = selfieUri || profilePhoto;
+              if (selfieUriToUpload) {
+                fd.append('selfieImage', await mkFileAsync(selfieUriToUpload, 'selfie.jpg'));
               }
 
               const url = `${api.defaults.baseURL}/verifications/upload-id`;

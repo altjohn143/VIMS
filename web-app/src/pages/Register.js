@@ -492,7 +492,8 @@ const Register = () => {
             multipart.append('email', emailLower);
             multipart.append('frontImage', idDocs.frontImage);
             multipart.append('backImage', idDocs.backImage);
-            if (idDocs.selfieImage) multipart.append('selfieImage', idDocs.selfieImage);
+            const selfieUpload = idDocs.selfieImage || profilePhoto;
+            if (selfieUpload) multipart.append('selfieImage', selfieUpload);
             await axios.post('/api/verifications/upload-id', multipart);
           } catch (uploadError) {
             const status = uploadError?.response?.status;
@@ -1258,18 +1259,6 @@ const Register = () => {
                     />
                   </Button>
                   <Typography variant="caption">{idDocs.backImage?.name || 'No file selected'}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Button variant="outlined" component="label" fullWidth>
-                    Upload Selfie (Optional)
-                    <input
-                      hidden
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setIdDocs((prev) => ({ ...prev, selfieImage: e.target.files?.[0] || null }))}
-                    />
-                  </Button>
-                  <Typography variant="caption">{idDocs.selfieImage?.name || 'No file selected'}</Typography>
                 </Grid>
               </Grid>
               {ocrLoading && (

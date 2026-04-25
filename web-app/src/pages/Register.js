@@ -1,7 +1,6 @@
 // Register.js - Updated with country code dropdown
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import {
   Container,
   Box,
@@ -131,7 +130,6 @@ const Register = () => {
   const [mapDrawerOpen, setMapDrawerOpen] = useState(false);
   const [mapViewMode, setMapViewMode] = useState('available');
 
-  const { register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 

@@ -811,7 +811,6 @@ const RegisterScreen = ({ navigation, route }) => {
               </View>
             )}
           </View>
-          </View>
 
           <View style={styles.inputContainer}>
             <Ionicons name="mail" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />

@@ -14,6 +14,11 @@ const { detectDuplicateIdentity } = require('../services/duplicateIdentityServic
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Debug logging for environment variables
+console.log('🔧 Environment Variables Check:');
+console.log('RESEND_API_KEY:', process.env.RESEND_API_KEY ? '✅ SET' : '❌ NOT SET');
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL ? '✅ SET' : '❌ NOT SET');
+
 const LOGIN_LIMIT_WINDOW_MINUTES = Number(process.env.LOGIN_LIMIT_WINDOW_MINUTES || 15);
 const LOGIN_LIMIT_MAX_ATTEMPTS = Number(process.env.LOGIN_LIMIT_MAX_ATTEMPTS || 10);
 
@@ -515,7 +520,10 @@ router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
     
+    console.log('🔐 Forgot password request received for:', email);
+    
     if (!email) {
+      console.log('❌ No email provided');
       return res.status(400).json({
         success: false,
         error: 'Email is required'
@@ -525,11 +533,14 @@ router.post('/forgot-password', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     
     if (!user) {
+      console.log('ℹ️ User not found for email:', email);
       return res.json({
         success: true,
         message: 'If your email is registered, you will receive a password reset link.'
       });
     }
+    
+    console.log('✅ User found:', user.firstName, user.lastName);
     
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
@@ -540,10 +551,14 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpires = resetTokenExpiry;
     await user.save();
     
+    console.log('🔑 Reset token generated and saved');
+    
     // Send email
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    console.log('📧 Reset URL:', resetUrl);
     
     try {
+      console.log('📤 Attempting to send email via Resend...');
       await resend.emails.send({
         from: 'VIMS System <noreply@vims-system.com>',
         to: user.email,
@@ -562,9 +577,9 @@ router.post('/forgot-password', async (req, res) => {
         `
       });
       
-      console.log('Password reset email sent to:', email);
+      console.log('✅ Password reset email sent successfully to:', email);
     } catch (emailError) {
-      console.error('Failed to send reset email:', emailError);
+      console.error('❌ Failed to send reset email:', emailError);
       // Don't fail the request, just log it
     }
     
@@ -574,7 +589,7 @@ router.post('/forgot-password', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Forgot password error:', error);
+    console.error('❌ Forgot password error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to process request'

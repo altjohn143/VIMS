@@ -228,7 +228,9 @@ const ProfileScreen = ({ navigation }) => {
   const buildProfilePhotoUrl = (photo) => {
     if (!photo) return null;
     if (photo.startsWith('http')) return photo;
-    const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || '';
+    // Get base URL from environment or use production default
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/api$/, '') 
+      || 'https://vims-backend.onrender.com';
     return `${baseUrl}/uploads/profile-photos/${photo}`;
   };
 

@@ -337,7 +337,7 @@ const DashboardScreen = ({ navigation }) => {
                   style={styles.dropdownItem}
                   onPress={() => {
                     closeDropdown();
-                    navigation.navigate('ProfileSettings');
+                    navigation.navigate('ProfileTab');
                   }}
                   activeOpacity={0.7}
                 >

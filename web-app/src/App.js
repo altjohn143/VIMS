@@ -8,6 +8,7 @@ import './config/axios';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import VisitorManagement from './pages/VisitorManagement';
 import ServiceRequests from './pages/ServiceRequests';
@@ -100,6 +101,7 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/lots" element={<PublicLotMap />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
 

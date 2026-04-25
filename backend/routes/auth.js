@@ -2,13 +2,17 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const { Resend } = require('resend');
 const User = require('../models/User');
 const Lot = require('../models/Lot');
 const IdentityVerification = require('../models/IdentityVerification');
 const { protect } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const LOGIN_LIMIT_WINDOW_MINUTES = Number(process.env.LOGIN_LIMIT_WINDOW_MINUTES || 15);
 const LOGIN_LIMIT_MAX_ATTEMPTS = Number(process.env.LOGIN_LIMIT_MAX_ATTEMPTS || 10);
@@ -527,7 +531,42 @@ router.post('/forgot-password', async (req, res) => {
       });
     }
     
-    console.log('Password reset requested for:', email);
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    
+    // Save token to user
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = resetTokenExpiry;
+    await user.save();
+    
+    // Send email
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    
+    try {
+      await resend.emails.send({
+        from: 'VIMS System <noreply@vims-system.com>',
+        to: user.email,
+        subject: 'Password Reset Request',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Password Reset Request</h2>
+            <p>Hello ${user.firstName},</p>
+            <p>You requested a password reset for your VIMS account.</p>
+            <p>Click the link below to reset your password:</p>
+            <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0;">Reset Password</a>
+            <p>This link will expire in 10 minutes.</p>
+            <p>If you didn't request this, please ignore this email.</p>
+            <p>Best regards,<br>VIMS Team</p>
+          </div>
+        `
+      });
+      
+      console.log('Password reset email sent to:', email);
+    } catch (emailError) {
+      console.error('Failed to send reset email:', emailError);
+      // Don't fail the request, just log it
+    }
     
     res.json({
       success: true,
@@ -539,6 +578,53 @@ router.post('/forgot-password', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to process request'
+    });
+  }
+});
+
+// Reset password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token and new password are required'
+      });
+    }
+    
+    // Find user with valid token
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+    
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired reset token'
+      });
+    }
+    
+    // Update password
+    user.password = newPassword;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+    
+    console.log('Password reset successful for:', user.email);
+    
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully'
+    });
+    
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reset password'
     });
   }
 });

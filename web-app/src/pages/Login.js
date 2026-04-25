@@ -1226,6 +1226,7 @@ const Login = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [lockTimer, setLockTimer] = useState(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const { login, loading } = useAuth();
   const navigate = useNavigate();
   const timerRef = useRef(null);
@@ -1276,6 +1277,33 @@ const Login = () => {
     const result = await login(formData.email, formData.password);
     if (result.success) { localStorage.removeItem('loginAttempts'); localStorage.removeItem('lockTime'); setLoginAttempts(0); setTimeout(() => navigate('/dashboard'), 100); }
     else handleLoginFailed();
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      alert('Please enter your email address');
+      return;
+    }
+
+    setForgotLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: formData.email.toLowerCase() })
+      });
+
+      const data = await response.json();
+      alert(data.message || 'If your email is registered, you will receive a password reset link.');
+      setShowForgotPassword(false);
+    } catch (error) {
+      alert('Failed to send reset email. Please try again.');
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   const formatTime = (s) => { if (!s) return '0:00'; return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`; };
@@ -1481,7 +1509,14 @@ const Login = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setShowForgotPassword(false)}>Cancel</Button>
-          <Button onClick={() => { alert(`Password reset link sent to ${formData.email}`); setShowForgotPassword(false); }} variant="contained" sx={{ backgroundColor: themeColors.primary, borderRadius: 2 }}>Send Reset Link</Button>
+          <Button 
+            onClick={handleForgotPassword} 
+            variant="contained" 
+            sx={{ backgroundColor: themeColors.primary, borderRadius: 2 }}
+            disabled={forgotLoading}
+          >
+            {forgotLoading ? <CircularProgress size={20} color="inherit" /> : 'Send Reset Link'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

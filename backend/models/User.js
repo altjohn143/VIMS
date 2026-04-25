@@ -111,6 +111,15 @@ const userSchema = new mongoose.Schema({
   }
 
   ,
+  // Password reset fields
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
+  },
   // Move-out workflow (resident requests; admin approves/denies)
   moveOutStatus: {
     type: String,

@@ -28,6 +28,9 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const [heroAboutExpanded, setHeroAboutExpanded] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const { login } = useAuth();
 
@@ -107,6 +110,40 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert('Error', 'Something went wrong');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    setForgotLoading(true);
+
+    try {
+      const response = await fetch('https://vims-backend.onrender.com/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: forgotEmail.toLowerCase() })
+      });
+
+      const data = await response.json();
+
+      Alert.alert(
+        'Password Reset',
+        data.message || 'If your email is registered, you will receive a password reset link.',
+        [{ text: 'OK' }]
+      );
+
+      setShowForgotPassword(false);
+      setForgotEmail('');
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to process request');
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -297,7 +334,7 @@ const LoginScreen = ({ navigation }) => {
           </View>
 
           {/* ✅ Forgot Password styled as green link */}
-          <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.8} onPress={() => setShowForgotPassword(true)}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
 
@@ -330,6 +367,53 @@ const LoginScreen = ({ navigation }) => {
           )}
         </View>
       </ScrollView>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Reset Password</Text>
+            <Text style={styles.modalSubtitle}>Enter your email and we'll send you a reset link.</Text>
+            
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Email Address"
+              placeholderTextColor="#666"
+              value={forgotEmail}
+              onChangeText={setForgotEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowForgotPassword(false);
+                  setForgotEmail('');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.sendButton, forgotLoading && styles.sendButtonDisabled]}
+                onPress={handleForgotPassword}
+                disabled={forgotLoading}
+                activeOpacity={0.8}
+              >
+                {forgotLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.sendButtonText}>Send Reset Link</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -661,6 +745,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     marginLeft: 4,
+  },
+  // Forgot Password Modal Styles
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1E2A1E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+    color: '#1E2A1E',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sendButton: {
+    backgroundColor: '#2E6B2E',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -67,6 +67,9 @@ const RegisterScreen = ({ navigation, route }) => {
     selectedLot: ''
   });
 
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const [availableLots, setAvailableLots] = useState([]);
   const [allLots, setAllLots] = useState([]);
   const [selectedLotDetails, setSelectedLotDetails] = useState(null);
@@ -396,6 +399,56 @@ const RegisterScreen = ({ navigation, route }) => {
     return emailRegex.test(email);
   };
 
+  // Profile photo handling functions
+  const selectProfilePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required to select a profile photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setProfilePhoto(result.assets[0].uri);
+        Alert.alert('Photo Selected', 'Profile photo selected successfully!');
+      }
+    } catch (error) {
+      console.error('Error selecting profile photo:', error);
+      Alert.alert('Error', 'Failed to select profile photo');
+    }
+  };
+
+  const takeProfilePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Camera permission is required to take a profile photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setProfilePhoto(result.assets[0].uri);
+        Alert.alert('Photo Taken', 'Profile photo captured successfully!');
+      }
+    } catch (error) {
+      console.error('Error taking profile photo:', error);
+      Alert.alert('Error', 'Failed to take profile photo');
+    }
+  };
+
   const validate = () => {
     const newErrors = {};
 
@@ -443,21 +496,53 @@ const RegisterScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      const registrationData = {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        ...(formData.middleName.trim() ? { middleName: formData.middleName.trim() } : {}),
-        ...(formData.dateOfBirth.trim() ? { dateOfBirth: formData.dateOfBirth.trim() } : {}),
-        email: formData.email.trim(),
-        phone: formData.phone,
-        password: formData.password,
-        role: 'resident',
-        selectedLot: formData.selectedLot,
-        countryCode: formData.countryCode,
-        ...(ocrIdNumber.trim() ? { idNumber: ocrIdNumber.trim() } : {})
-      };
+      // Create FormData for multipart upload
+      const formDataToSend = new FormData();
 
-      const response = await api.post('/auth/register', registrationData);
+      // Add text fields
+      formDataToSend.append('firstName', formData.firstName.trim());
+      formDataToSend.append('lastName', formData.lastName.trim());
+      if (formData.middleName.trim()) {
+        formDataToSend.append('middleName', formData.middleName.trim());
+      }
+      if (formData.dateOfBirth.trim()) {
+        formDataToSend.append('dateOfBirth', formData.dateOfBirth.trim());
+      }
+      formDataToSend.append('email', formData.email.trim());
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('password', formData.password);
+      formDataToSend.append('role', 'resident');
+      formDataToSend.append('selectedLot', formData.selectedLot);
+      formDataToSend.append('countryCode', formData.countryCode);
+      if (ocrIdNumber.trim()) {
+        formDataToSend.append('idNumber', ocrIdNumber.trim());
+      }
+
+      // Add profile photo if selected
+      if (profilePhoto) {
+        const filename = profilePhoto.split('/').pop() || 'profile-photo.jpg';
+        const fileType = filename.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+        if (Platform.OS === 'web') {
+          // For web, fetch the blob and append
+          const response = await fetch(profilePhoto);
+          const blob = await response.blob();
+          formDataToSend.append('profilePhoto', blob, filename);
+        } else {
+          // For mobile, use the URI directly
+          formDataToSend.append('profilePhoto', {
+            uri: profilePhoto,
+            name: filename,
+            type: fileType,
+          });
+        }
+      }
+
+      const response = await api.post('/auth/register', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       
       if (response.data.success) {
         const registeredUser = response.data.user || null;
@@ -488,7 +573,7 @@ const RegisterScreen = ({ navigation, route }) => {
               };
 
               const fd = new FormData();
-              fd.append('email', registrationData.email);
+              fd.append('email', formData.email);
               fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
               fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
               if (selfieUri) {
@@ -505,12 +590,12 @@ const RegisterScreen = ({ navigation, route }) => {
 
         navigation.replace('PendingApproval', {
           registration: registeredUser
-            ? { ...registeredUser, phone: registrationData.phone }
+            ? { ...registeredUser, phone: formData.phone }
             : {
-                firstName: registrationData.firstName,
-                lastName: registrationData.lastName,
-                email: registrationData.email,
-                phone: registrationData.phone,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                phone: formData.phone,
               },
         });
       }
@@ -708,11 +793,24 @@ const RegisterScreen = ({ navigation, route }) => {
               <Text style={styles.ocrTitle}>Profile Picture (optional)</Text>
             </View>
             <Text style={styles.ocrSub}>
-              Upload a selfie to set as your profile picture.
+              Upload a photo to set as your profile picture.
             </Text>
-            <TouchableOpacity style={styles.ocrBtn} onPress={pickSelfieImage}>
-              <Text style={styles.ocrBtnText}>{idDocs.selfieUri ? 'Selfie selected' : 'Pick selfie'}</Text>
-            </TouchableOpacity>
+            <View style={styles.ocrBtnRow}>
+              <TouchableOpacity style={styles.ocrBtn} onPress={selectProfilePhoto}>
+                <Ionicons name="images" size={16} color={themeColors.primary} />
+                <Text style={styles.ocrBtnText}>Select Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.ocrBtn} onPress={takeProfilePhoto}>
+                <Ionicons name="camera" size={16} color={themeColors.primary} />
+                <Text style={styles.ocrBtnText}>Take Photo</Text>
+              </TouchableOpacity>
+            </View>
+            {profilePhoto && (
+              <View style={styles.profilePhotoPreview}>
+                <Text style={styles.ocrHint}>Profile photo selected ✓</Text>
+              </View>
+            )}
+          </View>
           </View>
 
           <View style={styles.inputContainer}>

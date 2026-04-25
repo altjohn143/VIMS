@@ -115,6 +115,9 @@ const Register = () => {
   const [ocrUnavailable, setOcrUnavailable] = useState(false);
   const [ocrIdNumber, setOcrIdNumber] = useState('');
 
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const [availableLots, setAvailableLots] = useState([]);
   const [allLots, setAllLots] = useState([]);
   const [loadingLots, setLoadingLots] = useState(true);
@@ -372,6 +375,35 @@ const Register = () => {
     return newErrors;
   };
 
+  // Profile photo upload handler
+  const handleProfilePhotoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image file size must be less than 5MB');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      setProfilePhoto(file);
+      toast.success('Profile photo selected successfully');
+    } catch (error) {
+      console.error('Profile photo selection error:', error);
+      toast.error('Failed to select profile photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
@@ -379,51 +411,77 @@ const Register = () => {
       setErrors(validationErrors);
       return;
     }
-    
+
     setLoading(true);
-    const registrationData = {
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-      ...(formData.middleName.trim() ? { middleName: formData.middleName.trim() } : {}),
-      ...(formData.dateOfBirth ? { dateOfBirth: formData.dateOfBirth } : {}),
-      email: formData.email.trim(),
-      phone: formData.phone,
-      password: formData.password,
-      role: formData.role,
-      selectedLot: formData.selectedLot,
-      countryCode: formData.countryCode,
-      noVehicles: formData.noVehicles,
-      soloResident: formData.soloResident,
-      ...(ocrIdNumber.trim() ? { idNumber: ocrIdNumber.trim() } : {}),
-      vehicles: formData.noVehicles
-        ? []
-        : formData.vehicles.filter(v => v.plateNumber || v.make || v.model || v.color),
-      familyMembers: formData.soloResident
-        ? []
-        : formData.familyMembers
-        .filter(m => m.name || m.relationship || m.otherRelationship || m.age || m.phone)
-        .map(m => ({
-          name: m.name,
-          relationship: m.relationship === 'Other' ? m.otherRelationship : m.relationship,
-          age: m.age,
-          phone: m.phone
-        }))
-    };
-    
-    const result = await register(registrationData);
-    if (result.success) {
-      const emailLower = registrationData.email.trim().toLowerCase();
-      const regUser = result.user;
-      localStorage.setItem('pendingApprovalEmail', emailLower);
-      navigate('/pending-approval', {
+
+    // Create FormData for multipart upload
+    const formDataToSend = new FormData();
+
+    // Add text fields
+    formDataToSend.append('firstName', formData.firstName.trim());
+    formDataToSend.append('lastName', formData.lastName.trim());
+    if (formData.middleName.trim()) {
+      formDataToSend.append('middleName', formData.middleName.trim());
+    }
+    if (formData.dateOfBirth) {
+      formDataToSend.append('dateOfBirth', formData.dateOfBirth);
+    }
+    formDataToSend.append('email', formData.email.trim());
+    formDataToSend.append('phone', formData.phone);
+    formDataToSend.append('password', formData.password);
+    formDataToSend.append('role', formData.role);
+    formDataToSend.append('selectedLot', formData.selectedLot);
+    formDataToSend.append('countryCode', formData.countryCode);
+    formDataToSend.append('noVehicles', formData.noVehicles.toString());
+    formDataToSend.append('soloResident', formData.soloResident.toString());
+    if (ocrIdNumber.trim()) {
+      formDataToSend.append('idNumber', ocrIdNumber.trim());
+    }
+
+    // Add vehicles
+    const validVehicles = formData.noVehicles
+      ? []
+      : formData.vehicles.filter(v => v.plateNumber || v.make || v.model || v.color);
+    formDataToSend.append('vehicles', JSON.stringify(validVehicles));
+
+    // Add family members
+    const validFamilyMembers = formData.soloResident
+      ? []
+      : formData.familyMembers
+      .filter(m => m.name || m.relationship || m.otherRelationship || m.age || m.phone)
+      .map(m => ({
+        name: m.name,
+        relationship: m.relationship === 'Other' ? m.otherRelationship : m.relationship,
+        age: m.age,
+        phone: m.phone
+      }));
+    formDataToSend.append('familyMembers', JSON.stringify(validFamilyMembers));
+
+    // Add profile photo if selected
+    if (profilePhoto) {
+      formDataToSend.append('profilePhoto', profilePhoto);
+    }
+
+    try {
+      const response = await axios.post('/api/auth/register', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        const emailLower = formData.email.trim().toLowerCase();
+        const regUser = response.data.user;
+        localStorage.setItem('pendingApprovalEmail', emailLower);
+        navigate('/pending-approval', {
         state: {
           email: emailLower,
           registration: {
-            firstName: registrationData.firstName,
-            lastName: registrationData.lastName,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
             email: emailLower,
-            phone: registrationData.phone,
-            houseNumber: regUser?.houseNumber || registrationData.selectedLot || '',
+            phone: formData.phone,
+            houseNumber: regUser?.houseNumber || formData.selectedLot || '',
           },
         },
       });
@@ -453,9 +511,22 @@ const Register = () => {
         })();
       }
     } else {
-      setErrors(prev => ({ ...prev, submit: result.error || 'Registration failed' }));
+      setErrors(prev => ({ ...prev, submit: response.data.error || 'Registration failed' }));
     }
-    setLoading(false);
+    } catch (error) {
+      console.error('Registration error:', error);
+      const status = error?.response?.status;
+      const serverMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message;
+      setErrors(prev => ({
+        ...prev,
+        submit: `Registration failed${status ? ` (${status})` : ''}${serverMessage ? `: ${serverMessage}` : '.'}`
+      }));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const tryOcrAutofill = async (nextFront, nextBack) => {
@@ -1230,6 +1301,49 @@ const Register = () => {
                   )}
                 </Box>
               )}
+            </Grid>
+
+            {/* Profile Photo Section */}
+            <Grid item xs={12}>
+              <Divider sx={{ my: 3 }} />
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: themeColors.textPrimary }}>
+                Profile Picture (Optional)
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2, color: themeColors.textSecondary }}>
+                Upload a photo to set as your profile picture. This will be displayed on your account.
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  disabled={uploadingPhoto}
+                  sx={{
+                    minWidth: 150,
+                    borderColor: themeColors.primary,
+                    color: themeColors.primary,
+                    '&:hover': {
+                      borderColor: themeColors.primaryDark,
+                      backgroundColor: 'rgba(45, 80, 22, 0.04)',
+                    },
+                  }}
+                >
+                  {uploadingPhoto ? <CircularProgress size={20} /> : 'Choose Photo'}
+                  <input
+                    hidden
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfilePhotoUpload}
+                  />
+                </Button>
+                {profilePhoto && (
+                  <Typography variant="body2" sx={{ color: themeColors.success, fontWeight: 500 }}>
+                    ✓ Photo selected: {profilePhoto.name}
+                  </Typography>
+                )}
+              </Box>
+              <Typography variant="caption" sx={{ display: 'block', mt: 1, color: themeColors.textSecondary }}>
+                Supported formats: JPG, PNG, GIF. Maximum size: 5MB.
+              </Typography>
             </Grid>
 
             {/* Submit button */}

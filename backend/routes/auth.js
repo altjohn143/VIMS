@@ -5,6 +5,9 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const { Resend } = require('resend');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const User = require('../models/User');
 const Lot = require('../models/Lot');
 const IdentityVerification = require('../models/IdentityVerification');
@@ -31,6 +34,35 @@ const loginLimiter = rateLimit({
   message: {
     success: false,
     error: `Too many login attempts. Please try again in ${LOGIN_LIMIT_WINDOW_MINUTES} minutes.`
+  }
+});
+
+// Configure multer for profile photo uploads
+const profilePhotoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads/profile-photos');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `registration_${uniqueSuffix}_${file.originalname}`);
+  }
+});
+
+const profilePhotoUpload = multer({
+  storage: profilePhotoStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
   }
 });
 
@@ -117,7 +149,7 @@ router.post('/check-availability', async (req, res) => {
 });
 
 // Register route
-router.post('/register', async (req, res) => {
+router.post('/register', profilePhotoUpload.single('profilePhoto'), async (req, res) => {
   try {
     console.log('\n===== REGISTRATION ATTEMPT =====');
     console.log('📝 Email:', req.body.email);
@@ -193,6 +225,12 @@ router.post('/register', async (req, res) => {
       role: userRole,
       isApproved: isApproved,
     };
+
+    // Handle profile photo upload
+    if (req.file) {
+      console.log('📸 Profile photo uploaded:', req.file.filename);
+      userData.profilePhoto = req.file.filename;
+    }
 
     // Add house information for residents using selected lot
     if (userRole === 'resident') {

@@ -278,6 +278,26 @@ router.post(
 
       const { front, back } = resolveUploadedPaths(frontImage, backImage);
       const result = await extractIdFieldsFromImagePaths(front, back);
+
+      // Check for duplicate identity against approved users
+      const duplicate = await detectDuplicateIdentity({ ocr: result, excludeUserId: null });
+      if (duplicate.found && duplicate.duplicateUser && duplicate.duplicateUser.isApproved) {
+        // Clean up uploaded files
+        const cleanupFiles = [front, back];
+        cleanupFiles.forEach((filePath) => {
+          try {
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+          } catch (cleanupError) {
+            console.warn('Failed to remove uploaded file:', filePath, cleanupError.message || cleanupError);
+          }
+        });
+
+        return res.status(409).json({
+          success: false,
+          error: 'This ID is already registered to an approved resident account. Please contact administration if you believe this is an error.'
+        });
+      }
+
       return res.json({ success: true, data: result });
     } catch (error) {
       const upstreamStatus = error?.response?.status;

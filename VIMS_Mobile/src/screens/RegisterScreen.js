@@ -342,7 +342,11 @@ const RegisterScreen = ({ navigation, route }) => {
         }
       } else {
         setOcrUnavailable(true);
-        if (!r.ok) {
+        if (r.status === 409) {
+          // Duplicate approved user - show message and don't disable OCR permanently
+          setOcrUnavailable(false);
+          Alert.alert('ID Already Registered', data?.error || 'This ID is already registered to an approved resident account. Please contact administration if you believe this is an error.');
+        } else if (!r.ok) {
           Alert.alert('OCR failed', data?.error || data?.details || 'Failed to OCR ID');
         }
       }

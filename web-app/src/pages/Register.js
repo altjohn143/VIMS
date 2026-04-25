@@ -576,7 +576,10 @@ const Register = () => {
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message;
-      if (status === 429) {
+      if (status === 409) {
+        // Duplicate approved user - show message but don't disable OCR
+        toast.error(serverMessage || 'This ID is already registered to an approved resident account. Please contact administration if you believe this is an error.');
+      } else if (status === 429) {
         setOcrUnavailable(true);
         toast.error('ID scanning is temporarily unavailable. Please continue filling the form manually.');
       } else {

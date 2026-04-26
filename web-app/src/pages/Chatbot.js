@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -19,6 +19,20 @@ const Chatbot = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const res = await axios.get('/api/ai/chat');
+        if (res.data?.success) {
+          setMessages(res.data.data.messages);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      }
+    };
+    loadMessages();
+  }, []);
+
   const sendMessage = async () => {
     const trimmed = message.trim();
     if (!trimmed || loading) return;
@@ -31,6 +45,7 @@ const Chatbot = () => {
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
     } catch (error) {
       toast.error(error?.response?.data?.error || 'Failed to send message');
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Failed to send message. Please try again.' }]);
     } finally {
       setLoading(false);
     }

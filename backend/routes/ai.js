@@ -7,6 +7,7 @@ const User = require('../models/User');
 const Visitor = require('../models/Visitor');
 const Incident = require('../models/Incident');
 const ServiceRequest = require('../models/ServiceRequest');
+const Chat = require('../models/Chat');
 const { getOpenAIClient, getOpenAIHighModel } = require('../services/openaiClient');
 
 const router = express.Router();
@@ -57,6 +58,23 @@ function buildLotInventoryContext(lots) {
   ].join('\n');
 }
 
+router.get('/chat', protect, async (req, res) => {
+  try {
+    const chat = await Chat.findOne({ user: req.user._id });
+    const messages = chat ? chat.messages : [];
+    return res.json({
+      success: true,
+      data: { messages }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to load chat history',
+      details: error.message || 'Unknown error'
+    });
+  }
+});
+
 router.post('/chat', protect, chatLimiter, async (req, res) => {
   try {
     const message = String(req.body?.message || '').trim();
@@ -64,34 +82,58 @@ router.post('/chat', protect, chatLimiter, async (req, res) => {
     if (message.length > 2000) return res.status(400).json({ success: false, error: 'message exceeds 2000 characters' });
     if (!process.env.OPENAI_API_KEY) return res.status(503).json({ success: false, error: 'OPENAI_API_KEY is not configured' });
 
+    // Load or create chat history
+    let chat = await Chat.findOne({ user: req.user._id });
+    if (!chat) {
+      chat = new Chat({ user: req.user._id, messages: [] });
+    }
+
+    // Add user message
+    chat.messages.push({ role: 'user', content: message });
+
     const lots = await Lot.find({ status: 'vacant' })
       .sort({ block: 1, lotNumber: 1 })
       .select('lotId block lotNumber status type sqm price address');
 
     const model = getOpenAILowModel();
     const client = getOpenAIClient();
+
+    // Build input with history (limit to last 20 messages for context)
+    const recentMessages = chat.messages.slice(-20);
+    const input = [
+      {
+        role: 'system',
+        content: [{ type: 'input_text', text: roleSystemPrompt(req.user.role) }]
+      },
+      {
+        role: 'system',
+        content: [{ type: 'input_text', text: buildLotInventoryContext(lots) }]
+      }
+    ];
+
+    // Add recent history
+    recentMessages.forEach(msg => {
+      input.push({
+        role: msg.role,
+        content: [{ type: 'input_text', text: msg.content }]
+      });
+    });
+
     const response = await client.responses.create({
       model,
-      input: [
-        {
-          role: 'system',
-          content: [{ type: 'input_text', text: roleSystemPrompt(req.user.role) }]
-        },
-        {
-          role: 'system',
-          content: [{ type: 'input_text', text: buildLotInventoryContext(lots) }]
-        },
-        {
-          role: 'user',
-          content: [{ type: 'input_text', text: message }]
-        }
-      ]
+      input
     });
+
+    const reply = response.output_text || 'I could not generate a response.';
+
+    // Add assistant response
+    chat.messages.push({ role: 'assistant', content: reply });
+    await chat.save();
 
     return res.json({
       success: true,
       data: {
-        reply: response.output_text || 'I could not generate a response.',
+        reply,
         model
       }
     });

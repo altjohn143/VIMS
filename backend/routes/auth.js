@@ -365,7 +365,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     console.log('\n ===== LOGIN ATTEMPT =====');
     console.log('Email:', req.body.email);
     
-    const { email, password } = req.body;
+    const { email, password, expectedRole } = req.body;
     
     if (!email || !password) {
       console.log('Missing email or password');
@@ -392,6 +392,15 @@ router.post('/login', loginLimiter, async (req, res) => {
       isApproved: user.isApproved,
       isActive: user.isActive
     });
+
+    // Check if expected role matches user's role
+    if (expectedRole && user.role !== expectedRole) {
+      console.log('Role mismatch - expected:', expectedRole, 'but user has:', user.role);
+      return res.status(403).json({
+        success: false,
+        error: `This login page is for ${expectedRole} accounts only. Please use the correct login page for your role.`
+      });
+    }
 
     if (!user.isActive) {
       console.log('Account is deactivated:', email);

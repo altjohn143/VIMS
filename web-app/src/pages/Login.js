@@ -1276,7 +1276,7 @@ const Login = () => {
     if (isLocked) { setErrors({ submit: `Account locked. Try again in ${formatTime(lockTimer)}` }); return; }
     const ve = validate();
     if (Object.keys(ve).length > 0) { setErrors(ve); return; }
-    const result = await login(formData.email, formData.password);
+    const result = await login(formData.email, formData.password, selectedRole);
     if (result.success) { localStorage.removeItem('loginAttempts'); localStorage.removeItem('lockTime'); setLoginAttempts(0); setTimeout(() => navigate('/dashboard'), 100); }
     else handleLoginFailed();
   };

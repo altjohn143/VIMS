@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,20 @@ const ChatbotScreen = ({ navigation }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const res = await api.get('/ai/chat');
+        if (res.data?.success) {
+          setMessages(res.data.data.messages);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      }
+    };
+    loadMessages();
+  }, []);
 
   const sendMessage = async () => {
     const trimmed = message.trim();

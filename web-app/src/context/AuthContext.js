@@ -143,12 +143,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
- const login = async (email, password) => {
+const login = async (email, password, expectedRole) => {
   setLoading(true);
   try {
       const response = await axios.post('/api/auth/login', { 
       email, 
-      password 
+      password,
+      expectedRole
     }, {
       headers: {
         'Content-Type': 'application/json'

@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (email, password, expectedRole) => {
     try {
       console.log('🔐 Attempting login for:', email);
       console.log('📡 API URL:', api.defaults.baseURL);
@@ -43,7 +43,8 @@ export const AuthProvider = ({ children }) => {
       
       const response = await api.post('/auth/login', {
         email: email.trim().toLowerCase(),
-        password: password
+        password: password,
+        expectedRole
       });
       
       console.log('📥 Login response status:', response.status);

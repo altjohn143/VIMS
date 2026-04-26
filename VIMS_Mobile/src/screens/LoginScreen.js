@@ -65,7 +65,7 @@ const LoginScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const result = await login(email, password);
+      const result = await login(email, password, selectedRole);
 
       if (!result.success) {
         if (result.error?.includes('pending admin approval') || result.requiresApproval) {

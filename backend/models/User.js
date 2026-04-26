@@ -46,9 +46,16 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
+    minlength: [12, 'Password must be at least 12 characters'],
+    match: [/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 'Password must contain uppercase, lowercase, number, and special character'],
     select: false
   },
+
+  // SECURITY: Password history to prevent reuse
+  previousPasswords: [{
+    type: String,
+    select: false
+  }],
   
   role: {
     type: String,
@@ -117,6 +124,10 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   resetPasswordExpires: {
+    type: Date,
+    default: null
+  },
+  resetTokenUsedAt: {
     type: Date,
     default: null
   },

@@ -185,40 +185,40 @@ async function autoSeedDatabase() {
     await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
     console.log('Removed existing admin/security accounts');
     
-    // Use plain text password - let the User model's pre-save hook hash it
-    const plainPassword = 'admin123';
+    // Use compliant password for production seeding
+    const compliantPassword = 'Admin123!@#';
     
-    // Create Admin with plain password
+    // Create Admin with compliant password
     const adminUser = new User({
       firstName: 'System',
       lastName: 'Administrator',
       email: 'admin@vims.com',
       phone: '9876543210',
-      password: plainPassword,
+      password: compliantPassword,
       role: 'admin',
       isApproved: true,
       isActive: true
     });
     await adminUser.save();
-    console.log('✅ Admin account created with password: admin123');
+    console.log('✅ Admin account created with password: Admin123!@#');
 
-    // Create Security with plain password
+    // Create Security with compliant password
     const securityUser = new User({
       firstName: 'Security',
       lastName: 'Officer',
       email: 'security@vims.com',
       phone: '9876543211',
-      password: plainPassword,
+      password: compliantPassword,
       role: 'security',
       isApproved: true,
       isActive: true
     });
     await securityUser.save();
-    console.log('✅ Security account created with password: admin123');
+    console.log('✅ Security account created with password: Admin123!@#');
     
     console.log('\n✅ Login credentials:');
-    console.log('   Admin: admin@vims.com / admin123');
-    console.log('   Security: security@vims.com / admin123');
+    console.log('   Admin: admin@vims.com / Admin123!@#');
+    console.log('   Security: security@vims.com / Admin123!@#');
     
   } catch (error) {
     console.error('Auto-seed error:', error.message);
@@ -392,11 +392,15 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
-  console.log(`📍 Local: http://localhost:${PORT}/api`);
-  console.log(`📍 Network: http://${localIP}:${PORT}/api`);
+  console.log(`📍 API: http://localhost:${PORT}/api`);
   console.log(`📍 Health: http://localhost:${PORT}/api/health`);
-  console.log(`📍 Lots API: http://localhost:${PORT}/api/lots`);
-  console.log(`📍 Debug Lots: http://localhost:${PORT}/api/debug/lots-count`);
+
+  // Only show debug endpoints in development
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`📍 Lots API: http://localhost:${PORT}/api/lots`);
+    console.log(`📍 Debug Lots: http://localhost:${PORT}/api/debug/lots-count`);
+  }
+
   console.log('\n📱 Mobile Setup:');
   console.log(`   Android Emulator: http://10.0.2.2:${PORT}/api`);
   console.log(`   iOS Simulator: http://localhost:${PORT}/api`);

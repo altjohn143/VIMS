@@ -3,6 +3,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 require('dotenv').config();
 const auditLogger = require('./middleware/auditLogger');
 
@@ -11,113 +12,99 @@ console.log('\n📂 Starting VIMS Server...');
 const app = express();
 app.set('trust proxy', 1);
 
-// Configure CORS
-const os = require('os');
-const networkInterfaces = os.networkInterfaces();
-let localIP = 'localhost';
-
-for (const name of Object.keys(networkInterfaces)) {
-  for (const net of networkInterfaces[name]) {
-    if (net.family === 'IPv4' && !net.internal) {
-      localIP = net.address;
-      break;
-    }
+// SECURITY: Add security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
   }
-}
+}));
 
-// Fixed CORS configuration - removed invalid regex patterns and fixed syntax errors
+// SECURITY: Strict CORS configuration - only allow specific origins
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:8081',
   'http://localhost:19006',
   'exp://localhost:19000',
-  `http://${localIP}:3000`,
-  `http://${localIP}:8081`,
-  `http://${localIP}:5000`,
   'https://vims-one.vercel.app',
   'https://casimiro-westville-homes-vims.online'
 ];
 
+// Add frontend URLs from environment variable
 const frontendUrlsFromEnv = (process.env.FRONTEND_URL || '')
   .split(',')
-  .map((url) => url.trim())
+  .map(url => url.trim())
   .filter(Boolean);
 
 const allowedOriginSet = new Set([...allowedOrigins, ...frontendUrlsFromEnv]);
 
-// Also allow any IP in the 192.168.x.x range for mobile devices
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, Expo Go, or curl requests)
+    // Allow requests with no origin (mobile apps, curl requests)
     if (!origin) return callback(null, true);
-    
-    // Check if origin is allowed
+
+    // Check if origin is in allowed list
     if (allowedOriginSet.has(origin)) {
       return callback(null, true);
     }
-    
-    // Allow localhost on any port (Expo web uses dynamic ports like 8082/8083)
-    const localhostPattern = /^http:\/\/localhost:\d+$/;
-    if (localhostPattern.test(origin)) {
-      return callback(null, true);
+
+    // Allow localhost on any port for development
+    if (process.env.NODE_ENV !== 'production') {
+      const localhostPattern = /^http:\/\/localhost:\d+$/;
+      if (localhostPattern.test(origin)) {
+        return callback(null, true);
+      }
     }
 
-    // Allow any 192.168.x.x IP address
-    const ipPattern = /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/;
-    if (ipPattern.test(origin)) {
-      return callback(null, true);
-    }
-    
-    // Allow any 10.0.x.x IP address (Android emulator)
-    const androidPattern = /^http:\/\/10\.0\.\d{1,3}\.\d{1,3}:\d+$/;
-    if (androidPattern.test(origin)) {
-      return callback(null, true);
-    }
-    
-    // Allow exp:// URLs for Expo Go
-    if (origin.startsWith('exp://')) {
-      return callback(null, true);
-    }
-    
-    // Allow Vercel deployment
-    if (origin.includes('vercel.app') || origin.includes('vims')) {
-      return callback(null, true);
-    }
-    
-    return callback(new Error(`Not allowed by CORS: ${origin}`));
+    return callback(new Error(`CORS not allowed: ${origin}`));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'Cache-Control',
-    'Pragma',
-    'If-Modified-Since',
-    'Accept',
-    'Origin',
-    'X-Requested-With',
-    'User-Agent'
-  ],
-  exposedHeaders: ['Content-Length', 'Content-Type', 'Authorization'],
-  maxAge: 86400,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400
 }));
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads/profile-photos', express.static(path.join(__dirname, 'uploads/profile-photos')));
+app.use(express.json({ limit: '10mb' })); // SECURITY: Add payload size limit
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10, // 10 attempts per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many authentication attempts. Please try again later.'
+  }
+});
 
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 300,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 300, // 300 requests per window
   standardHeaders: true,
   legacyHeaders: false
 });
 
+// SECURITY: Serve static files securely - only allow access to profile photos
+app.use('/uploads/profile-photos', express.static(path.join(__dirname, 'uploads/profile-photos'), {
+  maxAge: '1d', // Cache for 1 day
+  setHeaders: (res, path) => {
+    res.set('Cache-Control', 'public, max-age=86400');
+  }
+}));
+
 app.use('/api', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api', auditLogger);
 
 // Database connection - USE ENVIRONMENT VARIABLE
@@ -315,62 +302,54 @@ try {
   process.exit(1);
 }
 
-// Debug route to see all registered routes
-app.get('/api/debug/routes', (req, res) => {
-  const routes = [];
-  app._router.stack.forEach(middleware => {
-    if (middleware.route) {
-      routes.push({
-        path: middleware.route.path,
-        methods: Object.keys(middleware.route.methods)
-      });
-    } else if (middleware.name === 'router') {
-      middleware.handle.stack.forEach(handler => {
-        if (handler.route) {
-          routes.push({
-            path: '/api' + middleware.regexp.source.replace('\\/?(?=\\/|$)', '') + handler.route.path,
-            methods: Object.keys(handler.route.methods)
-          });
-        }
-      });
-    }
+// SECURITY: Remove all debug endpoints in production
+if (process.env.NODE_ENV !== 'production') {
+  // Debug route to see all registered routes (development only)
+  app.get('/api/debug/routes', (req, res) => {
+    const routes = [];
+    app._router.stack.forEach(middleware => {
+      if (middleware.route) {
+        routes.push({
+          path: middleware.route.path,
+          methods: Object.keys(middleware.route.methods)
+        });
+      } else if (middleware.name === 'router') {
+        middleware.handle.stack.forEach(handler => {
+          if (handler.route) {
+            routes.push({
+              path: '/api' + middleware.regexp.source.replace('\\/?(?=\\/|$)', '') + handler.route.path,
+              methods: Object.keys(handler.route.methods)
+            });
+          }
+        });
+      }
+    });
+    
+    res.json({
+      success: true,
+      routes: routes,
+      count: routes.length
+    });
   });
-  
-  res.json({
-    success: true,
-    routes: routes,
-    count: routes.length
-  });
-});
 
-app.get('/api/debug/env-check', (req, res) => {
-  res.json({
-    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-    hasPaymongoSecret: !!process.env.PAYMONGO_SECRET_KEY,
-    hasPaymongoPublic: !!process.env.PAYMONGO_PUBLIC_KEY,
-    hasWebhookSecret: !!process.env.PAYMONGO_WEBHOOK_SECRET,
-    frontendUrl: process.env.FRONTEND_URL,
-    nodeEnv: process.env.NODE_ENV
+  app.get('/api/debug/env-check', (req, res) => {
+    res.json({
+      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+      hasPaymongoSecret: !!process.env.PAYMONGO_SECRET_KEY,
+      hasPaymongoPublic: !!process.env.PAYMONGO_PUBLIC_KEY,
+      hasWebhookSecret: !!process.env.PAYMONGO_WEBHOOK_SECRET,
+      frontendUrl: process.env.FRONTEND_URL,
+      nodeEnv: process.env.NODE_ENV
+    });
   });
-});
+}
 
-// Health check endpoint
+// Health check endpoint (safe for production)
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'VIMS Backend',
-    timestamp: new Date().toISOString(),
-    ip: localIP,
-    endpoints: [
-      '/api/auth/login',
-      '/api/auth/register',
-      '/api/auth/me',
-      '/api/users',
-      '/api/visitors',
-      '/api/service-requests',
-      '/api/lots',
-      '/api/debug/routes'
-    ]
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -383,110 +362,29 @@ app.get('/api/test-connection', (req, res) => {
   });
 });
 
-// TEMPORARY TEST ENDPOINT - Direct password test
-app.post('/api/test-password-direct', async (req, res) => {
-  try {
-    const bcrypt = require('bcryptjs');
-    const { email, password } = req.body;
-    const User = require('./models/User');
-    
-    console.log('Direct password test for:', email);
-    
-    // Find user with password
-    const user = await User.findOne({ email }).select('+password');
-    
-    if (!user) {
-      return res.json({ success: false, error: 'User not found' });
-    }
-    
-    console.log('User found, stored hash:', user.password);
-    console.log('Test password:', password);
-    
-    // Test 1: Direct bcrypt compare
-    const directCompare = await bcrypt.compare(password, user.password);
-    console.log('Direct bcrypt.compare result:', directCompare);
-    
-    // Test 2: Using the model method
-    const modelCompare = await user.comparePassword(password);
-    console.log('Model compare result:', modelCompare);
-    
-    // Test 3: Create a fresh hash and compare
-    const salt = await bcrypt.genSalt(10);
-    const freshHash = await bcrypt.hash(password, salt);
-    const testCompare = await bcrypt.compare(password, freshHash);
-    console.log('Fresh hash test (should be true):', testCompare);
-    
-    res.json({
-      success: true,
-      email: user.email,
-      directCompare,
-      modelCompare,
-      hashLength: user.password.length,
-      freshHashTest: testCompare
-    });
-    
-  } catch (error) {
-    console.error('Test error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Debug endpoint to check lots
-app.get('/api/debug/lots-count', async (req, res) => {
-  try {
-    const Lot = require('./models/Lot');
-    const count = await Lot.countDocuments();
-    const vacant = await Lot.countDocuments({ status: 'vacant' });
-    const occupied = await Lot.countDocuments({ status: 'occupied' });
-    const reserved = await Lot.countDocuments({ status: 'reserved' });
-    const sample = await Lot.findOne();
-    
-    res.json({
-      success: true,
-      count,
-      vacant,
-      occupied,
-      reserved,
-      sample: sample ? { lotId: sample.lotId, status: sample.status } : null
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Debug endpoint to check users
-app.get('/api/debug/check-users', async (req, res) => {
-  try {
-    const User = require('./models/User');
-    const users = await User.find({}).select('email role isApproved createdAt');
-    res.json({
-      success: true,
-      count: users.length,
-      users: users
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// SECURITY: Remove all test endpoints that expose sensitive information
+// Removed: /api/test-password-direct, /api/debug/lots-count, /api/debug/check-users
 
 // 404 handler
 app.use('/api/*', (req, res) => {
   console.log(`Route not found: ${req.originalUrl}`);
   res.status(404).json({ 
     success: false, 
-    error: 'API route not found',
-    requested: req.originalUrl,
-    method: req.method
+    error: 'API route not found'
   });
 });
 
-// Error handler
+// SECURITY: Error handler - don't expose sensitive information
 app.use((err, req, res, next) => {
+  // Log the full error for debugging
   console.error('Server Error:', err.stack);
-  res.status(500).json({ 
+  
+  // Don't expose error details in production
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  
+  res.status(err.status || 500).json({ 
     success: false, 
-    error: 'Internal server error',
-    message: err.message 
+    error: isDevelopment ? err.message : 'Internal server error'
   });
 });
 

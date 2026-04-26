@@ -8,6 +8,8 @@ const { Resend } = require('resend');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const Joi = require('joi');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Lot = require('../models/Lot');
 const IdentityVerification = require('../models/IdentityVerification');
@@ -18,10 +20,14 @@ const { createInAppNotification } = require('../services/inAppNotificationServic
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Debug logging for environment variables
-console.log('🔧 Environment Variables Check:');
-console.log('RESEND_API_KEY:', process.env.RESEND_API_KEY ? '✅ SET' : '❌ NOT SET');
-console.log('FRONTEND_URL:', process.env.FRONTEND_URL ? '✅ SET' : '❌ NOT SET');
+// SECURITY: Input validation schemas
+const emailSchema = Joi.string().email().lowercase().trim().max(254);
+const passwordSchema = Joi.string()
+  .min(12)
+  .max(128)
+  .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+  .message('Password must be at least 12 characters and contain uppercase, lowercase, number, and special character');
+const phoneSchema = Joi.string().pattern(/^\+?[\d\s\-\(\)]+$/).max(20);
 
 const LOGIN_LIMIT_WINDOW_MINUTES = Number(process.env.LOGIN_LIMIT_WINDOW_MINUTES || 15);
 const LOGIN_LIMIT_MAX_ATTEMPTS = Number(process.env.LOGIN_LIMIT_MAX_ATTEMPTS || 10);
@@ -70,10 +76,15 @@ const generateToken = (user) => {
   return jwt.sign(
     {
       id: user._id,
-      role: user.role
+      role: user.role,
+      iat: Math.floor(Date.now() / 1000)
     },
-    process.env.JWT_SECRET,
-    { expiresIn: '8h' }
+    process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex'),
+    {
+      expiresIn: process.env.NODE_ENV === 'production' ? '1h' : '8h', // 1 hour in production
+      issuer: 'vims-backend',
+      audience: 'vims-frontend'
+    }
   );
 };
 
@@ -85,33 +96,50 @@ const getFallbackLots = async () => {
   return lots;
 };
 
-// Check availability route
+// Check availability route - SECURITY: Fixed NoSQL injection
 router.post('/check-availability', async (req, res) => {
   try {
     const { type, value } = req.body;
-    
+
     if (!type || !value) {
       return res.status(400).json({
         success: false,
         error: 'Type and value are required'
       });
     }
-    
+
+    // SECURITY: Validate input to prevent NoSQL injection
     let query = {};
-    
     switch(type) {
       case 'email':
-        query = { email: value.toLowerCase() };
+        const { error: emailError, value: emailValue } = emailSchema.validate(value);
+        if (emailError) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid email format'
+          });
+        }
+        query = { email: emailValue };
         break;
       case 'phone':
-        query = { phone: value };
+        const { error: phoneError, value: phoneValue } = phoneSchema.validate(value);
+        if (phoneError) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid phone format'
+          });
+        }
+        query = { phone: phoneValue };
         break;
       case 'house':
         // For house, value format is "BLOCK-LOT"
         const parts = value.split('-');
         if (parts.length === 2) {
-          const block = parts[0];
-          const lot = parts[1];
+          const block = parts[0].toUpperCase();
+          const lot = parseInt(parts[1]);
+          if (!/^[A-Z]$/.test(block) || isNaN(lot) || lot < 1 || lot > 99) {
+            return res.json({ success: true, available: true });
+          }
           query = { houseBlock: block, houseLot: lot };
         } else {
           return res.json({ success: true, available: true });
@@ -119,6 +147,9 @@ router.post('/check-availability', async (req, res) => {
         break;
       case 'lot':
         // Check if lot is available in the Lots collection
+        if (!/^[A-Z]-\d+$/.test(value)) {
+          return res.json({ success: true, available: false, error: 'Invalid lot format' });
+        }
         const foundLot = await Lot.findOne({ lotId: value });
         if (!foundLot) {
           return res.json({ success: true, available: false, error: 'Invalid lot number' });
@@ -130,15 +161,15 @@ router.post('/check-availability', async (req, res) => {
           error: 'Invalid check type'
         });
     }
-    
+
     const existingUser = await User.findOne(query);
-    
+
     res.json({
       success: true,
       available: !existingUser,
       exists: !!existingUser
     });
-    
+
   } catch (error) {
     console.error('Availability check error:', error);
     res.status(500).json({
@@ -471,11 +502,11 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
-// Change password
+// Change password - SECURITY: Enforce strong password policy
 router.put('/change-password', protect, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    
+
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
@@ -483,22 +514,38 @@ router.put('/change-password', protect, async (req, res) => {
       });
     }
 
-    if (newPassword.length < 6) {
+    // SECURITY: Validate new password strength
+    const { error: passwordError } = passwordSchema.validate(newPassword);
+    if (passwordError) {
       return res.status(400).json({
         success: false,
-        error: 'New password must be at least 6 characters'
+        error: passwordError.details[0].message
       });
     }
-    
-    const user = await User.findById(req.user.id).select('+password');
-    
+
+    // SECURITY: Prevent password reuse - check last 5 passwords
+    const user = await User.findById(req.user.id).select('+password +previousPasswords');
+
     if (!user) {
       return res.status(404).json({
         success: false,
         error: 'User not found'
       });
     }
-    
+
+    // Check if new password matches any of the last 5 passwords
+    if (user.previousPasswords && user.previousPasswords.length > 0) {
+      for (const oldHash of user.previousPasswords.slice(-5)) {
+        const isOldPassword = await bcrypt.compare(newPassword, oldHash);
+        if (isOldPassword) {
+          return res.status(400).json({
+            success: false,
+            error: 'New password cannot be the same as any of your last 5 passwords'
+          });
+        }
+      }
+    }
+
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(400).json({
@@ -506,17 +553,35 @@ router.put('/change-password', protect, async (req, res) => {
         error: 'Current password is incorrect'
       });
     }
-    
+
+    // Store current password in history before changing
+    if (!user.previousPasswords) user.previousPasswords = [];
+    user.previousPasswords.push(user.password);
+    // Keep only last 5 passwords
+    user.previousPasswords = user.previousPasswords.slice(-5);
+
     user.password = newPassword;
     await user.save();
-    
+
     console.log('Password changed for user:', user.email);
-    
+
+    // SECURITY: Create security notification
+    await createInAppNotification({
+      userId: user._id,
+      type: 'security',
+      title: 'Password Changed',
+      body: 'Your password has been successfully changed.',
+      metadata: {
+        action: 'password_change',
+        timestamp: new Date().toISOString()
+      }
+    });
+
     res.json({
       success: true,
       message: 'Password changed successfully'
     });
-    
+
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({
@@ -646,56 +711,84 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-// Reset password
+// Reset password - SECURITY: Enforce strong password policy and improve token security
 router.post('/reset-password', async (req, res) => {
   try {
     const { token, newPassword } = req.body;
-    
+
     if (!token || !newPassword) {
       return res.status(400).json({
         success: false,
         error: 'Token and new password are required'
       });
     }
-    
+
+    // SECURITY: Validate new password strength
+    const { error: passwordError } = passwordSchema.validate(newPassword);
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        error: passwordError.details[0].message
+      });
+    }
+
     // Find user with valid token
     const user = await User.findOne({
       resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() }
-    });
-    
+    }).select('+previousPasswords');
+
     if (!user) {
       return res.status(400).json({
         success: false,
         error: 'Invalid or expired reset token'
       });
     }
-    
-    // Update password
+
+    // SECURITY: Prevent password reuse - check last 5 passwords
+    if (user.previousPasswords && user.previousPasswords.length > 0) {
+      for (const oldHash of user.previousPasswords.slice(-5)) {
+        const isOldPassword = await bcrypt.compare(newPassword, oldHash);
+        if (isOldPassword) {
+          return res.status(400).json({
+            success: false,
+            error: 'New password cannot be the same as any of your last 5 passwords'
+          });
+        }
+      }
+    }
+
+    // Store current password in history before changing
+    if (!user.previousPasswords) user.previousPasswords = [];
+    user.previousPasswords.push(user.password);
+    user.previousPasswords = user.previousPasswords.slice(-5);
+
+    // Update password and clear reset token
     user.password = newPassword;
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
+    user.resetTokenUsedAt = new Date(); // Track when token was used
     await user.save();
-    
+
     // Create in-app notification
     await createInAppNotification({
       userId: user._id,
       type: 'security',
       title: 'Password Changed',
-      body: 'Your password has been successfully changed. If you did not make this change, please contact support immediately.',
+      body: 'Your password has been successfully changed via password reset.',
       metadata: {
         action: 'password_reset',
         timestamp: new Date().toISOString()
       }
     });
-    
+
     console.log('Password reset successful for:', user.email);
-    
+
     res.json({
       success: true,
       message: 'Password has been reset successfully'
     });
-    
+
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({

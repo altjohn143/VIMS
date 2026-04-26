@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
 const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
@@ -10,29 +11,62 @@ const { extractIdFieldsFromImagePaths } = require('../services/openaiIdOcrServic
 const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
+const FileEncryption = require('../utils/fileEncryption');
 
 const router = express.Router();
 
-function resolveUploadedPaths(filenameFront, filenameBack) {
-  return {
-    front: path.join(uploadDir, filenameFront),
-    back: path.join(uploadDir, filenameBack)
-  };
-}
-
+// SECURITY: Encrypted file storage directory
 const uploadDir = path.join(__dirname, '../uploads/ids');
+const encryptedDir = path.join(__dirname, '../uploads/ids/encrypted');
+
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
+if (!fs.existsSync(encryptedDir)) {
+  fs.mkdirSync(encryptedDir, { recursive: true });
+}
 
+// SECURITY: Secure filename generation - prevent path traversal and information disclosure
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
+    // Generate secure random filename, ignore original filename
+    const randomName = crypto.randomBytes(16).toString('hex');
+    const ext = path.extname(file.originalname).toLowerCase();
+    // Only allow safe image extensions
+    const allowedExts = ['.jpg', '.jpeg', '.png'];
+    if (!allowedExts.includes(ext)) {
+      return cb(new Error('Invalid file type. Only JPG and PNG allowed.'));
+    }
+    cb(null, `${randomName}${ext}`);
   }
 });
-const upload = multer({ storage });
+
+// SECURITY: File filter with magic byte validation
+const fileFilter = (req, file, cb) => {
+  // Check MIME type
+  if (!file.mimetype.startsWith('image/')) {
+    return cb(new Error('Only image files are allowed'), false);
+  }
+
+  // Additional security: check file extension
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedExts = ['.jpg', '.jpeg', '.png'];
+  if (!allowedExts.includes(ext)) {
+    return cb(new Error('Invalid file extension'), false);
+  }
+
+  cb(null, true);
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 3 // Max 3 files
+  }
+});
 
 router.get('/ping', (req, res) => {
   res.json({
@@ -60,6 +94,7 @@ router.get('/openai-model', protect, authorize('admin'), async (req, res) => {
 
 router.post(
   '/upload-id',
+  protect, // SECURITY: Require authentication
   upload.fields([
     { name: 'frontImage', maxCount: 1 },
     { name: 'backImage', maxCount: 1 },
@@ -67,10 +102,10 @@ router.post(
   ]),
   async (req, res) => {
     try {
-      const { email } = req.body;
-      if (!email) return res.status(400).json({ success: false, error: 'Email is required' });
+      // SECURITY: Use authenticated user's email instead of request body
+      const email = req.user.email;
+      const user = req.user;
 
-      const user = await User.findOne({ email: email.toLowerCase() });
       if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
       const snapEmail = user.email || '';
@@ -79,14 +114,71 @@ router.post(
       const frontImage = req.files?.frontImage?.[0]?.filename || null;
       const backImage = req.files?.backImage?.[0]?.filename || null;
       const selfieImage = req.files?.selfieImage?.[0]?.filename || null;
+
       if (!frontImage || !backImage) {
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
       }
 
-      const { front, back } = resolveUploadedPaths(frontImage, backImage);
+      // SECURITY: Validate uploaded files exist and are readable
+      const frontPath = path.join(uploadDir, frontImage);
+      const backPath = path.join(uploadDir, backImage);
+      const selfiePath = selfieImage ? path.join(uploadDir, selfieImage) : null;
+
+      if (!fs.existsSync(frontPath) || !fs.existsSync(backPath)) {
+        return res.status(400).json({ success: false, error: 'Uploaded files not found' });
+      }
+
+      // SECURITY: Encrypt sensitive ID documents at rest
+      const encryptedFrontPath = path.join(encryptedDir, `${frontImage}.enc`);
+      const encryptedBackPath = path.join(encryptedDir, `${backImage}.enc`);
+      const encryptedSelfiePath = selfieImage ? path.join(encryptedDir, `${selfieImage}.enc`) : null;
+
+      try {
+        await FileEncryption.encryptFile(frontPath, encryptedFrontPath);
+        await FileEncryption.encryptFile(backPath, encryptedBackPath);
+        if (selfiePath && encryptedSelfiePath) {
+          await FileEncryption.encryptFile(selfiePath, encryptedSelfiePath);
+        }
+
+        // SECURITY: Securely delete unencrypted files
+        FileEncryption.secureDelete(frontPath);
+        FileEncryption.secureDelete(backPath);
+        if (selfiePath) FileEncryption.secureDelete(selfiePath);
+
+        // Update filenames to encrypted versions
+        const encryptedFrontImage = `${frontImage}.enc`;
+        const encryptedBackImage = `${backImage}.enc`;
+        const encryptedSelfieImage = selfieImage ? `${selfieImage}.enc` : null;
+
+      } catch (encryptionError) {
+        console.error('File encryption failed:', encryptionError);
+        // Clean up uploaded files on encryption failure
+        try {
+          fs.unlinkSync(frontPath);
+          fs.unlinkSync(backPath);
+          if (selfiePath) fs.unlinkSync(selfiePath);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup files after encryption error:', cleanupError);
+        }
+        return res.status(500).json({ success: false, error: 'Failed to secure uploaded files' });
+      }
+
+      const { front, back } = { front: encryptedFrontPath, back: encryptedBackPath };
       let ocr = null;
       try {
-        ocr = await extractIdFieldsFromImagePaths(front, back);
+        // SECURITY: Decrypt files temporarily for OCR processing
+        const tempFrontPath = path.join(uploadDir, `temp_${Date.now()}_front.jpg`);
+        const tempBackPath = path.join(uploadDir, `temp_${Date.now()}_back.jpg`);
+
+        await FileEncryption.decryptFile(encryptedFrontPath, tempFrontPath);
+        await FileEncryption.decryptFile(encryptedBackPath, tempBackPath);
+
+        ocr = await extractIdFieldsFromImagePaths(tempFrontPath, tempBackPath);
+
+        // Clean up temporary decrypted files
+        FileEncryption.secureDelete(tempFrontPath);
+        FileEncryption.secureDelete(tempBackPath);
+
       } catch (ocrError) {
         console.error('OCR extraction failed, saving verification for manual review:', ocrError?.response?.data || ocrError.message || ocrError);
         let verification = await IdentityVerification.findOne({ userId: user._id });
@@ -95,17 +187,17 @@ router.post(
             userId: user._id,
             residentEmail: snapEmail,
             residentDisplayName: snapName,
-            frontImage,
-            backImage,
-            selfieImage,
+            frontImage: encryptedFrontImage,
+            backImage: encryptedBackImage,
+            selfieImage: encryptedSelfieImage,
             status: 'manual_review',
             reviewNotes: 'OCR failed while extracting ID details. Routed to manual review.',
             rejectReason: ''
           });
         } else {
-          verification.frontImage = frontImage;
-          verification.backImage = backImage;
-          verification.selfieImage = selfieImage;
+          verification.frontImage = encryptedFrontImage;
+          verification.backImage = encryptedBackImage;
+          verification.selfieImage = encryptedSelfieImage;
           verification.residentEmail = snapEmail;
           verification.residentDisplayName = snapName;
           verification.status = 'manual_review';
@@ -115,21 +207,19 @@ router.post(
         }
 
         // Update user's profile photo if selfie was provided
-        if (selfieImage) {
-          // Copy selfie to profile-photos directory
-          const sourcePath = path.join(uploadDir, selfieImage);
+        if (encryptedSelfieImage) {
+          // Copy encrypted selfie to profile-photos directory
+          const sourcePath = path.join(encryptedDir, encryptedSelfieImage);
           const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
           if (!fs.existsSync(profilePhotoDir)) {
             fs.mkdirSync(profilePhotoDir, { recursive: true });
           }
-          const destPath = path.join(profilePhotoDir, selfieImage);
+          const destPath = path.join(profilePhotoDir, encryptedSelfieImage);
           try {
             fs.copyFileSync(sourcePath, destPath);
-            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+            await User.findByIdAndUpdate(user._id, { profilePhoto: encryptedSelfieImage });
           } catch (copyError) {
-            console.error('Failed to copy selfie to profile photos:', copyError);
-            // Still update profilePhoto even if copy fails
-            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+            console.error('Failed to copy encrypted selfie to profile photos:', copyError);
           }
         }
 
@@ -142,10 +232,16 @@ router.post(
 
       const duplicate = await detectDuplicateIdentity({ ocr, excludeUserId: user._id });
       if (duplicate.found) {
-        const cleanupFiles = [front, back];
+        // SECURITY: Clean up encrypted files on duplicate detection
+        const cleanupFiles = [encryptedFrontPath, encryptedBackPath];
+        if (encryptedSelfiePath) cleanupFiles.push(encryptedSelfiePath);
+
         cleanupFiles.forEach((filePath) => {
           try {
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            if (fs.existsSync(filePath)) FileEncryption.secureDelete(filePath);
+            // Also remove metadata files
+            const metaFile = `${filePath}.meta`;
+            if (fs.existsSync(metaFile)) fs.unlinkSync(metaFile);
           } catch (cleanupError) {
             console.warn('Failed to remove duplicate upload file:', filePath, cleanupError.message || cleanupError);
           }

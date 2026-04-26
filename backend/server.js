@@ -404,7 +404,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('\n📱 Mobile Setup:');
   console.log(`   Android Emulator: http://10.0.2.2:${PORT}/api`);
   console.log(`   iOS Simulator: http://localhost:${PORT}/api`);
-  console.log(`   Real Device: http://${localIP}:${PORT}/api`);
   console.log('\n✅ VIMS Backend is ready!');
 });
 

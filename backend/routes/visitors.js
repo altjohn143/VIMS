@@ -1278,13 +1278,13 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// Export visitors data (CSV format)
+// Export visitors data (CSV or PDF format)
 router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-    
+    const { startDate, endDate, format = 'json' } = req.query;
+
     let filter = {};
-    
+
     if (startDate && endDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
@@ -1292,13 +1292,40 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
       end.setHours(23, 59, 59, 999);
       filter.createdAt = { $gte: start, $lte: end };
     }
-    
+
     const visitors = await Visitor.find(filter)
       .populate('residentId', 'firstName lastName houseNumber email')
       .populate('approvedBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
-    
-    // Convert to CSV format
+
+    if (format === 'pdf') {
+      // Import PDF service at the top of the file
+      const pdfReportService = require('../services/pdfReportService');
+
+      const columns = [
+        { key: 'visitorName', label: 'Visitor Name' },
+        { key: 'visitorPhone', label: 'Phone' },
+        { key: 'purpose', label: 'Purpose' },
+        { key: 'residentId.firstName', label: 'Resident' },
+        { key: 'residentId.houseNumber', label: 'House' },
+        { key: 'status', label: 'Status' },
+        { key: 'expectedArrival', label: 'Expected Arrival' },
+        { key: 'actualEntry', label: 'Entry Time' },
+        { key: 'approvedBy.firstName', label: 'Approved By' }
+      ];
+
+      const pdfBuffer = await pdfReportService.generateDataReport(
+        'VIMS Visitors Export Report',
+        visitors,
+        columns
+      );
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitors_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    // Convert to CSV format for JSON response
     const csvData = visitors.map(v => ({
       'Visitor ID': v._id,
       'Visitor Name': v.visitorName,
@@ -1318,14 +1345,14 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
       'Created At': v.createdAt,
       'Security Notes': v.securityNotes || 'N/A'
     }));
-    
+
     res.json({
       success: true,
       data: csvData,
       filename: `visitors_export_${new Date().toISOString().split('T')[0]}.json`,
       count: csvData.length
     });
-    
+
   } catch (error) {
     console.error('Export visitors error:', error);
     res.status(500).json({

@@ -6,11 +6,39 @@ const router = express.Router();
 
 router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
   try {
-    const rows = await Incident.find()
+    const { format = 'json' } = req.query;
+
+    const incidents = await Incident.find()
       .populate('reportedBy', 'firstName lastName role')
       .sort({ createdAt: -1 })
       .limit(200);
-    res.json({ success: true, count: rows.length, data: rows });
+
+    if (format === 'pdf') {
+      // Import PDF service
+      const pdfReportService = require('../services/pdfReportService');
+
+      const columns = [
+        { key: 'title', label: 'Title' },
+        { key: 'description', label: 'Description' },
+        { key: 'severity', label: 'Severity' },
+        { key: 'status', label: 'Status' },
+        { key: 'location', label: 'Location' },
+        { key: 'reportedBy.firstName', label: 'Reported By' },
+        { key: 'createdAt', label: 'Created' }
+      ];
+
+      const pdfBuffer = await pdfReportService.generateDataReport(
+        'VIMS Incidents Report',
+        incidents,
+        columns
+      );
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Incidents_Report_${new Date().toISOString().split('T')[0]}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    res.json({ success: true, count: incidents.length, data: incidents });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to load incidents' });
   }

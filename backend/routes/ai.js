@@ -9,6 +9,7 @@ const Incident = require('../models/Incident');
 const ServiceRequest = require('../models/ServiceRequest');
 const Chat = require('../models/Chat');
 const { getOpenAIClient, getOpenAIHighModel } = require('../services/openaiClient');
+const pdfReportService = require('../services/pdfReportService');
 
 const router = express.Router();
 
@@ -160,7 +161,7 @@ router.post('/reports/admin/financial', protect, reportLimiter, async (req, res)
       return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
-    const { period = 'monthly', year = new Date().getFullYear(), month = new Date().getMonth() + 1 } = req.body;
+    const { period = 'monthly', year = new Date().getFullYear(), month = new Date().getMonth() + 1, format = 'json' } = req.body;
 
     // Get financial data
     const startDate = period === 'monthly' 
@@ -213,20 +214,30 @@ ${payments.slice(0, 10).map(p => `- ${p.user?.firstName} ${p.user?.lastName} (${
       ]
     });
 
+    const reportData = {
+      report: response.output_text || 'Unable to generate financial report.',
+      period,
+      year,
+      month: period === 'monthly' ? month : null,
+      summary: {
+        totalRevenue,
+        paymentCount,
+        totalUsers,
+        newUsers
+      }
+    };
+
+    // Return PDF or JSON based on format
+    if (format === 'pdf') {
+      const pdfBuffer = await pdfReportService.generateFinancialReport(reportData);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Financial_Report_${period}_${year}${month ? '_' + month : ''}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
     return res.json({
       success: true,
-      data: {
-        report: response.output_text || 'Unable to generate financial report.',
-        period,
-        year,
-        month: period === 'monthly' ? month : null,
-        summary: {
-          totalRevenue,
-          paymentCount,
-          totalUsers,
-          newUsers
-        }
-      }
+      data: reportData
     });
   } catch (error) {
     return res.status(500).json({
@@ -244,7 +255,7 @@ router.post('/reports/security/visitors', protect, reportLimiter, async (req, re
       return res.status(403).json({ success: false, error: 'Security access required' });
     }
 
-    const { period = 'daily', date = new Date().toISOString().split('T')[0] } = req.body;
+    const { period = 'daily', date = new Date().toISOString().split('T')[0], format = 'json' } = req.body;
 
     const startDate = period === 'daily' 
       ? new Date(date)
@@ -289,19 +300,29 @@ ${visitors.slice(0, 15).map(v => `- ${v.visitorName} visiting ${v.user?.firstNam
       ]
     });
 
+    const reportData = {
+      report: response.output_text || 'Unable to generate visitor report.',
+      period,
+      date,
+      summary: {
+        totalVisitors,
+        approvedVisitors,
+        pendingVisitors,
+        rejectedVisitors
+      }
+    };
+
+    // Return PDF or JSON based on format
+    if (format === 'pdf') {
+      const pdfBuffer = await pdfReportService.generateVisitorReport(reportData);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitor_Report_${period}_${date.replace(/-/g, '_')}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
     return res.json({
       success: true,
-      data: {
-        report: response.output_text || 'Unable to generate visitor report.',
-        period,
-        date,
-        summary: {
-          totalVisitors,
-          approvedVisitors,
-          pendingVisitors,
-          rejectedVisitors
-        }
-      }
+      data: reportData
     });
   } catch (error) {
     return res.status(500).json({
@@ -319,7 +340,7 @@ router.post('/reports/security/incidents', protect, reportLimiter, async (req, r
       return res.status(403).json({ success: false, error: 'Security access required' });
     }
 
-    const { period = 'weekly', date = new Date().toISOString().split('T')[0] } = req.body;
+    const { period = 'weekly', date = new Date().toISOString().split('T')[0], format = 'json' } = req.body;
 
     const startDate = period === 'weekly' 
       ? new Date(new Date(date).getTime() - 6 * 24 * 60 * 60 * 1000)
@@ -364,19 +385,29 @@ ${incidents.slice(0, 10).map(i => `- ${i.title}: ${i.description.substring(0, 10
       ]
     });
 
+    const reportData = {
+      report: response.output_text || 'Unable to generate incident report.',
+      period,
+      date,
+      summary: {
+        totalIncidents,
+        resolvedIncidents,
+        pendingIncidents,
+        urgentIncidents
+      }
+    };
+
+    // Return PDF or JSON based on format
+    if (format === 'pdf') {
+      const pdfBuffer = await pdfReportService.generateIncidentReport(reportData);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Incident_Report_${period}_${date.replace(/-/g, '_')}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
     return res.json({
       success: true,
-      data: {
-        report: response.output_text || 'Unable to generate incident report.',
-        period,
-        date,
-        summary: {
-          totalIncidents,
-          resolvedIncidents,
-          pendingIncidents,
-          urgentIncidents
-        }
-      }
+      data: reportData
     });
   } catch (error) {
     return res.status(500).json({

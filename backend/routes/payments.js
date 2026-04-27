@@ -294,27 +294,53 @@ router.get('/receipt-image/:filename', protect, authorize('admin'), async (req, 
 // Admin: Get all payments
 router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const { status, paymentType, page = 1, limit = 20 } = req.query;
+    const { status, paymentType, page = 1, limit = 20, format = 'json' } = req.query;
     let filter = {};
     if (status) filter.status = status;
     if (paymentType) filter.paymentType = paymentType;
-    
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+
     const payments = await Payment.find(filter)
       .populate('residentId', 'firstName lastName houseNumber')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-    const total = await Payment.countDocuments(filter);
-    
+      .sort({ createdAt: -1 });
+
+    if (format === 'pdf') {
+      // Import PDF service
+      const pdfReportService = require('../services/pdfReportService');
+
+      const columns = [
+        { key: 'residentId.firstName', label: 'Resident' },
+        { key: 'residentId.houseNumber', label: 'House' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'paymentType', label: 'Type' },
+        { key: 'status', label: 'Status' },
+        { key: 'dueDate', label: 'Due Date' },
+        { key: 'createdAt', label: 'Created' }
+      ];
+
+      const pdfBuffer = await pdfReportService.generateDataReport(
+        'VIMS Payments Report',
+        payments,
+        columns
+      );
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Payments_Report_${new Date().toISOString().split('T')[0]}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    // Regular JSON response with pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const paginatedPayments = payments.slice(skip, skip + parseInt(limit));
+    const total = payments.length;
+
     const summary = await Payment.aggregate([
       { $match: filter },
       { $group: { _id: null, totalPaid: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, '$amount', 0] } } } }
     ]);
-    
+
     res.json({
       success: true,
-      data: payments,
+      data: paginatedPayments,
       summary: { totalCollected: summary[0]?.totalPaid || 0 },
       pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) }
     });

@@ -6,11 +6,16 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 require('dotenv').config();
 const auditLogger = require('./middleware/auditLogger');
+const requestIdMiddleware = require('./middleware/requestId');
+const errorHandler = require('./middleware/errorHandler');
 
 console.log('\n📂 Starting VIMS Server...');
 
 const app = express();
 app.set('trust proxy', 1);
+
+// Add request ID to all requests for tracing
+app.use(requestIdMiddleware);
 
 // SECURITY: Add security headers
 app.use(helmet({
@@ -374,19 +379,9 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-// SECURITY: Error handler - don't expose sensitive information
-app.use((err, req, res, next) => {
-  // Log the full error for debugging
-  console.error('Server Error:', err.stack);
-  
-  // Don't expose error details in production
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  
-  res.status(err.status || 500).json({ 
-    success: false, 
-    error: isDevelopment ? err.message : 'Internal server error'
-  });
-});
+// SECURITY: Centralized error handler - don't expose sensitive information
+// Must be registered LAST, after all other middleware and routes
+app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 5000;

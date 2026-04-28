@@ -67,6 +67,7 @@ const generateLotsFromAPI = (apiLots) => {
   
   return apiLots.map(lot => ({
     id: lot.lotId,
+    phase: lot.phase,
     block: lot.block,
     lotNumber: lot.lotNumber,
     status: lot.status,

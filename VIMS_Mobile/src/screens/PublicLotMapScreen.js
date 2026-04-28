@@ -27,6 +27,7 @@ const PublicLotMapScreen = ({ navigation }) => {
   const [showTourModal, setShowTourModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPhase, setSelectedPhase] = useState(1);
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,10 +71,39 @@ const PublicLotMapScreen = ({ navigation }) => {
       const matchesStatus = filterStatus === 'all' || lot.status === filterStatus;
       const matchesSearch = searchQuery === '' || 
         String(lot.lotId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lot.block.toLowerCase().includes(searchQuery.toLowerCase());
+        String(lot.block || '').toLowerCase().includes(searchQuery.toLowerCase());
       return matchesStatus && matchesSearch;
     });
   }, [lots, filterStatus, searchQuery]);
+
+  const phases = useMemo(() => {
+    const phaseSet = new Set();
+    lots.forEach(lot => {
+      if (lot.phase != null) phaseSet.add(lot.phase);
+    });
+    const phaseArray = Array.from(phaseSet).sort((a, b) => a - b);
+    return phaseArray.length ? phaseArray : [1];
+  }, [lots]);
+
+  useEffect(() => {
+    if (phases.length > 0 && !phases.includes(selectedPhase)) {
+      setSelectedPhase(phases[0]);
+    }
+  }, [phases, selectedPhase]);
+
+  const phaseFilteredLots = useMemo(() => {
+    return filteredLots.filter(lot => (lot.phase || 1) === selectedPhase);
+  }, [filteredLots, selectedPhase]);
+
+  const visibleBlocks = useMemo(() => {
+    const blockSet = new Set(phaseFilteredLots.map(lot => lot.block));
+    return Array.from(blockSet).sort((a, b) => {
+      const aNum = Number(a);
+      const bNum = Number(b);
+      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum;
+      return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [phaseFilteredLots]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -291,9 +321,23 @@ const PublicLotMapScreen = ({ navigation }) => {
           ))}
         </View>
 
+        <View style={styles.phaseRow}>
+          {phases.map((phase) => (
+            <TouchableOpacity
+              key={phase}
+              style={[styles.phaseChip, selectedPhase === phase && styles.activePhaseChip]}
+              onPress={() => setSelectedPhase(phase)}
+            >
+              <Text style={[styles.phaseText, selectedPhase === phase && styles.activePhaseText]}>
+                Phase {phase}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <View style={styles.mapContainer}>
-          {['A', 'B', 'C', 'D', 'E'].map(block => {
-            const blockLots = filteredLots.filter(l => l.block === block);
+          {visibleBlocks.map(block => {
+            const blockLots = phaseFilteredLots.filter(l => l.block === block);
             if (blockLots.length === 0) return null;
             
             return (
@@ -691,6 +735,33 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginRight: 6,
+  },
+  phaseRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  phaseChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  activePhaseChip: {
+    backgroundColor: themeColors.primary,
+    borderColor: themeColors.primary,
+  },
+  phaseText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: themeColors.textSecondary,
+  },
+  activePhaseText: {
+    color: 'white',
   },
   mapContainer: {
     marginBottom: 24,

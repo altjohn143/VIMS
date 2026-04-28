@@ -189,9 +189,9 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
             <Button variant="contained" size="small" onClick={onRegister}
               startIcon={<RegisterIcon />}
               sx={{
-                backgroundColor: '#22c55e', color: '#052e16', fontWeight: 700,
+                backgroundColor: '#3b82f6', color: 'white', fontWeight: 700,
                 borderRadius: 5, textTransform: 'none', fontSize: '0.75rem',
-                '&:hover': { backgroundColor: '#16a34a' },
+                '&:hover': { backgroundColor: '#2563eb' },
                 display: { xs: 'none', sm: 'flex' },
               }}>
               Register for This Lot
@@ -413,9 +413,9 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           {lot.status === 'vacant' && (
             <Button variant="contained" onClick={onRegister} size="small"
               sx={{
-                backgroundColor: '#22c55e', color: '#052e16', fontWeight: 700,
+                backgroundColor: '#3b82f6', color: 'white', fontWeight: 700,
                 borderRadius: 5, textTransform: 'none', fontSize: '0.72rem', ml: 1,
-                '&:hover': { backgroundColor: '#16a34a' },
+                '&:hover': { backgroundColor: '#2563eb' },
               }}>
               Register
             </Button>
@@ -654,13 +654,13 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
         {lot.price && (
           <Box sx={{
             p: 2, borderRadius: 2, mb: 2.5, textAlign: 'center',
-            backgroundColor: 'rgba(34,197,94,0.07)',
-            border: '1px solid rgba(34,197,94,0.18)',
+            backgroundColor: 'rgba(59,130,246,0.08)',
+            border: '1px solid rgba(59,130,246,0.25)',
           }}>
             <Typography sx={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.62rem', mb: 0.3 }}>
               STARTING PRICE
             </Typography>
-            <Typography sx={{ color: '#4ade80', fontWeight: 800, fontSize: '1.45rem' }}>
+            <Typography sx={{ color: '#60a5fa', fontWeight: 800, fontSize: '1.45rem' }}>
               ₱{lot.price.toLocaleString()}
             </Typography>
             <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.62rem' }}>
@@ -717,10 +717,10 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
             startIcon={<RegisterIcon />}
             onClick={onRegister}
             sx={{
-              backgroundColor: '#22c55e', color: '#052e16', fontWeight: 700,
+              backgroundColor: '#3b82f6', color: 'white', fontWeight: 700,
               borderRadius: 2, textTransform: 'none', py: 1.2, fontSize: '0.9rem',
-              '&:hover': { backgroundColor: '#16a34a' },
-              boxShadow: '0 4px 16px rgba(34,197,94,0.3)',
+              '&:hover': { backgroundColor: '#2563eb' },
+              boxShadow: '0 4px 16px rgba(59,130,246,0.25)',
             }}>
             Register for This Lot
           </Button>
@@ -799,8 +799,8 @@ const PublicLotMap = () => {
 
   if (loading) {
     return (
-      <Box sx={{ minHeight: '100vh', background: 'linear-gradient(160deg, #0f2a04 0%, #1a3a0a 40%, #2d5016 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
-        <CircularProgress sx={{ color: '#5a8a1a' }} />
+      <Box sx={{ minHeight: '100vh', background: 'linear-gradient(160deg, #07101f 0%, #10203a 40%, #1c2f48 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
+        <CircularProgress sx={{ color: '#3b82f6' }} />
         <Typography sx={{ color: 'white' }}>Loading village map...</Typography>
       </Box>
     );
@@ -808,11 +808,11 @@ const PublicLotMap = () => {
 
   if (error) {
     return (
-      <Box sx={{ minHeight: '100vh', background: 'linear-gradient(160deg, #0f2a04 0%, #1a3a0a 40%, #2d5016 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ minHeight: '100vh', background: 'linear-gradient(160deg, #07101f 0%, #10203a 40%, #1c2f48 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
         <Alert severity="error" sx={{ maxWidth: 500 }}>
           {error}
         </Alert>
-        <Button variant="contained" onClick={() => window.location.reload()} sx={{ backgroundColor: '#5a8a1a' }}>
+        <Button variant="contained" onClick={() => window.location.reload()} sx={{ backgroundColor: '#2563eb' }}>
           Retry
         </Button>
       </Box>
@@ -844,7 +844,7 @@ const PublicLotMap = () => {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: 'linear-gradient(160deg, #0f2a04 0%, #1a3a0a 40%, #2d5016 100%)',
+      background: 'linear-gradient(160deg, #07101f 0%, #10203a 40%, #1c2f48 100%)',
       display: 'flex', flexDirection: 'column',
     }}>
 
@@ -854,7 +854,7 @@ const PublicLotMap = () => {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         position: 'sticky', top: 0, zIndex: 200,
-        backgroundColor: 'rgba(15,42,4,0.93)', backdropFilter: 'blur(10px)',
+        backgroundColor: 'rgba(7,18,32,0.95)', backdropFilter: 'blur(10px)',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Button
@@ -867,7 +867,7 @@ const PublicLotMap = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
             <Box sx={{
               width: 34, height: 34, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #5a8a1a, #2d5016)',
+              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: '2px solid rgba(255,255,255,0.2)',
             }}>
@@ -888,14 +888,14 @@ const PublicLotMap = () => {
             onChange={e => setSearch(e.target.value)}
             InputProps={{
               startAdornment: <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 16 }} />
+                <SearchIcon sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 16 }} />
               </InputAdornment>,
               sx: {
                 color: 'white', borderRadius: 2, fontSize: '0.76rem',
-                backgroundColor: 'rgba(255,255,255,0.04)',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.12)' },
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                '& fieldset': { borderColor: 'rgba(255,255,255,0.16)' },
                 '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.28)' },
-                '&.Mui-focused fieldset': { borderColor: '#5a8a1a' },
+                '&.Mui-focused fieldset': { borderColor: '#3b82f6' },
               },
             }}
             inputProps={{ style: { color: 'white', fontSize: '0.76rem' } }}
@@ -903,9 +903,9 @@ const PublicLotMap = () => {
           />
           <Button component={Link} to="/register" variant="contained" size="small"
             sx={{
-              backgroundColor: '#5a8a1a', borderRadius: 5, textTransform: 'none',
+              backgroundColor: '#3b82f6', borderRadius: 5, textTransform: 'none',
               fontWeight: 600, fontSize: '0.75rem', px: 2,
-              '&:hover': { backgroundColor: '#4a7a10' },
+              '&:hover': { backgroundColor: '#2563eb' },
             }}>
             Register as Resident
           </Button>
@@ -917,8 +917,8 @@ const PublicLotMap = () => {
         <Box sx={{
           px: { xs: 2, md: 4 }, py: 1.5,
           display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-          backgroundColor: 'rgba(0,0,0,0.1)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          backgroundColor: 'rgba(15,23,42,0.85)',
         }}>
           <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', mr: 1 }}>
             PHASE:
@@ -935,12 +935,12 @@ const PublicLotMap = () => {
                 textTransform: 'none',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                backgroundColor: selectedPhase === phase ? '#5a8a1a' : 'transparent',
-                borderColor: selectedPhase === phase ? '#5a8a1a' : 'rgba(255,255,255,0.2)',
-                color: selectedPhase === phase ? 'white' : 'rgba(255,255,255,0.7)',
+                backgroundColor: selectedPhase === phase ? '#3b82f6' : 'transparent',
+                borderColor: selectedPhase === phase ? '#3b82f6' : 'rgba(255,255,255,0.25)',
+                color: selectedPhase === phase ? 'white' : 'rgba(255,255,255,0.75)',
                 '&:hover': {
-                  backgroundColor: selectedPhase === phase ? '#4a7a10' : 'rgba(255,255,255,0.05)',
-                  borderColor: selectedPhase === phase ? '#4a7a10' : 'rgba(255,255,255,0.3)',
+                  backgroundColor: selectedPhase === phase ? '#2563eb' : 'rgba(255,255,255,0.08)',
+                  borderColor: selectedPhase === phase ? '#2563eb' : 'rgba(255,255,255,0.35)',
                 },
               }}
             >
@@ -954,8 +954,8 @@ const PublicLotMap = () => {
       <Box sx={{
         px: { xs: 2, md: 4 }, py: 1.2,
         display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        backgroundColor: 'rgba(0,0,0,0.15)',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(15,23,42,0.82)',
       }}>
         <Typography sx={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.68rem', mr: 0.5 }}>
           {stats.total} total lots
@@ -1023,12 +1023,12 @@ const PublicLotMap = () => {
           {/* Phase Title */}
           <Box sx={{
             mb: 2, px: 3, py: 1.5, borderRadius: 2,
-            backgroundColor: 'rgba(90,138,26,0.15)',
-            border: '1px solid rgba(90,138,26,0.3)',
+            backgroundColor: 'rgba(59,130,246,0.14)',
+            border: '1px solid rgba(59,130,246,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Typography sx={{
-              color: '#5a8a1a',
+              color: 'white',
               fontSize: '1.1rem',
               fontWeight: 800,
               letterSpacing: '0.1em',
@@ -1057,15 +1057,15 @@ const PublicLotMap = () => {
               const vacantCount = blockLots.filter(l => l.status === 'vacant').length;
               return (
                 <Box key={block} sx={{
-                  backgroundColor: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  backgroundColor: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: 2, p: 2,
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
                     <Box sx={{
                       px: 1.5, py: 0.35, borderRadius: 1, textAlign: 'center',
-                      backgroundColor: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(255,255,255,0.15)',
+                      backgroundColor: 'rgba(255,255,255,0.18)',
+                      border: '1px solid rgba(255,255,255,0.18)',
                     }}>
                       <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.72rem', letterSpacing: '0.1em' }}>
                         BLOCK {block}
@@ -1075,10 +1075,10 @@ const PublicLotMap = () => {
                     {vacantCount > 0 && (
                       <Box sx={{
                         px: 1, py: 0.2, borderRadius: 5,
-                        backgroundColor: 'rgba(34,197,94,0.12)',
-                        border: '1px solid rgba(34,197,94,0.25)',
+                        backgroundColor: 'rgba(96,165,250,0.16)',
+                        border: '1px solid rgba(96,165,250,0.3)',
                       }}>
-                        <Typography sx={{ color: '#4ade80', fontSize: '0.6rem', fontWeight: 700 }}>
+                        <Typography sx={{ color: '#60a5fa', fontSize: '0.6rem', fontWeight: 700 }}>
                           {vacantCount} available
                         </Typography>
                       </Box>
@@ -1088,8 +1088,8 @@ const PublicLotMap = () => {
                   {/* Road strip */}
                   <Box sx={{
                     height: 4, mb: 1.2, borderRadius: 0.5,
-                    background: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 12px, transparent 12px, transparent 24px)',
-                    border: '1px dashed rgba(255,255,255,0.06)',
+                    background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                    border: '1px dashed rgba(255,255,255,0.08)',
                   }} />
 
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -1116,8 +1116,8 @@ const PublicLotMap = () => {
           width: { xs: 0, lg: 340 },
           display: { xs: 'none', lg: 'flex' },
           flexDirection: 'column',
-          borderLeft: '1px solid rgba(255,255,255,0.07)',
-          backgroundColor: 'rgba(0,0,0,0.25)',
+          borderLeft: '1px solid rgba(255,255,255,0.08)',
+          backgroundColor: 'rgba(7,18,32,0.96)',
           overflowY: 'auto',
           flexShrink: 0,
         }}>
@@ -1133,7 +1133,8 @@ const PublicLotMap = () => {
               {/* Village summary header */}
               <Box sx={{
                 borderRadius: 2.5, overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                backgroundColor: 'rgba(255,255,255,0.04)',
               }}>
                 <Box sx={{
                   height: 110, position: 'relative',
@@ -1149,7 +1150,7 @@ const PublicLotMap = () => {
                 <Box sx={{ p: 1.5, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
                   {[
                     { label: 'Total', value: stats.total, color: 'rgba(255,255,255,0.7)' },
-                    { label: 'Available', value: stats.vacant, color: '#4ade80' },
+                    { label: 'Available', value: stats.vacant, color: '#60a5fa' },
                     { label: 'Reserved', value: stats.reserved, color: '#fbbf24' },
                   ].map(s => (
                     <Box key={s.label} sx={{ textAlign: 'center', py: 0.8, borderRadius: 1.5, backgroundColor: 'rgba(255,255,255,0.04)' }}>
@@ -1191,11 +1192,11 @@ const PublicLotMap = () => {
                     <Box key={lot.id} onClick={() => setSelectedLot(lot)}
                       sx={{
                         p: 1.5, borderRadius: 2, cursor: 'pointer',
-                        backgroundColor: 'rgba(34,197,94,0.06)',
-                        border: '1px solid rgba(34,197,94,0.15)',
+                        backgroundColor: 'rgba(59,130,246,0.08)',
+                        border: '1px solid rgba(59,130,246,0.2)',
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         transition: 'all 0.18s',
-                        '&:hover': { backgroundColor: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.35)', transform: 'translateX(3px)' },
+                        '&:hover': { backgroundColor: 'rgba(59,130,246,0.16)', borderColor: 'rgba(59,130,246,0.35)', transform: 'translateX(3px)' },
                       }}>
                       <Box>
                         <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
@@ -1206,7 +1207,7 @@ const PublicLotMap = () => {
                         </Typography>
                       </Box>
                       <Box sx={{ textAlign: 'right' }}>
-                        <Typography sx={{ color: '#4ade80', fontWeight: 700, fontSize: '0.75rem' }}>
+                        <Typography sx={{ color: '#60a5fa', fontWeight: 700, fontSize: '0.75rem' }}>
                           ₱{(lot.price / 1000000).toFixed(1)}M
                         </Typography>
                         <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.58rem' }}>from</Typography>
@@ -1219,8 +1220,8 @@ const PublicLotMap = () => {
               {/* CTA */}
               <Box sx={{
                 borderRadius: 2.5, p: 2,
-                background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(90,138,26,0.2))',
-                border: '1px solid rgba(34,197,94,0.2)',
+                background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(37,99,235,0.18))',
+                border: '1px solid rgba(59,130,246,0.25)',
                 textAlign: 'center',
               }}>
                 <Typography sx={{ fontSize: '1.3rem', mb: 0.5 }}>🏡</Typography>
@@ -1232,10 +1233,10 @@ const PublicLotMap = () => {
                 </Typography>
                 <Button component={Link} to="/register" fullWidth variant="contained"
                   sx={{
-                    backgroundColor: '#22c55e', color: '#052e16', fontWeight: 700,
+                    backgroundColor: '#3b82f6', color: 'white', fontWeight: 700,
                     borderRadius: 5, textTransform: 'none', fontSize: '0.8rem',
-                    '&:hover': { backgroundColor: '#16a34a' },
-                    boxShadow: '0 4px 14px rgba(34,197,94,0.3)',
+                    '&:hover': { backgroundColor: '#2563eb' },
+                    boxShadow: '0 4px 14px rgba(59,130,246,0.25)',
                   }}>
                   Register as Resident
                 </Button>

@@ -23,6 +23,7 @@ const STATUS_CONFIG = {
 const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
   const [zoom, setZoom] = useState(1);
   const [selectedPhase, setSelectedPhase] = useState(1);
+  const activeBaseColor = themeColors?.primary || '#2563eb';
 
   // Group lots by phase and block
   const lotsByPhaseAndBlock = useMemo(() => {
@@ -59,7 +60,7 @@ const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
   };
 
   return (
-    <Box sx={{ p: 3, minHeight: '500px', backgroundColor: '#f0f4f0' }}>
+    <Box sx={{ p: 3, minHeight: '500px', backgroundColor: '#f8fafc' }}>
       {/* Zoom Controls */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -96,8 +97,8 @@ const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
       </Box>
 
       {/* Legend */}
-      <Paper sx={{ p: 1.5, mb: 3, borderRadius: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <Typography variant="caption" sx={{ fontWeight: 600, mr: 1 }}>Legend:</Typography>
+      <Paper sx={{ p: 1.5, mb: 3, borderRadius: 2, display: 'flex', gap: 2, flexWrap: 'wrap', backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}>
+        <Typography variant="caption" sx={{ fontWeight: 600, mr: 1, color: '#0f172a' }}>Legend:</Typography>
         {Object.entries(STATUS_CONFIG).map(([key, config]) => (
           <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Box sx={{ width: 14, height: 14, borderRadius: 0.5, backgroundColor: config.bg, border: `2px solid ${config.border}` }} />
@@ -111,8 +112,8 @@ const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
       </Paper>
 
       {/* Instructions */}
-      <Paper sx={{ p: 1.5, mb: 3, borderRadius: 2, bgcolor: '#e8f5e9' }}>
-        <Typography variant="body2" sx={{ textAlign: 'center', color: '#2e7d32' }}>
+      <Paper sx={{ p: 1.5, mb: 3, borderRadius: 2, bgcolor: '#eff6ff', border: '1px solid #dbeafe' }}>
+        <Typography variant="body2" sx={{ textAlign: 'center', color: '#1d4ed8' }}>
           💡 Click on any <strong>green (vacant)</strong> lot to select it for your registration
         </Typography>
       </Paper>
@@ -125,8 +126,8 @@ const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
         minHeight: '600px'
       }}>
         {/* Phase Title */}
-        <Box sx={{ mb: 2, p: 1.5, backgroundColor: themeColors?.primary || '#2d5016', borderRadius: 1 }}>
-          <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
+        <Box sx={{ mb: 2, p: 1.5, backgroundColor: '#0f172a', borderRadius: 2, border: '1px solid #cbd5e1' }}>
+          <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, letterSpacing: '0.08em' }}>
             PHASE {selectedPhase}
           </Typography>
         </Box>

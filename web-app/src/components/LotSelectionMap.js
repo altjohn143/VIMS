@@ -23,7 +23,6 @@ const STATUS_CONFIG = {
 const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
   const [zoom, setZoom] = useState(1);
   const [selectedPhase, setSelectedPhase] = useState(1);
-  const activeBaseColor = themeColors?.primary || '#2563eb';
 
   // Group lots by phase and block
   const lotsByPhaseAndBlock = useMemo(() => {

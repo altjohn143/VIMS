@@ -22,23 +22,32 @@ const STATUS_CONFIG = {
 
 const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
   const [zoom, setZoom] = useState(1);
+  const [selectedPhase, setSelectedPhase] = useState(1);
 
-  // Group lots by block
-  const lotsByBlock = useMemo(() => {
+  // Group lots by phase and block
+  const lotsByPhaseAndBlock = useMemo(() => {
     const grouped = {};
     lots.forEach(lot => {
-      if (!grouped[lot.block]) grouped[lot.block] = [];
-      grouped[lot.block].push(lot);
+      const phase = lot.phase || 1;
+      if (!grouped[phase]) grouped[phase] = {};
+      if (!grouped[phase][lot.block]) grouped[phase][lot.block] = [];
+      grouped[phase][lot.block].push(lot);
     });
     // Sort lots within each block by lot number
-    Object.keys(grouped).forEach(block => {
-      grouped[block].sort((a, b) => a.lotNumber - b.lotNumber);
+    Object.keys(grouped).forEach(phase => {
+      Object.keys(grouped[phase]).forEach(block => {
+        grouped[phase][block].sort((a, b) => a.lotNumber - b.lotNumber);
+      });
     });
     return grouped;
   }, [lots]);
 
-  // Sort blocks
-  const sortedBlocks = Object.keys(lotsByBlock).sort();
+  // Get phases
+  const phases = Object.keys(lotsByPhaseAndBlock).map(Number).sort((a, b) => a - b);
+  
+  // Get blocks for selected phase
+  const selectedPhaseData = lotsByPhaseAndBlock[selectedPhase] || {};
+  const sortedBlocks = Object.keys(selectedPhaseData).sort();
 
   const isLotAvailable = (lot) => lot.status === 'vacant';
   const isLotSelected = (lot) => selectedLotId === lot.lotId;
@@ -52,25 +61,38 @@ const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
   return (
     <Box sx={{ p: 3, minHeight: '500px', backgroundColor: '#f0f4f0' }}>
       {/* Zoom Controls */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 2 }}>
-        <Chip
-          label="Zoom In"
-          onClick={() => setZoom(z => Math.min(1.5, z + 0.1))}
-          size="small"
-          variant="outlined"
-        />
-        <Chip
-          label="Zoom Out"
-          onClick={() => setZoom(z => Math.max(0.6, z - 0.1))}
-          size="small"
-          variant="outlined"
-        />
-        <Chip
-          label="Reset"
-          onClick={() => setZoom(1)}
-          size="small"
-          variant="outlined"
-        />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {phases.map(phase => (
+            <Chip
+              key={phase}
+              label={`Phase ${phase}`}
+              onClick={() => setSelectedPhase(phase)}
+              color={selectedPhase === phase ? 'primary' : 'default'}
+              variant={selectedPhase === phase ? 'filled' : 'outlined'}
+            />
+          ))}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Chip
+            label="Zoom In"
+            onClick={() => setZoom(z => Math.min(1.5, z + 0.1))}
+            size="small"
+            variant="outlined"
+          />
+          <Chip
+            label="Zoom Out"
+            onClick={() => setZoom(z => Math.max(0.6, z - 0.1))}
+            size="small"
+            variant="outlined"
+          />
+          <Chip
+            label="Reset"
+            onClick={() => setZoom(1)}
+            size="small"
+            variant="outlined"
+          />
+        </Box>
       </Box>
 
       {/* Legend */}
@@ -102,6 +124,13 @@ const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
         transition: 'transform 0.2s ease',
         minHeight: '600px'
       }}>
+        {/* Phase Title */}
+        <Box sx={{ mb: 2, p: 1.5, backgroundColor: themeColors?.primary || '#2d5016', borderRadius: 1 }}>
+          <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
+            PHASE {selectedPhase}
+          </Typography>
+        </Box>
+
         {/* Entrance Road */}
         <Box sx={{
           mb: 2,
@@ -117,7 +146,7 @@ const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
 
         {/* Blocks */}
         {sortedBlocks.map((block) => {
-          const blockLots = lotsByBlock[block] || [];
+          const blockLots = selectedPhaseData[block] || [];
           const vacantCount = blockLots.filter(l => l.status === 'vacant').length;
           
           return (

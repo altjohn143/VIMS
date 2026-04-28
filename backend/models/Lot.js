@@ -1,14 +1,20 @@
 const mongoose = require('mongoose');
 
 const lotSchema = new mongoose.Schema({
-  lotId: {
-    type: String,
+  phase: {
+    type: Number,
+    enum: [1, 2, 3, 4, 5],
     required: true,
-    unique: true
+    index: true
   },
   block: {
     type: String,
     required: true
+  },
+  lotId: {
+    type: String,
+    required: true,
+    unique: true
   },
   lotNumber: {
     type: Number,

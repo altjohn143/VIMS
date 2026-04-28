@@ -64,6 +64,7 @@ const RegisterScreen = ({ navigation, route }) => {
     countryCode: '+63',
     password: '',
     confirmPassword: '',
+    address: '',
     selectedLot: ''
   });
 
@@ -476,6 +477,9 @@ const RegisterScreen = ({ navigation, route }) => {
     }
     if (availability.phone === false) newErrors.phone = 'This phone number is already registered';
 
+    if (!formData.address.trim()) newErrors.address = 'Address is required';
+    else if (formData.address.length < 5) newErrors.address = 'Address must be at least 5 characters';
+
     if (!formData.password) newErrors.password = 'Password is required';
     else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
@@ -515,6 +519,7 @@ const RegisterScreen = ({ navigation, route }) => {
       formDataToSend.append('email', formData.email.trim());
       formDataToSend.append('phone', formData.phone);
       formDataToSend.append('password', formData.password);
+      formDataToSend.append('address', formData.address.trim());
       formDataToSend.append('role', 'resident');
       formDataToSend.append('selectedLot', formData.selectedLot);
       formDataToSend.append('countryCode', formData.countryCode);
@@ -853,6 +858,21 @@ const RegisterScreen = ({ navigation, route }) => {
             </Text>
             {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
           </View>
+
+          {/* Address Input */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="location" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
+            <TextInput
+              style={[styles.input, { minHeight: 80 }]}
+              placeholder="Enter your residential address"
+              value={formData.address}
+              onChangeText={(text) => handleChange('address', text)}
+              multiline
+              numberOfLines={3}
+              maxLength={250}
+            />
+          </View>
+          {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
 
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />

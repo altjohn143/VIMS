@@ -16,6 +16,7 @@ export default function RegisterLotMapModal({
   const [mapZoom, setMapZoom] = useState(1);
   const [selectedMapLot, setSelectedMapLot] = useState(null);
   const [showLotInfo, setShowLotInfo] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState(1);
 
   const statusConfig = useMemo(
     () => ({
@@ -30,15 +31,29 @@ export default function RegisterLotMapModal({
 
   const displayLots = mapViewMode === 'available' ? availableLots : allLots;
 
+  // Get phases available
+  const phases = useMemo(() => {
+    const phaseSet = new Set();
+    displayLots.forEach(lot => {
+      if (lot.phase) phaseSet.add(lot.phase);
+    });
+    return Array.from(phaseSet).sort((a, b) => a - b);
+  }, [displayLots]);
+
+  // Filter lots by selected phase
+  const phaseFilteredLots = useMemo(() => {
+    return displayLots.filter(lot => (lot.phase || 1) === selectedPhase);
+  }, [displayLots, selectedPhase]);
+
   const { sortedBlocks, lotsByBlock } = useMemo(() => {
-    const by = displayLots.reduce((acc, lot) => {
+    const by = phaseFilteredLots.reduce((acc, lot) => {
       if (!acc[lot.block]) acc[lot.block] = [];
       acc[lot.block].push(lot);
       return acc;
     }, {});
     Object.keys(by).forEach((block) => by[block].sort((a, b) => a.lotNumber - b.lotNumber));
     return { sortedBlocks: Object.keys(by).sort(), lotsByBlock: by };
-  }, [displayLots]);
+  }, [phaseFilteredLots]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -50,6 +65,23 @@ export default function RegisterLotMapModal({
           <Text style={styles.headerTitle}>Select Your Lot</Text>
           <View style={{ width: 40 }} />
         </View>
+
+        {/* Phase Selection */}
+        {phases.length > 0 && (
+          <View style={styles.phaseToggleRow}>
+            {phases.map(phase => (
+              <TouchableOpacity
+                key={phase}
+                style={[styles.phaseBtn, selectedPhase === phase && styles.phaseBtnActive]}
+                onPress={() => setSelectedPhase(phase)}
+              >
+                <Text style={[styles.phaseBtnText, selectedPhase === phase && styles.phaseBtnTextActive]}>
+                  Phase {phase}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         <View style={styles.toggleRow}>
           <TouchableOpacity
@@ -147,6 +179,9 @@ export default function RegisterLotMapModal({
                 <View style={styles.infoBody}>
                   <Text style={styles.infoId}>Lot {selectedMapLot.lotNumber} - Block {selectedMapLot.block}</Text>
                   <Text style={styles.infoSub}>{selectedMapLot.type} • {selectedMapLot.sqm} sqm</Text>
+                  {selectedMapLot.phase && (
+                    <Text style={styles.infoPhase}>Phase {selectedMapLot.phase}</Text>
+                  )}
                   <TouchableOpacity
                     style={styles.selectBtn}
                     onPress={() => {
@@ -172,6 +207,11 @@ const styles = StyleSheet.create({
   header: { paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerBack: { padding: 8 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: 'white' },
+  phaseToggleRow: { flexDirection: 'row', gap: 8, padding: 12, backgroundColor: 'rgba(0,0,0,0.3)', overflow: 'scroll' },
+  phaseBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  phaseBtnActive: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
+  phaseBtnText: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '700' },
+  phaseBtnTextActive: { color: 'white' },
   toggleRow: { flexDirection: 'row', gap: 12, padding: 12, backgroundColor: 'rgba(0,0,0,0.3)' },
   toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
   toggleBtnActive: { backgroundColor: themeColors.primary },
@@ -195,6 +235,7 @@ const styles = StyleSheet.create({
   infoBody: { padding: 16 },
   infoId: { fontSize: 18, fontWeight: '900', color: themeColors.textPrimary },
   infoSub: { marginTop: 6, fontSize: 13, fontWeight: '700', color: themeColors.textSecondary },
+  infoPhase: { marginTop: 4, fontSize: 12, fontWeight: '600', color: themeColors.primary },
   selectBtn: { marginTop: 14, backgroundColor: themeColors.success, paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
   selectBtnText: { color: 'white', fontWeight: '900' },
 });

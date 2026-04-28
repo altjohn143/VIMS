@@ -77,6 +77,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: function() { return this.role === 'resident'; }
   },
+
+  address: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   
   isActive: {
     type: Boolean,

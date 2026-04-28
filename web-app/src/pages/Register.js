@@ -96,6 +96,7 @@ const Register = () => {
     countryCode: '+63',
     password: '',
     confirmPassword: '',
+    address: '',
     role: 'resident',
     selectedLot: '',
     noVehicles: false,
@@ -326,6 +327,9 @@ const Register = () => {
     }
     if (availability.phone === false) newErrors.phone = 'This phone number is already registered';
     
+    if (!formData.address.trim()) newErrors.address = 'Address is required';
+    else if (formData.address.length < 5) newErrors.address = 'Address must be at least 5 characters';
+    
     if (!formData.password) newErrors.password = 'Password is required';
     else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) newErrors.password = 'Password must contain uppercase, lowercase, and numbers';
@@ -427,6 +431,7 @@ const Register = () => {
     formDataToSend.append('email', formData.email.trim());
     formDataToSend.append('phone', formData.phone);
     formDataToSend.append('password', formData.password);
+    formDataToSend.append('address', formData.address.trim());
     formDataToSend.append('role', formData.role);
     formDataToSend.append('selectedLot', formData.selectedLot);
     formDataToSend.append('countryCode', formData.countryCode);
@@ -907,6 +912,24 @@ const Register = () => {
                 <Typography variant="caption" sx={{ color: themeColors.textSecondary, mt: 0.5, display: 'block' }}>
                   {selectedCountry.flag} {selectedCountry.code} - Philippine format: Remove the leading 0 from your number (e.g., 0966-234-2234 → 9662342234)
                 </Typography>
+              </Grid>
+
+              {/* Address Field */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  error={!!errors.address}
+                  helperText={errors.address || 'Enter your residential address'}
+                  required
+                  multiline
+                  rows={2}
+                  placeholder="Enter your full residential address"
+                  sx={fieldSx}
+                />
               </Grid>
 
               {/* Password */}

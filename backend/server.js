@@ -126,38 +126,40 @@ mongoose.connect(MONGODB_URI)
 async function initializeLots() {
   try {
     const Lot = require('./models/Lot');
-    const BLOCKS = ['A', 'B', 'C', 'D', 'E'];
-    const LOTS_PER_BLOCK = 12;
     const LOT_SIZES = [120, 150, 180, 200, 240, 300];
     const HOUSE_TYPES = ['Single Family', 'Townhouse', 'Corner Lot', 'End Unit'];
     
-    const seed = (block, lot) => (block.charCodeAt(0) * 31 + lot * 17) % 100;
+    const seed = (phase, block, lot) => (phase * 127 + block * 31 + lot * 17) % 100;
     
     const existingCount = await Lot.countDocuments();
     if (existingCount === 0) {
       console.log('📦 Initializing lots in database...');
       let created = 0;
       
-      for (const block of BLOCKS) {
-        for (let lotNum = 1; lotNum <= LOTS_PER_BLOCK; lotNum++) {
-          const s = seed(block, lotNum);
-          const lotId = `${block}-${lotNum}`;
-          const sqm = LOT_SIZES[lotNum % LOT_SIZES.length];
-          
-          const lot = new Lot({
-            lotId,
-            block,
-            lotNumber: lotNum,
-            status: 'vacant',
-            type: HOUSE_TYPES[lotNum % HOUSE_TYPES.length],
-            sqm,
-            price: sqm * 18000 + s * 5000,
-            address: `Block ${block}, Lot ${lotNum}, Casimiro Westville Homes`,
-            features: sqm >= 200 ? ['Large Lot', 'Ready for Occupancy'] : ['Standard Lot', 'Ready for Occupancy'],
-            photoSeed: s
-          });
-          await lot.save();
-          created++;
+      // 5 Phases × 5 Blocks × 25 Lots = 625 total lots
+      for (let phase = 1; phase <= 5; phase++) {
+        for (let block = 1; block <= 5; block++) {
+          for (let lotNum = 1; lotNum <= 25; lotNum++) {
+            const s = seed(phase, block, lotNum);
+            const lotId = `P${phase}-B${block}-L${lotNum}`;
+            const sqm = LOT_SIZES[lotNum % LOT_SIZES.length];
+            
+            const lot = new Lot({
+              phase,
+              lotId,
+              block,
+              lotNumber: lotNum,
+              status: 'vacant',
+              type: HOUSE_TYPES[lotNum % HOUSE_TYPES.length],
+              sqm,
+              price: sqm * 18000 + s * 5000,
+              address: `Phase ${phase} - Block ${block} - Lot ${lotNum}`,
+              features: sqm >= 200 ? ['Large Lot', 'Ready for Occupancy'] : ['Standard Lot', 'Ready for Occupancy'],
+              photoSeed: s
+            });
+            await lot.save();
+            created++;
+          }
         }
       }
       console.log(`✅ Initialized ${created} lots in database`);

@@ -47,7 +47,7 @@ const LotSelectionMap = ({ lots, selectedLotId, onSelectLot, themeColors }) => {
   
   // Get blocks for selected phase
   const selectedPhaseData = lotsByPhaseAndBlock[selectedPhase] || {};
-  const sortedBlocks = Object.keys(selectedPhaseData).sort();
+  const sortedBlocks = Object.keys(selectedPhaseData).map(Number).sort((a, b) => a - b);
 
   const isLotAvailable = (lot) => lot.status === 'vacant';
   const isLotSelected = (lot) => selectedLotId === lot.lotId;

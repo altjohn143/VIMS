@@ -294,15 +294,19 @@ router.post('/register', profilePhotoUpload.single('profilePhoto'), async (req, 
         });
       }
       
-      // Extract block and lot number from lotId (format: "A-1")
-      const lotParts = selectedLot.split('-');
-      if (lotParts.length === 2) {
-        const houseBlock = lotParts[0];
-        const houseLot = lotParts[1];
+      // Extract phase, block and lot number from lotId (format: "P{phase}-B{block}-L{lotNumber}", e.g., "P1-B2-L23")
+      const lotIdPattern = /^P(\d+)-B(\d+)-L(\d+)$/;
+      const match = selectedLot.match(lotIdPattern);
+      
+      if (match) {
+        const phase = match[1];
+        const block = match[2];
+        const lotNum = match[3];
         
-        userData.houseBlock = houseBlock;
-        userData.houseLot = houseLot;
+        userData.houseBlock = block;
+        userData.houseLot = lotNum;
         userData.houseNumber = selectedLot;
+        userData.address = `Phase ${phase} - Block ${block} - Lot ${lotNum}`;
       } else {
         return res.status(400).json({
           success: false,

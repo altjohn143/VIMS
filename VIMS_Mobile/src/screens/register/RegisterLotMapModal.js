@@ -52,7 +52,7 @@ export default function RegisterLotMapModal({
       return acc;
     }, {});
     Object.keys(by).forEach((block) => by[block].sort((a, b) => a.lotNumber - b.lotNumber));
-    return { sortedBlocks: Object.keys(by).sort(), lotsByBlock: by };
+    return { sortedBlocks: Object.keys(by).map(Number).sort((a, b) => a - b), lotsByBlock: by };
   }, [phaseFilteredLots]);
 
   return (

@@ -10,23 +10,16 @@ router.post('/generate', async (req, res) => {
     const LOT_SIZES = [120, 150, 180, 200, 240, 300];
     const HOUSE_TYPES = ['Single Family', 'Townhouse', 'Corner Lot', 'End Unit'];
     
-    const seed = (phase, block, lot) => (phase * 127 + block.charCodeAt(0) * 31 + lot * 17) % 100;
+    const seed = (phase, block, lot) => (phase * 127 + block * 31 + lot * 17) % 100;
     
     let created = 0;
     
-    // Phase 1-5: Each phase has 10 blocks and 50 lots total (5-10 lots per block)
+    // Phase 1-5: Each phase has 5 blocks and 125 lots total (25 lots per block)
     for (let phase = 1; phase <= 5; phase++) {
-      // Blocks per phase: A-J for Phase 1, K-T for Phase 2, etc.
-      const blockStart = 'A'.charCodeAt(0) + (phase - 1) * 10;
-      
-      for (let blockIndex = 0; blockIndex < 10; blockIndex++) {
-        const blockChar = String.fromCharCode(blockStart + blockIndex);
-        // Distribute 50 lots across 10 blocks: 5-5 lots per block (can vary)
-        const lotsPerBlock = phase % 2 === 0 ? 5 : 5; // 50 lots / 10 blocks = 5 per block
-        
-        for (let lotNum = 1; lotNum <= lotsPerBlock; lotNum++) {
-          const s = seed(phase, blockChar, lotNum);
-          const lotId = `P${phase}-${blockChar}-${lotNum}`;
+      for (let block = 1; block <= 5; block++) {
+        for (let lotNum = 1; lotNum <= 25; lotNum++) {
+          const s = seed(phase, block, lotNum);
+          const lotId = `P${phase}-B${block}-L${lotNum}`;
           
           const existing = await Lot.findOne({ lotId });
           if (!existing) {
@@ -34,13 +27,13 @@ router.post('/generate', async (req, res) => {
             const lot = new Lot({
               phase,
               lotId,
-              block: blockChar,
+              block,
               lotNumber: lotNum,
               status: 'vacant',
               type: HOUSE_TYPES[lotNum % HOUSE_TYPES.length],
               sqm,
               price: sqm * 18000 + s * 5000,
-              address: `Phase ${phase}, Block ${blockChar}, Lot ${lotNum}, Casimiro Westville Homes`,
+              address: `Phase ${phase} - Block ${block} - Lot ${lotNum}`,
               features: sqm >= 200 ? ['Large Lot', 'Ready for Occupancy'] : ['Standard Lot', 'Ready for Occupancy'],
               photoSeed: s
             });

@@ -8,8 +8,10 @@ const lotSchema = new mongoose.Schema({
     index: true
   },
   block: {
-    type: String,
-    required: true
+    type: Number,
+    enum: [1, 2, 3, 4, 5],
+    required: true,
+    index: true
   },
   lotId: {
     type: String,

@@ -740,6 +740,7 @@ const PublicLotMap = () => {
   const [zoom, setZoom] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedPhase, setSelectedPhase] = useState(1);
 
   // Fetch lots from API
   useEffect(() => {
@@ -817,20 +818,27 @@ const PublicLotMap = () => {
     );
   }
 
-  // Group lots by block
-  const lotsByBlock = allLots.reduce((acc, lot) => {
-    if (!acc[lot.block]) acc[lot.block] = [];
-    acc[lot.block].push(lot);
+  // Group lots by phase and block, then filter by selected phase
+  const lotsByPhaseAndBlock = allLots.reduce((acc, lot) => {
+    const phase = lot.phase || 1;
+    if (!acc[phase]) acc[phase] = {};
+    if (!acc[phase][lot.block]) acc[phase][lot.block] = [];
+    acc[phase][lot.block].push(lot);
     return acc;
   }, {});
 
   // Sort lots within each block
-  Object.keys(lotsByBlock).forEach(block => {
-    lotsByBlock[block].sort((a, b) => a.lotNumber - b.lotNumber);
+  Object.keys(lotsByPhaseAndBlock).forEach(phase => {
+    Object.keys(lotsByPhaseAndBlock[phase]).forEach(block => {
+      lotsByPhaseAndBlock[phase][block].sort((a, b) => a.lotNumber - b.lotNumber);
+    });
   });
 
-  // Sort blocks
-  const sortedBlocks = Object.keys(lotsByBlock).sort();
+  // Get phases and filter lots by selected phase
+  const phases = Object.keys(lotsByPhaseAndBlock).map(Number).sort((a, b) => a - b);
+  const selectedPhaseData = lotsByPhaseAndBlock[selectedPhase] || {};
+  const lotsByBlock = selectedPhaseData;
+  const sortedBlocks = Object.keys(lotsByBlock).map(Number).sort((a, b) => a - b);
 
   return (
     <Box sx={{
@@ -903,6 +911,44 @@ const PublicLotMap = () => {
         </Box>
       </Box>
 
+      {/* Phase Selector */}
+      {phases.length > 1 && (
+        <Box sx={{
+          px: { xs: 2, md: 4 }, py: 1.5,
+          display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          backgroundColor: 'rgba(0,0,0,0.1)',
+        }}>
+          <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', mr: 1 }}>
+            PHASE:
+          </Typography>
+          {phases.map(phase => (
+            <Button
+              key={phase}
+              onClick={() => setSelectedPhase(phase)}
+              variant={selectedPhase === phase ? 'contained' : 'outlined'}
+              size="small"
+              sx={{
+                minWidth: 60,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                backgroundColor: selectedPhase === phase ? '#5a8a1a' : 'transparent',
+                borderColor: selectedPhase === phase ? '#5a8a1a' : 'rgba(255,255,255,0.2)',
+                color: selectedPhase === phase ? 'white' : 'rgba(255,255,255,0.7)',
+                '&:hover': {
+                  backgroundColor: selectedPhase === phase ? '#4a7a10' : 'rgba(255,255,255,0.05)',
+                  borderColor: selectedPhase === phase ? '#4a7a10' : 'rgba(255,255,255,0.3)',
+                },
+              }}
+            >
+              Phase {phase}
+            </Button>
+          ))}
+        </Box>
+      )}
+
       {/* Filter bar */}
       <Box sx={{
         px: { xs: 2, md: 4 }, py: 1.2,
@@ -970,6 +1016,24 @@ const PublicLotMap = () => {
             ))}
             <Typography sx={{ color: 'rgba(255,255,255,0.18)', fontSize: '0.6rem', ml: 0.5 }}>
               · Hover → 🎥 Tour or 📋 Info
+            </Typography>
+          </Box>
+
+          {/* Phase Title */}
+          <Box sx={{
+            mb: 2, px: 3, py: 1.5, borderRadius: 2,
+            backgroundColor: 'rgba(90,138,26,0.15)',
+            border: '1px solid rgba(90,138,26,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Typography sx={{
+              color: '#5a8a1a',
+              fontSize: '1.1rem',
+              fontWeight: 800,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase'
+            }}>
+              PHASE {selectedPhase}
             </Typography>
           </Box>
 

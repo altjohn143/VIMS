@@ -136,10 +136,10 @@ async function initializeLots() {
       console.log('📦 Initializing lots in database...');
       let created = 0;
       
-      // 5 Phases × 5 Blocks × 25 Lots = 625 total lots
+      // 5 Phases × 5 Blocks × 20 Lots = 500 total lots
       for (let phase = 1; phase <= 5; phase++) {
         for (let block = 1; block <= 5; block++) {
-          for (let lotNum = 1; lotNum <= 25; lotNum++) {
+          for (let lotNum = 1; lotNum <= 20; lotNum++) {
             const s = seed(phase, block, lotNum);
             const lotId = `P${phase}-B${block}-L${lotNum}`;
             const sqm = LOT_SIZES[lotNum % LOT_SIZES.length];
@@ -192,8 +192,8 @@ async function autoSeedDatabase() {
     await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
     console.log('Removed existing admin/security accounts');
     
-    // Use compliant password for production seeding
-    const compliantPassword = 'Admin123!@#';
+    // Use compliant password for production seeding (must be 12+ chars with uppercase, lowercase, number, special char)
+    const compliantPassword = 'SecureVIMS@123';
     
     // Create Admin with compliant password
     const adminUser = new User({
@@ -207,7 +207,7 @@ async function autoSeedDatabase() {
       isActive: true
     });
     await adminUser.save();
-    console.log('✅ Admin account created with password: Admin123!@#');
+    console.log('✅ Admin account created with password: SecureVIMS@123');
 
     // Create Security with compliant password
     const securityUser = new User({
@@ -221,11 +221,11 @@ async function autoSeedDatabase() {
       isActive: true
     });
     await securityUser.save();
-    console.log('✅ Security account created with password: Admin123!@#');
+    console.log('✅ Security account created with password: SecureVIMS@123');
     
     console.log('\n✅ Login credentials:');
-    console.log('   Admin: admin@vims.com / Admin123!@#');
-    console.log('   Security: security@vims.com / Admin123!@#');
+    console.log('   Admin: admin@vims.com / SecureVIMS@123');
+    console.log('   Security: security@vims.com / SecureVIMS@123');
     
   } catch (error) {
     console.error('Auto-seed error:', error.message);

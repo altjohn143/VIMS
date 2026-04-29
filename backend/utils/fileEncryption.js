@@ -10,7 +10,7 @@ const ALGORITHM = 'aes-256-gcm';
 class FileEncryption {
   static encryptFile(inputPath, outputPath) {
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher(ALGORITHM, ENCRYPTION_KEY);
+    const cipher = crypto.createCipherGCM(ALGORITHM, ENCRYPTION_KEY, iv);
     cipher.setAAD(Buffer.from('VIMS_ID_DOCUMENT'));
 
     const input = fs.createReadStream(inputPath);
@@ -40,7 +40,7 @@ class FileEncryption {
       const iv = Buffer.from(metadata.iv, 'hex');
       const authTag = Buffer.from(metadata.authTag, 'hex');
 
-      const decipher = crypto.createDecipher(ALGORITHM, ENCRYPTION_KEY);
+      const decipher = crypto.createDecipherGCM(ALGORITHM, ENCRYPTION_KEY, iv);
       decipher.setAAD(Buffer.from('VIMS_ID_DOCUMENT'));
       decipher.setAuthTag(authTag);
 

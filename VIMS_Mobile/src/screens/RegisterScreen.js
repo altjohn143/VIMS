@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { themeColors, shadows } from '../utils/theme';
 import api from '../utils/api';
@@ -560,6 +561,18 @@ const RegisterScreen = ({ navigation, route }) => {
       if (response.data.success) {
         const registeredUser = response.data.user || null;
 
+        if (response.data.token) {
+          try {
+            await AsyncStorage.setItem('token', response.data.token);
+            if (registeredUser) {
+              await AsyncStorage.setItem('user', JSON.stringify(registeredUser));
+            }
+            api.defaults.headers.common.Authorization = `Bearer ${response.data.token}`;
+          } catch (storageError) {
+            console.error('Failed to persist registration token:', storageError);
+          }
+        }
+
         // If resident selected ID images, upload in background after navigating away
         const { frontUri, backUri, selfieUri } = idDocs || {};
         if (frontUri && backUri && Platform.OS !== 'web') {
@@ -594,8 +607,7 @@ const RegisterScreen = ({ navigation, route }) => {
                 fd.append('selfieImage', await mkFileAsync(selfieUriToUpload, 'selfie.jpg'));
               }
 
-              const url = `${api.defaults.baseURL}/verifications/upload-id`;
-              await fetch(url, { method: 'POST', body: fd, headers: { Accept: 'application/json' } });
+              await api.post('/verifications/upload-id', fd);
             } catch (e) {
               console.error('upload-id after register failed:', e);
             }

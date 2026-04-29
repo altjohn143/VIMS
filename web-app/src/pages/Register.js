@@ -479,45 +479,55 @@ const Register = () => {
       if (response.data.success) {
         const emailLower = formData.email.trim().toLowerCase();
         const regUser = response.data.user;
+
+        // Persist token so upload-id can run immediately for pending users
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          if (response.data.user) {
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+          }
+          axios.defaults.headers.common.Authorization = `Bearer ${response.data.token}`;
+        }
+
         localStorage.setItem('pendingApprovalEmail', emailLower);
         navigate('/pending-approval', {
-        state: {
-          email: emailLower,
-          registration: {
-            firstName: formData.firstName,
-            lastName: formData.lastName,
+          state: {
             email: emailLower,
-            phone: formData.phone,
-            houseNumber: regUser?.houseNumber || formData.selectedLot || '',
+            registration: {
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: emailLower,
+              phone: formData.phone,
+              houseNumber: regUser?.houseNumber || formData.selectedLot || '',
+            },
           },
-        },
-      });
+        });
 
-      // ID upload after redirect so the user lands on Pending Approval immediately
-      if (idDocs.frontImage && idDocs.backImage) {
-        (async () => {
-          try {
-            const multipart = new FormData();
-            multipart.append('email', emailLower);
-            multipart.append('frontImage', idDocs.frontImage);
-            multipart.append('backImage', idDocs.backImage);
-            const selfieUpload = idDocs.selfieImage || profilePhoto;
-            if (selfieUpload) multipart.append('selfieImage', selfieUpload);
-            await axios.post('/api/verifications/upload-id', multipart);
-          } catch (uploadError) {
-            const status = uploadError?.response?.status;
-            const serverMessage =
-              uploadError?.response?.data?.error ||
-              uploadError?.response?.data?.message ||
-              uploadError?.message;
-            toast.error(
-              `Registration succeeded, but ID upload failed${status ? ` (${status})` : ''}${
-                serverMessage ? `: ${serverMessage}` : '.'
-              }`
-            );
-          }
-        })();
-      }
+        // ID upload after redirect so the user lands on Pending Approval immediately
+        if (idDocs.frontImage && idDocs.backImage) {
+          (async () => {
+            try {
+              const multipart = new FormData();
+              multipart.append('email', emailLower);
+              multipart.append('frontImage', idDocs.frontImage);
+              multipart.append('backImage', idDocs.backImage);
+              const selfieUpload = idDocs.selfieImage || profilePhoto;
+              if (selfieUpload) multipart.append('selfieImage', selfieUpload);
+              await axios.post('/api/verifications/upload-id', multipart);
+            } catch (uploadError) {
+              const status = uploadError?.response?.status;
+              const serverMessage =
+                uploadError?.response?.data?.error ||
+                uploadError?.response?.data?.message ||
+                uploadError?.message;
+              toast.error(
+                `Registration succeeded, but ID upload failed${status ? ` (${status})` : ''}${
+                  serverMessage ? `: ${serverMessage}` : '.'
+                }`
+              );
+            }
+          })();
+        }
     } else {
       setErrors(prev => ({ ...prev, submit: response.data.error || 'Registration failed' }));
     }

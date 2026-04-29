@@ -122,16 +122,20 @@ export const AuthProvider = ({ children }) => {
       if (response.data.success) {
         const { token, user } = response.data;
         
-        // Only store token and user if account is pre-approved (admin/security)
-        // For residents, we don't store the token since they need approval
-        if (user.isApproved) {
+        // Store token and user for successful registrations so the client can perform follow-up actions
+        if (token) {
           localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(user));
+          if (user) {
+            localStorage.setItem('user', JSON.stringify(user));
+          }
           setLastActivity();
           setAuthHeaders();
+        }
+
+        if (user?.isApproved) {
           toast.success(response.data.message);
         }
-        // Pending residents: no toast here — Register page redirects to /pending-approval immediately
+
         return { success: true, user, message: response.data.message };
       }
     } catch (error) {

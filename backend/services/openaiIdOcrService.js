@@ -2,6 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { getOpenAIClient, getOpenAIHighModel } = require('./openaiClient');
 
+// SECURITY: Encrypted file storage directory
+const uploadDir = path.join(__dirname, '../uploads/ids');
+
 function toDataUrl(absPath) {
   const ext = path.extname(absPath || '').toLowerCase();
   const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
@@ -92,6 +95,14 @@ async function extractIdFieldsFromImagePaths(frontAbsPath, backAbsPath) {
   };
 }
 
+function resolveUploadedPaths(filenameFront, filenameBack) {
+  return {
+    front: path.join(uploadDir, filenameFront),
+    back: path.join(uploadDir, filenameBack)
+  };
+}
+
 module.exports = {
-  extractIdFieldsFromImagePaths
+  extractIdFieldsFromImagePaths,
+  resolveUploadedPaths
 };

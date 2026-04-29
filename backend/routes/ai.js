@@ -8,7 +8,7 @@ const Visitor = require('../models/Visitor');
 const Incident = require('../models/Incident');
 const ServiceRequest = require('../models/ServiceRequest');
 const Chat = require('../models/Chat');
-const { getOpenAIClient, getOpenAIHighModel } = require('../services/openaiClient');
+const { getOpenAIClient, getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
 const pdfReportService = require('../services/pdfReportService');
 
 const router = express.Router();

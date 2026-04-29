@@ -796,3 +796,5 @@ router.post('/fix-lot-assignments', protect, authorize('admin'), async (req, res
     });
   }
 });
+
+module.exports = router;

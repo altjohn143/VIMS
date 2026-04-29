@@ -8,6 +8,8 @@ const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { extractIdFieldsFromImagePaths, resolveUploadedPaths } = require('../services/openaiIdOcrService');
+
+const router = express.Router();
 const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');

@@ -11,19 +11,13 @@ const { extractIdFieldsFromImagePaths, resolveUploadedPaths } = require('../serv
 const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
-const FileEncryption = require('../utils/fileEncryption');
 
 const router = express.Router();
 
-// SECURITY: Encrypted file storage directory
 const uploadDir = path.join(__dirname, '../uploads/ids');
-const encryptedDir = path.join(__dirname, '../uploads/ids/encrypted');
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-}
-if (!fs.existsSync(encryptedDir)) {
-  fs.mkdirSync(encryptedDir, { recursive: true });
 }
 
 // SECURITY: Secure filename generation - prevent path traversal and information disclosure
@@ -128,56 +122,12 @@ router.post(
         return res.status(400).json({ success: false, error: 'Uploaded files not found' });
       }
 
-      // SECURITY: Encrypt sensitive ID documents at rest
-      const encryptedFrontPath = path.join(encryptedDir, `${frontImage}.enc`);
-      const encryptedBackPath = path.join(encryptedDir, `${backImage}.enc`);
-      const encryptedSelfiePath = selfieImage ? path.join(encryptedDir, `${selfieImage}.enc`) : null;
-
-      try {
-        await FileEncryption.encryptFile(frontPath, encryptedFrontPath);
-        await FileEncryption.encryptFile(backPath, encryptedBackPath);
-        if (selfiePath && encryptedSelfiePath) {
-          await FileEncryption.encryptFile(selfiePath, encryptedSelfiePath);
-        }
-
-        // Delete unencrypted files after encryption
-        if (fs.existsSync(frontPath)) fs.unlinkSync(frontPath);
-        if (fs.existsSync(backPath)) fs.unlinkSync(backPath);
-        if (selfiePath && fs.existsSync(selfiePath)) fs.unlinkSync(selfiePath);
-
-        // Update filenames to encrypted versions
-        const encryptedFrontImage = `${frontImage}.enc`;
-        const encryptedBackImage = `${backImage}.enc`;
-        const encryptedSelfieImage = selfieImage ? `${selfieImage}.enc` : null;
-
-      } catch (encryptionError) {
-        console.error('File encryption failed:', encryptionError);
-        // Clean up uploaded files on encryption failure
-        try {
-          if (fs.existsSync(frontPath)) fs.unlinkSync(frontPath);
-          if (fs.existsSync(backPath)) fs.unlinkSync(backPath);
-          if (selfiePath && fs.existsSync(selfiePath)) fs.unlinkSync(selfiePath);
-        } catch (cleanupError) {
-          console.error('Failed to cleanup files after encryption error:', cleanupError);
-        }
-        return res.status(500).json({ success: false, error: 'Failed to encrypt uploaded files' });
-      }
-
-      const { front, back } = { front: encryptedFrontPath, back: encryptedBackPath };
+      const front = frontPath;
+      const front = frontPath;
+      const back = backPath;
       let ocr = null;
       try {
-        // SECURITY: Decrypt files temporarily for OCR processing
-        const tempFrontPath = path.join(uploadDir, `temp_${Date.now()}_front.jpg`);
-        const tempBackPath = path.join(uploadDir, `temp_${Date.now()}_back.jpg`);
-
-        await FileEncryption.decryptFile(encryptedFrontPath, tempFrontPath);
-        await FileEncryption.decryptFile(encryptedBackPath, tempBackPath);
-
-        ocr = await extractIdFieldsFromImagePaths(tempFrontPath, tempBackPath);
-
-        // Clean up temporary decrypted files
-        if (fs.existsSync(tempFrontPath)) fs.unlinkSync(tempFrontPath);
-        if (fs.existsSync(tempBackPath)) fs.unlinkSync(tempBackPath);
+        ocr = await extractIdFieldsFromImagePaths(front, back);
 
       } catch (ocrError) {
         console.error('OCR extraction failed, saving verification for manual review:', ocrError?.response?.data || ocrError.message || ocrError);
@@ -187,17 +137,17 @@ router.post(
             userId: user._id,
             residentEmail: snapEmail,
             residentDisplayName: snapName,
-            frontImage: encryptedFrontImage,
-            backImage: encryptedBackImage,
-            selfieImage: encryptedSelfieImage,
+            frontImage,
+            backImage,
+            selfieImage,
             status: 'manual_review',
             reviewNotes: 'OCR failed while extracting ID details. Routed to manual review.',
             rejectReason: ''
           });
         } else {
-          verification.frontImage = encryptedFrontImage;
-          verification.backImage = encryptedBackImage;
-          verification.selfieImage = encryptedSelfieImage;
+          verification.frontImage = frontImage;
+          verification.backImage = backImage;
+          verification.selfieImage = selfieImage;
           verification.residentEmail = snapEmail;
           verification.residentDisplayName = snapName;
           verification.status = 'manual_review';
@@ -207,19 +157,19 @@ router.post(
         }
 
         // Update user's profile photo if selfie was provided
-        if (encryptedSelfieImage) {
-          // Copy encrypted selfie to profile-photos directory
-          const sourcePath = path.join(encryptedDir, encryptedSelfieImage);
+        if (selfieImage) {
+          // Copy selfie to profile-photos directory
+          const sourcePath = path.join(uploadDir, selfieImage);
           const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
           if (!fs.existsSync(profilePhotoDir)) {
             fs.mkdirSync(profilePhotoDir, { recursive: true });
           }
-          const destPath = path.join(profilePhotoDir, encryptedSelfieImage);
+          const destPath = path.join(profilePhotoDir, selfieImage);
           try {
             fs.copyFileSync(sourcePath, destPath);
-            await User.findByIdAndUpdate(user._id, { profilePhoto: encryptedSelfieImage });
+            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
           } catch (copyError) {
-            console.error('Failed to copy encrypted selfie to profile photos:', copyError);
+            console.error('Failed to copy selfie to profile photos:', copyError);
           }
         }
 
@@ -232,16 +182,13 @@ router.post(
 
       const duplicate = await detectDuplicateIdentity({ ocr, excludeUserId: user._id });
       if (duplicate.found) {
-        // SECURITY: Clean up encrypted files on duplicate detection
-        const cleanupFiles = [encryptedFrontPath, encryptedBackPath];
-        if (encryptedSelfiePath) cleanupFiles.push(encryptedSelfiePath);
+        // SECURITY: Clean up uploaded files on duplicate detection
+        const cleanupFiles = [frontPath, backPath];
+        if (selfiePath) cleanupFiles.push(selfiePath);
 
         cleanupFiles.forEach((filePath) => {
           try {
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-            // Also remove metadata files
-            const metaFile = `${filePath}.meta`;
-            if (fs.existsSync(metaFile)) fs.unlinkSync(metaFile);
           } catch (cleanupError) {
             console.warn('Failed to remove duplicate upload file:', filePath, cleanupError.message || cleanupError);
           }

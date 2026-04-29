@@ -123,7 +123,6 @@ router.post(
       }
 
       const front = frontPath;
-      const front = frontPath;
       const back = backPath;
       let ocr = null;
       try {

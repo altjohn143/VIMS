@@ -140,10 +140,10 @@ router.post(
           await FileEncryption.encryptFile(selfiePath, encryptedSelfiePath);
         }
 
-        // SECURITY: Securely delete unencrypted files
-        FileEncryption.secureDelete(frontPath);
-        FileEncryption.secureDelete(backPath);
-        if (selfiePath) FileEncryption.secureDelete(selfiePath);
+        // Delete unencrypted files after encryption
+        if (fs.existsSync(frontPath)) fs.unlinkSync(frontPath);
+        if (fs.existsSync(backPath)) fs.unlinkSync(backPath);
+        if (selfiePath && fs.existsSync(selfiePath)) fs.unlinkSync(selfiePath);
 
         // Update filenames to encrypted versions
         const encryptedFrontImage = `${frontImage}.enc`;
@@ -154,13 +154,13 @@ router.post(
         console.error('File encryption failed:', encryptionError);
         // Clean up uploaded files on encryption failure
         try {
-          fs.unlinkSync(frontPath);
-          fs.unlinkSync(backPath);
-          if (selfiePath) fs.unlinkSync(selfiePath);
+          if (fs.existsSync(frontPath)) fs.unlinkSync(frontPath);
+          if (fs.existsSync(backPath)) fs.unlinkSync(backPath);
+          if (selfiePath && fs.existsSync(selfiePath)) fs.unlinkSync(selfiePath);
         } catch (cleanupError) {
           console.error('Failed to cleanup files after encryption error:', cleanupError);
         }
-        return res.status(500).json({ success: false, error: 'Failed to secure uploaded files' });
+        return res.status(500).json({ success: false, error: 'Failed to encrypt uploaded files' });
       }
 
       const { front, back } = { front: encryptedFrontPath, back: encryptedBackPath };
@@ -176,8 +176,8 @@ router.post(
         ocr = await extractIdFieldsFromImagePaths(tempFrontPath, tempBackPath);
 
         // Clean up temporary decrypted files
-        FileEncryption.secureDelete(tempFrontPath);
-        FileEncryption.secureDelete(tempBackPath);
+        if (fs.existsSync(tempFrontPath)) fs.unlinkSync(tempFrontPath);
+        if (fs.existsSync(tempBackPath)) fs.unlinkSync(tempBackPath);
 
       } catch (ocrError) {
         console.error('OCR extraction failed, saving verification for manual review:', ocrError?.response?.data || ocrError.message || ocrError);
@@ -238,7 +238,7 @@ router.post(
 
         cleanupFiles.forEach((filePath) => {
           try {
-            if (fs.existsSync(filePath)) FileEncryption.secureDelete(filePath);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
             // Also remove metadata files
             const metaFile = `${filePath}.meta`;
             if (fs.existsSync(metaFile)) fs.unlinkSync(metaFile);

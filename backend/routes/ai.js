@@ -99,33 +99,21 @@ router.post('/chat', protect, chatLimiter, async (req, res) => {
     const model = getOpenAILowModel();
     const client = getOpenAIClient();
 
-    // Build input with history (limit to last 20 messages for context)
+    // Build chat messages with history (limit to last 20 messages for context)
     const recentMessages = chat.messages.slice(-20);
-    const input = [
-      {
-        role: 'system',
-        content: [{ type: 'input_text', text: roleSystemPrompt(req.user.role) }]
-      },
-      {
-        role: 'system',
-        content: [{ type: 'input_text', text: buildLotInventoryContext(lots) }]
-      }
+    const messages = [
+      { role: 'system', content: roleSystemPrompt(req.user.role) },
+      { role: 'system', content: buildLotInventoryContext(lots) },
+      ...recentMessages.map(msg => ({ role: msg.role, content: msg.content }))
     ];
 
-    // Add recent history
-    recentMessages.forEach(msg => {
-      input.push({
-        role: msg.role,
-        content: [{ type: 'input_text', text: msg.content }]
-      });
-    });
-
-    const response = await client.responses.create({
+    const response = await client.chat.completions.create({
       model,
-      input
+      messages,
+      max_tokens: 800
     });
 
-    const reply = response.output_text || 'I could not generate a response.';
+    const reply = response.choices?.[0]?.message?.content || 'I could not generate a response.';
 
     // Add assistant response
     chat.messages.push({ role: 'assistant', content: reply });
@@ -206,22 +194,17 @@ ${payments.slice(0, 10).map(p => `- ${p.user?.firstName} ${p.user?.lastName} (${
 
     const model = getOpenAIHighModel();
     const client = getOpenAIClient();
-    const response = await client.responses.create({
+    const response = await client.chat.completions.create({
       model,
-      input: [
-        {
-          role: 'system',
-          content: [{ type: 'input_text', text: 'You are a financial analyst for a village management system. Generate comprehensive financial reports with insights, trends, and recommendations based on the provided data. Be professional and detailed.' }]
-        },
-        {
-          role: 'user',
-          content: [{ type: 'input_text', text: `Generate a detailed financial report for ${period === 'monthly' ? 'the month' : 'the year'} based on this data:\n\n${dataContext}` }]
-        }
-      ]
+      messages: [
+        { role: 'system', content: 'You are a financial analyst for a village management system. Generate comprehensive financial reports with insights, trends, and recommendations based on the provided data. Be professional and detailed.' },
+        { role: 'user', content: `Generate a detailed financial report for ${period === 'monthly' ? 'the month' : 'the year'} based on this data:\n\n${dataContext}` }
+      ],
+      max_tokens: 1200
     });
 
     const reportData = {
-      report: response.output_text || 'Unable to generate financial report.',
+      report: response.choices?.[0]?.message?.content || 'Unable to generate financial report.',
       period,
       year,
       month: period === 'monthly' ? month : null,
@@ -292,22 +275,17 @@ ${visitors.slice(0, 15).map(v => `- ${v.visitorName} visiting ${v.user?.firstNam
 
     const model = getOpenAIHighModel();
     const client = getOpenAIClient();
-    const response = await client.responses.create({
+    const response = await client.chat.completions.create({
       model,
-      input: [
-        {
-          role: 'system',
-          content: [{ type: 'input_text', text: 'You are a security analyst for a village management system. Generate detailed visitor reports with security insights, patterns, and recommendations based on the provided data. Focus on security implications and visitor management efficiency.' }]
-        },
-        {
-          role: 'user',
-          content: [{ type: 'input_text', text: `Generate a comprehensive visitor report for ${period === 'daily' ? 'today' : 'this week'} based on this data:\n\n${dataContext}` }]
-        }
-      ]
+      messages: [
+        { role: 'system', content: 'You are a security analyst for a village management system. Generate detailed visitor reports with security insights, patterns, and recommendations based on the provided data. Focus on security implications and visitor management efficiency.' },
+        { role: 'user', content: `Generate a comprehensive visitor report for ${period === 'daily' ? 'today' : 'this week'} based on this data:\n\n${dataContext}` }
+      ],
+      max_tokens: 1200
     });
 
     const reportData = {
-      report: response.output_text || 'Unable to generate visitor report.',
+      report: response.choices?.[0]?.message?.content || 'Unable to generate visitor report.',
       period,
       date,
       summary: {
@@ -377,22 +355,17 @@ ${incidents.slice(0, 10).map(i => `- ${i.title}: ${i.description.substring(0, 10
 
     const model = getOpenAIHighModel();
     const client = getOpenAIClient();
-    const response = await client.responses.create({
+    const response = await client.chat.completions.create({
       model,
-      input: [
-        {
-          role: 'system',
-          content: [{ type: 'input_text', text: 'You are a security analyst for a village management system. Generate detailed incident reports with security analysis, risk assessment, and recommendations based on the provided data. Focus on security patterns, response effectiveness, and preventive measures.' }]
-        },
-        {
-          role: 'user',
-          content: [{ type: 'input_text', text: `Generate a comprehensive incident report for ${period === 'weekly' ? 'this week' : 'today'} based on this data:\n\n${dataContext}` }]
-        }
-      ]
+      messages: [
+        { role: 'system', content: 'You are a security analyst for a village management system. Generate detailed incident reports with security analysis, risk assessment, and recommendations based on the provided data. Focus on security patterns, response effectiveness, and preventive measures.' },
+        { role: 'user', content: `Generate a comprehensive incident report for ${period === 'weekly' ? 'this week' : 'today'} based on this data:\n\n${dataContext}` }
+      ],
+      max_tokens: 1200
     });
 
     const reportData = {
-      report: response.output_text || 'Unable to generate incident report.',
+      report: response.choices?.[0]?.message?.content || 'Unable to generate incident report.',
       period,
       date,
       summary: {

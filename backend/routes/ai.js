@@ -34,7 +34,7 @@ function roleSystemPrompt(role) {
   if (role === 'security') {
     return `${baseRules.join('\n')}\nThe current user is security staff. Focus on visitor, patrol, incident, and service task workflows.`;
   }
-  return `${baseRules.join('\n')}\nThe current user is resident. Focus on resident features: registration, visitors, payments, requests, profile, lot selections, and recommendation guidance.`;
+  return `${baseRules.join('\n')}\nThe current user is resident. Focus on resident features: registration, visitors, payments, requests, profile, lot selections, and recommendation guidance. Use the resident context below to answer personal profile, address, payment, and service request questions. If the user asks for admin or security contact details, only provide them if they are explicitly available in the system context; otherwise explain you do not have direct email access.`;
 }
 
 function formatCurrency(amount) {
@@ -56,6 +56,72 @@ function buildLotInventoryContext(lots) {
     'Only reference this current lot data when asked about specific lots or price ranges.',
     '',
     rows.join('\n')
+  ].join('\n');
+}
+
+function buildResidentContext(user, paymentSummary, serviceSummary, assignedLot) {
+  const lines = [
+    'Resident context for the current user:',
+    `- Name: ${user.firstName} ${user.lastName}`,
+    `- Role: ${user.role}`,
+    `- Assigned lot/address: ${user.houseNumber || 'N/A'} ${user.houseBlock || ''} ${user.houseLot || ''}`.trim(),
+    `- Address field: ${user.address || 'N/A'}`,
+    `- Contact email: ${user.email || 'N/A'}`,
+    `- Contact phone: ${user.phone || 'N/A'}`
+  ];
+
+  if (assignedLot) {
+    lines.push(`- Occupied lot: ${assignedLot.lotId} (${assignedLot.type}, ${assignedLot.sqm} sqm) at ${assignedLot.address}`);
+  }
+
+  lines.push('', 'Payment summary:');
+  lines.push(`- Total payments: ${paymentSummary.total}`);
+  lines.push(`- Paid: ${paymentSummary.paid}`);
+  lines.push(`- Pending: ${paymentSummary.pending}`);
+  lines.push(`- Overdue: ${paymentSummary.overdue}`);
+  if (paymentSummary.nextDue) {
+    lines.push(`- Next due amount: ${formatCurrency(paymentSummary.nextDue.amount)} on ${paymentSummary.nextDue.dueDate}`);
+  }
+
+  lines.push('', 'Service request summary:');
+  lines.push(`- Total requests: ${serviceSummary.total}`);
+  lines.push(`- Pending: ${serviceSummary.pending}`);
+  lines.push(`- In progress: ${serviceSummary.inProgress}`);
+  lines.push(`- Completed: ${serviceSummary.completed}`);
+  lines.push(`- Cancelled: ${serviceSummary.cancelled}`);
+
+  lines.push('', 'Use this resident-specific context to answer only questions relevant to this user. Do not invent personal details beyond what is provided.');
+
+  return lines.join('\n');
+}
+
+function buildAdminContext(adminSummary) {
+  return [
+    'Admin context for the current user:',
+    `- Role: admin`,
+    '',
+    'System counts for admin reference:',
+    `- Total residents: ${adminSummary.totalResidents}`,
+    `- Pending approvals: ${adminSummary.pendingApprovals}`,
+    `- Open service requests: ${adminSummary.openServiceRequests}`,
+    `- Vacant lots: ${adminSummary.vacantLots}`,
+    `- Occupied lots: ${adminSummary.occupiedLots}`,
+    '',
+    'Use this admin-specific context to answer administrative questions about the village system.'
+  ].join('\n');
+}
+
+function buildSecurityContext(securitySummary) {
+  return [
+    'Security context for the current user:',
+    `- Role: security`,
+    '',
+    'Security counts for reference:',
+    `- Pending visitor approvals: ${securitySummary.pendingVisitors}`,
+    `- Active incidents: ${securitySummary.activeIncidents}`,
+    `- Security-related service requests: ${securitySummary.securityRequests}`,
+    '',
+    'Use this security-specific context to answer village security workflow questions.'
   ].join('\n');
 }
 
@@ -92,9 +158,55 @@ router.post('/chat', protect, chatLimiter, async (req, res) => {
     // Add user message
     chat.messages.push({ role: 'user', content: message });
 
+    const currentUser = await User.findById(req.user._id)
+      .select('firstName lastName role email phone houseNumber houseBlock houseLot address')
+      .lean();
+
     const lots = await Lot.find({ status: 'vacant' })
       .sort({ block: 1, lotNumber: 1 })
       .select('lotId block lotNumber status type sqm price address');
+
+    let userContext = '';
+    if (req.user.role === 'resident') {
+      const [payments, serviceRequests, assignedLot] = await Promise.all([
+        Payment.find({ residentId: req.user._id }).sort({ dueDate: 1 }).lean(),
+        ServiceRequest.find({ residentId: req.user._id }).lean(),
+        Lot.findOne({ occupiedBy: req.user._id }).lean()
+      ]);
+
+      const nextDue = payments.filter(p => p.status === 'pending').sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0] || null;
+      const paymentSummary = {
+        total: payments.length,
+        paid: payments.filter(p => p.status === 'paid').length,
+        pending: payments.filter(p => p.status === 'pending').length,
+        overdue: payments.filter(p => p.status === 'pending' && p.dueDate && new Date(p.dueDate) < new Date()).length,
+        nextDue
+      };
+      const serviceSummary = {
+        total: serviceRequests.length,
+        pending: serviceRequests.filter(r => r.status === 'pending').length,
+        inProgress: serviceRequests.filter(r => ['assigned', 'in-progress'].includes(r.status)).length,
+        completed: serviceRequests.filter(r => r.status === 'completed').length,
+        cancelled: serviceRequests.filter(r => r.status === 'cancelled').length
+      };
+      userContext = buildResidentContext(currentUser, paymentSummary, serviceSummary, assignedLot);
+    } else if (req.user.role === 'admin') {
+      const [totalResidents, pendingApprovals, openServiceRequests, vacantLots, occupiedLots] = await Promise.all([
+        User.countDocuments({ role: 'resident' }),
+        User.countDocuments({ role: 'resident', isApproved: false }),
+        ServiceRequest.countDocuments({ status: { $in: ['pending', 'under-review', 'assigned', 'in-progress'] } }),
+        Lot.countDocuments({ status: 'vacant' }),
+        Lot.countDocuments({ status: 'occupied' })
+      ]);
+      userContext = buildAdminContext({ totalResidents, pendingApprovals, openServiceRequests, vacantLots, occupiedLots });
+    } else if (req.user.role === 'security') {
+      const [pendingVisitors, activeIncidents, securityRequests] = await Promise.all([
+        Visitor.countDocuments({ status: 'pending' }),
+        Incident.countDocuments({ status: { $in: ['pending', 'assigned', 'in-progress', 'urgent'] } }),
+        ServiceRequest.countDocuments({ category: 'security', status: { $in: ['pending', 'under-review', 'assigned', 'in-progress'] } })
+      ]);
+      userContext = buildSecurityContext({ pendingVisitors, activeIncidents, securityRequests });
+    }
 
     const model = getOpenAILowModel();
     const client = getOpenAIClient();
@@ -103,9 +215,14 @@ router.post('/chat', protect, chatLimiter, async (req, res) => {
     const recentMessages = chat.messages.slice(-20);
     const messages = [
       { role: 'system', content: roleSystemPrompt(req.user.role) },
-      { role: 'system', content: buildLotInventoryContext(lots) },
-      ...recentMessages.map(msg => ({ role: msg.role, content: msg.content }))
+      { role: 'system', content: buildLotInventoryContext(lots) }
     ];
+
+    if (userContext) {
+      messages.push({ role: 'system', content: userContext });
+    }
+
+    messages.push(...recentMessages.map(msg => ({ role: msg.role, content: msg.content })));
 
     const response = await client.chat.completions.create({
       model,

@@ -163,7 +163,7 @@ const Register = () => {
             const lotId = `${block}-${lot}`;
             const preSelectedLot = response.data.data.find(l => l.lotId === lotId);
             if (preSelectedLot) {
-              setFormData(prev => ({ ...prev, selectedLot: lotId }));
+              setFormData(prev => ({ ...prev, selectedLot: lotId, address: preSelectedLot.address }));
               setSelectedLotDetails(preSelectedLot);
             }
           }
@@ -244,6 +244,10 @@ const Register = () => {
     if (name === 'selectedLot') {
       const selected = availableLots.find(lot => lot.lotId === filteredValue);
       setSelectedLotDetails(selected || null);
+      // Auto-populate address from selected lot
+      if (selected) {
+        setFormData(prev => ({ ...prev, address: selected.address }));
+      }
     }
     
     if ((name === 'email' && !filteredValue) || (name === 'phone' && !filteredValue)) {
@@ -287,7 +291,7 @@ const Register = () => {
   // Handle lot selection from the map
   const handleLotSelectFromMap = (lot) => {
     if (lot.status === 'vacant') {
-      setFormData(prev => ({ ...prev, selectedLot: lot.lotId }));
+      setFormData(prev => ({ ...prev, selectedLot: lot.lotId, address: lot.address }));
       setSelectedLotDetails(lot);
       setMapDrawerOpen(false);
       toast.success(`Lot ${lot.lotId} selected!`);
@@ -923,12 +927,21 @@ const Register = () => {
                   value={formData.address}
                   onChange={handleChange}
                   error={!!errors.address}
-                  helperText={errors.address || 'Enter your residential address'}
+                  helperText={errors.address || (formData.selectedLot ? 'Address auto-filled from selected lot' : 'Enter your residential address')}
                   required
                   multiline
                   rows={2}
                   placeholder="Enter your full residential address"
-                  sx={fieldSx}
+                  InputProps={{
+                    readOnly: !!formData.selectedLot
+                  }}
+                  sx={{
+                    ...fieldSx,
+                    '& .MuiInputBase-input': {
+                      ...fieldSx['& .MuiInputBase-input'],
+                      backgroundColor: formData.selectedLot ? '#f5f5f5' : 'white'
+                    }
+                  }}
                 />
               </Grid>
 

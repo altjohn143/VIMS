@@ -107,7 +107,7 @@ const RegisterScreen = ({ navigation, route }) => {
       const lotId = `${route.params.block}-${route.params.lot}`;
       const preSelectedLot = availableLots.find(l => l.lotId === lotId);
       if (preSelectedLot) {
-        setFormData(prev => ({ ...prev, selectedLot: lotId }));
+        setFormData(prev => ({ ...prev, selectedLot: lotId, address: preSelectedLot.address }));
         setSelectedLotDetails(preSelectedLot);
       }
     }
@@ -162,12 +162,16 @@ const RegisterScreen = ({ navigation, route }) => {
     if (field === 'selectedLot') {
       const selected = availableLots.find(lot => lot.lotId === filteredValue);
       setSelectedLotDetails(selected || null);
+      // Auto-populate address from selected lot
+      if (selected) {
+        setFormData(prev => ({ ...prev, address: selected.address }));
+      }
     }
   };
 
   const handleLotSelect = (lot) => {
     if (lot.status === 'vacant') {
-      setFormData(prev => ({ ...prev, selectedLot: lot.lotId }));
+      setFormData(prev => ({ ...prev, selectedLot: lot.lotId, address: lot.address }));
       setSelectedLotDetails(lot);
       setShowLotDropdown(false);
       setShowMapModal(false);
@@ -863,14 +867,24 @@ const RegisterScreen = ({ navigation, route }) => {
           <View style={styles.inputContainer}>
             <Ionicons name="location" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput
-              style={[styles.input, { minHeight: 80 }]}
-              placeholder="Enter your residential address"
+              style={[
+                styles.input,
+                { minHeight: 80 },
+                formData.selectedLot && { backgroundColor: '#f5f5f5' }
+              ]}
+              placeholder={formData.selectedLot ? "Address auto-filled from selected lot" : "Enter your residential address"}
               value={formData.address}
               onChangeText={(text) => handleChange('address', text)}
               multiline
               numberOfLines={3}
               maxLength={250}
+              editable={!formData.selectedLot}
             />
+            {formData.selectedLot && (
+              <Text style={[styles.helperText, { marginTop: 5 }]}>
+                Address auto-filled from selected lot
+              </Text>
+            )}
           </View>
           {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
 

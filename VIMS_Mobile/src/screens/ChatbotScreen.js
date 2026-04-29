@@ -40,7 +40,8 @@ const ChatbotScreen = ({ navigation }) => {
       const res = await api.post('/ai/chat', { message: trimmed });
       setMessages((prev) => [...prev, { role: 'assistant', content: res.data?.data?.reply || 'No response.' }]);
     } catch (error) {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Failed to get AI response. Please try again.' }]);
+      const backendError = error?.response?.data?.error || 'Failed to get AI response. Please try again.';
+      setMessages((prev) => [...prev, { role: 'assistant', content: backendError }]);
     } finally {
       setLoading(false);
     }

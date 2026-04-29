@@ -139,10 +139,16 @@ router.post('/chat', protect, chatLimiter, async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('AI chat error:', {
+      status: error.response?.status,
+      responseData: error.response?.data,
+      message: error.message,
+      stack: error.stack
+    });
     return res.status(500).json({
       success: false,
       error: 'Failed to generate AI response',
-      details: error.message || 'Unknown error'
+      details: error.response?.data?.error || error.message || 'Unknown error'
     });
   }
 });

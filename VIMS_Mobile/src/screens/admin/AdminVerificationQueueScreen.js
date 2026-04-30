@@ -11,6 +11,7 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -28,6 +29,9 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
   const [processing, setProcessing] = useState(false);
   const [approveNotes, setApproveNotes] = useState('Approved by admin');
   const [rejectReason, setRejectReason] = useState('Verification mismatch');
+  const [idModalOpen, setIdModalOpen] = useState(false);
+  const [idImages, setIdImages] = useState({ front: null, back: null, selfie: null });
+  const [idLoading, setIdLoading] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -122,6 +126,32 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
       Alert.alert('Error', e?.response?.data?.error || 'Failed to reject verification');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleViewVerificationImages = async (verificationId) => {
+    if (!verificationId) {
+      Alert.alert('No ID found', 'This verification has not uploaded documents yet.');
+      return;
+    }
+
+    setIdModalOpen(true);
+    setIdLoading(true);
+    setIdImages({ front: null, back: null, selfie: null });
+
+    try {
+      const res = await api.get(`/verifications/admin/${verificationId}/images`);
+      if (res.data?.success) {
+        setIdImages(res.data.data || { front: null, back: null, selfie: null });
+      } else {
+        Alert.alert('Error', res.data?.error || 'Failed to load documents');
+        setIdModalOpen(false);
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to load documents');
+      setIdModalOpen(false);
+    } finally {
+      setIdLoading(false);
     }
   };
 

@@ -64,6 +64,9 @@ const AdminApprovals = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [idModalOpen, setIdModalOpen] = useState(false);
+  const [idImages, setIdImages] = useState({ front: null, back: null, selfie: null });
+  const [idLoading, setIdLoading] = useState(false);
   
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -185,6 +188,36 @@ const AdminApprovals = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleLoadVerificationImages = async (verificationId) => {
+    if (!verificationId) {
+      toast.error('No uploaded documents available for this user');
+      return;
+    }
+
+    setIdLoading(true);
+    setIdModalOpen(true);
+    setIdImages({ front: null, back: null, selfie: null });
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`/api/verifications/admin/${verificationId}/images`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+
+      if (response.data?.success) {
+        setIdImages(response.data.data || { front: null, back: null, selfie: null });
+      } else {
+        toast.error(response.data?.error || 'Failed to load uploaded documents');
+      }
+    } catch (error) {
+      console.error('Error loading verification images:', error);
+      toast.error(error.response?.data?.error || 'Failed to load uploaded documents');
+      setIdModalOpen(false);
+    } finally {
+      setIdLoading(false);
+    }
   };
 
   const handleBack = () => {
@@ -417,6 +450,21 @@ const AdminApprovals = () => {
                             <ViewIcon />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title={user.verificationId ? 'View uploaded documents' : 'No uploaded documents yet'}>
+                          <span>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleLoadVerificationImages(user.verificationId)}
+                              disabled={!user.verificationId}
+                              sx={{
+                                color: user.verificationId ? themeColors.primary : themeColors.textSecondary,
+                                '&:hover': { backgroundColor: user.verificationId ? themeColors.primary + '15' : 'transparent' }
+                              }}
+                            >
+                              <ViewIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                         <Tooltip title={user.canApprove ? 'Approve' : 'Cannot approve until ID is verified'}>
                           <span>
                             <IconButton 
@@ -572,6 +620,21 @@ const AdminApprovals = () => {
               </Box>
             </DialogContent>
             <DialogActions sx={{ p: 3, pt: 2, borderTop: `1px solid ${themeColors.border}` }}>
+              <Button
+                onClick={() => handleLoadVerificationImages(selectedUser.verificationId)}
+                disabled={!selectedUser.verificationId}
+                sx={{
+                  color: themeColors.primary,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: '10px',
+                  mr: 2,
+                  '&:hover': { backgroundColor: themeColors.primary + '08' }
+                }}
+              >
+                View Uploaded Documents
+              </Button>
+              <Box sx={{ flex: 1 }} />
               <Button 
                 onClick={() => setDetailsOpen(false)}
                 sx={{ 
@@ -603,6 +666,58 @@ const AdminApprovals = () => {
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      <Dialog
+        open={idModalOpen}
+        onClose={() => setIdModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            backgroundColor: themeColors.cardBackground
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary, borderBottom: `1px solid ${themeColors.border}` }}>
+          Uploaded Documents
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          {idLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress sx={{ color: themeColors.primary }} />
+            </Box>
+          ) : (
+            <Box sx={{ display: 'grid', gap: 3 }}>
+              {idImages.front ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: themeColors.textPrimary }}>Front Image</Typography>
+                  <Box component="img" src={idImages.front} alt="Front Document" sx={{ width: '100%', borderRadius: 2, boxShadow: '0 10px 24px rgba(15,23,42,0.08)' }} />
+                </Box>
+              ) : (
+                <Typography sx={{ color: themeColors.textSecondary }}>Front image not available.</Typography>
+              )}
+              {idImages.back ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: themeColors.textPrimary }}>Back Image</Typography>
+                  <Box component="img" src={idImages.back} alt="Back Document" sx={{ width: '100%', borderRadius: 2, boxShadow: '0 10px 24px rgba(15,23,42,0.08)' }} />
+                </Box>
+              ) : (
+                <Typography sx={{ color: themeColors.textSecondary }}>Back image not available.</Typography>
+              )}
+              {idImages.selfie ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: themeColors.textPrimary }}>Selfie</Typography>
+                  <Box component="img" src={idImages.selfie} alt="Selfie Document" sx={{ width: '100%', borderRadius: 2, boxShadow: '0 10px 24px rgba(15,23,42,0.08)' }} />
+                </Box>
+              ) : null}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 2, borderTop: `1px solid ${themeColors.border}` }}>
+          <Button onClick={() => setIdModalOpen(false)} sx={{ textTransform: 'none', fontWeight: 700 }}>Close</Button>
+        </DialogActions>
       </Dialog>
 
       {/* Reject Dialog */}

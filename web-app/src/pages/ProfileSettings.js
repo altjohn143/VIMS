@@ -101,6 +101,9 @@ const ProfileSettings = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [previewTitle, setPreviewTitle] = useState('');
   const { getCurrentUser, logout, refreshUser, updateUser } = useAuth();
   const navigate = useNavigate();
 
@@ -267,6 +270,27 @@ const ProfileSettings = () => {
   const buildDocumentUrl = (filename) => {
     if (!filename) return null;
     return `/api/verifications/my-files/${filename}`;
+  };
+
+  const openPreview = (imageUrl, title) => {
+    setPreviewImage(imageUrl);
+    setPreviewTitle(title);
+    setPreviewOpen(true);
+  };
+
+  const closePreview = () => {
+    setPreviewOpen(false);
+    setPreviewImage(null);
+    setPreviewTitle('');
+  };
+
+  const handleDownload = (imageUrl, filename) => {
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = filename || 'document';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Profile Functions
@@ -811,9 +835,14 @@ const ProfileSettings = () => {
                             objectFit: 'cover',
                             borderRadius: 2,
                             border: `1px solid ${themeColors.border}`,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            '&:hover': {
+                              transform: 'scale(1.02)',
+                              boxShadow: `0 4px 12px rgba(22, 163, 74, 0.2)`
+                            }
                           }}
-                          onClick={() => window.open(buildDocumentUrl(uploadedDocuments.selfieImage), '_blank')}
+                          onClick={() => openPreview(buildDocumentUrl(uploadedDocuments.selfieImage), 'Profile Picture')}
                         />
                       </Box>
                     )}
@@ -834,9 +863,14 @@ const ProfileSettings = () => {
                               objectFit: 'cover',
                               borderRadius: 2,
                               border: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              transition: 'transform 0.2s, box-shadow 0.2s',
+                              '&:hover': {
+                                transform: 'scale(1.02)',
+                                boxShadow: `0 4px 12px rgba(22, 163, 74, 0.2)`
+                              }
                             }}
-                            onClick={() => window.open(buildDocumentUrl(uploadedDocuments.frontImage), '_blank')}
+                            onClick={() => openPreview(buildDocumentUrl(uploadedDocuments.frontImage), 'ID Front')}
                           />
                         </Box>
                       )}
@@ -856,9 +890,14 @@ const ProfileSettings = () => {
                               objectFit: 'cover',
                               borderRadius: 2,
                               border: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              transition: 'transform 0.2s, box-shadow 0.2s',
+                              '&:hover': {
+                                transform: 'scale(1.02)',
+                                boxShadow: `0 4px 12px rgba(22, 163, 74, 0.2)`
+                              }
                             }}
-                            onClick={() => window.open(buildDocumentUrl(uploadedDocuments.backImage), '_blank')}
+                            onClick={() => openPreview(buildDocumentUrl(uploadedDocuments.backImage), 'ID Back')}
                           />
                         </Box>
                       )}
@@ -894,6 +933,55 @@ const ProfileSettings = () => {
                   </Box>
                 )}
               </Box>
+
+              <Dialog
+                open={previewOpen}
+                onClose={closePreview}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                  sx: {
+                    borderRadius: 3,
+                    backgroundColor: themeColors.cardBackground,
+                    overflow: 'hidden'
+                  }
+                }}
+              >
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                  {previewTitle}
+                  <Button onClick={closePreview} variant="text" sx={{ textTransform: 'none' }}>
+                    Close
+                  </Button>
+                </DialogTitle>
+                <DialogContent sx={{ p: 0, backgroundColor: themeColors.background }}>
+                  {previewImage && (
+                    <Box
+                      component="img"
+                      src={previewImage}
+                      alt={previewTitle}
+                      sx={{
+                        width: '100%',
+                        height: 'auto',
+                        maxHeight: '75vh',
+                        objectFit: 'contain',
+                        backgroundColor: themeColors.paperBackground
+                      }}
+                    />
+                  )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleDownload(previewImage, previewTitle.replace(/\s+/g, '_'))}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Download
+                  </Button>
+                  <Button onClick={closePreview} variant="contained" sx={{ textTransform: 'none' }}>
+                    Close
+                  </Button>
+                </DialogActions>
+              </Dialog>
 
               {/* Security Section */}
               <Box>

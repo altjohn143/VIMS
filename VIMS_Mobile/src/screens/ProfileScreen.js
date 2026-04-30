@@ -37,6 +37,9 @@ const ProfileScreen = ({ navigation }) => {
     new: false,
     confirm: false,
   });
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [documentModalTitle, setDocumentModalTitle] = useState('');
+  const [documentModalImage, setDocumentModalImage] = useState(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -240,6 +243,18 @@ const ProfileScreen = ({ navigation }) => {
     return `${baseUrl}/api/verifications/my-files/${filename}`;
   };
 
+  const openDocumentModal = (title, imageUrl) => {
+    setDocumentModalTitle(title);
+    setDocumentModalImage(imageUrl);
+    setShowDocumentModal(true);
+  };
+
+  const closeDocumentModal = () => {
+    setShowDocumentModal(false);
+    setDocumentModalTitle('');
+    setDocumentModalImage(null);
+  };
+
   const uploadProfilePhoto = async (uri) => {
     try {
       setUploadingPhoto(true);
@@ -439,9 +454,7 @@ const ProfileScreen = ({ navigation }) => {
                   <Text style={styles.documentLabel}>Profile Picture</Text>
                   <TouchableOpacity 
                     style={styles.documentImageContainer}
-                    onPress={() => {
-                      // Could open image viewer modal here
-                    }}
+                    onPress={() => openDocumentModal('Profile Picture', buildDocumentUrl(uploadedDocuments.selfieImage))}
                   >
                     <Image 
                       source={{ uri: buildDocumentUrl(uploadedDocuments.selfieImage) }} 
@@ -449,6 +462,7 @@ const ProfileScreen = ({ navigation }) => {
                       resizeMode="cover"
                     />
                   </TouchableOpacity>
+                  <Text style={styles.documentHint}>Tap to preview</Text>
                 </View>
               )}
               
@@ -458,9 +472,7 @@ const ProfileScreen = ({ navigation }) => {
                     <Text style={styles.documentLabel}>ID Front</Text>
                     <TouchableOpacity 
                       style={styles.documentImageContainer}
-                      onPress={() => {
-                        // Could open image viewer modal here
-                      }}
+                      onPress={() => openDocumentModal('ID Front', buildDocumentUrl(uploadedDocuments.frontImage))}
                     >
                       <Image 
                         source={{ uri: buildDocumentUrl(uploadedDocuments.frontImage) }} 
@@ -468,6 +480,7 @@ const ProfileScreen = ({ navigation }) => {
                         resizeMode="cover"
                       />
                     </TouchableOpacity>
+                    <Text style={styles.documentHint}>Tap to preview</Text>
                   </View>
                 )}
                 
@@ -476,9 +489,7 @@ const ProfileScreen = ({ navigation }) => {
                     <Text style={styles.documentLabel}>ID Back</Text>
                     <TouchableOpacity 
                       style={styles.documentImageContainer}
-                      onPress={() => {
-                        // Could open image viewer modal here
-                      }}
+                      onPress={() => openDocumentModal('ID Back', buildDocumentUrl(uploadedDocuments.backImage))}
                     >
                       <Image 
                         source={{ uri: buildDocumentUrl(uploadedDocuments.backImage) }} 
@@ -486,6 +497,7 @@ const ProfileScreen = ({ navigation }) => {
                         resizeMode="cover"
                       />
                     </TouchableOpacity>
+                    <Text style={styles.documentHint}>Tap to preview</Text>
                   </View>
                 )}
               </View>
@@ -622,6 +634,28 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={showDocumentModal} animationType="slide" transparent onRequestClose={closeDocumentModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.documentModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{documentModalTitle}</Text>
+              <TouchableOpacity onPress={closeDocumentModal}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            {documentModalImage ? (
+              <View style={styles.documentViewerWrapper}>
+                <Image source={{ uri: documentModalImage }} style={styles.documentViewerImage} resizeMode="contain" />
+              </View>
+            ) : (
+              <View style={styles.noDocuments}>
+                <Text style={styles.noDocumentsText}>Unable to preview this document.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -683,8 +717,12 @@ const styles = StyleSheet.create({
   documentLabel: { fontSize: 14, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 8 },
   documentImageContainer: { borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: themeColors.border },
   documentImage: { width: '100%', height: 120 },
+  documentHint: { fontSize: 12, color: themeColors.textSecondary, marginTop: 6 },
   verificationStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, backgroundColor: '#f8fafc', borderRadius: 8 },
   verificationStatusText: { fontSize: 14, fontWeight: '600', marginLeft: 8 },
+  documentModalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, minHeight: 360 },
+  documentViewerWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 8 },
+  documentViewerImage: { width: '100%', height: 420, borderRadius: 16 },
   noDocuments: { alignItems: 'center', padding: 32 },
   noDocumentsText: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary, marginTop: 16 },
   noDocumentsSubtext: { fontSize: 14, color: themeColors.textSecondary, marginTop: 4, textAlign: 'center' },

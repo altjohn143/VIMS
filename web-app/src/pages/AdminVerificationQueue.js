@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container, Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody,
-  Button, Chip, FormControl, InputLabel, Select, MenuItem, AppBar, Toolbar, IconButton, Tooltip
+  Button, Chip, FormControl, InputLabel, Select, MenuItem, AppBar, Toolbar, IconButton, Tooltip,
+  Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -34,6 +35,9 @@ const AdminVerificationQueue = () => {
 
   const [rows, setRows] = useState([]);
   const [status, setStatus] = useState('all');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImages, setPreviewImages] = useState({ front: null, back: null, selfie: null });
+  const [previewLoading, setPreviewLoading] = useState(false);
   const navigate = useNavigate();
 
   const load = useCallback(async () => {
@@ -52,10 +56,41 @@ const AdminVerificationQueue = () => {
     toast.success('Verification approved');
     load();
   };
+
   const reject = async (id) => {
     await axios.put(`/api/verifications/admin/${id}/reject`, { rejectReason: 'Verification mismatch' });
     toast.success('Verification rejected');
     load();
+  };
+
+  const handleViewVerificationImages = async (verificationId) => {
+    if (!verificationId) {
+      toast.error('No documents uploaded for this verification');
+      return;
+    }
+
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewImages({ front: null, back: null, selfie: null });
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`/api/verifications/admin/${verificationId}/images`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (response.data?.success) {
+        setPreviewImages(response.data.data || { front: null, back: null, selfie: null });
+      } else {
+        toast.error(response.data?.error || 'Failed to load documents');
+        setPreviewOpen(false);
+      }
+    } catch (error) {
+      console.error('Failed to load verification documents:', error);
+      toast.error(error.response?.data?.error || 'Failed to load documents');
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   return (
@@ -219,7 +254,14 @@ const AdminVerificationQueue = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Button size="small" onClick={() => approve(r._id)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+                    <Button
+                      size="small"
+                      onClick={() => handleViewVerificationImages(r._id)}
+                      sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, mr: 1 }}
+                    >
+                      View Docs
+                    </Button>
+                    <Button size="small" onClick={() => approve(r._id)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, mr: 1 }}>
                       Approve
                     </Button>
                     <Button size="small" color="error" onClick={() => reject(r._id)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
@@ -232,6 +274,53 @@ const AdminVerificationQueue = () => {
           </Table>
         </Paper>
       </Container>
+
+      <Dialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '20px', backgroundColor: themeColors.cardBackground } }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary, borderBottom: `1px solid ${themeColors.border}` }}>
+          Uploaded Documents
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          {previewLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress sx={{ color: themeColors.primary }} />
+            </Box>
+          ) : (
+            <Box sx={{ display: 'grid', gap: 3 }}>
+              {previewImages.front ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: themeColors.textPrimary }}>Front Image</Typography>
+                  <Box component="img" src={previewImages.front} alt="Front Document" sx={{ width: '100%', borderRadius: 2, boxShadow: '0 10px 24px rgba(15,23,42,0.08)' }} />
+                </Box>
+              ) : (
+                <Typography sx={{ color: themeColors.textSecondary }}>Front image not available.</Typography>
+              )}
+              {previewImages.back ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: themeColors.textPrimary }}>Back Image</Typography>
+                  <Box component="img" src={previewImages.back} alt="Back Document" sx={{ width: '100%', borderRadius: 2, boxShadow: '0 10px 24px rgba(15,23,42,0.08)' }} />
+                </Box>
+              ) : (
+                <Typography sx={{ color: themeColors.textSecondary }}>Back image not available.</Typography>
+              )}
+              {previewImages.selfie ? (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: themeColors.textPrimary }}>Selfie</Typography>
+                  <Box component="img" src={previewImages.selfie} alt="Selfie Document" sx={{ width: '100%', borderRadius: 2, boxShadow: '0 10px 24px rgba(15,23,42,0.08)' }} />
+                </Box>
+              ) : null}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 2, borderTop: `1px solid ${themeColors.border}` }}>
+          <Button onClick={() => setPreviewOpen(false)} sx={{ textTransform: 'none', fontWeight: 700 }}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

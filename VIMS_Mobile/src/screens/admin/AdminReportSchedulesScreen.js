@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,64 +18,71 @@ import api from '../../utils/api';
 import { themeColors, shadows } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 
-const EMPTY = { name: '', reportType: 'service_requests', recipients: '', enabled: true };
+const VENUES = [
+  'Covered Court',
+  'Swimming Pool',
+  'Multi-Purpose Hall',
+  'Function Room',
+  'Conference Room',
+];
+
+const EQUIPMENT = [
+  'Tables',
+  'Chairs',
+  'Speakers',
+  'Microphones',
+  'Projector',
+  'Podium',
+];
+
+const EMPTY = {
+  resourceType: 'venue',
+  resourceName: VENUES[0],
+  startDate: '',
+  endDate: '',
+  quantity: '1',
+  status: 'pending',
+  notes: '',
+};
 
 const AdminReportSchedulesScreen = ({ navigation }) => {
-  const [rows, setRows] = useState([]);
+  const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [processing, setProcessing] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = async () => {
     try {
-      const res = await api.get('/report-schedules');
+      const res = await api.get('/reservations');
       if (res.data?.success) {
-        setRows(Array.isArray(res.data.data) ? res.data.data : []);
+        setReservations(Array.isArray(res.data.data) ? res.data.data : []);
       } else {
-        Alert.alert('Error', res.data?.error || 'Failed to load report schedules');
+        Alert.alert('Error', res.data?.error || 'Failed to load reservations');
       }
     } catch (e) {
-      Alert.alert('Error', e?.response?.data?.error || 'Failed to load report schedules');
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to load reservations');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
     load();
   };
 
-  const formatWhen = (d) => {
-    if (!d) return 'Never';
-    try {
-      return format(new Date(d), 'MMM dd, yyyy • hh:mm a');
-    } catch {
-      return 'Never';
-    }
-  };
+  const resourceOptions = form.resourceType === 'venue' ? VENUES : EQUIPMENT;
 
-  const counts = useMemo(() => {
-    return {
-      total: rows.length,
-      enabled: rows.filter((r) => r?.enabled !== false).length,
-    };
-  }, [rows]);
-
-  const create = async () => {
-    if (!form.name.trim()) {
-      Alert.alert('Error', 'Name is required');
-      return;
-    }
-    if (!form.recipients.trim()) {
-      Alert.alert('Error', 'Recipients are required (comma separated emails)');
+  const saveReservation = async () => {
+    if (!form.resourceName || !form.startDate || !form.endDate) {
+      Alert.alert('Validation', 'Please select resource, start date, and end date.');
       return;
     }
 
@@ -83,77 +90,97 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
     try {
       const payload = {
         ...form,
-        recipients: form.recipients
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
+        quantity: Number(form.quantity) || 1,
       };
-      const res = await api.post('/report-schedules', payload);
+      const res = await api.post('/reservations', payload);
       if (res.data?.success) {
-        Alert.alert('Success', 'Schedule created');
-        setCreateOpen(false);
+        Alert.alert('Success', 'Reservation created');
         setForm(EMPTY);
+        setCreateOpen(false);
         load();
       } else {
-        Alert.alert('Error', res.data?.error || 'Failed to create schedule');
+        Alert.alert('Error', res.data?.error || 'Failed to create reservation');
       }
     } catch (e) {
-      Alert.alert('Error', e?.response?.data?.error || 'Failed to create schedule');
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to create reservation');
     } finally {
       setProcessing(false);
     }
   };
 
-  const runNow = async (id) => {
+  const updateStatus = async (id, status) => {
     setProcessing(true);
     try {
-      const res = await api.post(`/report-schedules/${id}/run-now`);
+      const res = await api.put(`/reservations/${id}`, { status });
       if (res.data?.success) {
-        Alert.alert('Success', 'Report sent');
+        Alert.alert('Success', `Reservation ${status}`);
         load();
       } else {
-        Alert.alert('Error', res.data?.error || 'Failed to send report');
+        Alert.alert('Error', res.data?.error || 'Failed to update reservation');
       }
     } catch (e) {
-      Alert.alert('Error', e?.response?.data?.error || 'Failed to send report');
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to update reservation');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const deleteReservation = async (id) => {
+    setProcessing(true);
+    try {
+      const res = await api.delete(`/reservations/${id}`);
+      if (res.data?.success) {
+        Alert.alert('Success', 'Reservation deleted');
+        load();
+      } else {
+        Alert.alert('Error', res.data?.error || 'Failed to delete reservation');
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to delete reservation');
     } finally {
       setProcessing(false);
     }
   };
 
   const renderItem = ({ item }) => {
-    const recipients = Array.isArray(item?.recipients) ? item.recipients.join(', ') : '';
-    const isEnabled = item?.enabled !== false;
-
     return (
       <View style={[styles.card, shadows.small]}>
         <View style={styles.cardTop}>
           <View style={styles.cardTitleBlock}>
             <Text style={styles.cardTitle} numberOfLines={1}>
-              {item?.name || 'Unnamed schedule'}
+              {item.resourceName}
             </Text>
             <Text style={styles.cardSub} numberOfLines={1}>
-              Type: {item?.reportType || 'service_requests'} • {isEnabled ? 'Enabled' : 'Disabled'}
+              {item.resourceType === 'venue' ? 'Venue' : 'Equipment'} • {item.status}
             </Text>
           </View>
-          <TouchableOpacity
-            style={[styles.runButton, processing && styles.runButtonDisabled]}
-            disabled={processing}
-            onPress={() => runNow(item._id)}
-          >
-            {processing ? (
-              <ActivityIndicator color="white" size={16} />
-            ) : (
-              <Ionicons name="send" size={16} color="white" />
-            )}
-            <Text style={styles.runButtonText}>Run</Text>
-          </TouchableOpacity>
         </View>
 
-        <Text style={styles.metaLine} numberOfLines={2}>
-          Recipients: {recipients || '—'}
+        <Text style={styles.metaLine}>Start: {item.startDate ? format(new Date(item.startDate), 'MMM dd, yyyy • hh:mm a') : '—'}</Text>
+        <Text style={styles.metaLine}>End: {item.endDate ? format(new Date(item.endDate), 'MMM dd, yyyy • hh:mm a') : '—'}</Text>
+        <Text style={styles.metaLine}>Quantity: {item.quantity || 1}</Text>
+        <Text style={styles.metaLine} numberOfLines={1}>
+          Reserved by: {item.reservedBy ? `${item.reservedBy.firstName} ${item.reservedBy.lastName}` : 'Admin'}
         </Text>
-        <Text style={styles.metaLine}>Last run: {formatWhen(item?.lastRunAt)}</Text>
+
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[styles.actionBtn, item.status === 'confirmed' ? styles.cancelBtn : styles.confirmBtn]}
+            disabled={processing}
+            onPress={() => updateStatus(item._id, item.status === 'confirmed' ? 'cancelled' : 'confirmed')}
+          >
+            <Text style={[styles.actionBtnText, item.status === 'confirmed' && styles.cancelBtnText]}>
+              {item.status === 'confirmed' ? 'Cancel' : 'Confirm'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.deleteBtn]}
+            disabled={processing}
+            onPress={() => deleteReservation(item._id)}
+          >
+            <Text style={[styles.actionBtnText, styles.deleteBtnText]}>Delete</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -173,9 +200,9 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Report Schedules</Text>
+          <Text style={styles.headerTitle}>Reservations</Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {counts.enabled} enabled • {counts.total} total
+            Manage venue and equipment bookings
           </Text>
         </View>
         <View style={styles.headerRight}>
@@ -190,19 +217,19 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={rows}
+        data={reservations}
         renderItem={renderItem}
-        keyExtractor={(item) => item?._id || String(Math.random())}
+        keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-outline" size={64} color={themeColors.textSecondary} />
-            <Text style={styles.emptyTitle}>No schedules</Text>
-            <Text style={styles.emptyText}>Create a schedule to send reports to a list of emails.</Text>
+            <Ionicons name="people-circle" size={64} color={themeColors.textSecondary} />
+            <Text style={styles.emptyTitle}>No reservations yet</Text>
+            <Text style={styles.emptyText}>Book shared amenities or equipment from here.</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => setCreateOpen(true)}>
               <Ionicons name="add" size={18} color="white" />
-              <Text style={styles.primaryBtnText}>New Schedule</Text>
+              <Text style={styles.primaryBtnText}>New Reservation</Text>
             </TouchableOpacity>
           </View>
         }
@@ -212,46 +239,88 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Schedule</Text>
+              <Text style={styles.modalTitle}>New Reservation</Text>
               <TouchableOpacity onPress={() => setCreateOpen(false)}>
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
             </View>
             <ScrollView>
-              <Text style={styles.label}>Name</Text>
-              <TextInput
-                style={styles.input}
-                value={form.name}
-                onChangeText={(v) => setForm((p) => ({ ...p, name: v }))}
-                placeholder="e.g., Monthly service report"
-              />
-
-              <Text style={styles.label}>Report Type</Text>
+              <Text style={styles.label}>Resource Type</Text>
               <View style={styles.typeRow}>
-                {[
-                  { key: 'service_requests', label: 'Service' },
-                  { key: 'visitors', label: 'Visitors' },
-                  { key: 'payments', label: 'Payments' },
-                ].map((t) => (
+                {['venue', 'equipment'].map((type) => (
                   <TouchableOpacity
-                    key={t.key}
-                    style={[styles.typeChip, form.reportType === t.key && styles.typeChipActive]}
-                    onPress={() => setForm((p) => ({ ...p, reportType: t.key }))}
+                    key={type}
+                    style={[styles.typeChip, form.resourceType === type && styles.typeChipActive]}
+                    onPress={() => setForm({
+                      ...form,
+                      resourceType: type,
+                      resourceName: type === 'venue' ? VENUES[0] : EQUIPMENT[0],
+                    })}
                   >
-                    <Text style={[styles.typeChipText, form.reportType === t.key && styles.typeChipTextActive]}>
-                      {t.label}
+                    <Text style={[styles.typeChipText, form.resourceType === type && styles.typeChipTextActive]}>
+                      {type === 'venue' ? 'Venue' : 'Equipment'}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              <Text style={styles.label}>Recipients (comma separated emails)</Text>
+              <Text style={styles.label}>Resource Name</Text>
+              <View style={styles.typeRow}>
+                {resourceOptions.map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    style={[styles.typeChip, form.resourceName === item && styles.typeChipActive]}
+                    onPress={() => setForm((p) => ({ ...p, resourceName: item }))}
+                  >
+                    <Text style={[styles.typeChipText, form.resourceName === item && styles.typeChipTextActive]}>
+                      {item}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.label}>Start Date & Time</Text>
               <TextInput
                 style={styles.input}
-                value={form.recipients}
-                onChangeText={(v) => setForm((p) => ({ ...p, recipients: v }))}
-                placeholder="a@b.com, c@d.com"
-                autoCapitalize="none"
+                placeholder="YYYY-MM-DD HH:mm"
+                value={form.startDate}
+                onChangeText={(v) => setForm((p) => ({ ...p, startDate: v }))}
+              />
+              <Text style={styles.label}>End Date & Time</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="YYYY-MM-DD HH:mm"
+                value={form.endDate}
+                onChangeText={(v) => setForm((p) => ({ ...p, endDate: v }))}
+              />
+              <Text style={styles.label}>Quantity</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                value={String(form.quantity)}
+                onChangeText={(v) => setForm((p) => ({ ...p, quantity: v }))}
+              />
+              <Text style={styles.label}>Status</Text>
+              <View style={styles.typeRow}>
+                {['pending', 'confirmed', 'cancelled'].map((status) => (
+                  <TouchableOpacity
+                    key={status}
+                    style={[styles.typeChip, form.status === status && styles.typeChipActive]}
+                    onPress={() => setForm((p) => ({ ...p, status }))}
+                  >
+                    <Text style={[styles.typeChipText, form.status === status && styles.typeChipTextActive]}>
+                      {status}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.label}>Notes</Text>
+              <TextInput
+                style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+                placeholder="Optional details or instructions"
+                value={form.notes}
+                onChangeText={(v) => setForm((p) => ({ ...p, notes: v }))}
+                multiline
               />
 
               <View style={styles.modalActions}>
@@ -260,10 +329,10 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.primaryBtn, processing && styles.primaryBtnDisabled]}
-                  onPress={create}
+                  onPress={saveReservation}
                   disabled={processing}
                 >
-                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryBtnText}>Create</Text>}
+                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryBtnText}>Save Reservation</Text>}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -307,18 +376,20 @@ const styles = StyleSheet.create({
   cardTitleBlock: { flex: 1, minWidth: 0 },
   cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary },
   cardSub: { fontSize: 12, color: themeColors.textSecondary, marginTop: 2, fontWeight: '600' },
-  runButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
+  metaLine: { marginTop: 10, fontSize: 12, color: themeColors.textPrimary, opacity: 0.85 },
+  actionRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 14 },
+  actionBtn: {
+    flex: 1,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: themeColors.primary,
+    alignItems: 'center',
   },
-  runButtonDisabled: { opacity: 0.6 },
-  runButtonText: { color: 'white', fontWeight: '900', fontSize: 12 },
-  metaLine: { marginTop: 10, fontSize: 12, color: themeColors.textPrimary, opacity: 0.85 },
+  confirmBtn: { backgroundColor: themeColors.primary },
+  cancelBtn: { backgroundColor: '#f97316' },
+  deleteBtn: { backgroundColor: '#ef4444' },
+  actionBtnText: { color: 'white', fontWeight: '800' },
+  cancelBtnText: { color: 'white' },
+  deleteBtnText: { color: 'white' },
 
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 24 },
   emptyTitle: { marginTop: 14, fontSize: 18, fontWeight: '700', color: themeColors.textPrimary },

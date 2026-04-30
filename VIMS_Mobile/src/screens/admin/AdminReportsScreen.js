@@ -28,11 +28,11 @@ const AdminReportsScreen = ({ navigation }) => {
       onPress: () => navigation.navigate('PaymentsTab'),
     },
     {
-      title: 'Scheduled Deliveries',
-      subtitle: 'Report schedules and run-now',
+      title: 'Reservations',
+      subtitle: 'Manage venue and equipment bookings',
       icon: 'calendar',
       color: '#64748b',
-      onPress: () => navigation.navigate('AdminReportSchedules'),
+      onPress: () => navigation.navigate('AdminReservations'),
     },
   ];
 

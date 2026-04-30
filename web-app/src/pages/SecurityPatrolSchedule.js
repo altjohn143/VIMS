@@ -33,6 +33,7 @@ const SecurityPatrolSchedule = () => {
   };
 
   const [rows, setRows] = useState([]);
+  const [lots, setLots] = useState([]);
   const [form, setForm] = useState(initialForm);
   const navigate = useNavigate();
 
@@ -45,12 +46,22 @@ const SecurityPatrolSchedule = () => {
     }
   }, []);
 
+  const loadLots = useCallback(async () => {
+    try {
+      const res = await axios.get('/api/lots');
+      if (res.data?.success) setLots(res.data.data || []);
+    } catch (error) {
+      toast.error('Failed to load village map data');
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadLots();
+  }, [load, loadLots]);
 
   const submit = async () => {
-    if (!form.area.trim() || !form.checkpoint.trim()) {
+    if (!form.area || !form.checkpoint) {
       toast.error('Area and checkpoint are required');
       return;
     }
@@ -129,8 +140,28 @@ const SecurityPatrolSchedule = () => {
 
         <Paper sx={{ p: 2.5, mb: 2, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
           <Stack spacing={2}>
-            <TextField label="Area" value={form.area} onChange={(e) => setForm((p) => ({ ...p, area: e.target.value }))} />
-            <TextField label="Checkpoint" value={form.checkpoint} onChange={(e) => setForm((p) => ({ ...p, checkpoint: e.target.value }))} />
+            <TextField select label="Area" value={form.area} onChange={(e) => setForm((p) => ({ ...p, area: e.target.value, checkpoint: '' }))}>
+              <MenuItem value="">Select area</MenuItem>
+              {Array.from(new Set(lots.map((lot) => `Phase ${lot.phase}`))).map((area) => (
+                <MenuItem key={area} value={area}>{area}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label="Checkpoint"
+              value={form.checkpoint}
+              onChange={(e) => setForm((p) => ({ ...p, checkpoint: e.target.value }))}
+              disabled={!form.area}
+            >
+              <MenuItem value="">Select checkpoint</MenuItem>
+              {lots
+                .filter((lot) => `Phase ${lot.phase}` === form.area)
+                .map((lot) => (
+                  <MenuItem key={lot.lotId} value={lot.lotId}>
+                    {`Block ${lot.block} - Lot ${lot.lotNumber}`}
+                  </MenuItem>
+                ))}
+            </TextField>
             <TextField label="Notes" value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} multiline minRows={3} />
             <TextField select label="Status" value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
               <MenuItem value="completed">Completed</MenuItem>

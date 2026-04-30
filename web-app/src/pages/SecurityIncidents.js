@@ -21,7 +21,9 @@ import toast from 'react-hot-toast';
 const initialForm = {
   title: '',
   description: '',
-  location: '',
+  phase: '',
+  block: '',
+  lotNumber: '',
   severity: 'medium'
 };
 
@@ -38,6 +40,7 @@ const SecurityIncidents = () => {
   };
 
   const [rows, setRows] = useState([]);
+  const [lots, setLots] = useState([]);
   const [form, setForm] = useState(initialForm);
   const navigate = useNavigate();
 
@@ -50,17 +53,39 @@ const SecurityIncidents = () => {
     }
   }, []);
 
+  const loadLots = useCallback(async () => {
+    try {
+      const res = await axios.get('/api/lots');
+      if (res.data?.success) setLots(res.data.data || []);
+    } catch (error) {
+      toast.error('Failed to load village map data');
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadLots();
+  }, [load, loadLots]);
 
   const createIncident = async () => {
     if (!form.title.trim() || !form.description.trim()) {
       toast.error('Title and description are required');
       return;
     }
+    if (!form.phase || !form.block || !form.lotNumber) {
+      toast.error('Location selection is required');
+      return;
+    }
+
+    const payload = {
+      title: form.title,
+      description: form.description,
+      severity: form.severity,
+      location: `Phase ${form.phase} - Block ${form.block} - Lot ${form.lotNumber}`
+    };
+
     try {
-      await axios.post('/api/incidents', form);
+      await axios.post('/api/incidents', payload);
       toast.success('Incident reported');
       setForm(initialForm);
       load();
@@ -146,7 +171,38 @@ const SecurityIncidents = () => {
           <Stack spacing={2}>
             <TextField label="Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} />
             <TextField label="Description" value={form.description} multiline minRows={3} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
-            <TextField label="Location" value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
+            <TextField select label="Phase" value={form.phase} onChange={(e) => setForm((p) => ({ ...p, phase: e.target.value, block: '', lotNumber: '' }))}>
+              <MenuItem value="">Select phase</MenuItem>
+              {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                <MenuItem key={phase} value={String(phase)}>{`Phase ${phase}`}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label="Block"
+              value={form.block}
+              disabled={!form.phase}
+              onChange={(e) => setForm((p) => ({ ...p, block: e.target.value, lotNumber: '' }))}
+            >
+              <MenuItem value="">Select block</MenuItem>
+              {Array.from(new Set(lots.filter((lot) => String(lot.phase) === form.phase).map((lot) => lot.block))).sort((a, b) => a - b).map((block) => (
+                <MenuItem key={block} value={String(block)}>{`Block ${block}`}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label="Lot"
+              value={form.lotNumber}
+              disabled={!form.phase || !form.block}
+              onChange={(e) => setForm((p) => ({ ...p, lotNumber: e.target.value }))}
+            >
+              <MenuItem value="">Select lot</MenuItem>
+              {lots
+                .filter((lot) => String(lot.phase) === form.phase && String(lot.block) === form.block)
+                .map((lot) => (
+                  <MenuItem key={lot.lotId} value={String(lot.lotNumber)}>{`Lot ${lot.lotNumber}`}</MenuItem>
+                ))}
+            </TextField>
             <TextField select label="Severity" value={form.severity} onChange={(e) => setForm((p) => ({ ...p, severity: e.target.value }))}>
               <MenuItem value="low">Low</MenuItem>
               <MenuItem value="medium">Medium</MenuItem>

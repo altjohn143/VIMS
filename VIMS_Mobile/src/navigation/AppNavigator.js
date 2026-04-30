@@ -207,7 +207,11 @@ const AppNavigator = () => {
               <Stack.Screen name="AdminApprovals" component={AdminApprovalsScreen} />
               <Stack.Screen name="AdminVisitorReports" component={AdminVisitorReportsScreen} />
               <Stack.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} />
-              <Stack.Screen name="AdminReportSchedules" component={AdminReportSchedulesScreen} />
+              <Stack.Screen
+                name="AdminReservations"
+                component={AdminReportSchedulesScreen}
+                options={{ title: 'Reservations' }}
+              />
               <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
               <Stack.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} />
               <Stack.Screen name="ArchivedUsers" component={ArchivedUsersScreen} />

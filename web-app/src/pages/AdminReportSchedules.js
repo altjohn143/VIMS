@@ -26,13 +26,38 @@ import {
   ArrowBack as ArrowBackIcon,
   AdminPanelSettings as AdminIcon,
   ScheduleSend as ScheduleSendIcon,
-  PlayArrow as PlayArrowIcon
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const EMPTY = { name: '', reportType: 'service_requests', recipients: '', enabled: true };
+const VENUES = [
+  'Covered Court',
+  'Swimming Pool',
+  'Multi-Purpose Hall',
+  'Function Room',
+  'Conference Room',
+];
+
+const EQUIPMENT = [
+  'Tables',
+  'Chairs',
+  'Speakers',
+  'Microphones',
+  'Projector',
+  'Podium',
+];
+
+const EMPTY = {
+  resourceType: 'venue',
+  resourceName: 'Covered Court',
+  description: '',
+  startDate: '',
+  endDate: '',
+  quantity: 1,
+  status: 'pending',
+  notes: '',
+};
 
 const themeColors = {
   primary: '#166534',
@@ -48,27 +73,55 @@ const AdminReportSchedules = () => {
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    const res = await axios.get('/api/report-schedules');
+    const res = await axios.get('/api/reservations');
     if (res.data.success) setRows(res.data.data || []);
   };
   useEffect(() => { load(); }, []);
 
   const save = async () => {
-    const payload = { ...form, recipients: form.recipients.split(',').map((s) => s.trim()).filter(Boolean) };
-    await axios.post('/api/report-schedules', payload);
-    toast.success('Schedule created');
-    setOpen(false);
-    setForm(EMPTY);
-    load();
+    if (!form.resourceName || !form.startDate || !form.endDate) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await axios.post('/api/reservations', form);
+      toast.success('Reservation created');
+      setOpen(false);
+      setForm(EMPTY);
+      load();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'Failed to create reservation');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const runNow = async (id) => {
-    await axios.post(`/api/report-schedules/${id}/run-now`);
-    toast.success('Report sent');
-    load();
+  const updateStatus = async (id, status) => {
+    try {
+      await axios.put(`/api/reservations/${id}`, { status });
+      toast.success(`Reservation ${status}`);
+      load();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'Failed to update reservation');
+    }
   };
+
+  const deleteReservation = async (id) => {
+    try {
+      await axios.delete(`/api/reservations/${id}`);
+      toast.success('Reservation deleted');
+      load();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'Failed to delete reservation');
+    }
+  };
+
+  const resourceOptions = form.resourceType === 'venue' ? VENUES : EQUIPMENT;
 
   return (
     <Box
@@ -132,13 +185,13 @@ const AdminReportSchedules = () => {
           }}
         >
           <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>
-            Scheduled Report Delivery
+            Venue & Equipment Reservations
           </Typography>
           <Typography variant="body1" sx={{ mt: 0.6, color: 'rgba(255,255,255,0.9)' }}>
-            Automate recurring report sharing to your recipients.
+            Manage reservations for covered courts, pools, halls, and shared event equipment.
           </Typography>
           <Chip
-            label={`${rows.length} active schedules`}
+            label={`${rows.length} active reservations`}
             size="small"
             sx={{
               mt: 1.5,
@@ -162,7 +215,7 @@ const AdminReportSchedules = () => {
             '&:hover': { bgcolor: themeColors.primaryDark }
           }}
         >
-          New Schedule
+          New Reservation
         </Button>
 
         <Paper
@@ -176,10 +229,13 @@ const AdminReportSchedules = () => {
           <Table>
             <TableHead sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Resource</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Recipients</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Last Run</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Start</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>End</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Qty</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Reserved By</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -190,20 +246,34 @@ const AdminReportSchedules = () => {
                   hover
                   sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}
                 >
-                  <TableCell>{r.name}</TableCell>
-                  <TableCell>{r.reportType}</TableCell>
-                  <TableCell>{(r.recipients || []).join(', ')}</TableCell>
-                  <TableCell>{r.lastRunAt ? new Date(r.lastRunAt).toLocaleString() : 'Never'}</TableCell>
+                  <TableCell>{r.resourceName}</TableCell>
+                  <TableCell>{r.resourceType === 'venue' ? 'Venue' : 'Equipment'}</TableCell>
+                  <TableCell>{new Date(r.startDate).toLocaleString()}</TableCell>
+                  <TableCell>{new Date(r.endDate).toLocaleString()}</TableCell>
+                  <TableCell>{r.quantity || 1}</TableCell>
+                  <TableCell>{r.status}</TableCell>
+                  <TableCell>{r.reservedBy ? `${r.reservedBy.firstName} ${r.reservedBy.lastName}` : 'Admin'}</TableCell>
                   <TableCell>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<PlayArrowIcon />}
-                      onClick={() => runNow(r._id)}
-                      sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
-                    >
-                      Run Now
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button
+                        size="small"
+                        variant={r.status === 'confirmed' ? 'outlined' : 'contained'}
+                        color={r.status === 'confirmed' ? 'warning' : 'success'}
+                        onClick={() => updateStatus(r._id, r.status === 'confirmed' ? 'cancelled' : 'confirmed')}
+                        sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
+                      >
+                        {r.status === 'confirmed' ? 'Cancel' : 'Confirm'}
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        onClick={() => deleteReservation(r._id)}
+                        sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
@@ -213,19 +283,96 @@ const AdminReportSchedules = () => {
       </Container>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
-        <DialogTitle>Create Schedule</DialogTitle>
+        <DialogTitle>Create Reservation</DialogTitle>
         <DialogContent>
-          <TextField fullWidth margin="normal" label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <TextField fullWidth margin="normal" select label="Report Type" value={form.reportType} onChange={(e) => setForm({ ...form, reportType: e.target.value })}>
-            <MenuItem value="service_requests">Service Requests</MenuItem>
-            <MenuItem value="visitors">Visitors</MenuItem>
-            <MenuItem value="payments">Payments</MenuItem>
+          <TextField
+            fullWidth
+            margin="normal"
+            select
+            label="Resource Type"
+            value={form.resourceType}
+            onChange={(e) => setForm({
+              ...form,
+              resourceType: e.target.value,
+              resourceName: e.target.value === 'venue' ? VENUES[0] : EQUIPMENT[0],
+            })}
+          >
+            <MenuItem value="venue">Venue</MenuItem>
+            <MenuItem value="equipment">Equipment</MenuItem>
           </TextField>
-          <TextField fullWidth margin="normal" label="Recipients (comma separated emails)" value={form.recipients} onChange={(e) => setForm({ ...form, recipients: e.target.value })} />
+
+          <TextField
+            fullWidth
+            margin="normal"
+            select
+            label="Resource Name"
+            value={form.resourceName}
+            onChange={(e) => setForm({ ...form, resourceName: e.target.value })}
+          >
+            {resourceOptions.map((option) => (
+              <MenuItem key={option} value={option}>{option}</MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Start Date & Time"
+            type="datetime-local"
+            value={form.startDate}
+            onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            label="End Date & Time"
+            type="datetime-local"
+            value={form.endDate}
+            onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Quantity"
+            type="number"
+            value={form.quantity}
+            onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            select
+            label="Status"
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+          >
+            <MenuItem value="pending">Pending</MenuItem>
+            <MenuItem value="confirmed">Confirmed</MenuItem>
+            <MenuItem value="cancelled">Cancelled</MenuItem>
+          </TextField>
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Additional Notes"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            multiline
+            rows={3}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
-          <Button onClick={save} variant="contained" sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>Save</Button>
+          <Button
+            onClick={save}
+            variant="contained"
+            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}
+            disabled={saving}
+          >
+            {saving ? 'Saving…' : 'Save Reservation'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

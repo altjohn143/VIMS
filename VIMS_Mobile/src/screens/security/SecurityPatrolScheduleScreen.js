@@ -12,6 +12,7 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
@@ -22,6 +23,7 @@ const initialForm = { area: '', checkpoint: '', notes: '' };
 
 const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
+  const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -44,9 +46,23 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
     }
   }, []);
 
+  const loadLots = useCallback(async () => {
+    try {
+      const res = await api.get('/lots');
+      if (res.data?.success) {
+        setLots(Array.isArray(res.data.data) ? res.data.data : []);
+      } else {
+        Alert.alert('Error', res.data?.error || 'Failed to load village map data');
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to load village map data');
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadLots();
+  }, [load, loadLots]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -155,9 +171,36 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
             </View>
             <ScrollView>
               <Text style={styles.label}>Area</Text>
-              <TextInput style={styles.input} value={form.area} onChangeText={(v) => setForm((p) => ({ ...p, area: v }))} placeholder="e.g., Block A" />
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={form.area}
+                  onValueChange={(value) => setForm((p) => ({ ...p, area: value, checkpoint: '' }))}
+                >
+                  <Picker.Item label="Select area" value="" />
+                  {Array.from(new Set(lots.map((lot) => `Phase ${lot.phase}`))).map((area) => (
+                    <Picker.Item key={area} label={area} value={area} />
+                  ))}
+                </Picker>
+              </View>
               <Text style={styles.label}>Checkpoint</Text>
-              <TextInput style={styles.input} value={form.checkpoint} onChangeText={(v) => setForm((p) => ({ ...p, checkpoint: v }))} placeholder="e.g., Gate 1" />
+              <View style={[styles.pickerContainer, !form.area && styles.pickerDisabled]}>
+                <Picker
+                  selectedValue={form.checkpoint}
+                  enabled={!!form.area}
+                  onValueChange={(value) => setForm((p) => ({ ...p, checkpoint: value }))}
+                >
+                  <Picker.Item label={form.area ? 'Select checkpoint' : 'Select area first'} value="" />
+                  {lots
+                    .filter((lot) => `Phase ${lot.phase}` === form.area)
+                    .map((lot) => (
+                      <Picker.Item
+                        key={lot.lotId}
+                        label={`Block ${lot.block} - Lot ${lot.lotNumber}`}
+                        value={lot.lotId}
+                      />
+                    ))}
+                </Picker>
+              </View>
               <Text style={styles.label}>Notes (optional)</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
@@ -218,6 +261,8 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10 },
   modalTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary },
   label: { marginTop: 10, fontSize: 12, color: themeColors.textSecondary, fontWeight: '800' },
+  pickerContainer: { marginTop: 8, borderWidth: 1, borderColor: themeColors.border, borderRadius: 10, backgroundColor: '#f8fafc' },
+  pickerDisabled: { opacity: 0.6 },
   input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginTop: 8, backgroundColor: '#f8fafc' },
   textArea: { minHeight: 110 },
   actionsRow: { flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 10 },

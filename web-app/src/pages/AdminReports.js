@@ -34,7 +34,7 @@ const reportCards = [
   { title: 'Service Requests Reports', to: '/admin/service-requests', description: 'Track and review requests raised by residents.' },
   { title: 'Visitor Reports', to: '/admin/visitor-management', description: 'View visitor trends, approvals, and gate logs.' },
   { title: 'Payments Reports', to: '/admin/payments', description: 'Monitor collections, pending balances, and receipts.' },
-  { title: 'Scheduled Deliveries', to: '/admin/report-schedules', description: 'Manage and review delivery scheduling reports.' }
+  { title: 'Reservations', to: '/admin/report-schedules', description: 'Manage shared venues and equipment bookings.' }
 ];
 
 const AdminReports = () => (

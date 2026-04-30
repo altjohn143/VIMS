@@ -12,16 +12,18 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 
-const initialForm = { title: '', description: '', location: '', severity: 'medium' };
+const initialForm = { title: '', description: '', phase: '', block: '', lotNumber: '', severity: 'medium' };
 
 const SecurityIncidentsScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
+  const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -44,9 +46,23 @@ const SecurityIncidentsScreen = ({ navigation }) => {
     }
   }, []);
 
+  const loadLots = useCallback(async () => {
+    try {
+      const res = await api.get('/lots');
+      if (res.data?.success) {
+        setLots(Array.isArray(res.data.data) ? res.data.data : []);
+      } else {
+        Alert.alert('Error', res.data?.error || 'Failed to load village map data');
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to load village map data');
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadLots();
+  }, [load, loadLots]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -77,9 +93,19 @@ const SecurityIncidentsScreen = ({ navigation }) => {
       Alert.alert('Error', 'Title and description are required');
       return;
     }
+    if (!form.phase || !form.block || !form.lotNumber) {
+      Alert.alert('Error', 'Please select Phase, Block, and Lot');
+      return;
+    }
     setProcessing(true);
     try {
-      const res = await api.post('/incidents', form);
+      const payload = {
+        title: form.title,
+        description: form.description,
+        severity: form.severity,
+        location: `Phase ${form.phase} - Block ${form.block} - Lot ${form.lotNumber}`
+      };
+      const res = await api.post('/incidents', payload);
       if (res.data?.success) {
         Alert.alert('Success', 'Incident reported');
         setCreateOpen(false);
@@ -212,8 +238,46 @@ const SecurityIncidentsScreen = ({ navigation }) => {
                 numberOfLines={5}
                 textAlignVertical="top"
               />
-              <Text style={styles.label}>Location (optional)</Text>
-              <TextInput style={styles.input} value={form.location} onChangeText={(v) => setForm((p) => ({ ...p, location: v }))} placeholder="e.g., Gate 2" />
+              <Text style={styles.label}>Phase</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={form.phase}
+                  onValueChange={(value) => setForm((p) => ({ ...p, phase: value, block: '', lotNumber: '' }))}
+                >
+                  <Picker.Item label="Select phase" value="" />
+                  {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                    <Picker.Item key={phase} label={`Phase ${phase}`} value={String(phase)} />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={styles.label}>Block</Text>
+              <View style={[styles.pickerContainer, !form.phase && styles.pickerDisabled]}>
+                <Picker
+                  selectedValue={form.block}
+                  enabled={!!form.phase}
+                  onValueChange={(value) => setForm((p) => ({ ...p, block: value, lotNumber: '' }))}
+                >
+                  <Picker.Item label={form.phase ? 'Select block' : 'Select phase first'} value="" />
+                  {Array.from(new Set(lots.filter((lot) => String(lot.phase) === form.phase).map((lot) => lot.block))).sort((a, b) => a - b).map((block) => (
+                    <Picker.Item key={block} label={`Block ${block}`} value={String(block)} />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={styles.label}>Lot</Text>
+              <View style={[styles.pickerContainer, (!form.phase || !form.block) && styles.pickerDisabled]}>
+                <Picker
+                  selectedValue={form.lotNumber}
+                  enabled={!!form.phase && !!form.block}
+                  onValueChange={(value) => setForm((p) => ({ ...p, lotNumber: value }))}
+                >
+                  <Picker.Item label={form.block ? 'Select lot' : 'Select block first'} value="" />
+                  {lots
+                    .filter((lot) => String(lot.phase) === form.phase && String(lot.block) === form.block)
+                    .map((lot) => (
+                      <Picker.Item key={lot.lotId} label={`Lot ${lot.lotNumber}`} value={String(lot.lotNumber)} />
+                    ))}
+                </Picker>
+              </View>
 
               <Text style={styles.label}>Severity</Text>
               <View style={styles.severityRow}>
@@ -284,6 +348,8 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10 },
   modalTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary },
   label: { marginTop: 10, fontSize: 12, color: themeColors.textSecondary, fontWeight: '800' },
+  pickerContainer: { marginTop: 8, borderWidth: 1, borderColor: themeColors.border, borderRadius: 10, backgroundColor: '#f8fafc' },
+  pickerDisabled: { opacity: 0.6 },
   input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginTop: 8, backgroundColor: '#f8fafc' },
   textArea: { minHeight: 140 },
   severityRow: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },

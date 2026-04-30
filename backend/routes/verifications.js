@@ -2,12 +2,11 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const crypto = require('crypto');
 const IdentityVerification = require('../models/IdentityVerification');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
-const { extractIdFieldsFromImagePaths, resolveUploadedPaths } = require('../services/openaiIdOcrService');
+const { extractIdFieldsFromImagePaths } = require('../services/openaiIdOcrService');
 const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
@@ -16,25 +15,19 @@ const router = express.Router();
 
 const uploadDir = path.join(__dirname, '../uploads/ids');
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const storage = multer.memoryStorage();
 
-// SECURITY: Secure filename generation - prevent path traversal and information disclosure
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    // Generate secure random filename, ignore original filename
-    const randomName = crypto.randomBytes(16).toString('hex');
-    const ext = path.extname(file.originalname).toLowerCase();
-    // Only allow safe image extensions
-    const allowedExts = ['.jpg', '.jpeg', '.png'];
-    if (!allowedExts.includes(ext)) {
-      return cb(new Error('Invalid file type. Only JPG and PNG allowed.'));
-    }
-    cb(null, `${randomName}${ext}`);
-  }
-});
+const createFileMeta = (file) => {
+  if (!file || !file.buffer) return null;
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedExts = ['.jpg', '.jpeg', '.png'];
+  if (!allowedExts.includes(ext)) return null;
+  return {
+    filename: `${crypto.randomBytes(16).toString('hex')}${ext}`,
+    buffer: file.buffer,
+    mimetype: file.mimetype || 'image/jpeg'
+  };
+};
 
 // SECURITY: File filter with magic byte validation
 const fileFilter = (req, file, cb) => {
@@ -105,31 +98,30 @@ router.post(
       const snapEmail = user.email || '';
       const snapName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
 
-      const frontImage = req.files?.frontImage?.[0]?.filename || null;
-      const backImage = req.files?.backImage?.[0]?.filename || null;
-      const selfieImage = req.files?.selfieImage?.[0]?.filename || null;
+      const frontFile = req.files?.frontImage?.[0] || null;
+      const backFile = req.files?.backImage?.[0] || null;
+      const selfieFile = req.files?.selfieImage?.[0] || null;
 
-      if (!frontImage || !backImage) {
+      const frontMeta = createFileMeta(frontFile);
+      const backMeta = createFileMeta(backFile);
+      const selfieMeta = createFileMeta(selfieFile);
+
+      if (!frontMeta || !backMeta) {
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
       }
 
-      // SECURITY: Validate uploaded files exist and are readable
-      const frontPath = path.join(uploadDir, frontImage);
-      const backPath = path.join(uploadDir, backImage);
-      const selfiePath = selfieImage ? path.join(uploadDir, selfieImage) : null;
+      const frontImage = frontMeta.filename;
+      const backImage = backMeta.filename;
+      const selfieImage = selfieMeta?.filename || null;
 
-      if (!fs.existsSync(frontPath) || !fs.existsSync(backPath)) {
-        return res.status(400).json({ success: false, error: 'Uploaded files not found' });
-      }
-
-      const front = frontPath;
-      const back = backPath;
+      const front = frontMeta;
+      const back = backMeta;
       let ocr = null;
       try {
         ocr = await extractIdFieldsFromImagePaths(front, back);
-
       } catch (ocrError) {
         console.error('OCR extraction failed, saving verification for manual review:', ocrError?.response?.data || ocrError.message || ocrError);
+
         let verification = await IdentityVerification.findOne({ userId: user._id });
         if (!verification) {
           verification = await IdentityVerification.create({
@@ -137,16 +129,28 @@ router.post(
             residentEmail: snapEmail,
             residentDisplayName: snapName,
             frontImage,
+            frontImageData: frontMeta.buffer,
+            frontImageMimeType: frontMeta.mimetype,
             backImage,
+            backImageData: backMeta.buffer,
+            backImageMimeType: backMeta.mimetype,
             selfieImage,
+            selfieImageData: selfieMeta?.buffer || null,
+            selfieImageMimeType: selfieMeta?.mimetype || null,
             status: 'manual_review',
             reviewNotes: 'OCR failed while extracting ID details. Routed to manual review.',
             rejectReason: ''
           });
         } else {
           verification.frontImage = frontImage;
+          verification.frontImageData = frontMeta.buffer;
+          verification.frontImageMimeType = frontMeta.mimetype;
           verification.backImage = backImage;
+          verification.backImageData = backMeta.buffer;
+          verification.backImageMimeType = backMeta.mimetype;
           verification.selfieImage = selfieImage;
+          verification.selfieImageData = selfieMeta?.buffer || null;
+          verification.selfieImageMimeType = selfieMeta?.mimetype || null;
           verification.residentEmail = snapEmail;
           verification.residentDisplayName = snapName;
           verification.status = 'manual_review';
@@ -155,20 +159,18 @@ router.post(
           await verification.save();
         }
 
-        // Update user's profile photo if selfie was provided
-        if (selfieImage) {
-          // Copy selfie to profile-photos directory
-          const sourcePath = path.join(uploadDir, selfieImage);
+        if (selfieMeta) {
           const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
           if (!fs.existsSync(profilePhotoDir)) {
             fs.mkdirSync(profilePhotoDir, { recursive: true });
           }
-          const destPath = path.join(profilePhotoDir, selfieImage);
+          const destPath = path.join(profilePhotoDir, selfieMeta.filename);
           try {
-            fs.copyFileSync(sourcePath, destPath);
-            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+            fs.writeFileSync(destPath, selfieMeta.buffer);
+            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
           } catch (copyError) {
-            console.error('Failed to copy selfie to profile photos:', copyError);
+            console.error('Failed to write selfie to profile photos:', copyError);
+            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
           }
         }
 
@@ -182,17 +184,6 @@ router.post(
       const duplicate = await detectDuplicateIdentity({ ocr, excludeUserId: user._id });
       if (duplicate.found) {
         // SECURITY: Clean up uploaded files on duplicate detection
-        const cleanupFiles = [frontPath, backPath];
-        if (selfiePath) cleanupFiles.push(selfiePath);
-
-        cleanupFiles.forEach((filePath) => {
-          try {
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-          } catch (cleanupError) {
-            console.warn('Failed to remove duplicate upload file:', filePath, cleanupError.message || cleanupError);
-          }
-        });
-
         return res.status(409).json({
           success: false,
           error: duplicate.reason || 'Duplicate identity detected. This ID is already linked to another resident account.'
@@ -207,14 +198,26 @@ router.post(
           residentEmail: snapEmail,
           residentDisplayName: snapName,
           frontImage,
+          frontImageData: frontMeta.buffer,
+          frontImageMimeType: frontMeta.mimetype,
           backImage,
+          backImageData: backMeta.buffer,
+          backImageMimeType: backMeta.mimetype,
           selfieImage,
+          selfieImageData: selfieMeta?.buffer || null,
+          selfieImageMimeType: selfieMeta?.mimetype || null,
           status: 'queued_ai'
         });
       } else {
         verification.frontImage = frontImage;
+        verification.frontImageData = frontMeta.buffer;
+        verification.frontImageMimeType = frontMeta.mimetype;
         verification.backImage = backImage;
+        verification.backImageData = backMeta.buffer;
+        verification.backImageMimeType = backMeta.mimetype;
         verification.selfieImage = selfieImage;
+        verification.selfieImageData = selfieMeta?.buffer || null;
+        verification.selfieImageMimeType = selfieMeta?.mimetype || null;
         verification.residentEmail = snapEmail;
         verification.residentDisplayName = snapName;
         verification.status = 'queued_ai';
@@ -243,21 +246,18 @@ router.post(
         await verification.save();
 
         // Update user's profile photo if selfie was provided
-        if (selfieImage) {
-          // Copy selfie to profile-photos directory
-          const sourcePath = path.join(uploadDir, selfieImage);
+        if (selfieMeta) {
           const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
           if (!fs.existsSync(profilePhotoDir)) {
             fs.mkdirSync(profilePhotoDir, { recursive: true });
           }
-          const destPath = path.join(profilePhotoDir, selfieImage);
+          const destPath = path.join(profilePhotoDir, selfieMeta.filename);
           try {
-            fs.copyFileSync(sourcePath, destPath);
-            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+            fs.writeFileSync(destPath, selfieMeta.buffer);
+            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
           } catch (copyError) {
-            console.error('Failed to copy selfie to profile photos:', copyError);
-            // Still update profilePhoto even if copy fails
-            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+            console.error('Failed to write selfie to profile photos:', copyError);
+            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
           }
         }
 
@@ -273,22 +273,18 @@ router.post(
       verification.rejectReason = localDecision.decision === 'rejected' ? localDecision.reason : '';
       await verification.save();
 
-      // Update user's profile photo if selfie was provided
-      if (selfieImage) {
-        // Copy selfie to profile-photos directory
-        const sourcePath = path.join(uploadDir, selfieImage);
+      if (selfieMeta) {
         const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
         if (!fs.existsSync(profilePhotoDir)) {
           fs.mkdirSync(profilePhotoDir, { recursive: true });
         }
-        const destPath = path.join(profilePhotoDir, selfieImage);
+        const destPath = path.join(profilePhotoDir, selfieMeta.filename);
         try {
-          fs.copyFileSync(sourcePath, destPath);
-          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+          fs.writeFileSync(destPath, selfieMeta.buffer);
+          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
         } catch (copyError) {
-          console.error('Failed to copy selfie to profile photos:', copyError);
-          // Still update profilePhoto even if copy fails
-          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieImage });
+          console.error('Failed to write selfie to profile photos:', copyError);
+          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
         }
       }
 
@@ -312,28 +308,23 @@ router.post(
   ]),
   async (req, res) => {
     try {
-      const frontImage = req.files?.frontImage?.[0]?.filename || null;
-      const backImage = req.files?.backImage?.[0]?.filename || null;
-      if (!frontImage || !backImage) {
+      const frontFile = req.files?.frontImage?.[0] || null;
+      const backFile = req.files?.backImage?.[0] || null;
+      if (!frontFile || !backFile) {
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
       }
 
-      const { front, back } = resolveUploadedPaths(frontImage, backImage);
-      const result = await extractIdFieldsFromImagePaths(front, back);
+      const frontMeta = createFileMeta(frontFile);
+      const backMeta = createFileMeta(backFile);
+      if (!frontMeta || !backMeta) {
+        return res.status(400).json({ success: false, error: 'Invalid front or back image upload' });
+      }
+
+      const result = await extractIdFieldsFromImagePaths(frontMeta, backMeta);
 
       // Check for duplicate identity against approved users
       const duplicate = await detectDuplicateIdentity({ ocr: result, excludeUserId: null });
       if (duplicate.found && duplicate.duplicateUser && duplicate.duplicateUser.isApproved) {
-        // Clean up uploaded files
-        const cleanupFiles = [front, back];
-        cleanupFiles.forEach((filePath) => {
-          try {
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-          } catch (cleanupError) {
-            console.warn('Failed to remove uploaded file:', filePath, cleanupError.message || cleanupError);
-          }
-        });
-
         return res.status(409).json({
           success: false,
           error: 'This ID is already registered to an approved resident account. Please contact administration if you believe this is an error.'
@@ -479,26 +470,29 @@ router.get('/admin/by-user/:userId', protect, authorize('admin'), async (req, re
 
 router.get('/admin/:id/images', protect, authorize('admin'), async (req, res) => {
   try {
-    const verification = await IdentityVerification.findById(req.params.id).select('frontImage backImage selfieImage');
+    const verification = await IdentityVerification.findById(req.params.id).select('frontImage frontImageData frontImageMimeType backImage backImageData backImageMimeType selfieImage selfieImageData selfieImageMimeType');
     if (!verification) return res.status(404).json({ success: false, error: 'Verification not found' });
 
-    const toDataUrl = (filename) => {
+    const toDataUrl = (filename, data, mime) => {
       if (!filename) return null;
+      if (data) {
+        const safeMime = mime || (filename.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+        return `data:${safeMime};base64,${data.toString('base64')}`;
+      }
       const abs = path.join(uploadDir, filename);
       if (!fs.existsSync(abs)) return null;
       const buf = fs.readFileSync(abs);
-      // Best-effort mime guess
       const lower = String(filename).toLowerCase();
-      const mime = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
-      return `data:${mime};base64,${buf.toString('base64')}`;
+      const safeMime = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      return `data:${safeMime};base64,${buf.toString('base64')}`;
     };
 
     return res.json({
       success: true,
       data: {
-        front: toDataUrl(verification.frontImage),
-        back: toDataUrl(verification.backImage),
-        selfie: toDataUrl(verification.selfieImage),
+        front: toDataUrl(verification.frontImage, verification.frontImageData, verification.frontImageMimeType),
+        back: toDataUrl(verification.backImage, verification.backImageData, verification.backImageMimeType),
+        selfie: toDataUrl(verification.selfieImage, verification.selfieImageData, verification.selfieImageMimeType),
       }
     });
   } catch (error) {
@@ -537,10 +531,44 @@ router.put('/admin/:id/reject', protect, authorize('admin'), async (req, res) =>
   }
 });
 
-router.get('/files/:filename', protect, authorize('admin'), (req, res) => {
-  const target = path.join(uploadDir, req.params.filename);
-  if (!fs.existsSync(target)) return res.status(404).json({ success: false, error: 'File not found' });
-  return res.sendFile(target);
+router.get('/files/:filename', protect, authorize('admin'), async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const verification = await IdentityVerification.findOne({
+      $or: [
+        { frontImage: filename },
+        { backImage: filename },
+        { selfieImage: filename }
+      ]
+    });
+
+    if (verification) {
+      let data = null;
+      let mime = null;
+      if (verification.frontImage === filename) {
+        data = verification.frontImageData;
+        mime = verification.frontImageMimeType;
+      } else if (verification.backImage === filename) {
+        data = verification.backImageData;
+        mime = verification.backImageMimeType;
+      } else if (verification.selfieImage === filename) {
+        data = verification.selfieImageData;
+        mime = verification.selfieImageMimeType;
+      }
+
+      if (data) {
+        res.set('Content-Type', mime || 'application/octet-stream');
+        return res.send(data);
+      }
+    }
+
+    const target = path.join(uploadDir, req.params.filename);
+    if (!fs.existsSync(target)) return res.status(404).json({ success: false, error: 'File not found' });
+    return res.sendFile(target);
+  } catch (error) {
+    console.error('Admin file serve error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to serve file' });
+  }
 });
 
 // Allow users to view their own uploaded ID images
@@ -561,7 +589,25 @@ router.get('/my-files/:filename', protect, async (req, res) => {
     if (!verification) {
       return res.status(403).json({ success: false, error: 'Access denied' });
     }
-    
+
+    let data = null;
+    let mime = null;
+    if (verification.frontImage === filename) {
+      data = verification.frontImageData;
+      mime = verification.frontImageMimeType;
+    } else if (verification.backImage === filename) {
+      data = verification.backImageData;
+      mime = verification.backImageMimeType;
+    } else if (verification.selfieImage === filename) {
+      data = verification.selfieImageData;
+      mime = verification.selfieImageMimeType;
+    }
+
+    if (data) {
+      res.set('Content-Type', mime || 'application/octet-stream');
+      return res.send(data);
+    }
+
     const target = path.join(uploadDir, filename);
     if (!fs.existsSync(target)) {
       return res.status(404).json({ success: false, error: 'File not found' });

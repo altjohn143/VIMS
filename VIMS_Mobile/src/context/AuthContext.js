@@ -130,6 +130,7 @@ export const AuthProvider = ({ children }) => {
       if (!updatedUser) return;
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
+      setIsAuthenticated(true);
     } catch (error) {
       console.error('Update user error:', error);
     }

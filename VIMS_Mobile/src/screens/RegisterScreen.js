@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { themeColors, shadows } from '../utils/theme';
 import api from '../utils/api';
@@ -24,6 +25,7 @@ import { styles } from './RegisterScreen.styles';
 import RegisterLotMapModal from './register/RegisterLotMapModal';
 
 const RegisterScreen = ({ navigation, route }) => {
+  const { updateUser } = useAuth();
   const WebDateInput = Platform.OS === 'web'
     ? ({ value, onChange }) =>
         React.createElement('input', {
@@ -566,6 +568,7 @@ const RegisterScreen = ({ navigation, route }) => {
             await AsyncStorage.setItem('token', response.data.token);
             if (registeredUser) {
               await AsyncStorage.setItem('user', JSON.stringify(registeredUser));
+              updateUser(registeredUser);
             }
             api.defaults.headers.common.Authorization = `Bearer ${response.data.token}`;
           } catch (storageError) {

@@ -8,8 +8,14 @@ const identityVerificationSchema = new mongoose.Schema(
     residentDisplayName: { type: String, default: '' },
     documentType: { type: String, default: 'valid_id' },
     frontImage: { type: String, default: null },
+    frontImageData: { type: Buffer, default: null },
+    frontImageMimeType: { type: String, default: null },
     backImage: { type: String, default: null },
+    backImageData: { type: Buffer, default: null },
+    backImageMimeType: { type: String, default: null },
     selfieImage: { type: String, default: null },
+    selfieImageData: { type: Buffer, default: null },
+    selfieImageMimeType: { type: String, default: null },
     /** True once front/back ID passed automated checks (OCR/AI). Does NOT grant login — User.isApproved does. */
     documentsVerified: { type: Boolean, default: false },
     status: {

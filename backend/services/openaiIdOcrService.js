@@ -5,10 +5,15 @@ const { getOpenAIClient, getOpenAIHighModel } = require('./openaiClient');
 // SECURITY: Encrypted file storage directory
 const uploadDir = path.join(__dirname, '../uploads/ids');
 
-function toDataUrl(absPath) {
-  const ext = path.extname(absPath || '').toLowerCase();
+function toDataUrl(input) {
+  if (input && input.buffer && input.mimetype) {
+    const base64 = input.buffer.toString('base64');
+    return `data:${input.mimetype};base64,${base64}`;
+  }
+
+  const ext = path.extname(input || '').toLowerCase();
   const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
-  const base64 = fs.readFileSync(absPath, { encoding: 'base64' });
+  const base64 = fs.readFileSync(input, { encoding: 'base64' });
   return `data:${mime};base64,${base64}`;
 }
 
@@ -23,7 +28,7 @@ function normalizeDate(v) {
   return raw;
 }
 
-async function extractIdFieldsFromImagePaths(frontAbsPath, backAbsPath) {
+async function extractIdFieldsFromImagePaths(frontInput, backInput) {
   const client = getOpenAIClient();
   const model = getOpenAIHighModel();
   const response = await client.responses.create({
@@ -51,8 +56,8 @@ async function extractIdFieldsFromImagePaths(frontAbsPath, backAbsPath) {
               'confidence must be a number between 0 and 1.'
             ].join('\n')
           },
-          { type: 'input_image', image_url: toDataUrl(frontAbsPath) },
-          { type: 'input_image', image_url: toDataUrl(backAbsPath) }
+          { type: 'input_image', image_url: toDataUrl(frontInput) },
+          { type: 'input_image', image_url: toDataUrl(backInput) }
         ]
       }
     ],

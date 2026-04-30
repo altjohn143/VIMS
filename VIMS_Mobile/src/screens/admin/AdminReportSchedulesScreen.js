@@ -52,6 +52,8 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [processing, setProcessing] = useState(false);
+  const [issueModalOpen, setIssueModalOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState(null);
 
   const load = async () => {
     try {
@@ -94,7 +96,7 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
       };
       const res = await api.post('/reservations', payload);
       if (res.data?.success) {
-        Alert.alert('Success', 'Reservation created');
+        Alert.alert('Success', 'Reservation created.');
         setForm(EMPTY);
         setCreateOpen(false);
         load();
@@ -108,12 +110,11 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
     }
   };
 
-  const updateStatus = async (id, status) => {
+  const updateReservation = async (id, updates) => {
     setProcessing(true);
     try {
-      const res = await api.put(`/reservations/${id}`, { status });
+      const res = await api.put(`/reservations/${id}`, updates);
       if (res.data?.success) {
-        Alert.alert('Success', `Reservation ${status}`);
         load();
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to update reservation');
@@ -130,7 +131,6 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
     try {
       const res = await api.delete(`/reservations/${id}`);
       if (res.data?.success) {
-        Alert.alert('Success', 'Reservation deleted');
         load();
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to delete reservation');
@@ -142,7 +142,50 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
     }
   };
 
+  const handleCheckOut = (item) => {
+    Alert.alert('Confirm Checkout', 'Mark this reservation as borrowed?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Yes',
+        onPress: () => updateReservation(item._id, { status: 'borrowed', actualCheckout: new Date().toISOString() }),
+      },
+    ]);
+  };
+
+  const handleCheckIn = (item) => {
+    Alert.alert('Confirm Return', 'Mark this reservation as returned?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Yes',
+        onPress: () => updateReservation(item._id, { status: 'returned', actualReturn: new Date().toISOString() }),
+      },
+    ]);
+  };
+
+  const openIssueModal = (item) => {
+    setSelectedReservation(item);
+    setIssueModalOpen(true);
+  };
+
+  const saveIssue = async () => {
+    if (!selectedReservation) return;
+    if (!selectedReservation.issueNotes?.trim()) {
+      Alert.alert('Validation', 'Please enter issue notes.');
+      return;
+    }
+
+    await updateReservation(selectedReservation._id, {
+      returnCondition: selectedReservation.returnCondition,
+      issueNotes: selectedReservation.issueNotes,
+    });
+    setIssueModalOpen(false);
+    setSelectedReservation(null);
+  };
+
   const renderItem = ({ item }) => {
+    const isBorrowed = item.status === 'borrowed';
+    const isReturned = item.status === 'returned';
+
     return (
       <View style={[styles.card, shadows.small]}>
         <View style={styles.cardTop}>
@@ -154,31 +197,34 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
               {item.resourceType === 'venue' ? 'Venue' : 'Equipment'} • {item.status}
             </Text>
           </View>
+          <TouchableOpacity onPress={() => deleteReservation(item._id)} style={styles.deleteIconButton} disabled={processing}>
+            <Ionicons name="trash" size={20} color="#ef4444" />
+          </TouchableOpacity>
         </View>
 
+        <Text style={styles.metaLine}>Requested by: {item.reservedBy ? `${item.reservedBy.firstName} ${item.reservedBy.lastName}` : 'Admin'}</Text>
         <Text style={styles.metaLine}>Start: {item.startDate ? format(new Date(item.startDate), 'MMM dd, yyyy • hh:mm a') : '—'}</Text>
         <Text style={styles.metaLine}>End: {item.endDate ? format(new Date(item.endDate), 'MMM dd, yyyy • hh:mm a') : '—'}</Text>
         <Text style={styles.metaLine}>Quantity: {item.quantity || 1}</Text>
-        <Text style={styles.metaLine} numberOfLines={1}>
-          Reserved by: {item.reservedBy ? `${item.reservedBy.firstName} ${item.reservedBy.lastName}` : 'Admin'}
-        </Text>
+        <Text style={styles.metaLine}>Actual checkout: {item.actualCheckout ? format(new Date(item.actualCheckout), 'MMM dd, yyyy • hh:mm a') : 'Pending'}</Text>
+        <Text style={styles.metaLine}>Actual return: {item.actualReturn ? format(new Date(item.actualReturn), 'MMM dd, yyyy • hh:mm a') : 'Pending'}</Text>
+        <Text style={styles.metaLine}>Return condition: {item.returnCondition || 'Pending'}</Text>
+        {item.issueNotes ? <Text style={styles.metaLine}>Issue: {item.issueNotes}</Text> : null}
 
         <View style={styles.actionRow}>
           <TouchableOpacity
-            style={[styles.actionBtn, item.status === 'confirmed' ? styles.cancelBtn : styles.confirmBtn]}
-            disabled={processing}
-            onPress={() => updateStatus(item._id, item.status === 'confirmed' ? 'cancelled' : 'confirmed')}
+            style={[styles.actionBtn, isBorrowed ? styles.confirmBtn : styles.cancelBtn]}
+            disabled={processing || isReturned}
+            onPress={() => (isBorrowed ? handleCheckIn(item) : handleCheckOut(item))}
           >
-            <Text style={[styles.actionBtnText, item.status === 'confirmed' && styles.cancelBtnText]}>
-              {item.status === 'confirmed' ? 'Cancel' : 'Confirm'}
-            </Text>
+            <Text style={styles.actionBtnText}>{isBorrowed ? 'Check In' : 'Check Out'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.deleteBtn]}
+            style={[styles.actionBtn, styles.secondaryBtn]}
             disabled={processing}
-            onPress={() => deleteReservation(item._id)}
+            onPress={() => openIssueModal(item)}
           >
-            <Text style={[styles.actionBtnText, styles.deleteBtnText]}>Delete</Text>
+            <Text style={[styles.actionBtnText, { color: themeColors.textPrimary }]}>Report Issue</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -200,15 +246,12 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Reservations</Text>
+          <Text style={styles.headerTitle}>Reservation Logs</Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>
-            Manage venue and equipment bookings
+            Manage borrow, return, and return issues
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.headerIconButton}>
-            <Ionicons name="add" size={22} color="white" />
-          </TouchableOpacity>
           <TouchableOpacity onPress={load} style={styles.headerIconButton}>
             <Ionicons name="refresh" size={22} color="white" />
           </TouchableOpacity>
@@ -224,115 +267,65 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="people-circle" size={64} color={themeColors.textSecondary} />
-            <Text style={styles.emptyTitle}>No reservations yet</Text>
-            <Text style={styles.emptyText}>Book shared amenities or equipment from here.</Text>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => setCreateOpen(true)}>
-              <Ionicons name="add" size={18} color="white" />
-              <Text style={styles.primaryBtnText}>New Reservation</Text>
-            </TouchableOpacity>
+            <Ionicons name="clipboard" size={64} color={themeColors.textSecondary} />
+            <Text style={styles.emptyTitle}>No reservation logs</Text>
+            <Text style={styles.emptyText}>Reservations will appear here after they are created.</Text>
           </View>
         }
       />
 
-      <Modal visible={createOpen} transparent animationType="slide" onRequestClose={() => setCreateOpen(false)}>
+      <Modal visible={issueModalOpen} transparent animationType="slide" onRequestClose={() => setIssueModalOpen(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Reservation</Text>
-              <TouchableOpacity onPress={() => setCreateOpen(false)}>
+              <Text style={styles.modalTitle}>Report Return Issue</Text>
+              <TouchableOpacity onPress={() => setIssueModalOpen(false)}>
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
             </View>
             <ScrollView>
-              <Text style={styles.label}>Resource Type</Text>
+              <Text style={styles.label}>Return Condition</Text>
               <View style={styles.typeRow}>
-                {['venue', 'equipment'].map((type) => (
+                {['Good', 'Damaged', 'Missing'].map((condition) => (
                   <TouchableOpacity
-                    key={type}
-                    style={[styles.typeChip, form.resourceType === type && styles.typeChipActive]}
-                    onPress={() => setForm({
-                      ...form,
-                      resourceType: type,
-                      resourceName: type === 'venue' ? VENUES[0] : EQUIPMENT[0],
-                    })}
+                    key={condition}
+                    style={[
+                      styles.typeChip,
+                      selectedReservation?.returnCondition === condition && styles.typeChipActive,
+                    ]}
+                    onPress={() => setSelectedReservation((prev) => ({ ...prev, returnCondition: condition }))}
                   >
-                    <Text style={[styles.typeChipText, form.resourceType === type && styles.typeChipTextActive]}>
-                      {type === 'venue' ? 'Venue' : 'Equipment'}
+                    <Text
+                      style={[
+                        styles.typeChipText,
+                        selectedReservation?.returnCondition === condition && styles.typeChipTextActive,
+                      ]}
+                    >
+                      {condition}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              <Text style={styles.label}>Resource Name</Text>
-              <View style={styles.typeRow}>
-                {resourceOptions.map((item) => (
-                  <TouchableOpacity
-                    key={item}
-                    style={[styles.typeChip, form.resourceName === item && styles.typeChipActive]}
-                    onPress={() => setForm((p) => ({ ...p, resourceName: item }))}
-                  >
-                    <Text style={[styles.typeChipText, form.resourceName === item && styles.typeChipTextActive]}>
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.label}>Start Date & Time</Text>
+              <Text style={styles.label}>Issue Notes</Text>
               <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD HH:mm"
-                value={form.startDate}
-                onChangeText={(v) => setForm((p) => ({ ...p, startDate: v }))}
-              />
-              <Text style={styles.label}>End Date & Time</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD HH:mm"
-                value={form.endDate}
-                onChangeText={(v) => setForm((p) => ({ ...p, endDate: v }))}
-              />
-              <Text style={styles.label}>Quantity</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={String(form.quantity)}
-                onChangeText={(v) => setForm((p) => ({ ...p, quantity: v }))}
-              />
-              <Text style={styles.label}>Status</Text>
-              <View style={styles.typeRow}>
-                {['pending', 'confirmed', 'cancelled'].map((status) => (
-                  <TouchableOpacity
-                    key={status}
-                    style={[styles.typeChip, form.status === status && styles.typeChipActive]}
-                    onPress={() => setForm((p) => ({ ...p, status }))}
-                  >
-                    <Text style={[styles.typeChipText, form.status === status && styles.typeChipTextActive]}>
-                      {status}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <Text style={styles.label}>Notes</Text>
-              <TextInput
-                style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
-                placeholder="Optional details or instructions"
-                value={form.notes}
-                onChangeText={(v) => setForm((p) => ({ ...p, notes: v }))}
+                style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
+                placeholder="Describe the problem with the returned item"
+                value={selectedReservation?.issueNotes || ''}
+                onChangeText={(v) => setSelectedReservation((prev) => ({ ...prev, issueNotes: v }))}
                 multiline
               />
 
               <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.secondaryBtn} onPress={() => setCreateOpen(false)} disabled={processing}>
+                <TouchableOpacity style={styles.secondaryBtn} onPress={() => setIssueModalOpen(false)} disabled={processing}>
                   <Text style={styles.secondaryBtnText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.primaryBtn, processing && styles.primaryBtnDisabled]}
-                  onPress={saveReservation}
+                  onPress={saveIssue}
                   disabled={processing}
                 >
-                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryBtnText}>Save Reservation</Text>}
+                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryBtnText}>Save Issue</Text>}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -390,6 +383,7 @@ const styles = StyleSheet.create({
   actionBtnText: { color: 'white', fontWeight: '800' },
   cancelBtnText: { color: 'white' },
   deleteBtnText: { color: 'white' },
+  deleteIconButton: { padding: 8 },
 
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 24 },
   emptyTitle: { marginTop: 14, fontSize: 18, fontWeight: '700', color: themeColors.textPrimary },

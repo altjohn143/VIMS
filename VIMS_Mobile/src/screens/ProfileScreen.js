@@ -273,7 +273,11 @@ const ProfileScreen = ({ navigation }) => {
         const storedUser = await AsyncStorage.getItem('user');
         if (storedUser) {
           const parsed = JSON.parse(storedUser);
-          const updatedUser = { ...parsed, profilePhoto: updatedPhoto };
+          const updatedUser = {
+            ...parsed,
+            profilePhoto: updatedPhoto,
+            profilePhotoUrl: response.data.data.profilePhotoUrl || updatedPhoto
+          };
           await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
           setUser(updatedUser);
           updateUser(updatedUser);

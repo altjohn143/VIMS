@@ -101,7 +101,7 @@ const ProfileSettings = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState(null);
-  const { getCurrentUser, logout } = useAuth();
+  const { getCurrentUser, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -237,7 +237,12 @@ const ProfileSettings = () => {
       });
 
       if (response.data.success) {
-        setProfilePhoto(response.data.data.profilePhotoUrl);
+        const updatedProfileUrl = response.data.data.profilePhotoUrl;
+        setProfilePhoto(updatedProfileUrl);
+        setUser(prev => prev ? { ...prev, profilePhotoUrl: updatedProfileUrl, profilePhoto: response.data.data.profilePhoto } : prev);
+        if (refreshUser) {
+          await refreshUser();
+        }
         toast.success('Profile photo updated successfully');
       }
     } catch (error) {

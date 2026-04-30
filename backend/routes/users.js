@@ -420,9 +420,14 @@ router.get('/:id/profile', protect, async (req, res) => {
       });
     }
     
+    const userObj = user.toObject();
+    if (user.profilePhoto) {
+      userObj.profilePhotoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${user.profilePhoto}`;
+    }
+
     res.json({
       success: true,
-      data: user
+      data: userObj
     });
   } catch (error) {
     console.error('Get profile error:', error);

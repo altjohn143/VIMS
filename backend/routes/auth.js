@@ -88,6 +88,11 @@ const generateToken = (user) => {
   );
 };
 
+const buildProfilePhotoUrl = (req, filename) => {
+  if (!filename) return null;
+  return `${req.protocol}://${req.get('host')}/uploads/profile-photos/${filename}`;
+};
+
 const getFallbackLots = async () => {
   const lots = await Lot.find({ status: 'vacant' })
     .select('lotId block lotNumber type sqm price status')
@@ -381,7 +386,10 @@ router.post('/register', profilePhotoUpload.single('profilePhoto'), async (req, 
         houseBlock: user.houseBlock,
         houseLot: user.houseLot,
         isApproved: user.isApproved,
-        profileComplete: user.profileComplete
+        isActive: user.isActive,
+        profileComplete: user.profileComplete,
+        profilePhoto: user.profilePhoto,
+        profilePhotoUrl: buildProfilePhotoUrl(req, user.profilePhoto)
       }
     });
     
@@ -491,7 +499,9 @@ router.post('/login', loginLimiter, async (req, res) => {
         houseLot: user.houseLot,
         isApproved: user.isApproved,
         isActive: user.isActive,
-        profileComplete: user.profileComplete
+        profileComplete: user.profileComplete,
+        profilePhoto: user.profilePhoto,
+        profilePhotoUrl: buildProfilePhotoUrl(req, user.profilePhoto)
       }
     });
     
@@ -620,7 +630,9 @@ router.get('/me', protect, async (req, res) => {
         houseLot: req.user.houseLot,
         isApproved: req.user.isApproved,
         isActive: req.user.isActive,
-        profileComplete: req.user.profileComplete
+        profileComplete: req.user.profileComplete,
+        profilePhoto: req.user.profilePhoto,
+        profilePhotoUrl: buildProfilePhotoUrl(req, req.user.profilePhoto)
       }
     });
   } catch (error) {

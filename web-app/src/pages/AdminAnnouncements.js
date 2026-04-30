@@ -10,12 +10,10 @@ import {
   Container,
   Divider,
   FormControl,
-  FormControlLabel,
   IconButton,
   MenuItem,
   Select,
   Stack,
-  Switch,
   TextField,
   Toolbar,
   Typography

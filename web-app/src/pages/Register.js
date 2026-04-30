@@ -470,11 +470,7 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post('/api/auth/register', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await axios.post('/api/auth/register', formDataToSend);
 
       if (response.data.success) {
         const emailLower = formData.email.trim().toLowerCase();

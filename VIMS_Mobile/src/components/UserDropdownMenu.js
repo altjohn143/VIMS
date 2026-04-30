@@ -22,11 +22,13 @@ const UserDropdownMenu = ({ navigation }) => {
     .join('')
     .toUpperCase() || 'U';
 
-  const avatarUri = user?.profilePhoto
-    ? user.profilePhoto.startsWith('http')
-      ? user.profilePhoto
-      : `${api.defaults.baseURL?.replace(/\/api$/, '')}/uploads/profile-photos/${user.profilePhoto}`
-    : null;
+  const avatarUri = user?.profilePhotoUrl
+    ? user.profilePhotoUrl
+    : user?.profilePhoto
+      ? user.profilePhoto.startsWith('http')
+        ? user.profilePhoto
+        : `${api.defaults.baseURL?.replace(/\/api$/, '')}/uploads/profile-photos/${user.profilePhoto}`
+      : null;
 
   const fullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User';
   const roleName = user?.role

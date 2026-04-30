@@ -239,11 +239,13 @@ const DashboardScreen = ({ navigation }) => {
   const initials = [userToShow?.firstName?.[0], userToShow?.lastName?.[0]]
     .filter(Boolean).join('') || 'U';
 
-  const avatarUri = userToShow?.profilePhoto
-    ? userToShow.profilePhoto.startsWith('http')
-      ? userToShow.profilePhoto
-      : `${api.defaults.baseURL?.replace(/\/api$/, '')}/uploads/profile-photos/${userToShow.profilePhoto}`
-    : null;
+  const avatarUri = userToShow?.profilePhotoUrl
+    ? userToShow.profilePhotoUrl
+    : userToShow?.profilePhoto
+      ? userToShow.profilePhoto.startsWith('http')
+        ? userToShow.profilePhoto
+        : `${api.defaults.baseURL?.replace(/\/api$/, '')}/uploads/profile-photos/${userToShow.profilePhoto}`
+      : null;
 
   const fullName = `${userToShow?.firstName || ''} ${userToShow?.lastName || ''}`.trim() || 'User';
 

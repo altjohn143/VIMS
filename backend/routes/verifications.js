@@ -102,6 +102,19 @@ router.post(
       const backFile = req.files?.backImage?.[0] || null;
       const selfieFile = req.files?.selfieImage?.[0] || null;
 
+      console.log('🧾 upload-id request files:', {
+        user: { id: user._id.toString(), email: snapEmail },
+        frontImage: frontFile
+          ? { originalname: frontFile.originalname, mimetype: frontFile.mimetype, size: frontFile.size }
+          : null,
+        backImage: backFile
+          ? { originalname: backFile.originalname, mimetype: backFile.mimetype, size: backFile.size }
+          : null,
+        selfieImage: selfieFile
+          ? { originalname: selfieFile.originalname, mimetype: selfieFile.mimetype, size: selfieFile.size }
+          : null
+      });
+
       const frontMeta = createFileMeta(frontFile);
       const backMeta = createFileMeta(backFile);
       const selfieMeta = createFileMeta(selfieFile);
@@ -110,9 +123,40 @@ router.post(
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
       }
 
+      const idsDir = path.join(__dirname, '../uploads/ids');
+      if (!fs.existsSync(idsDir)) {
+        fs.mkdirSync(idsDir, { recursive: true });
+      }
+
       const frontImage = frontMeta.filename;
       const backImage = backMeta.filename;
       const selfieImage = selfieMeta?.filename || null;
+
+      const frontPath = path.join(idsDir, frontMeta.filename);
+      const backPath = path.join(idsDir, backMeta.filename);
+      try {
+        fs.writeFileSync(frontPath, frontMeta.buffer);
+        fs.writeFileSync(backPath, backMeta.buffer);
+        console.log('✅ Saved ID documents to disk:', { frontPath, backPath });
+      } catch (saveError) {
+        console.error('Failed to save ID documents to uploads/ids:', saveError);
+      }
+
+      if (selfieMeta) {
+        const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
+        if (!fs.existsSync(profilePhotoDir)) {
+          fs.mkdirSync(profilePhotoDir, { recursive: true });
+        }
+        const destPath = path.join(profilePhotoDir, selfieMeta.filename);
+        try {
+          fs.writeFileSync(destPath, selfieMeta.buffer);
+          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
+          console.log('✅ Saved selfie/profile photo to disk:', destPath);
+        } catch (copyError) {
+          console.error('Failed to write selfie to profile photos:', copyError);
+          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
+        }
+      }
 
       const front = frontMeta;
       const back = backMeta;
@@ -314,10 +358,32 @@ router.post(
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
       }
 
+      console.log('🔍 ocr-id request files:', {
+        frontImage: frontFile
+          ? { originalname: frontFile.originalname, mimetype: frontFile.mimetype, size: frontFile.size }
+          : null,
+        backImage: backFile
+          ? { originalname: backFile.originalname, mimetype: backFile.mimetype, size: backFile.size }
+          : null
+      });
+
       const frontMeta = createFileMeta(frontFile);
       const backMeta = createFileMeta(backFile);
       if (!frontMeta || !backMeta) {
         return res.status(400).json({ success: false, error: 'Invalid front or back image upload' });
+      }
+
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      const frontPath = path.join(uploadDir, frontMeta.filename);
+      const backPath = path.join(uploadDir, backMeta.filename);
+      try {
+        fs.writeFileSync(frontPath, frontMeta.buffer);
+        fs.writeFileSync(backPath, backMeta.buffer);
+        console.log('✅ Saved OCR ID upload files to disk:', { frontPath, backPath });
+      } catch (saveError) {
+        console.error('Failed to save OCR files to uploads/ids:', saveError);
       }
 
       const result = await extractIdFieldsFromImagePaths(frontMeta, backMeta);

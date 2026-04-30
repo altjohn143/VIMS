@@ -262,9 +262,23 @@ router.post('/register', profilePhotoUpload.single('profilePhoto'), async (req, 
       isApproved: isApproved,
     };
 
+    // Debug: show received profile photo upload details
+    console.log('📸 Register request file payload:', {
+      file: req.file
+        ? {
+            originalname: req.file.originalname,
+            filename: req.file.filename,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            destination: req.file.destination,
+            path: req.file.path
+          }
+        : null
+    });
+
     // Handle profile photo upload
     if (req.file) {
-      console.log('📸 Profile photo uploaded:', req.file.filename);
+      console.log('📸 Profile photo uploaded and stored at:', path.join(__dirname, '../uploads/profile-photos', req.file.filename));
       userData.profilePhoto = req.file.filename;
     }
 

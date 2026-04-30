@@ -178,19 +178,21 @@ const PendingApproval = () => {
             zIndex: 10
           }}
         >
-          {/* Icon */}
+          {/* Avatar - Profile photo if available, otherwise TimeIcon */}
           <Avatar
+            src={user?.profilePhotoUrl}
             sx={{
               width: 100,
               height: 100,
-              bgcolor: themeColors.warning + '20',
+              bgcolor: user?.profilePhotoUrl ? 'transparent' : (themeColors.warning + '20'),
               color: themeColors.warning,
               margin: '0 auto',
               mb: 2,
-              border: '4px solid rgba(245, 158, 11, 0.2)'
+              border: '4px solid rgba(245, 158, 11, 0.2)',
+              objectFit: 'cover'
             }}
           >
-            <TimeIcon sx={{ fontSize: 50 }} />
+            {!user?.profilePhotoUrl && <TimeIcon sx={{ fontSize: 50 }} />}
           </Avatar>
 
           {/* Title */}

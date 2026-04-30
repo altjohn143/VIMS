@@ -315,4 +315,57 @@ export const setBaseUrl = (newUrl) => {
   console.log('🔄 API base URL updated to:', newUrl);
 };
 
+export const arrayBufferToDataUrl = (buffer, mimeType = 'image/jpeg') => {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  const base64 = typeof btoa === 'function'
+    ? btoa(binary)
+    : typeof Buffer !== 'undefined'
+    ? Buffer.from(binary, 'binary').toString('base64')
+    : null;
+
+  if (!base64) {
+    throw new Error('Unable to create base64 data URL');
+  }
+  return `data:${mimeType};base64,${base64}`;
+};
+
+export const getProtectedImageDataUrl = async (relativePath) => {
+  if (!relativePath) return null;
+
+  const buildDataUrlFromBlob = async (blob) => {
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  try {
+    const response = await api.get(relativePath, { responseType: 'blob' });
+    if (response.status === 200 && response.data) {
+      return await buildDataUrlFromBlob(response.data);
+    }
+  } catch (error) {
+    console.warn('Blob fetch failed for protected image:', error?.message || error);
+  }
+
+  try {
+    const response = await api.get(relativePath, { responseType: 'arraybuffer' });
+    if (response.status === 200 && response.data) {
+      const mimeType = response.headers?.['content-type'] || 'image/jpeg';
+      return arrayBufferToDataUrl(response.data, mimeType);
+    }
+  } catch (error) {
+    console.error('Error fetching protected image:', error?.message || error);
+  }
+
+  return null;
+};
+
 export default api;

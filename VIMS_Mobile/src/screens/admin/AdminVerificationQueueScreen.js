@@ -274,6 +274,17 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
                 {selected?.userId?.houseNumber || 'N/A'}
               </Text>
 
+              <TouchableOpacity
+                disabled={processing || !selected?._id}
+                onPress={() => handleViewVerificationImages(selected._id)}
+                style={[
+                  styles.viewDocsButton,
+                  (processing || !selected?._id) && styles.actionBtnDisabled
+                ]}
+              >
+                <Text style={styles.viewDocsButtonText}>View Uploaded Documents</Text>
+              </TouchableOpacity>
+
               <View style={styles.detailDivider} />
 
               <Text style={styles.detailLabel}>Status</Text>
@@ -342,6 +353,52 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
                 Note: This screen reviews verification records. Account approval is still handled in Admin Approvals.
               </Text>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={idModalOpen} transparent animationType="slide" onRequestClose={() => setIdModalOpen(false)}>
+        <View style={styles.overlayCenter}>
+          <View style={styles.idModalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Uploaded Documents</Text>
+              <TouchableOpacity onPress={() => setIdModalOpen(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {idLoading ? (
+              <View style={styles.idLoadingContainer}>
+                <ActivityIndicator size="large" color={themeColors.primary} />
+              </View>
+            ) : (
+              <ScrollView contentContainerStyle={styles.idModalContent}>
+                {idImages.front ? (
+                  <View style={styles.idImageGroup}>
+                    <Text style={styles.idImageLabel}>ID Front</Text>
+                    <Image source={{ uri: idImages.front }} style={styles.idImage} />
+                  </View>
+                ) : (
+                  <Text style={styles.idMissingText}>Front image not available.</Text>
+                )}
+                {idImages.back ? (
+                  <View style={styles.idImageGroup}>
+                    <Text style={styles.idImageLabel}>ID Back</Text>
+                    <Image source={{ uri: idImages.back }} style={styles.idImage} />
+                  </View>
+                ) : (
+                  <Text style={styles.idMissingText}>Back image not available.</Text>
+                )}
+                {idImages.selfie ? (
+                  <View style={styles.idImageGroup}>
+                    <Text style={styles.idImageLabel}>Selfie</Text>
+                    <Image source={{ uri: idImages.selfie }} style={styles.idImage} />
+                  </View>
+                ) : (
+                  <Text style={styles.idMissingText}>Selfie not available.</Text>
+                )}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -431,6 +488,61 @@ const styles = StyleSheet.create({
   actionBtnDisabled: { opacity: 0.6 },
   actionText: { color: 'white', fontWeight: '900' },
   smallHint: { marginTop: 8, fontSize: 11, color: themeColors.textSecondary, lineHeight: 16, textAlign: 'center' },
+  viewDocsButton: {
+    marginTop: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: themeColors.primary,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  viewDocsButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  overlayCenter: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16
+  },
+  idModalCard: {
+    width: '100%',
+    maxHeight: '90%',
+    backgroundColor: 'white',
+    borderRadius: 18,
+    padding: 16
+  },
+  idModalContent: {
+    paddingBottom: 24
+  },
+  idImageGroup: {
+    marginBottom: 18
+  },
+  idImageLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: themeColors.textPrimary,
+    marginBottom: 10
+  },
+  idImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: 14,
+    resizeMode: 'cover',
+    backgroundColor: '#f3f5f7'
+  },
+  idMissingText: {
+    color: themeColors.textSecondary,
+    fontSize: 13,
+    marginBottom: 14
+  },
+  idLoadingContainer: {
+    paddingVertical: 36,
+    alignItems: 'center'
+  }
 });
 
 export default AdminVerificationQueueScreen;

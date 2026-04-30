@@ -101,6 +101,7 @@ const ProfileSettings = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState(null);
+  const [documentPreviewUrls, setDocumentPreviewUrls] = useState({ front: null, back: null, selfie: null });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [previewTitle, setPreviewTitle] = useState('');
@@ -272,8 +273,33 @@ const ProfileSettings = () => {
     return `/api/verifications/my-files/${filename}`;
   };
 
-  const openPreview = (imageUrl, title) => {
-    setPreviewImage(imageUrl);
+  const fetchDocumentPreviewUrl = async (filename) => {
+    if (!filename) return null;
+
+    try {
+      const response = await axios.get(`/api/verifications/my-files/${filename}`, {
+        responseType: 'blob'
+      });
+      return URL.createObjectURL(response.data);
+    } catch (error) {
+      console.error('Error loading document preview:', error);
+      toast.error('Unable to load document preview');
+      return null;
+    }
+  };
+
+  const openPreview = async (filename, title, key) => {
+    if (!filename) return;
+
+    let imageUrl = documentPreviewUrls[key];
+    if (!imageUrl) {
+      imageUrl = await fetchDocumentPreviewUrl(filename);
+      if (imageUrl) {
+        setDocumentPreviewUrls((prev) => ({ ...prev, [key]: imageUrl }));
+      }
+    }
+
+    setPreviewImage(imageUrl || buildDocumentUrl(filename));
     setPreviewTitle(title);
     setPreviewOpen(true);
   };
@@ -283,6 +309,14 @@ const ProfileSettings = () => {
     setPreviewImage(null);
     setPreviewTitle('');
   };
+
+  useEffect(() => {
+    return () => {
+      Object.values(documentPreviewUrls).forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
+  }, [documentPreviewUrls]);
 
   const handleDownload = (imageUrl, filename) => {
     const link = document.createElement('a');
@@ -826,7 +860,7 @@ const ProfileSettings = () => {
                         </Typography>
                         <Box
                           component="img"
-                          src={buildDocumentUrl(uploadedDocuments.selfieImage)}
+                          src={documentPreviewUrls.selfie || buildDocumentUrl(uploadedDocuments.selfieImage)}
                           alt="Profile Picture"
                           sx={{
                             width: '100%',
@@ -842,7 +876,7 @@ const ProfileSettings = () => {
                               boxShadow: `0 4px 12px rgba(22, 163, 74, 0.2)`
                             }
                           }}
-                          onClick={() => openPreview(buildDocumentUrl(uploadedDocuments.selfieImage), 'Profile Picture')}
+                          onClick={() => openPreview(uploadedDocuments.selfieImage, 'Profile Picture', 'selfie')}
                         />
                       </Box>
                     )}
@@ -855,7 +889,7 @@ const ProfileSettings = () => {
                           </Typography>
                           <Box
                             component="img"
-                            src={buildDocumentUrl(uploadedDocuments.frontImage)}
+                            src={documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage)}
                             alt="ID Front"
                             sx={{
                               width: '100%',
@@ -870,7 +904,7 @@ const ProfileSettings = () => {
                                 boxShadow: `0 4px 12px rgba(22, 163, 74, 0.2)`
                               }
                             }}
-                            onClick={() => openPreview(buildDocumentUrl(uploadedDocuments.frontImage), 'ID Front')}
+                            onClick={() => openPreview(uploadedDocuments.frontImage, 'ID Front', 'front')}
                           />
                         </Box>
                       )}
@@ -882,7 +916,7 @@ const ProfileSettings = () => {
                           </Typography>
                           <Box
                             component="img"
-                            src={buildDocumentUrl(uploadedDocuments.backImage)}
+                            src={documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage)}
                             alt="ID Back"
                             sx={{
                               width: '100%',
@@ -897,7 +931,7 @@ const ProfileSettings = () => {
                                 boxShadow: `0 4px 12px rgba(22, 163, 74, 0.2)`
                               }
                             }}
-                            onClick={() => openPreview(buildDocumentUrl(uploadedDocuments.backImage), 'ID Back')}
+                            onClick={() => openPreview(uploadedDocuments.backImage, 'ID Back', 'back')}
                           />
                         </Box>
                       )}

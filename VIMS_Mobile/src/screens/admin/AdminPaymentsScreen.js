@@ -18,7 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { themeColors, shadows } from '../../utils/theme';
-import api from '../../utils/api';
+import api, { getProtectedImageDataUrl } from '../../utils/api';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 
@@ -36,8 +36,16 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImageUri, setSelectedImageUri] = useState(null);
   const [selectedImagePayment, setSelectedImagePayment] = useState(null);
   const [verificationNotes, setVerificationNotes] = useState('');
+
+  const closeReceiptViewer = () => {
+    setShowImageViewer(false);
+    setSelectedImage(null);
+    setSelectedImagePayment(null);
+    setSelectedImageUri(null);
+  };
   const [generateForm, setGenerateForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [processing, setProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -166,13 +174,22 @@ const AdminPaymentsScreen = ({ navigation }) => {
     }
   };
 
-  const handleViewReceiptImage = (payment) => {
-    if (payment.receiptImage) {
-      setSelectedImage(payment.receiptImage);
-      setSelectedImagePayment(payment);
-      setShowImageViewer(true);
-    } else {
+  const handleViewReceiptImage = async (payment) => {
+    if (!payment?.receiptImage) {
       Alert.alert('Info', 'No receipt image available for this payment');
+      return;
+    }
+
+    setSelectedImage(payment.receiptImage);
+    setSelectedImagePayment(payment);
+    setSelectedImageUri(null);
+    setShowImageViewer(true);
+
+    const previewUri = await getProtectedImageDataUrl(`/payments/receipt-image/${payment.receiptImage}`);
+    if (previewUri) {
+      setSelectedImageUri(previewUri);
+    } else {
+      Alert.alert('Preview unavailable', 'Unable to load this receipt image.');
     }
   };
 
@@ -599,22 +616,26 @@ const AdminPaymentsScreen = ({ navigation }) => {
         visible={showImageViewer}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowImageViewer(false)}
+        onRequestClose={closeReceiptViewer}
       >
         <View style={styles.imageViewerOverlay}>
           <View style={styles.imageViewerHeader}>
             <Text style={styles.imageViewerTitle}>Payment Receipt</Text>
-            <TouchableOpacity onPress={() => setShowImageViewer(false)}>
+            <TouchableOpacity onPress={closeReceiptViewer}>
               <Ionicons name="close" size={28} color="white" />
             </TouchableOpacity>
           </View>
-          {selectedImage && (
+          {selectedImageUri ? (
             <Image
-              source={{ uri: `${api.defaults.baseURL}/payments/receipt-image/${selectedImage}` }}
+              source={{ uri: selectedImageUri }}
               style={styles.fullImage}
               resizeMode="contain"
             />
-          )}
+          ) : selectedImage ? (
+            <View style={[styles.fullImage, styles.noPreviewContainer]}>
+              <Text style={styles.noPreviewText}>Loading receipt preview...</Text>
+            </View>
+          ) : null}
           {selectedImagePayment && (
             <View style={styles.imageInfo}>
               <Text style={styles.imageInfoText}>Invoice: {selectedImagePayment.invoiceNumber}</Text>
@@ -1156,6 +1177,17 @@ const styles = StyleSheet.create({
   fullImage: {
     flex: 1,
     width: '100%',
+  },
+  noPreviewContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#111',
+  },
+  noPreviewText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
   imageInfo: {
     padding: 16,

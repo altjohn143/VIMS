@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { themeColors, shadows } from '../utils/theme';
-import api from '../utils/api';
+import api, { getProtectedImageDataUrl } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UserDropdownMenu from '../components/UserDropdownMenu';
 
@@ -55,6 +55,7 @@ const ProfileScreen = ({ navigation }) => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedPhotoUri, setSelectedPhotoUri] = useState(null);
   const [uploadedDocuments, setUploadedDocuments] = useState(null);
+  const [documentPreviewUrls, setDocumentPreviewUrls] = useState({ front: null, back: null, selfie: null });
   const [loadingDocuments, setLoadingDocuments] = useState(false);
 
   useEffect(() => {
@@ -95,6 +96,63 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  const arrayBufferToDataUrl = (buffer, mimeType = 'image/jpeg') => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    const base64 = typeof btoa === 'function'
+      ? btoa(binary)
+      : typeof Buffer !== 'undefined'
+      ? Buffer.from(binary, 'binary').toString('base64')
+      : null;
+
+    if (!base64) {
+      throw new Error('Unable to create base64 preview data URL');
+    }
+
+    return `data:${mimeType};base64,${base64}`;
+  };
+
+  const fetchDocumentPreviewUrl = async (filename) => {
+    if (!filename) return null;
+    return await getProtectedImageDataUrl(`/verifications/my-files/${filename}`);
+  };
+
+  const loadDocumentPreviewUrls = async (verification) => {
+    if (!verification) return;
+
+    const previews = { front: null, back: null, selfie: null };
+    const fetchers = [];
+
+    if (verification.frontImage) {
+      fetchers.push(
+        fetchDocumentPreviewUrl(verification.frontImage)
+          .then((url) => { previews.front = url; })
+          .catch(() => {})
+      );
+    }
+    if (verification.backImage) {
+      fetchers.push(
+        fetchDocumentPreviewUrl(verification.backImage)
+          .then((url) => { previews.back = url; })
+          .catch(() => {})
+      );
+    }
+    if (verification.selfieImage) {
+      fetchers.push(
+        fetchDocumentPreviewUrl(verification.selfieImage)
+          .then((url) => { previews.selfie = url; })
+          .catch(() => {})
+      );
+    }
+
+    await Promise.all(fetchers);
+    setDocumentPreviewUrls(previews);
+  };
+
   const loadUploadedDocuments = async () => {
     try {
       setLoadingDocuments(true);
@@ -108,6 +166,7 @@ const ProfileScreen = ({ navigation }) => {
           status: verification.status,
           documentsVerified: verification.documentsVerified
         });
+        await loadDocumentPreviewUrls(verification);
       }
     } catch (error) {
       console.error('Error loading documents:', error);
@@ -454,10 +513,10 @@ const ProfileScreen = ({ navigation }) => {
                   <Text style={styles.documentLabel}>Profile Picture</Text>
                   <TouchableOpacity 
                     style={styles.documentImageContainer}
-                    onPress={() => openDocumentModal('Profile Picture', buildDocumentUrl(uploadedDocuments.selfieImage))}
+                    onPress={() => openDocumentModal('Profile Picture', documentPreviewUrls.selfie || buildDocumentUrl(uploadedDocuments.selfieImage))}
                   >
                     <Image 
-                      source={{ uri: buildDocumentUrl(uploadedDocuments.selfieImage) }} 
+                      source={{ uri: documentPreviewUrls.selfie || buildDocumentUrl(uploadedDocuments.selfieImage) }} 
                       style={styles.documentImage} 
                       resizeMode="cover"
                     />
@@ -472,10 +531,10 @@ const ProfileScreen = ({ navigation }) => {
                     <Text style={styles.documentLabel}>ID Front</Text>
                     <TouchableOpacity 
                       style={styles.documentImageContainer}
-                      onPress={() => openDocumentModal('ID Front', buildDocumentUrl(uploadedDocuments.frontImage))}
+                      onPress={() => openDocumentModal('ID Front', documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage))}
                     >
                       <Image 
-                        source={{ uri: buildDocumentUrl(uploadedDocuments.frontImage) }} 
+                        source={{ uri: documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage) }} 
                         style={styles.documentImage} 
                         resizeMode="cover"
                       />
@@ -489,10 +548,10 @@ const ProfileScreen = ({ navigation }) => {
                     <Text style={styles.documentLabel}>ID Back</Text>
                     <TouchableOpacity 
                       style={styles.documentImageContainer}
-                      onPress={() => openDocumentModal('ID Back', buildDocumentUrl(uploadedDocuments.backImage))}
+                      onPress={() => openDocumentModal('ID Back', documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage))}
                     >
                       <Image 
-                        source={{ uri: buildDocumentUrl(uploadedDocuments.backImage) }} 
+                        source={{ uri: documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage) }} 
                         style={styles.documentImage} 
                         resizeMode="cover"
                       />

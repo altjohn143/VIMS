@@ -174,6 +174,12 @@ const ProfileSettings = () => {
               const selfiePreview = await fetchDocumentPreviewUrl(verificationData.selfieImage);
               if (selfiePreview) {
                 setDocumentPreviewUrls((prev) => ({ ...prev, selfie: selfiePreview }));
+                setProfilePhoto(selfiePreview);
+                setUser((prev) => prev ? {
+                  ...prev,
+                  profilePhotoUrl: selfiePreview,
+                  profilePhoto: selfiePreview
+                } : prev);
               }
             }
           }
@@ -235,16 +241,19 @@ const ProfileSettings = () => {
       return;
     }
 
+    let previewUrl = null;
     try {
       setUploadingPhoto(true);
+      previewUrl = URL.createObjectURL(file);
+      setProfilePhoto(previewUrl);
+
       const token = localStorage.getItem('token') || '';
       const formData = new FormData();
       formData.append('photo', file);
 
       const response = await axios.post('/api/users/profile-photo', formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          Authorization: `Bearer ${token}`
         }
       });
 
@@ -257,7 +266,8 @@ const ProfileSettings = () => {
           profilePhotoUrl: updatedProfileUrl || (updatedProfilePhoto ? `/uploads/profile-photos/${updatedProfilePhoto}` : null)
         };
 
-        setProfilePhoto(updatedProfileUrl || (updatedProfilePhoto ? `/uploads/profile-photos/${updatedProfilePhoto}` : null));
+        const finalProfilePhoto = updatedProfileUrl || (updatedProfilePhoto ? `/uploads/profile-photos/${updatedProfilePhoto}` : previewUrl);
+        setProfilePhoto(finalProfilePhoto);
         setUser(updatedUser);
         if (updateUser) {
           await updateUser(updatedUser);
@@ -265,6 +275,10 @@ const ProfileSettings = () => {
         if (refreshUser) {
           const refreshed = await refreshUser();
           setUser(refreshed);
+        }
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+          previewUrl = null;
         }
         toast.success('Profile photo updated successfully');
       }

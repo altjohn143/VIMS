@@ -39,6 +39,17 @@ export const AuthProvider = ({ children }) => {
     return Date.now() - lastActivityAt > SESSION_TIMEOUT_MS;
   };
 
+  const normalizeUserProfilePhoto = (user) => {
+    if (!user) return user;
+    if (!user.profilePhotoUrl && user.profilePhoto) {
+      const profilePhotoUrl = user.profilePhoto.startsWith('http')
+        ? user.profilePhoto
+        : `${window.location.origin}/uploads/profile-photos/${user.profilePhoto}`;
+      return { ...user, profilePhotoUrl };
+    }
+    return user;
+  };
+
   const setAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('token');
     
@@ -53,7 +64,7 @@ export const AuthProvider = ({ children }) => {
     if (!response.data?.success || !response.data?.user) {
       throw new Error('Unable to load session');
     }
-    const user = response.data.user;
+    const user = normalizeUserProfilePhoto(response.data.user);
     localStorage.setItem('user', JSON.stringify(user));
     setCurrentUser(user);
     setIsAuthenticated(true);
@@ -62,8 +73,9 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = useCallback(async (user) => {
     if (!user) return;
-    localStorage.setItem('user', JSON.stringify(user));
-    setCurrentUser(user);
+    const normalizedUser = normalizeUserProfilePhoto(user);
+    localStorage.setItem('user', JSON.stringify(normalizedUser));
+    setCurrentUser(normalizedUser);
     setIsAuthenticated(true);
   }, []);
 

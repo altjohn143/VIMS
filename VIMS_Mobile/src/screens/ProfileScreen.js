@@ -336,18 +336,16 @@ const ProfileScreen = ({ navigation }) => {
         });
       }
 
-      const response = await api.post('/users/profile-photo', uploadData, {
-        headers: { 'Content-Type': undefined }
-      });
+      const response = await api.post('/users/profile-photo', uploadData);
 
       if (response.data.success) {
-        const updatedPhoto = response.data.data.profilePhotoUrl || buildProfilePhotoUrl(response.data.data.profilePhoto);
+        const updatedPhoto = response.data.data.profilePhotoUrl || buildProfilePhotoUrl(response.data.data.profilePhoto) || uri;
         setProfilePhoto(updatedPhoto);
 
         if (user) {
           const updatedUser = {
             ...user,
-            profilePhoto: updatedPhoto,
+            profilePhoto: response.data.data.profilePhoto || updatedPhoto,
             profilePhotoUrl: response.data.data.profilePhotoUrl || updatedPhoto
           };
           setUser(updatedUser);

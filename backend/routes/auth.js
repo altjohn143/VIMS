@@ -278,7 +278,11 @@ router.post('/register', profilePhotoUpload.single('profilePhoto'), async (req, 
 
     // Handle profile photo upload
     if (req.file) {
-      console.log('📸 Profile photo uploaded and stored at:', path.join(__dirname, '../uploads/profile-photos', req.file.filename));
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('📸 Profile photo uploaded and stored at:', path.join(__dirname, '../uploads/profile-photos', req.file.filename));
+      } else {
+        console.warn('⚠️ Skipping local file save in production - profile photo metadata saved to DB only');
+      }
       userData.profilePhoto = req.file.filename;
     }
 

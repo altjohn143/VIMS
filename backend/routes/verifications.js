@@ -134,12 +134,16 @@ router.post(
 
       const frontPath = path.join(idsDir, frontMeta.filename);
       const backPath = path.join(idsDir, backMeta.filename);
-      try {
-        fs.writeFileSync(frontPath, frontMeta.buffer);
-        fs.writeFileSync(backPath, backMeta.buffer);
-        console.log('✅ Saved ID documents to disk:', { frontPath, backPath });
-      } catch (saveError) {
-        console.error('Failed to save ID documents to uploads/ids:', saveError);
+      if (process.env.NODE_ENV !== 'production') {
+        try {
+          fs.writeFileSync(frontPath, frontMeta.buffer);
+          fs.writeFileSync(backPath, backMeta.buffer);
+          console.log('✅ Saved ID documents to disk:', { frontPath, backPath });
+        } catch (saveError) {
+          console.error('Failed to save ID documents to uploads/ids:', saveError);
+        }
+      } else {
+        console.warn('⚠️ Skipping local file save in production - ID documents stored in DB only');
       }
 
       if (selfieMeta) {
@@ -148,14 +152,17 @@ router.post(
           fs.mkdirSync(profilePhotoDir, { recursive: true });
         }
         const destPath = path.join(profilePhotoDir, selfieMeta.filename);
-        try {
-          fs.writeFileSync(destPath, selfieMeta.buffer);
-          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
-          console.log('✅ Saved selfie/profile photo to disk:', destPath);
-        } catch (copyError) {
-          console.error('Failed to write selfie to profile photos:', copyError);
-          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
+        if (process.env.NODE_ENV !== 'production') {
+          try {
+            fs.writeFileSync(destPath, selfieMeta.buffer);
+            console.log('✅ Saved selfie/profile photo to disk:', destPath);
+          } catch (copyError) {
+            console.error('Failed to write selfie to profile photos:', copyError);
+          }
+        } else {
+          console.warn('⚠️ Skipping local file save in production - selfie stored in DB only');
         }
+        await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
       }
 
       const front = frontMeta;
@@ -378,12 +385,16 @@ router.post(
       }
       const frontPath = path.join(uploadDir, frontMeta.filename);
       const backPath = path.join(uploadDir, backMeta.filename);
-      try {
-        fs.writeFileSync(frontPath, frontMeta.buffer);
-        fs.writeFileSync(backPath, backMeta.buffer);
-        console.log('✅ Saved OCR ID upload files to disk:', { frontPath, backPath });
-      } catch (saveError) {
-        console.error('Failed to save OCR files to uploads/ids:', saveError);
+      if (process.env.NODE_ENV !== 'production') {
+        try {
+          fs.writeFileSync(frontPath, frontMeta.buffer);
+          fs.writeFileSync(backPath, backMeta.buffer);
+          console.log('✅ Saved OCR ID upload files to disk:', { frontPath, backPath });
+        } catch (saveError) {
+          console.error('Failed to save OCR files to uploads/ids:', saveError);
+        }
+      } else {
+        console.warn('⚠️ Skipping local file save in production - OCR files stored in DB only');
       }
 
       const result = await extractIdFieldsFromImagePaths(frontMeta, backMeta);

@@ -60,6 +60,13 @@ export const AuthProvider = ({ children }) => {
     return user;
   }, []);
 
+  const updateUser = useCallback(async (user) => {
+    if (!user) return;
+    localStorage.setItem('user', JSON.stringify(user));
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+  }, []);
+
   const bootstrapAuth = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -212,6 +219,7 @@ const login = async (email, password, expectedRole) => {
     currentUser,
     bootstrapping,
     refreshUser,
+    updateUser,
     bootstrapAuth
   };
 

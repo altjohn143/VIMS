@@ -228,8 +228,8 @@ const ProfileScreen = ({ navigation }) => {
   const buildProfilePhotoUrl = (photo) => {
     if (!photo) return null;
     if (photo.startsWith('http')) return photo;
-    // Get base URL from environment or use production default
-    const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/api$/, '') 
+    const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '')
+      || process.env.EXPO_PUBLIC_API_URL?.replace(/\/api$/, '')
       || 'https://vims-backend.onrender.com';
     return `${baseUrl}/uploads/profile-photos/${photo}`;
   };
@@ -271,10 +271,10 @@ const ProfileScreen = ({ navigation }) => {
         setProfilePhoto(updatedPhoto);
 
         const storedUser = await AsyncStorage.getItem('user');
-        if (storedUser) {
-          const parsed = JSON.parse(storedUser);
+        const currentStoredUser = storedUser ? JSON.parse(storedUser) : user;
+        if (currentStoredUser) {
           const updatedUser = {
-            ...parsed,
+            ...currentStoredUser,
             profilePhoto: updatedPhoto,
             profilePhotoUrl: response.data.data.profilePhotoUrl || updatedPhoto
           };

@@ -47,7 +47,7 @@ router.get('/profile-test', (req, res) => {
 // Get all users (admin only)
 router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const users = await User.find()
+    const users = await User.find({ isArchived: false })
       .select('-password')
       .sort({ createdAt: -1 });
     
@@ -70,7 +70,8 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
   try {
     const pendingUsers = await User.find({ 
       role: 'resident', 
-      isApproved: false 
+      isApproved: false,
+      isArchived: false
     })
     .select('-password')
     .sort({ createdAt: -1 });
@@ -221,7 +222,7 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// Reject/Delete user (for admin) - UPDATED to free up lot
+// Archive user (instead of delete) - UPDATED to free up lot
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -250,44 +251,115 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
           action: 'move_out',
           previousStatus,
           newStatus: 'vacant',
-          reason: 'Resident removed/rejected',
+          reason: 'Resident archived',
           performedBy: req.user._id
         });
         console.log(`✅ Lot ${lotId} freed up (was occupied by ${user.email})`);
       }
     }
     
-    // Log this rejection
-    console.log(`User rejected: ${user.email}, Reason: ${req.body.reason || 'No reason provided'}`);
+    // Archive the user instead of deleting
+    user.isArchived = true;
+    user.archivedAt = new Date();
+    user.archivedBy = req.user._id;
+    user.archivedReason = req.body.reason || 'No reason provided';
+    await user.save();
     
-    await user.deleteOne();
+    console.log(`📦 User archived: ${user.email}, Reason: ${user.archivedReason}`);
     
     res.json({
       success: true,
-      message: 'User rejected and removed successfully'
+      message: 'User archived successfully'
     });
     
   } catch (error) {
-    console.error('Reject user error:', error);
+    console.error('Archive user error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to reject user'
+      error: 'Failed to archive user'
     });
   }
 });
 
+// Restore archived user
+router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    if (!user.isArchived) {
+      return res.status(400).json({
+        success: false,
+        error: 'User is not archived'
+      });
+    }
+    
+    user.isArchived = false;
+    user.archivedAt = null;
+    user.archivedBy = null;
+    user.archivedReason = '';
+    await user.save();
+    
+    console.log(`♻️ User restored: ${user.email}`);
+    
+    res.json({
+      success: true,
+      message: 'User restored successfully',
+      data: user
+    });
+    
+  } catch (error) {
+    console.error('Restore user error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to restore user'
+    });
+  }
+});
+
+
+// Get archived users
+router.get('/archived', protect, authorize('admin'), async (req, res) => {
+  try {
+    const users = await User.find({ isArchived: true })
+      .populate('archivedBy', 'firstName lastName email')
+      .sort({ archivedAt: -1 });
+    
+    res.json({
+      success: true,
+      data: users
+    });
+    
+  } catch (error) {
+    console.error('Get archived users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get archived users'
+    });
+  }
+});
+
+
 // Get user stats summary
 router.get('/stats/summary', protect, authorize('admin'), async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const residents = await User.countDocuments({ role: 'resident' });
+    const totalUsers = await User.countDocuments({ isArchived: false });
+    const residents = await User.countDocuments({ role: 'resident', isArchived: false });
     const approvedResidents = await User.countDocuments({ 
       role: 'resident', 
-      isApproved: true 
+      isApproved: true,
+      isArchived: false
     });
     const pendingResidents = await User.countDocuments({
       role: 'resident',
-      isApproved: false
+      isApproved: false,
+      isArchived: false
     });
     
     res.json({
@@ -514,7 +586,7 @@ router.post('/move-out/request', protect, authorize('resident'), async (req, res
 // Admin: list move-out requests
 router.get('/move-out/requests', protect, authorize('admin'), async (req, res) => {
   try {
-    const rows = await User.find({ role: 'resident', moveOutStatus: 'pending' })
+    const rows = await User.find({ role: 'resident', moveOutStatus: 'pending', isArchived: false })
       .select('-password')
       .sort({ moveOutRequestedAt: -1 });
     return res.json({ success: true, count: rows.length, data: rows });
@@ -708,7 +780,8 @@ router.get('/stats/registrations', protect, authorize('admin'), async (req, res)
 
     const count = await User.countDocuments({
       role: 'resident',
-      createdAt: { $gte: startDate, $lte: endDate }
+      createdAt: { $gte: startDate, $lte: endDate },
+      isArchived: false
     });
 
     res.json({

@@ -337,6 +337,12 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     <TouchableOpacity onPress={fetchData} style={styles.refreshButton}>
       <Ionicons name="refresh" size={24} color="white" />
     </TouchableOpacity>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('ArchivedServiceRequests')}
+      style={styles.archivedButton}
+    >
+      <Ionicons name="archive" size={24} color="white" />
+    </TouchableOpacity>
     <UserDropdownMenu navigation={navigation} />
   </View>
 </View>
@@ -687,6 +693,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   refreshButton: {
+    padding: 8,
+  },
+  archivedButton: {
     padding: 8,
   },
   statsScroll: {

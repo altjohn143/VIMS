@@ -35,6 +35,11 @@ import Announcements from './pages/Announcements';
 import AdminAnnouncements from './pages/AdminAnnouncements';
 import Chatbot from './pages/Chatbot';
 
+// NEW ARCHIVE PAGES
+import ArchivedUsers from './pages/ArchivedUsers';
+import ArchivedAnnouncements from './pages/ArchivedAnnouncements';
+import ArchivedServiceRequests from './pages/ArchivedServiceRequests';
+
 // NEW PAYMENT PAGES
 import PaymentRedirect from './pages/PaymentRedirect';
 import PaymentSuccess from './pages/PaymentSuccess';
@@ -121,6 +126,11 @@ function App() {
             <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
             <Route path="/admin/report-schedules" element={<AdminRoute><AdminReportSchedules /></AdminRoute>} />
             <Route path="/admin/announcements" element={<AdminRoute><AdminAnnouncements /></AdminRoute>} />
+
+            {/* NEW ARCHIVE ROUTES */}
+            <Route path="/admin/archived-users" element={<AdminRoute><ArchivedUsers /></AdminRoute>} />
+            <Route path="/admin/archived-announcements" element={<AdminRoute><ArchivedAnnouncements /></AdminRoute>} />
+            <Route path="/admin/archived-service-requests" element={<AdminRoute><ArchivedServiceRequests /></AdminRoute>} />
 
             {/* Security-only routes */}
             <Route path="/security/visitor-approval" element={<SecurityRoute><SecurityVisitorApproval /></SecurityRoute>} />

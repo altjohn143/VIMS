@@ -719,6 +719,22 @@ useEffect(() => {
             </Typography>
           </Box>
 
+          <Button
+            onClick={() => navigate('/admin/archived-service-requests')}
+            variant="outlined"
+            sx={{
+              mr: 2,
+              color: themeColors.warning,
+              borderColor: themeColors.warning,
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              '&:hover': { bgcolor: themeColors.warning + '10' }
+            }}
+          >
+            Archived
+          </Button>
+
           {/* User Profile Menu */}
           <IconButton
             edge="end"

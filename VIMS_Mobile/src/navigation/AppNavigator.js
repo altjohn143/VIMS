@@ -32,6 +32,9 @@ import AdminVerificationQueueScreen from '../screens/admin/AdminVerificationQueu
 import AdminReportSchedulesScreen from '../screens/admin/AdminReportSchedulesScreen';
 import AdminReportsScreen from '../screens/admin/AdminReportsScreen';
 import AdminAnnouncementsScreen from '../screens/admin/AdminAnnouncementsScreen';
+import ArchivedUsersScreen from '../screens/admin/ArchivedUsersScreen';
+import ArchivedAnnouncementsScreen from '../screens/admin/ArchivedAnnouncementsScreen';
+import ArchivedServiceRequestsScreen from '../screens/admin/ArchivedServiceRequestsScreen';
 
 // Security Screens
 import SecurityVisitorApprovalScreen from '../screens/security/SecurityVisitorApprovalScreen';
@@ -207,6 +210,9 @@ const AppNavigator = () => {
               <Stack.Screen name="AdminReportSchedules" component={AdminReportSchedulesScreen} />
               <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
               <Stack.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} />
+              <Stack.Screen name="ArchivedUsers" component={ArchivedUsersScreen} />
+              <Stack.Screen name="ArchivedAnnouncements" component={ArchivedAnnouncementsScreen} />
+              <Stack.Screen name="ArchivedServiceRequests" component={ArchivedServiceRequestsScreen} />
             </>
           )}
           {user.role === 'security' && (

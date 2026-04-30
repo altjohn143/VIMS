@@ -9,6 +9,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const now = new Date();
     const rows = await Announcement.find({
+      isArchived: false,
       $or: [
         { status: 'published' },
         { status: 'scheduled', scheduledAt: { $lte: now } }
@@ -26,7 +27,7 @@ router.get('/', protect, async (req, res) => {
 // Admin list (includes unpublished)
 router.get('/admin', protect, authorize('admin'), async (req, res) => {
   try {
-    const rows = await Announcement.find()
+    const rows = await Announcement.find({ isArchived: false })
       .populate('createdBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
     res.json({ success: true, count: rows.length, data: rows });
@@ -103,15 +104,65 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// Delete announcement
+// Archive announcement
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const row = await Announcement.findById(req.params.id);
     if (!row) return res.status(404).json({ success: false, error: 'Announcement not found' });
-    await row.deleteOne();
-    res.json({ success: true, message: 'Announcement deleted' });
+    
+    row.isArchived = true;
+    row.archivedAt = new Date();
+    row.archivedBy = req.user._id;
+    row.archivedReason = req.body.reason || 'No reason provided';
+    await row.save();
+    
+    res.json({ success: true, message: 'Announcement archived' });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to delete announcement' });
+    res.status(500).json({ success: false, error: 'Failed to archive announcement' });
+  }
+});
+
+// Restore archived announcement
+router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
+  try {
+    const row = await Announcement.findById(req.params.id);
+    if (!row) return res.status(404).json({ success: false, error: 'Announcement not found' });
+    
+    if (!row.isArchived) {
+      return res.status(400).json({ success: false, error: 'Announcement is not archived' });
+    }
+    
+    row.isArchived = false;
+    row.archivedAt = null;
+    row.archivedBy = null;
+    row.archivedReason = '';
+    await row.save();
+    
+    res.json({ success: true, message: 'Announcement restored', data: row });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to restore announcement' });
+  }
+});
+
+// Get archived announcements
+router.get('/archived', protect, authorize('admin'), async (req, res) => {
+  try {
+    const announcements = await Announcement.find({ isArchived: true })
+      .populate('createdBy', 'firstName lastName')
+      .populate('archivedBy', 'firstName lastName email')
+      .sort({ archivedAt: -1 });
+    
+    res.json({
+      success: true,
+      data: announcements
+    });
+    
+  } catch (error) {
+    console.error('Get archived announcements error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get archived announcements'
+    });
   }
 });
 

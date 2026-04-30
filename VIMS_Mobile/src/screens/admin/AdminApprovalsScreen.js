@@ -126,12 +126,12 @@ const AdminApprovalsScreen = ({ navigation }) => {
     if (!selectedUser) return;
 
     Alert.alert(
-      'Reject User',
-      `Reject ${selectedUser.firstName} ${selectedUser.lastName}?`,
+      'Archive User',
+      `Archive ${selectedUser.firstName} ${selectedUser.lastName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reject',
+          text: 'Archive',
           style: 'destructive',
           onPress: async () => {
             setProcessing(true);
@@ -141,7 +141,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
               });
               
               if (response.data.success) {
-                Alert.alert('Success', 'User rejected successfully');
+                Alert.alert('Success', 'User archived successfully');
                 setPendingUsers(prev => prev.filter(user => user._id !== selectedUser._id));
                 setShowRejectModal(false);
                 setShowDetailsModal(false);
@@ -282,7 +282,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
             disabled={processing}
           >
             <Ionicons name="close-circle" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Reject</Text>
+            <Text style={styles.actionButtonText}>Archive</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -480,7 +480,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Reject Modal */}
+      {/* Archive Modal */}
       <Modal
         visible={showRejectModal}
         animationType="slide"
@@ -493,7 +493,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Reject Registration</Text>
+              <Text style={styles.modalTitle}>Archive User</Text>
               <TouchableOpacity onPress={() => {
                 setShowRejectModal(false);
                 setRejectReason('');
@@ -504,9 +504,9 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
             <View style={styles.rejectContent}>
               <View style={styles.warningBox}>
-                <Ionicons name="warning" size={24} color={themeColors.warning} />
+                <Ionicons name="information-circle" size={24} color={themeColors.warning} />
                 <Text style={styles.warningText}>
-                  This action cannot be undone. The resident will be permanently removed.
+                  This user will be archived and can be restored later if needed. The user will no longer have access to the system.
                 </Text>
               </View>
 
@@ -526,7 +526,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
               <TextInput
                 style={styles.rejectInput}
-                placeholder="Reason for rejection (optional)"
+                placeholder="Reason for archiving (optional)"
                 value={rejectReason}
                 onChangeText={setRejectReason}
                 multiline
@@ -553,7 +553,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
                   {processing ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <Text style={styles.modalActionText}>Reject</Text>
+                    <Text style={styles.modalActionText}>Archive</Text>
                   )}
                 </TouchableOpacity>
               </View>

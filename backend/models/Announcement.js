@@ -7,7 +7,27 @@ const announcementSchema = new mongoose.Schema(
     status: { type: String, enum: ['draft', 'published', 'scheduled'], default: 'published' },
     scheduledAt: { type: Date },
     publishedAt: { type: Date },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    
+    // Archive fields
+    isArchived: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    archivedAt: {
+      type: Date,
+      default: null
+    },
+    archivedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    archivedReason: {
+      type: String,
+      default: ''
+    }
   },
   { timestamps: true }
 );

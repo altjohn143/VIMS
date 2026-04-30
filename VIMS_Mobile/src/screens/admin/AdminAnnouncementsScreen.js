@@ -131,23 +131,23 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
   };
 
   const remove = async (id) => {
-    Alert.alert('Delete announcement?', 'This cannot be undone.', [
+    Alert.alert('Archive announcement?', 'This announcement can be restored later if needed.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Archive',
         style: 'destructive',
         onPress: async () => {
           setProcessing(true);
           try {
             const res = await api.delete(`/announcements/${id}`);
             if (res.data?.success) {
-              Alert.alert('Success', 'Announcement deleted');
+              Alert.alert('Success', 'Announcement archived');
               load();
             } else {
-              Alert.alert('Error', res.data?.error || 'Failed to delete announcement');
+              Alert.alert('Error', res.data?.error || 'Failed to archive announcement');
             }
           } catch (e) {
-            Alert.alert('Error', e?.response?.data?.error || 'Failed to delete announcement');
+            Alert.alert('Error', e?.response?.data?.error || 'Failed to archive announcement');
           } finally {
             setProcessing(false);
           }
@@ -226,7 +226,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
             disabled={processing}
             onPress={() => remove(item._id)}
           >
-            <Text style={styles.dangerText}>Delete</Text>
+            <Text style={styles.dangerText}>Archive</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -259,6 +259,12 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity onPress={load} style={styles.headerIconButton}>
             <Ionicons name="refresh" size={22} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ArchivedAnnouncements')}
+            style={styles.headerIconButton}
+          >
+            <Ionicons name="archive" size={22} color="white" />
           </TouchableOpacity>
           <LogoutButton navigation={navigation} color="white" size={24} />
         </View>

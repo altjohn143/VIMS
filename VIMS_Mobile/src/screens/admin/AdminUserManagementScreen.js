@@ -182,7 +182,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
     );
   };
 
-  const handleDeleteUser = async () => {
+  const handleArchiveUser = async () => {
     if (!selectedUser) return;
 
     setProcessing(true);
@@ -191,7 +191,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
         data: { reason: deleteReason },
       });
       if (response.data.success) {
-        Alert.alert('Success', 'User deleted successfully');
+        Alert.alert('Success', 'User archived successfully');
         setShowDeleteModal(false);
         setShowDetailsModal(false);
         setSelectedUser(null);
@@ -199,7 +199,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
         fetchUsers();
       }
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to delete user');
+      Alert.alert('Error', error.response?.data?.error || 'Failed to archive user');
     } finally {
       setProcessing(false);
     }
@@ -334,7 +334,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
             }}
           >
             <Ionicons name="trash" size={20} color={themeColors.error} />
-            <Text style={[styles.actionButtonText, { color: themeColors.error }]}>Delete</Text>
+            <Text style={[styles.actionButtonText, { color: themeColors.error }]}>Archive</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -351,6 +351,12 @@ const AdminUserManagementScreen = ({ navigation }) => {
   <View style={styles.headerRight}>
     <TouchableOpacity onPress={fetchUsers} style={styles.refreshButton}>
       <Ionicons name="refresh" size={24} color="white" />
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('ArchivedUsers')}
+      style={styles.archivedButton}
+    >
+      <Ionicons name="archive" size={24} color="white" />
     </TouchableOpacity>
     <UserDropdownMenu navigation={navigation} />
   </View>
@@ -632,7 +638,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
                     }}
                   >
                     <Ionicons name="trash" size={20} color={themeColors.error} />
-                    <Text style={[styles.modalActionText, { color: themeColors.error }]}>Delete</Text>
+                    <Text style={[styles.modalActionText, { color: themeColors.error }]}>Archive</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -641,7 +647,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Delete Modal */}
+      {/* Archive Modal */}
       <Modal
         visible={showDeleteModal}
         animationType="slide"
@@ -651,7 +657,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Delete User</Text>
+              <Text style={styles.modalTitle}>Archive User</Text>
               <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
@@ -659,9 +665,9 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
             <View style={styles.deleteContent}>
               <View style={styles.warningBox}>
-                <Ionicons name="warning" size={24} color={themeColors.error} />
+                <Ionicons name="information-circle" size={24} color={themeColors.warning} />
                 <Text style={styles.warningText}>
-                  This action cannot be undone. The user will be permanently deleted.
+                  This user will be archived and can be restored later if needed. The user will no longer have access to the system.
                 </Text>
               </View>
 
@@ -679,7 +685,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
               <TextInput
                 style={styles.deleteInput}
-                placeholder="Reason for deletion (optional)"
+                placeholder="Reason for archiving (optional)"
                 value={deleteReason}
                 onChangeText={setDeleteReason}
                 multiline
@@ -700,13 +706,13 @@ const AdminUserManagementScreen = ({ navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalActionButton, styles.deleteButton]}
-                  onPress={handleDeleteUser}
+                  onPress={handleArchiveUser}
                   disabled={processing}
                 >
                   {processing ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <Text style={styles.modalActionText}>Delete</Text>
+                    <Text style={styles.modalActionText}>Archive</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -745,6 +751,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   refreshButton: {
+    padding: 8,
+  },
+  archivedButton: {
     padding: 8,
   },
   statsScroll: {

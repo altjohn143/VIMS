@@ -97,7 +97,27 @@ const serviceRequestSchema = new mongoose.Schema({
     filename: String,
     url: String,
     uploadedAt: Date
-  }]
+  }],
+  
+  // Archive fields
+  isArchived: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  archivedAt: {
+    type: Date,
+    default: null
+  },
+  archivedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  archivedReason: {
+    type: String,
+    default: ''
+  }
   
 }, {
   timestamps: true

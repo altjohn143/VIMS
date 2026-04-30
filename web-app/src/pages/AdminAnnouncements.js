@@ -117,14 +117,14 @@ const AdminAnnouncements = () => {
   };
 
   const remove = async (id) => {
-    const confirmed = window.confirm('Delete this announcement permanently?');
+    const confirmed = window.confirm('Archive this announcement?');
     if (!confirmed) return;
     try {
       await axios.delete(`/api/announcements/${id}`);
-      toast.success('Announcement deleted');
+      toast.success('Announcement archived');
       load();
     } catch (error) {
-      toast.error('Failed to delete announcement');
+      toast.error('Failed to archive announcement');
     }
   };
 
@@ -173,6 +173,21 @@ const AdminAnnouncements = () => {
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" sx={{ fontWeight: 800 }}>Admin Announcements</Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button
+            onClick={() => navigate('/admin/archived-announcements')}
+            variant="outlined"
+            sx={{
+              color: themeColors.warning,
+              borderColor: themeColors.warning,
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              '&:hover': { bgcolor: themeColors.warning + '10' }
+            }}
+          >
+            Archived
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -362,7 +377,7 @@ const AdminAnnouncements = () => {
                     onClick={() => remove(item._id)}
                     sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
                   >
-                    Delete
+                    Archive
                   </Button>
                 </Stack>
               </CardContent>

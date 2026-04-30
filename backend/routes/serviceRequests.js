@@ -52,7 +52,7 @@ router.get('/my', protect, authorize('resident'), async (req, res) => {
   try {
     const { status } = req.query;
     
-    let filter = { residentId: req.user.id };
+    let filter = { residentId: req.user.id, isArchived: false };
     if (status && status !== 'all') {
       filter.status = status;
     }
@@ -80,7 +80,7 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
   try {
     const { status, category, priority, residentId } = req.query;
     
-    let filter = {};
+    let filter = { isArchived: false };
 
     if (status && status !== 'all') {
       filter.status = status;
@@ -368,7 +368,8 @@ router.get('/my', protect, async (req, res) => {
 router.get('/admin/pending', protect, authorize('admin'), async (req, res) => {
   try {
     const requests = await ServiceRequest.find({ 
-      status: { $in: ['pending', 'under-review'] } 
+      status: { $in: ['pending', 'under-review'] },
+      isArchived: false
     })
       .populate('residentId', 'firstName lastName houseNumber phone email')
       .sort({ createdAt: -1 });
@@ -626,14 +627,7 @@ router.put('/:id/review', protect, authorize('admin'), async (req, res) => {
 
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const { deleteReason, deletedBy } = req.body;
-    
-    if (!deleteReason) {
-      return res.status(400).json({
-        success: false,
-        error: 'Delete reason is required'
-      });
-    }
+    const { reason } = req.body;
     
     const request = await ServiceRequest.findById(req.params.id);
     
@@ -644,18 +638,62 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
       });
     }
 
-    await ServiceRequest.findByIdAndDelete(req.params.id);
+    request.isArchived = true;
+    request.archivedAt = new Date();
+    request.archivedBy = req.user._id;
+    request.archivedReason = reason || 'No reason provided';
+    await request.save();
     
     res.json({
       success: true,
-      message: 'Service request deleted successfully'
+      message: 'Service request archived successfully'
     });
     
   } catch (error) {
-    console.error('Delete request error:', error);
+    console.error('Archive request error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to delete service request'
+      error: 'Failed to archive service request'
+    });
+  }
+});
+
+// Restore archived service request
+router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
+  try {
+    const request = await ServiceRequest.findById(req.params.id);
+    
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service request not found'
+      });
+    }
+    
+    if (!request.isArchived) {
+      return res.status(400).json({
+        success: false,
+        error: 'Service request is not archived'
+      });
+    }
+    
+    request.isArchived = false;
+    request.archivedAt = null;
+    request.archivedBy = null;
+    request.archivedReason = '';
+    await request.save();
+    
+    res.json({
+      success: true,
+      message: 'Service request restored successfully',
+      data: request
+    });
+    
+  } catch (error) {
+    console.error('Restore request error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to restore service request'
     });
   }
 });
@@ -677,6 +715,29 @@ router.get('/admin/staff', protect, authorize('admin'), async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get staff members'
+    });
+  }
+});
+
+// Get archived service requests
+router.get('/archived', protect, authorize('admin'), async (req, res) => {
+  try {
+    const serviceRequests = await ServiceRequest.find({ isArchived: true })
+      .populate('residentId', 'firstName lastName email houseNumber')
+      .populate('assignedTo', 'firstName lastName email')
+      .populate('archivedBy', 'firstName lastName email')
+      .sort({ archivedAt: -1 });
+    
+    res.json({
+      success: true,
+      data: serviceRequests
+    });
+    
+  } catch (error) {
+    console.error('Get archived service requests error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get archived service requests'
     });
   }
 });

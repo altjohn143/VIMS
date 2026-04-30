@@ -162,7 +162,7 @@ const AdminApprovals = () => {
       });
       
       if (response.data.success) {
-        toast.success('User rejected successfully');
+        toast.success('User archived successfully');
         setPendingUsers(prev => prev.filter(user => user._id !== selectedUser._id));
         setRejectDialogOpen(false);
         setDetailsOpen(false);
@@ -170,8 +170,8 @@ const AdminApprovals = () => {
         setRejectReason('');
       }
     } catch (error) {
-      console.error('Error rejecting user:', error);
-      toast.error(error.response?.data?.error || 'Failed to reject user');
+      console.error('Error archiving user:', error);
+      toast.error(error.response?.data?.error || 'Failed to archive user');
     } finally {
       setProcessing(false);
     }

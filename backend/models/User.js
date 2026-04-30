@@ -167,6 +167,26 @@ const userSchema = new mongoose.Schema({
   movedOutAt: {
     type: Date,
     default: null
+  },
+
+  // Archive fields
+  isArchived: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  archivedAt: {
+    type: Date,
+    default: null
+  },
+  archivedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  archivedReason: {
+    type: String,
+    default: ''
   }
 
 }, {

@@ -210,7 +210,7 @@ const AdminUserManagement = () => {
     fetchUsers();
   }, [getCurrentUser, navigate, fetchUsers]); // Added fetchUsers dependency
 
-  const handleDeleteUser = async () => {
+  const handleArchiveUser = async () => {
     if (!selectedUser) return;
     
     try {
@@ -225,7 +225,7 @@ const AdminUserManagement = () => {
       });
       
       if (response.data.success) {
-        toast.success(`User ${selectedUser.firstName} ${selectedUser.lastName} deleted successfully`);
+        toast.success(`User ${selectedUser.firstName} ${selectedUser.lastName} archived successfully`);
         setUsers(prev => prev.filter(user => user._id !== selectedUser._id));
         setDeleteDialogOpen(false);
         setDetailsOpen(false);
@@ -233,8 +233,8 @@ const AdminUserManagement = () => {
         setDeleteReason('');
       }
     } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error(error.response?.data?.error || 'Failed to delete user');
+      console.error('Error archiving user:', error);
+      toast.error(error.response?.data?.error || 'Failed to archive user');
     } finally {
       setProcessing(false);
     }
@@ -463,6 +463,22 @@ const AdminUserManagement = () => {
             }}
           >
             Refresh
+          </Button>
+
+          <Button
+            onClick={() => navigate('/admin/archived-users')}
+            variant="outlined"
+            sx={{
+              mr: 2,
+              color: themeColors.warning,
+              borderColor: themeColors.warning,
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              '&:hover': { bgcolor: themeColors.warning + '10' }
+            }}
+          >
+            Archived Users
           </Button>
 
           <Button 
@@ -835,7 +851,7 @@ const AdminUserManagement = () => {
                             </IconButton>
                           </Tooltip>
                           
-                          <Tooltip title="Delete User">
+                          <Tooltip title="Archive User">
                             <IconButton
                               size="small"
                               onClick={() => {
@@ -1048,14 +1064,14 @@ const AdminUserManagement = () => {
                   startIcon={<DeleteIcon />}
                   sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                 >
-                  Delete User
+                  Archive User
                 </Button>
               </DialogActions>
             </>
           )}
         </Dialog>
 
-        {/* Delete Confirmation Dialog */}
+        {/* Archive Confirmation Dialog */}
         <Dialog
           open={deleteDialogOpen}
           onClose={() => !processing && setDeleteDialogOpen(false)}
@@ -1064,17 +1080,17 @@ const AdminUserManagement = () => {
           PaperProps={{ sx: { borderRadius: '18px' } }}
         >
           <DialogTitle sx={{ color: themeColors.error, fontWeight: 600 }}>
-            Delete User Account
+            Archive User Account
           </DialogTitle>
           <DialogContent>
-            <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
-              This action cannot be undone. The user will be permanently deleted from the system.
+            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+              This user will be archived and can be restored later if needed. The user will no longer have access to the system.
             </Alert>
             
             {selectedUser && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="body2" gutterBottom>
-                  You are about to delete:
+                  You are about to archive:
                 </Typography>
                 <Paper sx={{ p: 2, bgcolor: themeColors.background, borderRadius: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1099,10 +1115,10 @@ const AdminUserManagement = () => {
               fullWidth
               multiline
               rows={2}
-              label="Reason for deletion (optional)"
+              label="Reason for archiving (optional)"
               value={deleteReason}
               onChange={(e) => setDeleteReason(e.target.value)}
-              placeholder="Provide a reason for deleting this user..."
+              placeholder="Provide a reason for archiving this user..."
               disabled={processing}
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -1125,12 +1141,12 @@ const AdminUserManagement = () => {
             <Button
               variant="contained"
               color="error"
-              onClick={handleDeleteUser}
+              onClick={handleArchiveUser}
               disabled={processing}
               startIcon={processing ? <CircularProgress size={20} /> : <DeleteIcon />}
               sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
             >
-              {processing ? 'Deleting...' : 'Permanently Delete'}
+              {processing ? 'Archiving...' : 'Archive User'}
             </Button>
           </DialogActions>
         </Dialog>

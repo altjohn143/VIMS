@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import api, { getProtectedImageDataUrl } from '../utils/api';
 import { startUnreadCountPolling } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -29,6 +29,7 @@ const DashboardScreen = ({ navigation }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentActivity, setRecentActivity] = useState([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { logout, user: authUser } = useAuth();
 
@@ -49,6 +50,7 @@ const DashboardScreen = ({ navigation }) => {
         if (!cancelled) setUser(userData);
         await fetchDashboardData(userData);
         await fetchRecentNotifications();
+        await fetchSelfiePreview();
       } catch (error) {
         console.error('Error loading user:', error);
       } finally {
@@ -123,6 +125,20 @@ const DashboardScreen = ({ navigation }) => {
       }
     } catch (_) {
       // best-effort; dashboard still works without
+    }
+  };
+
+  const fetchSelfiePreview = async () => {
+    try {
+      const res = await api.get('/verifications/me');
+      if (res.data?.success && res.data.data?.selfieImage) {
+        const previewUrl = await getProtectedImageDataUrl(`/verifications/my-files/${res.data.data.selfieImage}`);
+        if (previewUrl) {
+          setSelfiePreviewUrl(previewUrl);
+        }
+      }
+    } catch (error) {
+      console.warn('Could not load selfie preview:', error?.message);
     }
   };
 
@@ -245,7 +261,7 @@ const DashboardScreen = ({ navigation }) => {
       ? userToShow.profilePhoto.startsWith('http')
         ? userToShow.profilePhoto
         : `${api.defaults.baseURL?.replace(/\/api$/, '')}/uploads/profile-photos/${userToShow.profilePhoto}`
-      : null;
+      : selfiePreviewUrl;
 
   const fullName = `${userToShow?.firstName || ''} ${userToShow?.lastName || ''}`.trim() || 'User';
 

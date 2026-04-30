@@ -418,6 +418,8 @@ const ProfileScreen = ({ navigation }) => {
                 <Image source={{ uri: selectedPhotoUri }} style={styles.avatar} />
               ) : profilePhoto ? (
                 <Image source={{ uri: profilePhoto }} style={styles.avatar} />
+              ) : documentPreviewUrls.selfie ? (
+                <Image source={{ uri: documentPreviewUrls.selfie }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>

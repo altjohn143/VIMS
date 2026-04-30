@@ -145,6 +145,7 @@ const Dashboard = () => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [residentAnnouncements, setResidentAnnouncements] = useState([]);
   const [liveStats, setLiveStats] = useState({});
+  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
   const { logout, getCurrentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -189,11 +190,64 @@ const Dashboard = () => {
     fetchUserProfile();
   }, [user?.id]);
 
+  // Fetch selfie for avatar
+  useEffect(() => {
+    const fetchSelfiePreview = async () => {
+      if (!user?.id || user?.role !== 'resident') return;
+
+      try {
+        const token = localStorage.getItem('token') || '';
+        const response = await axios.get('/api/verifications/me', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (response.data?.success && response.data.data?.selfieImage) {
+          const selfieFilename = response.data.data.selfieImage;
+          const previewRes = await axios.get(`/api/verifications/my-files/${selfieFilename}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            responseType: 'blob'
+          });
+
+          if (previewRes.status === 200 && previewRes.data) {
+            const url = URL.createObjectURL(previewRes.data);
+            setSelfiePreviewUrl(url);
+          }
+        }
+      } catch (error) {
+        console.warn('Could not load selfie preview:', error?.message);
+      }
+    };
+
+    fetchSelfiePreview();
+  }, [user?.id, user?.role]);
+
+  useEffect(() => {
+    return () => {
+      if (selfiePreviewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(selfiePreviewUrl);
+      }
+    };
+  }, [selfiePreviewUrl]);
+
   useEffect(() => {
     if (!isMobile) {
       setSidebarOpen(true);
     }
   }, [isMobile]);
+
+  const buildProfilePhotoUrl = (photo) => {
+    if (!photo) return null;
+    if (photo.startsWith('http')) return photo;
+    return `${window.location.origin}/uploads/profile-photos/${photo}`;
+  };
+
+  const avatarSrc = user?.profilePhotoUrl ||
+    buildProfilePhotoUrl(user?.profilePhoto) ||
+    selfiePreviewUrl;
 
   const handleLogout = useCallback(() => {
     logout();
@@ -734,7 +788,7 @@ const Dashboard = () => {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
               <Avatar
-                src={user.profilePhotoUrl}
+                src={avatarSrc}
                 sx={{
                   width: 42,
                   height: 42,
@@ -778,7 +832,7 @@ const Dashboard = () => {
         ) : (
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Avatar
-              src={user.profilePhotoUrl}
+              src={avatarSrc}
               sx={{
                 width: 42,
                 height: 42,
@@ -1080,7 +1134,7 @@ const Dashboard = () => {
             }}
           >
             <Avatar
-              src={user.profilePhotoUrl}
+              src={avatarSrc}
               sx={{
                 width: 38,
                 height: 38,
@@ -1134,7 +1188,7 @@ const Dashboard = () => {
           >
             <MenuItem disabled sx={{ opacity: 1, py: 1.75 }}>
               <ListItemIcon>
-                <Avatar src={user.profilePhotoUrl} sx={{ width: 36, height: 36, bgcolor: themeColors.primary }}>
+                <Avatar src={avatarSrc} sx={{ width: 36, height: 36, bgcolor: themeColors.primary }}>
                   {user.firstName?.charAt(0)}
                   {user.lastName?.charAt(0)}
                 </Avatar>

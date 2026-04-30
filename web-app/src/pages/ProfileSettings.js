@@ -133,13 +133,14 @@ const ProfileSettings = () => {
           }
         });
         
+        let userData = null;
         const data = response.data;
         console.log('Profile data:', data);
         
         if (data.success) {
-          const userData = data.data;
+          userData = data.data;
           setUser(userData);
-          setProfilePhoto(userData.profilePhotoUrl || null);
+          setProfilePhoto(userData.profilePhotoUrl || (userData.profilePhoto ? `/uploads/profile-photos/${userData.profilePhoto}` : null) || null);
           setFormData({
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
@@ -168,6 +169,13 @@ const ProfileSettings = () => {
               status: verificationData?.status,
               documentsVerified: verificationData?.documentsVerified
             });
+
+            if (!userData.profilePhotoUrl && verificationData?.selfieImage) {
+              const selfiePreview = await fetchDocumentPreviewUrl(verificationData.selfieImage);
+              if (selfiePreview) {
+                setDocumentPreviewUrls((prev) => ({ ...prev, selfie: selfiePreview }));
+              }
+            }
           }
         } catch (verificationError) {
           setVerificationStatus(null);
@@ -722,7 +730,7 @@ const ProfileSettings = () => {
               <Box sx={{ textAlign: 'center' }}>
                 <Box sx={{ position: 'relative', display: 'inline-block' }}>
                   <Avatar
-                    src={profilePhoto}
+                    src={profilePhoto || documentPreviewUrls.selfie}
                     sx={{
                       width: 120,
                       height: 120,

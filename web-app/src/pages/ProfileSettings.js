@@ -247,7 +247,6 @@ const ProfileSettings = () => {
 
         setProfilePhoto(updatedProfileUrl || (updatedProfilePhoto ? `/uploads/profile-photos/${updatedProfilePhoto}` : null));
         setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
         if (updateUser) {
           await updateUser(updatedUser);
         }

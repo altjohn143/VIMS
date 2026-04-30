@@ -270,15 +270,12 @@ const ProfileScreen = ({ navigation }) => {
         const updatedPhoto = response.data.data.profilePhotoUrl || buildProfilePhotoUrl(response.data.data.profilePhoto);
         setProfilePhoto(updatedPhoto);
 
-        const storedUser = await AsyncStorage.getItem('user');
-        const currentStoredUser = storedUser ? JSON.parse(storedUser) : user;
-        if (currentStoredUser) {
+        if (user) {
           const updatedUser = {
-            ...currentStoredUser,
+            ...user,
             profilePhoto: updatedPhoto,
             profilePhotoUrl: response.data.data.profilePhotoUrl || updatedPhoto
           };
-          await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
           setUser(updatedUser);
           updateUser(updatedUser);
         }

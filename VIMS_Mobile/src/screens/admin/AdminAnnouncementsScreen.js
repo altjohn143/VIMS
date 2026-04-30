@@ -14,11 +14,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../../utils/api';
 import { themeColors, shadows } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 
-const emptyForm = { title: '', body: '', isPublished: true };
+const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null };
 
 const AdminAnnouncementsScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
@@ -27,6 +28,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [processing, setProcessing] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -63,8 +65,10 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
   };
 
   const publishCounts = useMemo(() => {
-    const published = rows.filter((r) => r?.isPublished).length;
-    return { published, drafts: rows.length - published };
+    const published = rows.filter((r) => r?.status === 'published').length;
+    const scheduled = rows.filter((r) => r?.status === 'scheduled').length;
+    const drafts = rows.filter((r) => r?.status === 'draft').length;
+    return { published, scheduled, drafts };
   }, [rows]);
 
   const create = async () => {
@@ -72,15 +76,23 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
       Alert.alert('Error', 'Title and message are required');
       return;
     }
+    if (form.status === 'scheduled' && !form.scheduledAt) {
+      Alert.alert('Error', 'Please select a date and time for scheduling');
+      return;
+    }
     setProcessing(true);
     try {
-      const res = await api.post('/announcements', {
+      const payload = {
         title: form.title,
         body: form.body,
-        isPublished: form.isPublished,
-      });
+        status: form.status,
+      };
+      if (form.status === 'scheduled') {
+        payload.scheduledAt = form.scheduledAt.toISOString();
+      }
+      const res = await api.post('/announcements', payload);
       if (res.data?.success) {
-        Alert.alert('Success', 'Announcement posted');
+        Alert.alert('Success', form.status === 'scheduled' ? 'Announcement scheduled' : 'Announcement posted');
         setForm(emptyForm);
         setCreateOpen(false);
         load();
@@ -94,18 +106,25 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
     }
   };
 
-  const togglePublish = async (id, isPublished) => {
+  const toggleStatus = async (id, currentStatus, action) => {
+    let newStatus;
+    if (currentStatus === 'scheduled') {
+      newStatus = action === 'publish' ? 'published' : 'draft';
+    } else {
+      newStatus = currentStatus === 'published' ? 'draft' : 'published';
+    }
     setProcessing(true);
     try {
-      const res = await api.put(`/announcements/${id}`, { isPublished: !isPublished });
+      const res = await api.put(`/announcements/${id}`, { status: newStatus });
       if (res.data?.success) {
-        Alert.alert('Success', !isPublished ? 'Announcement published' : 'Announcement unpublished');
+        const actionText = newStatus === 'published' ? 'published' : newStatus === 'draft' ? 'moved to draft' : 'updated';
+        Alert.alert('Success', `Announcement ${actionText}`);
         load();
       } else {
-        Alert.alert('Error', res.data?.error || 'Failed to update publish status');
+        Alert.alert('Error', res.data?.error || 'Failed to update status');
       }
     } catch (e) {
-      Alert.alert('Error', e?.response?.data?.error || 'Failed to update publish status');
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to update status');
     } finally {
       setProcessing(false);
     }
@@ -138,8 +157,15 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
   };
 
   const renderItem = ({ item }) => {
-    const badgeBg = item?.isPublished ? themeColors.success + '20' : themeColors.textSecondary + '20';
-    const badgeColor = item?.isPublished ? themeColors.success : themeColors.textSecondary;
+    const badgeBg = item?.status === 'published' ? themeColors.success + '20' : 
+                   item?.status === 'scheduled' ? themeColors.warning + '20' : 
+                   themeColors.textSecondary + '20';
+    const badgeColor = item?.status === 'published' ? themeColors.success : 
+                      item?.status === 'scheduled' ? themeColors.warning : 
+                      themeColors.textSecondary;
+    const badgeText = item?.status === 'published' ? 'PUBLISHED' : 
+                     item?.status === 'scheduled' ? 'SCHEDULED' : 
+                     'DRAFT';
     const author = item?.createdBy
       ? `${item.createdBy.firstName || 'System'} ${item.createdBy.lastName || ''}`.trim()
       : 'System';
@@ -151,7 +177,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
             {item?.title || 'Announcement'}
           </Text>
           <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-            <Text style={[styles.badgeText, { color: badgeColor }]}>{item?.isPublished ? 'PUBLISHED' : 'DRAFT'}</Text>
+            <Text style={[styles.badgeText, { color: badgeColor }]}>{badgeText}</Text>
           </View>
         </View>
 
@@ -159,7 +185,9 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
           Author: {author} {item?.createdBy?.role ? `(${item.createdBy.role})` : ''}
         </Text>
         <Text style={styles.meta}>
-          {item?.isPublished ? `Published: ${formatWhen(item?.publishedAt)}` : `Created: ${formatWhen(item?.createdAt)}`}
+          {item?.status === 'published' && item?.publishedAt ? `Published: ${formatWhen(item?.publishedAt)}` :
+           item?.status === 'scheduled' && item?.scheduledAt ? `Scheduled: ${formatWhen(item?.scheduledAt)}` :
+           `Created: ${formatWhen(item?.createdAt)}`}
         </Text>
 
         <Text style={styles.body} numberOfLines={5}>
@@ -167,13 +195,32 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
         </Text>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.secondaryBtn, processing && styles.disabled]}
-            disabled={processing}
-            onPress={() => togglePublish(item._id, item.isPublished)}
-          >
-            <Text style={styles.secondaryText}>{item?.isPublished ? 'Unpublish' : 'Publish'}</Text>
-          </TouchableOpacity>
+          {item?.status === 'scheduled' ? (
+            <>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.secondaryBtn, processing && styles.disabled]}
+                disabled={processing}
+                onPress={() => toggleStatus(item._id, item.status, 'publish')}
+              >
+                <Text style={styles.secondaryText}>Publish Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.secondaryBtn, processing && styles.disabled]}
+                disabled={processing}
+                onPress={() => toggleStatus(item._id, item.status, 'draft')}
+              >
+                <Text style={styles.secondaryText}>To Draft</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.secondaryBtn, processing && styles.disabled]}
+              disabled={processing}
+              onPress={() => toggleStatus(item._id, item.status)}
+            >
+              <Text style={styles.secondaryText}>{item?.status === 'published' ? 'To Draft' : 'Publish'}</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.actionBtn, styles.dangerBtn, processing && styles.disabled]}
             disabled={processing}
@@ -203,7 +250,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerTitle}>Admin Announcements</Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {publishCounts.published} published • {publishCounts.drafts} drafts
+            {publishCounts.published} published • {publishCounts.scheduled} scheduled • {publishCounts.drafts} drafts
           </Text>
         </View>
         <View style={styles.headerRight}>
@@ -264,27 +311,75 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
                 textAlignVertical="top"
               />
 
-              <View style={styles.publishRow}>
-                <View style={styles.publishLeft}>
-                  <Ionicons name={form.isPublished ? 'eye' : 'eye-off'} size={18} color={themeColors.textSecondary} />
-                  <Text style={styles.publishText}>
-                    {form.isPublished ? 'Publish immediately' : 'Save as draft'}
-                  </Text>
-                </View>
+              <Text style={styles.label}>Status</Text>
+              <View style={styles.statusRow}>
                 <TouchableOpacity
-                  style={[styles.toggle, form.isPublished && styles.toggleOn]}
-                  onPress={() => setForm((p) => ({ ...p, isPublished: !p.isPublished }))}
+                  style={[styles.statusOption, form.status === 'published' && styles.statusOptionSelected]}
+                  onPress={() => setForm((p) => ({ ...p, status: 'published' }))}
                 >
-                  <View style={[styles.toggleKnob, form.isPublished && styles.toggleKnobOn]} />
+                  <Ionicons name="eye" size={18} color={form.status === 'published' ? 'white' : themeColors.textSecondary} />
+                  <Text style={[styles.statusText, form.status === 'published' && styles.statusTextSelected]}>
+                    Publish immediately
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.statusOption, form.status === 'scheduled' && styles.statusOptionSelected]}
+                  onPress={() => setForm((p) => ({ ...p, status: 'scheduled' }))}
+                >
+                  <Ionicons name="time" size={18} color={form.status === 'scheduled' ? 'white' : themeColors.textSecondary} />
+                  <Text style={[styles.statusText, form.status === 'scheduled' && styles.statusTextSelected]}>
+                    Schedule for later
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.statusOption, form.status === 'draft' && styles.statusOptionSelected]}
+                  onPress={() => setForm((p) => ({ ...p, status: 'draft' }))}
+                >
+                  <Ionicons name="document" size={18} color={form.status === 'draft' ? 'white' : themeColors.textSecondary} />
+                  <Text style={[styles.statusText, form.status === 'draft' && styles.statusTextSelected]}>
+                    Save as draft
+                  </Text>
                 </TouchableOpacity>
               </View>
+
+              {form.status === 'scheduled' && (
+                <>
+                  <Text style={styles.label}>Schedule Date & Time</Text>
+                  <TouchableOpacity
+                    style={styles.datePickerBtn}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Ionicons name="calendar" size={18} color={themeColors.primary} />
+                    <Text style={styles.datePickerText}>
+                      {form.scheduledAt ? format(new Date(form.scheduledAt), 'MMM dd, yyyy • hh:mm a') : 'Select date and time'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={form.scheduledAt || new Date()}
+                  mode="datetime"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) {
+                      setForm((p) => ({ ...p, scheduledAt: selectedDate }));
+                    }
+                  }}
+                />
+              )}
 
               <View style={styles.modalActions}>
                 <TouchableOpacity style={[styles.actionBtn, styles.secondaryBtn]} onPress={() => setCreateOpen(false)} disabled={processing}>
                   <Text style={styles.secondaryText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, styles.primaryBtn, processing && styles.disabled]} onPress={create} disabled={processing}>
-                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryText}>Post</Text>}
+                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryText}>
+                    {form.status === 'scheduled' ? 'Schedule' : form.status === 'draft' ? 'Save Draft' : 'Post'}
+                  </Text>}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -363,6 +458,15 @@ const styles = StyleSheet.create({
   toggleKnob: { width: 22, height: 22, borderRadius: 999, backgroundColor: 'white' },
   toggleKnobOn: { alignSelf: 'flex-end' },
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 10 },
+
+  statusRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  statusOption: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc' },
+  statusOptionSelected: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
+  statusText: { fontSize: 12, fontWeight: '700', color: themeColors.textSecondary },
+  statusTextSelected: { color: 'white' },
+
+  datePickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 12, marginTop: 8, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc' },
+  datePickerText: { fontSize: 14, color: themeColors.textPrimary, fontWeight: '600' },
 });
 
 export default AdminAnnouncementsScreen;

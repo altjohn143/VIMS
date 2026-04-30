@@ -245,6 +245,9 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
   </TouchableOpacity>
   <Text style={styles.headerTitle}>Visitor Management</Text>
   <View style={styles.headerRight}>
+    <TouchableOpacity onPress={() => navigation.navigate('AdminVisitorReports')} style={styles.reportsButton}>
+      <Ionicons name="bar-chart" size={24} color="white" />
+    </TouchableOpacity>
     <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
       <Ionicons name="download" size={24} color="white" />
     </TouchableOpacity>
@@ -580,6 +583,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   exportButton: {
+    padding: 8,
+  },
+  reportsButton: {
     padding: 8,
   },
   statsScroll: {

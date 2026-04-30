@@ -7,7 +7,13 @@ const router = express.Router();
 // Public feed for logged-in users
 router.get('/', protect, async (req, res) => {
   try {
-    const rows = await Announcement.find({ isPublished: true })
+    const now = new Date();
+    const rows = await Announcement.find({
+      $or: [
+        { status: 'published' },
+        { status: 'scheduled', scheduledAt: { $lte: now } }
+      ]
+    })
       .populate('createdBy', 'firstName lastName role')
       .sort({ publishedAt: -1, createdAt: -1 });
 
@@ -32,16 +38,25 @@ router.get('/admin', protect, authorize('admin'), async (req, res) => {
 // Create announcement
 router.post('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const { title, body, isPublished = true } = req.body;
+    const { title, body, status = 'published', scheduledAt } = req.body;
     if (!title || !body) {
       return res.status(400).json({ success: false, error: 'Title and body are required' });
+    }
+
+    if (status === 'scheduled' && !scheduledAt) {
+      return res.status(400).json({ success: false, error: 'Scheduled time is required for scheduled announcements' });
+    }
+
+    if (status === 'scheduled' && new Date(scheduledAt) <= new Date()) {
+      return res.status(400).json({ success: false, error: 'Scheduled time must be in the future' });
     }
 
     const row = await Announcement.create({
       title: String(title).trim(),
       body: String(body).trim(),
-      isPublished: Boolean(isPublished),
-      publishedAt: isPublished ? new Date() : null,
+      status,
+      scheduledAt: status === 'scheduled' ? new Date(scheduledAt) : null,
+      publishedAt: status === 'published' ? new Date() : null,
       createdBy: req.user._id
     });
 
@@ -54,17 +69,33 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
 // Update announcement
 router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const { title, body, isPublished } = req.body;
+    const { title, body, status, scheduledAt } = req.body;
     const row = await Announcement.findById(req.params.id);
     if (!row) return res.status(404).json({ success: false, error: 'Announcement not found' });
 
     if (typeof title === 'string') row.title = title.trim();
     if (typeof body === 'string') row.body = body.trim();
-    if (typeof isPublished === 'boolean') {
-      row.isPublished = isPublished;
-      if (isPublished && !row.publishedAt) row.publishedAt = new Date();
-      if (!isPublished) row.publishedAt = null;
+
+    if (typeof status === 'string') {
+      if (status === 'scheduled' && !scheduledAt) {
+        return res.status(400).json({ success: false, error: 'Scheduled time is required for scheduled announcements' });
+      }
+      if (status === 'scheduled' && new Date(scheduledAt) <= new Date()) {
+        return res.status(400).json({ success: false, error: 'Scheduled time must be in the future' });
+      }
+
+      row.status = status;
+      if (status === 'published' && !row.publishedAt) {
+        row.publishedAt = new Date();
+      } else if (status === 'scheduled') {
+        row.scheduledAt = new Date(scheduledAt);
+        row.publishedAt = null;
+      } else if (status === 'draft') {
+        row.publishedAt = null;
+        row.scheduledAt = null;
+      }
     }
+
     await row.save();
     res.json({ success: true, data: row });
   } catch (error) {

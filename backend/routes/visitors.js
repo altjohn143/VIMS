@@ -1414,4 +1414,114 @@ router.get('/resident/dashboard', protect, authorize('resident'), async (req, re
   }
 });
 
+// Get visitor trend data for charts
+router.get('/admin/trend', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const now = new Date();
+    
+    // Default to last 30 days
+    const start = startDate ? new Date(startDate) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate) : now;
+    
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    
+    const trendData = await Visitor.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          visitors: { $sum: 1 },
+          approved: { $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] } },
+          pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+      },
+      {
+        $project: {
+          date: {
+            $dateFromParts: {
+              year: '$_id.year',
+              month: '$_id.month',
+              day: '$_id.day'
+            }
+          },
+          visitors: 1,
+          approved: 1,
+          pending: 1,
+          rejected: 1,
+          _id: 0
+        }
+      }
+    ]);
+    
+    res.json({
+      success: true,
+      data: trendData
+    });
+  } catch (error) {
+    console.error('Get visitor trend error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get visitor trend data'
+    });
+  }
+});
+
+// Get recent visitors for reports
+router.get('/admin/recent', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { startDate, endDate, status, limit = 20 } = req.query;
+    
+    let filter = {};
+    
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = end;
+      }
+    }
+    
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+    
+    const visitors = await Visitor.find(filter)
+      .populate('residentId', 'firstName lastName houseNumber email phone')
+      .populate('approvedBy', 'firstName lastName role')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+    
+    res.json({
+      success: true,
+      data: visitors
+    });
+  } catch (error) {
+    console.error('Get recent visitors error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get recent visitors'
+    });
+  }
+});
+
 module.exports = router;

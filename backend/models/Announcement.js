@@ -4,11 +4,20 @@ const announcementSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 160 },
     body: { type: String, required: true, trim: true, maxlength: 5000 },
-    isPublished: { type: Boolean, default: true },
-    publishedAt: { type: Date, default: Date.now },
+    status: { type: String, enum: ['draft', 'published', 'scheduled'], default: 'published' },
+    scheduledAt: { type: Date },
+    publishedAt: { type: Date },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
   },
   { timestamps: true }
 );
+
+// Virtual for isPublished (backward compatibility)
+announcementSchema.virtual('isPublished').get(function() {
+  return this.status === 'published';
+});
+
+announcementSchema.set('toJSON', { virtuals: true });
+announcementSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Announcement', announcementSchema);

@@ -32,7 +32,8 @@
           "cameraPermission": "Allow VIMS to access your camera to scan QR codes."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

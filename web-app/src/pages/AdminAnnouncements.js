@@ -9,14 +9,21 @@ import {
   Chip,
   Container,
   Divider,
+  FormControl,
   FormControlLabel,
   IconButton,
+  MenuItem,
+  Select,
   Stack,
   Switch,
   TextField,
   Toolbar,
   Typography
 } from '@mui/material';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import {
   Campaign as CampaignIcon,
   ArrowBack as ArrowBackIcon,
@@ -29,7 +36,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-const emptyForm = { title: '', body: '', isPublished: true };
+const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null };
 
 const AdminAnnouncements = () => {
   const navigate = useNavigate();
@@ -67,15 +74,23 @@ const AdminAnnouncements = () => {
       toast.error('Title and body are required');
       return;
     }
+    if (form.status === 'scheduled' && !form.scheduledAt) {
+      toast.error('Please select a date and time for scheduling');
+      return;
+    }
     try {
       setSaving(true);
-      const res = await axios.post('/api/announcements', {
+      const payload = {
         title: form.title,
         body: form.body,
-        isPublished: form.isPublished
-      });
+        status: form.status
+      };
+      if (form.status === 'scheduled') {
+        payload.scheduledAt = form.scheduledAt.toISOString();
+      }
+      const res = await axios.post('/api/announcements', payload);
       if (res.data?.success) {
-        toast.success('Announcement posted');
+        toast.success(form.status === 'scheduled' ? 'Announcement scheduled' : 'Announcement posted');
         setForm(emptyForm);
         load();
       }
@@ -86,13 +101,20 @@ const AdminAnnouncements = () => {
     }
   };
 
-  const togglePublish = async (id, isPublished) => {
+  const toggleStatus = async (id, currentStatus, action) => {
+    let newStatus;
+    if (currentStatus === 'scheduled') {
+      newStatus = action === 'publish' ? 'published' : 'draft';
+    } else {
+      newStatus = currentStatus === 'published' ? 'draft' : 'published';
+    }
     try {
-      await axios.put(`/api/announcements/${id}`, { isPublished: !isPublished });
-      toast.success(!isPublished ? 'Announcement published' : 'Announcement unpublished');
+      await axios.put(`/api/announcements/${id}`, { status: newStatus });
+      const actionText = newStatus === 'published' ? 'published' : newStatus === 'draft' ? 'moved to draft' : 'updated';
+      toast.success(`Announcement ${actionText}`);
       load();
     } catch (error) {
-      toast.error('Failed to update publish status');
+      toast.error('Failed to update announcement status');
     }
   };
 
@@ -111,8 +133,9 @@ const AdminAnnouncements = () => {
   const filteredRows = rows.filter((item) => {
     const byStatus =
       viewFilter === 'all' ||
-      (viewFilter === 'published' && item.isPublished) ||
-      (viewFilter === 'draft' && !item.isPublished);
+      (viewFilter === 'published' && item.status === 'published') ||
+      (viewFilter === 'draft' && item.status === 'draft') ||
+      (viewFilter === 'scheduled' && item.status === 'scheduled');
     const q = query.trim().toLowerCase();
     const byQuery =
       !q ||
@@ -210,18 +233,36 @@ const AdminAnnouncements = () => {
                 helperText={`${form.body.length}/500`}
                 inputProps={{ maxLength: 500 }}
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={form.isPublished}
-                    onChange={(e) => setForm((prev) => ({ ...prev, isPublished: e.target.checked }))}
+              <FormControl fullWidth>
+                <Select
+                  value={form.status}
+                  onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+                  displayEmpty
+                >
+                  <MenuItem value="published">Publish immediately</MenuItem>
+                  <MenuItem value="scheduled">Schedule for later</MenuItem>
+                  <MenuItem value="draft">Save as draft</MenuItem>
+                </Select>
+              </FormControl>
+              {form.status === 'scheduled' && (
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <DateTimePicker
+                    label="Schedule date & time"
+                    value={form.scheduledAt}
+                    onChange={(newValue) => setForm((prev) => ({ ...prev, scheduledAt: newValue }))}
+                    minDateTime={dayjs()}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        helperText: 'Select when to publish this announcement'
+                      }
+                    }}
                   />
-                }
-                label="Publish immediately"
-              />
+                </LocalizationProvider>
+              )}
               <Box>
                 <Button variant="contained" onClick={createAnnouncement} disabled={saving} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800, px: 2.2, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
-                  {saving ? 'Posting...' : 'Post Announcement'}
+                  {saving ? 'Saving...' : form.status === 'scheduled' ? 'Schedule Announcement' : form.status === 'draft' ? 'Save Draft' : 'Post Announcement'}
                 </Button>
               </Box>
             </Stack>
@@ -244,6 +285,7 @@ const AdminAnnouncements = () => {
               <Stack direction="row" spacing={1}>
                 <Button size="small" variant={viewFilter === 'all' ? 'contained' : 'outlined'} onClick={() => setViewFilter('all')} sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}>All</Button>
                 <Button size="small" variant={viewFilter === 'published' ? 'contained' : 'outlined'} onClick={() => setViewFilter('published')} sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}>Published</Button>
+                <Button size="small" variant={viewFilter === 'scheduled' ? 'contained' : 'outlined'} onClick={() => setViewFilter('scheduled')} sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}>Scheduled</Button>
                 <Button size="small" variant={viewFilter === 'draft' ? 'contained' : 'outlined'} onClick={() => setViewFilter('draft')} sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}>Draft</Button>
               </Stack>
             </Stack>
@@ -258,27 +300,62 @@ const AdminAnnouncements = () => {
                   <Typography variant="h6" sx={{ fontWeight: 800 }}>
                     {item.title}
                   </Typography>
-                  <Chip size="small" label={item.isPublished ? 'Published' : 'Draft'} color={item.isPublished ? 'success' : 'default'} />
+                  <Chip 
+                    size="small" 
+                    label={
+                      item.status === 'published' ? 'Published' : 
+                      item.status === 'scheduled' ? 'Scheduled' : 
+                      'Draft'
+                    } 
+                    color={
+                      item.status === 'published' ? 'success' : 
+                      item.status === 'scheduled' ? 'warning' : 
+                      'default'
+                    } 
+                  />
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                   Author: {item.createdBy?.firstName || 'System'} {item.createdBy?.lastName || ''}{' '}
                   {item.createdBy?.role ? `(${item.createdBy.role})` : ''}
                 </Typography>
                 <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
-                  {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
+                  {item.status === 'published' && item.publishedAt ? `Published: ${new Date(item.publishedAt).toLocaleString()}` :
+                   item.status === 'scheduled' && item.scheduledAt ? `Scheduled: ${new Date(item.scheduledAt).toLocaleString()}` :
+                   `Created: ${new Date(item.createdAt).toLocaleString()}`}
                 </Typography>
                 <Typography sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{item.body}</Typography>
                 <Divider sx={{ my: 1.5 }} />
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={item.isPublished ? <UnpublishedIcon /> : <PublishIcon />}
-                    onClick={() => togglePublish(item._id, item.isPublished)}
-                    sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
-                  >
-                    {item.isPublished ? 'Unpublish' : 'Publish'}
-                  </Button>
+                  {item.status === 'scheduled' ? (
+                    <>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => toggleStatus(item._id, item.status, 'publish')}
+                        sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
+                      >
+                        Publish Now
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => toggleStatus(item._id, item.status, 'draft')}
+                        sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
+                      >
+                        Move to Draft
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={item.status === 'published' ? <UnpublishedIcon /> : <PublishIcon />}
+                      onClick={() => toggleStatus(item._id, item.status)}
+                      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '10px' }}
+                    >
+                      {item.status === 'published' ? 'Move to Draft' : 'Publish'}
+                    </Button>
+                  )}
                   <Button
                     size="small"
                     color="error"

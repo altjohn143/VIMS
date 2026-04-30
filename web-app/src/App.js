@@ -14,6 +14,7 @@ import VisitorManagement from './pages/VisitorManagement';
 import ServiceRequests from './pages/ServiceRequests';
 import SecurityVisitorApproval from './pages/SecurityVisitorApproval';
 import AdminVisitorManagement from './pages/AdminVisitorManagement';
+import AdminVisitorReports from './pages/AdminVisitorReports';
 import SecurityVisitorLogs from './pages/SecurityVisitorLogs';
 import SecurityServiceRequests from './pages/SecurityServiceRequests';
 import SecurityPatrolSchedule from './pages/SecurityPatrolSchedule';
@@ -112,6 +113,7 @@ function App() {
             {/* Admin-only routes */}
             <Route path="/admin/service-requests" element={<AdminRoute><AdminServiceRequests /></AdminRoute>} />
             <Route path="/admin/visitor-management" element={<AdminRoute><AdminVisitorManagement /></AdminRoute>} />
+            <Route path="/admin/visitor-reports" element={<AdminRoute><AdminVisitorReports /></AdminRoute>} />
             <Route path="/admin/approvals" element={<AdminRoute><AdminApprovals /></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><AdminUserManagement /></AdminRoute>} />
             <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />

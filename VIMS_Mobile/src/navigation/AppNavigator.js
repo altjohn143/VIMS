@@ -27,6 +27,7 @@ import AdminApprovalsScreen from '../screens/admin/AdminApprovalsScreen';
 import AdminUserManagementScreen from '../screens/admin/AdminUserManagementScreen';
 import AdminServiceRequestsScreen from '../screens/admin/AdminServiceRequestsScreen';
 import AdminVisitorManagementScreen from '../screens/admin/AdminVisitorManagementScreen';
+import AdminVisitorReportsScreen from '../screens/admin/AdminVisitorReportsScreen';
 import AdminVerificationQueueScreen from '../screens/admin/AdminVerificationQueueScreen';
 import AdminReportSchedulesScreen from '../screens/admin/AdminReportSchedulesScreen';
 import AdminReportsScreen from '../screens/admin/AdminReportsScreen';
@@ -201,6 +202,7 @@ const AppNavigator = () => {
             <>
               <Stack.Screen name="AdminDashboard" component={AdminTabs} />
               <Stack.Screen name="AdminApprovals" component={AdminApprovalsScreen} />
+              <Stack.Screen name="AdminVisitorReports" component={AdminVisitorReportsScreen} />
               <Stack.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} />
               <Stack.Screen name="AdminReportSchedules" component={AdminReportSchedulesScreen} />
               <Stack.Screen name="AdminReports" component={AdminReportsScreen} />

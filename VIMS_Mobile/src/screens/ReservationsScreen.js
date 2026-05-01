@@ -751,4 +751,3 @@ const styles = StyleSheet.create({
 });
 
 export default ReservationsScreen;
-<parameter name="filePath">c:\Users\johnm\Downloads\vims-system\VIMS_Mobile\src\screens\ReservationsScreen.js

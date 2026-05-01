@@ -180,6 +180,20 @@ const AdminReservations = () => {
     }
   };
 
+  const handleUpdateStatus = async (reservationId, status) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`/api/reservations/${reservationId}`, { status }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSnackbar({ open: true, message: `Reservation ${status === 'confirmed' ? 'approved' : 'denied'} successfully`, severity: 'success' });
+      fetchReservations();
+    } catch (error) {
+      console.error('Error updating reservation status:', error);
+      setSnackbar({ open: true, message: 'Failed to update reservation status', severity: 'error' });
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed': return 'success';
@@ -295,6 +309,28 @@ const AdminReservations = () => {
                             <EditIcon />
                           </IconButton>
                         </Tooltip>
+                        {reservation.status === 'pending' && (
+                          <>
+                            <Button
+                              size="small"
+                              color="success"
+                              onClick={() => handleUpdateStatus(reservation._id, 'confirmed')}
+                              startIcon={<CheckCircleIcon />}
+                              sx={{ textTransform: 'none', mr: 1 }}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => handleUpdateStatus(reservation._id, 'cancelled')}
+                              startIcon={<CancelIcon />}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Deny
+                            </Button>
+                          </>
+                        )}
                         <Tooltip title="Delete">
                           <IconButton onClick={() => handleDelete(reservation._id)} size="small" color="error">
                             <DeleteIcon />

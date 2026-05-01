@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Reservation = require('../models/Reservation');
 const { protect, authorize } = require('../middleware/auth');
+const { createInAppNotification } = require('../services/inAppNotificationService');
 
 const VENUES = [
   'Covered Court',
@@ -71,14 +72,48 @@ router.post('/', protect, async (req, res) => {
 
 router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const reservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const reservation = await Reservation.findById(req.params.id);
     if (!reservation) {
       return res.status(404).json({ success: false, error: 'Reservation not found' });
     }
-    res.json({ success: true, data: reservation });
+
+    const previousStatus = reservation.status;
+    const updatedReservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedReservation) {
+      return res.status(404).json({ success: false, error: 'Reservation not found' });
+    }
+
+    if (req.body.status && req.body.status !== previousStatus) {
+      let title;
+      let body;
+
+      if (req.body.status === 'confirmed') {
+        title = 'Reservation approved';
+        body = `Your reservation for ${updatedReservation.resourceName} has been approved by admin.`;
+      } else if (req.body.status === 'cancelled') {
+        title = 'Reservation denied';
+        body = `Your reservation for ${updatedReservation.resourceName} has been denied by admin.`;
+      }
+
+      if (title && body) {
+        await createInAppNotification({
+          userId: updatedReservation.reservedBy,
+          type: 'reservation',
+          title,
+          body,
+          metadata: {
+            reservationId: updatedReservation._id,
+            status: updatedReservation.status,
+          },
+        });
+      }
+    }
+
+    res.json({ success: true, data: updatedReservation });
   } catch (error) {
     console.error('Update reservation error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to update reservation' });

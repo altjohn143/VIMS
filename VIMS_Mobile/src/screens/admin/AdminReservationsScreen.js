@@ -167,6 +167,17 @@ const AdminReservationsScreen = ({ navigation }) => {
     );
   };
 
+  const handleUpdateStatus = async (id, status) => {
+    try {
+      await api.put(`/reservations/${id}`, { status });
+      Alert.alert('Success', `Reservation ${status === 'confirmed' ? 'approved' : 'denied'} successfully`);
+      fetchReservations();
+    } catch (error) {
+      console.error('Error updating reservation status:', error);
+      Alert.alert('Error', 'Failed to update reservation status');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed': return '#22c55e';
@@ -679,6 +690,27 @@ const styles = StyleSheet.create({
   },
   statusSection: {
     alignItems: 'flex-end',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 12,
+  },
+  actionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  approveButton: {
+    backgroundColor: '#22c55e',
+  },
+  denyButton: {
+    backgroundColor: '#ef4444',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   statusBadge: {
     flexDirection: 'row',

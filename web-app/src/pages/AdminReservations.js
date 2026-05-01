@@ -22,15 +22,10 @@ import {
   Select,
   MenuItem,
   Grid,
-  Card,
-  CardContent,
   IconButton,
   Tooltip,
   Alert,
   Snackbar,
-  useTheme,
-  useMediaQuery,
-  Fab,
   CircularProgress
 } from '@mui/material';
 import {
@@ -73,8 +68,6 @@ const AdminReservations = () => {
   const [open, setOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [formData, setFormData] = useState({
     resourceType: 'venue',

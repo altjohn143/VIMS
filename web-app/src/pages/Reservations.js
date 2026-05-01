@@ -3,7 +3,6 @@ import {
   Container,
   Typography,
   Box,
-  Paper,
   Grid,
   Card,
   CardContent,
@@ -25,9 +24,7 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider,
-  useTheme,
-  useMediaQuery
+  Divider
 } from '@mui/material';
 import {
   EventAvailable as EventAvailableIcon,
@@ -67,8 +64,6 @@ const Reservations = () => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [formData, setFormData] = useState({
     resourceType: 'venue',

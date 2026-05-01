@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import api, { getProtectedImageDataUrl } from '../utils/api';
 import { startUnreadCountPolling } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationModal from '../components/NotificationModal';
 
 const DashboardScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
@@ -29,6 +30,7 @@ const DashboardScreen = ({ navigation }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentActivity, setRecentActivity] = useState([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { logout, user: authUser } = useAuth();
@@ -284,8 +286,16 @@ const DashboardScreen = ({ navigation }) => {
 
         <View style={styles.topBarRight}>
           {/* Bell */}
-          <TouchableOpacity style={styles.bellBtn}>
+          <TouchableOpacity 
+            style={styles.bellBtn}
+            onPress={() => setNotificationModalVisible(true)}
+          >
             <Ionicons name="notifications-outline" size={18} color="#fff" />
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* User Pill — tapping opens dropdown */}
@@ -512,6 +522,12 @@ const DashboardScreen = ({ navigation }) => {
         </View>
 
       </ScrollView>
+
+      {/* Notification Modal */}
+      <NotificationModal 
+        visible={notificationModalVisible} 
+        onClose={() => setNotificationModalVisible(false)} 
+      />
     </View>
   );
 };
@@ -542,6 +558,24 @@ const styles = StyleSheet.create({
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center', justifyContent: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#ef4444',
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '700',
   },
   userPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,

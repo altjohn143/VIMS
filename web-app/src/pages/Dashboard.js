@@ -70,6 +70,7 @@ import {
 import axios from 'axios';
 import AdminDashboardGraphs from '../components/AdminDashboardGraphs';
 import SecurityDashboardGraphs from '../components/SecurityDashboardGraphs';
+import NotificationPanel from '../components/NotificationPanel';
 
 const themeColors = {
   primary: '#166534',
@@ -151,6 +152,7 @@ const Dashboard = () => {
   const [residentAnnouncements, setResidentAnnouncements] = useState([]);
   const [liveStats, setLiveStats] = useState({});
   const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
+  const [notificationAnchor, setNotificationAnchor] = useState(null);
   const { logout, getCurrentUser } = useAuth();
 
   useEffect(() => {
@@ -1110,7 +1112,10 @@ const Dashboard = () => {
             </Box>
           </Box>
 
-          <IconButton component={RouterLink} to="/notifications" sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}>
+          <IconButton
+            onClick={(e) => setNotificationAnchor(notificationAnchor ? null : e.currentTarget)}
+            sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}
+          >
             <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon />
             </Badge>
@@ -1980,6 +1985,13 @@ const Dashboard = () => {
           </Box>
         </Container>
       </Box>
+
+      {/* Notification Panel Dropdown */}
+      <NotificationPanel
+        anchorEl={notificationAnchor}
+        open={Boolean(notificationAnchor)}
+        onClose={() => setNotificationAnchor(null)}
+      />
     </>
   );
 };

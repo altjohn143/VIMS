@@ -20,9 +20,10 @@ const EQUIPMENT = [
   'Podium',
 ];
 
-router.get('/', protect, authorize('admin'), async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
-    const reservations = await Reservation.find({})
+    const query = req.user.role === 'admin' ? {} : { reservedBy: req.user._id };
+    const reservations = await Reservation.find(query)
       .populate('reservedBy', 'firstName lastName email')
       .sort({ createdAt: -1 });
     res.json({ success: true, data: reservations });
@@ -32,7 +33,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-router.post('/', protect, authorize('admin'), async (req, res) => {
+router.post('/', protect, async (req, res) => {
   try {
     const {
       resourceType,

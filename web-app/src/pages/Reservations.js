@@ -86,11 +86,7 @@ const Reservations = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.success) {
-        // Filter to show only current user's reservations
-        const userReservations = response.data.data.filter(
-          res => res.reservedBy._id === JSON.parse(atob(token.split('.')[1])).id
-        );
-        setReservations(userReservations);
+        setReservations(response.data.data);
       }
     } catch (error) {
       console.error('Error fetching reservations:', error);

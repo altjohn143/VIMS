@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,14 @@ import {
   ActivityIndicator,
   ImageBackground,
   StatusBar,
+  Dimensions,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import { themeColors, shadows } from '../utils/theme';
+
+const { width, height } = Dimensions.get('window');
 
 const HERO_ABOUT_FULL =
   'Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities where families can live comfortably and create a better future.';
@@ -33,6 +37,78 @@ const LoginScreen = ({ navigation }) => {
   const [forgotLoading, setForgotLoading] = useState(false);
 
   const { login } = useAuth();
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const cardScaleAnim = useRef(new Animated.Value(0.95)).current;
+  const modalScaleAnim = useRef(new Animated.Value(0.9)).current;
+  const modalOpacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (selectedRole) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+        Animated.spring(cardScaleAnim, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      fadeAnim.setValue(0);
+      slideAnim.setValue(30);
+      cardScaleAnim.setValue(0.95);
+    }
+  }, [selectedRole]);
+
+  const showModal = () => {
+    setShowForgotPassword(true);
+    Animated.parallel([
+      Animated.spring(modalScaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalOpacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const hideModal = () => {
+    Animated.parallel([
+      Animated.spring(modalScaleAnim, {
+        toValue: 0.9,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalOpacityAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowForgotPassword(false);
+      setForgotEmail('');
+    });
+  };
 
   const roles = [
     {
@@ -54,8 +130,6 @@ const LoginScreen = ({ navigation }) => {
       description: 'Monitor entries and help keep the community safe.',
     },
   ];
-
-// NOTE: Removed hardcoded/mock stats (must be DB-backed).
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -101,10 +175,6 @@ const LoginScreen = ({ navigation }) => {
           );
           return;
         }
-        // IMPORTANT:
-        // Role dashboards are conditionally added by `AppNavigator` only AFTER AuthContext sets `user`.
-        // Navigating immediately can race and trigger "action not handled" warnings.
-        // So we don't manually navigate here; AppNavigator will switch to the correct dashboard automatically.
       }
     } catch (error) {
       Alert.alert('Error', 'Something went wrong');
@@ -138,8 +208,7 @@ const LoginScreen = ({ navigation }) => {
         [{ text: 'OK' }]
       );
 
-      setShowForgotPassword(false);
-      setForgotEmail('');
+      hideModal();
     } catch (err) {
       Alert.alert('Error', err.message || 'Failed to process request');
     } finally {
@@ -151,6 +220,9 @@ const LoginScreen = ({ navigation }) => {
     navigation.navigate('PublicLots');
   };
 
+  // ============================================================
+  // ROLE SELECTION SCREEN (Glassmorphism - Clean)
+  // ============================================================
   if (!selectedRole) {
     return (
       <View style={styles.screen}>
@@ -161,75 +233,67 @@ const LoginScreen = ({ navigation }) => {
           style={styles.backgroundImage}
           imageStyle={styles.backgroundImageStyle}
         >
-          {/* Overlay for better text readability */}
           <View style={styles.gradientOverlay}>
             <ScrollView
               contentContainerStyle={styles.landingScrollContent}
               showsVerticalScrollIndicator={false}
             >
-              {/* Brand Row */}
+              {/* Brand Header */}
               <View style={styles.topBrandRow}>
                 <View style={styles.logoCircle}>
-                  <Ionicons name="business-outline" size={18} color="#ffffff" />
+                  <Ionicons name="business-outline" size={22} color="#ffffff" />
                 </View>
-                <View>
-                  <Text style={styles.brandTitle}>WESTVILLE CASIMIRO</Text>
-                  <Text style={styles.brandSubtitle}>HOMES</Text>
-                </View>
+                <Text style={styles.brandTitle}>WESTVILLE CASIMIRO HOMES</Text>
               </View>
 
-              {/* Hero */}
+              {/* Hero Section */}
               <View style={styles.heroContent}>
                 <Text style={styles.heroHeading}>
-                  YOUR DREAM LIFE{'\n'}AWAITS IN{'\n'}WESTVILLE HOMES
+                  YOUR DREAM LIFE{'\n'}AWAITS IN WESTVILLE HOMES
                 </Text>
 
-                {heroAboutExpanded ? (
+                {heroAboutExpanded && (
                   <Text style={styles.heroDescription}>{HERO_ABOUT_FULL}</Text>
-                ) : null}
+                )}
 
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setHeroAboutExpanded((v) => !v)}
-                >
+                <TouchableOpacity onPress={() => setHeroAboutExpanded(!heroAboutExpanded)}>
                   <Text style={styles.readMoreText}>
-                    {heroAboutExpanded ? 'READ LESS' : 'READ MORE'}
+                    READ {heroAboutExpanded ? 'LESS' : 'MORE'}
                   </Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Stats removed (no mock data) */}
-
-              {/* Role Cards */}
-              <View style={styles.roleCardsContainer}>
-                {roles.map((role) => (
-                  <Pressable
-                    key={role.key}
-                    onPress={() => setSelectedRole(role.key)}
-                    style={({ pressed, hovered }) => [
-                      styles.roleCard,
-                      Platform.OS === 'web' && styles.roleCardWeb,
-                      hovered && styles.roleCardHovered,
-                      pressed && styles.roleCardPressed,
-                    ]}
-                  >
-                    <View style={styles.roleIconWrap}>
-                      <Ionicons name={role.icon} size={26} color="#d1fae5" />
-                    </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>{role.label}</Text>
-                      <Text style={styles.roleDesc}>{role.description}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.45)" />
-                  </Pressable>
-                ))}
+              {/* Role Cards - Clean Glass Effect */}
+              <View style={styles.roleSection}>
+                <View style={styles.roleCardsContainer}>
+                  {roles.map((role) => (
+                    <Pressable
+                      key={role.key}
+                      onPress={() => setSelectedRole(role.key)}
+                      style={({ pressed }) => [
+                        styles.glassCard,
+                        pressed && styles.glassCardPressed,
+                      ]}
+                    >
+                      <View style={styles.glassCardInner}>
+                        <View style={styles.roleIconWrap}>
+                          <Ionicons name={role.icon} size={28} color="#FFFFFF" />
+                        </View>
+                        <View style={styles.roleContent}>
+                          <Text style={styles.roleTitle}>{role.label}</Text>
+                          <Text style={styles.roleDesc}>{role.description}</Text>
+                        </View>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
 
               {/* Bottom Section */}
               <View style={styles.bottomContent}>
                 <Text style={styles.bottomHeading}>HOUSE AND LOT</Text>
                 <Text style={styles.bottomDescription}>
-                  Westville&apos;s communities are located in accessible and desirable
+                  Westville's communities are located in accessible and desirable
                   neighborhoods, offering comfortable living spaces and outdoor areas
                   perfect for relaxation and family time.
                 </Text>
@@ -237,19 +301,19 @@ const LoginScreen = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.browseLotsButton}
                   onPress={handleBrowseLots}
-                  activeOpacity={0.88}
+                  activeOpacity={0.85}
                 >
-                  <Ionicons name="search-outline" size={20} color="#2E6B2E" />
+                  <Ionicons name="search-outline" size={18} color="#FFFFFF" />
                   <Text style={styles.browseLotsText}>BROWSE AVAILABLE LOTS</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* ✅ Footer */}
+              {/* Footer */}
               <View style={styles.footer}>
                 <Text style={styles.footerText}>
                   © 2024 Westville Casimiro Homes. All rights reserved.
                 </Text>
-                <Text style={styles.footerContact}>📍 Bacoor, Cavite, Philippines</Text>
+                <Text style={styles.footerContact}>Bacoor, Cavite, Philippines</Text>
               </View>
             </ScrollView>
           </View>
@@ -258,6 +322,9 @@ const LoginScreen = ({ navigation }) => {
     );
   }
 
+  // ============================================================
+  // LOGIN SCREEN (Premium Glassmorphism - Clean & Upgraded)
+  // ============================================================
   const selectedRoleData = roles.find((r) => r.key === selectedRole);
 
   return (
@@ -265,135 +332,175 @@ const LoginScreen = ({ navigation }) => {
       style={styles.loginContainer}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F6F3" />
-      <ScrollView
-        contentContainerStyle={styles.loginContent}
-        showsVerticalScrollIndicator={false}
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      
+      <ImageBackground
+        source={require('../../assets/westville.jpg')}
+        resizeMode="cover"
+        style={styles.loginBgImage}
+        imageStyle={styles.loginBgImageStyle}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => setSelectedRole(null)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="arrow-back" size={22} color={themeColors.textPrimary} />
-          <Text style={styles.backText}>Back to Role Selection</Text>
-        </TouchableOpacity>
-
-        <View style={styles.loginHeader}>
-          <View style={styles.loginIconContainer}>
-            <Ionicons name={selectedRoleData.icon} size={34} color="#ffffff" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.loginSubtitle}>WESTVILLE CASIMIRO HOMES</Text>
-            {/* ✅ Fixed: consistent casing */}
-            <Text style={styles.loginTitle}>{selectedRoleData.label} LOGIN</Text>
-          </View>
-        </View>
-
-        <View style={[styles.formContainer, shadows.medium]}>
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="mail-outline"
-              size={20}
-              color={themeColors.textSecondary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email Address"
-              placeholderTextColor={themeColors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color={themeColors.textSecondary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={themeColors.textSecondary}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} activeOpacity={0.8}>
-              <Ionicons
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color={themeColors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* ✅ Forgot Password styled as green link */}
-          <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.8} onPress={() => setShowForgotPassword(true)}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
-
-          {/* ✅ Fixed: consistent button text casing */}
+        <View style={styles.loginGradientOverlay}>
+          {/* Back Button - Clean */}
           <TouchableOpacity
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.88}
+            style={styles.backButtonFloat}
+            onPress={() => setSelectedRole(null)}
+            activeOpacity={0.8}
           >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.loginButtonText}>
-                Sign in as {selectedRoleData.label.charAt(0) + selectedRoleData.label.slice(1).toLowerCase()}
-              </Text>
-            )}
+            <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
+            <Text style={styles.backTextFloat}>Back to Role Selection</Text>
           </TouchableOpacity>
 
-          {selectedRole === 'resident' && (
-            <View style={styles.registerSection}>
-              <Text style={styles.registerText}>Don&apos;t have an account?</Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Register')}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.registerLink}>Register as Resident</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+          <ScrollView
+            contentContainerStyle={styles.loginScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Animated.View
+              style={[
+                styles.loginContentWrapper,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
+              {/* Brand Header - Clean Minimal */}
+              <View style={styles.loginBrandContainer}>
+                <View style={styles.loginLogoCircle}>
+                  <Ionicons name="business-outline" size={22} color="#FFFFFF" />
+                </View>
+                <View style={styles.loginBrandTextContainer}>
+                  <Text style={styles.loginBrandTitle}>WESTVILLE CASIMIRO</Text>
+                  <Text style={styles.loginBrandSubtitle}>HOMES</Text>
+                </View>
+              </View>
 
-      {/* Forgot Password Modal */}
+              {/* Role Label - Clean Typography */}
+              <Text style={styles.roleLoginLabel}>{selectedRoleData.label} LOGIN</Text>
+
+              {/* Premium Glass Login Card - Upgraded */}
+              <Animated.View style={[styles.glassPremiumCard, { transform: [{ scale: cardScaleAnim }] }]}>
+                {/* Email Field */}
+                <View style={styles.inputField}>
+                  <Text style={styles.inputLabel}>Email Address</Text>
+                  <View style={styles.glassInputWrapper}>
+                    <Ionicons name="mail-outline" size={18} color="#6B8F6B" />
+                    <TextInput
+                      style={styles.glassInput}
+                      placeholder="your@email.com"
+                      placeholderTextColor="#A0B8A0"
+                      value={email}
+                      onChangeText={setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                </View>
+
+                {/* Password Field */}
+                <View style={styles.inputField}>
+                  <Text style={styles.inputLabel}>Password</Text>
+                  <View style={styles.glassInputWrapper}>
+                    <Ionicons name="lock-closed-outline" size={18} color="#6B8F6B" />
+                    <TextInput
+                      style={styles.glassInput}
+                      placeholder="Enter your password"
+                      placeholderTextColor="#A0B8A0"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={10}>
+                      <Ionicons
+                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={18}
+                        color="#6B8F6B"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Forgot Password Link - Clean */}
+                <TouchableOpacity 
+                  style={styles.forgotPasswordContainer} 
+                  onPress={showModal}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                </TouchableOpacity>
+
+                {/* Sign In Button - Clean with subtle gradient effect */}
+                <TouchableOpacity
+                  style={[styles.signInButton, loading && styles.signInButtonDisabled]}
+                  onPress={handleLogin}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.signInButtonText}>
+                      Sign in as {selectedRoleData.label.charAt(0) + selectedRoleData.label.slice(1).toLowerCase()}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+
+                {/* Register Section for Resident - Clean */}
+                {selectedRole === 'resident' && (
+                  <View style={styles.registerSection}>
+                    <Text style={styles.registerText}>Don't have an account?</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                      <Text style={styles.registerLink}>Register as Resident</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </Animated.View>
+            </Animated.View>
+          </ScrollView>
+        </View>
+      </ImageBackground>
+
+      {/* Glassmorphism Forgot Password Modal - Clean */}
       {showForgotPassword && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Animated.View 
+          style={[
+            styles.modalOverlay,
+            {
+              opacity: modalOpacityAnim,
+            },
+          ]}
+        >
+          <Animated.View 
+            style={[
+              styles.glassModalContent,
+              { transform: [{ scale: modalScaleAnim }] },
+            ]}
+          >
+            <View style={styles.modalIconCircle}>
+              <Ionicons name="key-outline" size={30} color="#2E6B2E" />
+            </View>
             <Text style={styles.modalTitle}>Reset Password</Text>
-            <Text style={styles.modalSubtitle}>Enter your email and we'll send you a reset link.</Text>
+            <Text style={styles.modalSubtitle}>
+              Enter your registered email address and we'll send you a password reset link.
+            </Text>
             
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Email Address"
-              placeholderTextColor="#666"
-              value={forgotEmail}
-              onChangeText={setForgotEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <View style={styles.glassModalInputWrapper}>
+              <Ionicons name="mail-outline" size={18} color="#6B8F6B" />
+              <TextInput
+                style={styles.glassModalInput}
+                placeholder="Email Address"
+                placeholderTextColor="#A0B8A0"
+                value={forgotEmail}
+                onChangeText={setForgotEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
             
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setShowForgotPassword(false);
-                  setForgotEmail('');
-                }}
-                activeOpacity={0.8}
+                onPress={hideModal}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
@@ -402,26 +509,26 @@ const LoginScreen = ({ navigation }) => {
                 style={[styles.modalButton, styles.sendButton, forgotLoading && styles.sendButtonDisabled]}
                 onPress={handleForgotPassword}
                 disabled={forgotLoading}
-                activeOpacity={0.8}
               >
                 {forgotLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <Text style={styles.sendButtonText}>Send Reset Link</Text>
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       )}
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  // ==================== GLOBAL / SHARED ====================
   screen: {
     flex: 1,
-    backgroundColor: '#1E2A1E',
+    backgroundColor: '#0A1F0A',
   },
   backgroundImage: {
     flex: 1,
@@ -431,117 +538,91 @@ const styles = StyleSheet.create({
   backgroundImageStyle: {
     opacity: 0.95,
   },
-
-  // ✅ Gradient overlay replaces plain overlay
   gradientOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(10, 25, 10, 0.60)',
+    backgroundColor: 'rgba(8, 20, 8, 0.5)',
   },
 
+  // ==================== ROLE SELECTION SCREEN - CLEAN GLASS ====================
   landingScrollContent: {
     paddingTop: 52,
-    paddingBottom: 36,
-    paddingHorizontal: 18,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
   },
   topBrandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 42,
+    marginBottom: 35,
   },
   logoCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: themeColors.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(46, 107, 46, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.25)',
+    marginRight: 12,
+    shadowColor: '#2E6B2E',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   brandTitle: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  brandSubtitle: {
-    color: '#F4F4F4',
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 1,
-    letterSpacing: 0.4,
+    letterSpacing: 0.8,
   },
   heroContent: {
-    marginBottom: 26,
+    marginBottom: 30,
   },
   heroHeading: {
     color: '#FFFFFF',
-    fontSize: 42,
-    lineHeight: 44,
+    fontSize: 36,
+    lineHeight: 42,
     fontWeight: '900',
-    letterSpacing: 0.3,
-    marginBottom: 16,
-    textTransform: 'uppercase',
+    letterSpacing: -0.3,
+    marginBottom: 12,
   },
   heroDescription: {
-    color: '#F3F3F3',
+    color: '#F0F0F0',
     fontSize: 14,
     lineHeight: 20,
-    maxWidth: '96%',
     marginBottom: 12,
-    fontWeight: '500',
   },
   readMoreText: {
     color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
-
-  roleCardsContainer: {
-    marginBottom: 34,
+  roleSection: {
+    marginBottom: 32,
   },
-  roleCard: {
+  roleCardsContainer: {
+    gap: 12,
+  },
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    overflow: 'hidden',
+  },
+  glassCardInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 22,
     paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 14,
-    minHeight: 86,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    paddingHorizontal: 18,
   },
-  roleCardWeb: {
-    cursor: 'pointer',
-    transition:
-      'background-color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease',
-  },
-  roleCardHovered: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderColor: 'rgba(255,255,255,0.5)',
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    transform: [{ scale: 1.015 }],
-  },
-  roleCardPressed: {
-    opacity: 0.94,
-    transform: [{ scale: 0.992 }],
+  glassCardPressed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   roleIconWrap: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(46, 107, 46, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -551,270 +632,335 @@ const styles = StyleSheet.create({
   },
   roleTitle: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '900',
-    letterSpacing: 0.4,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   roleDesc: {
-    color: 'rgba(255,255,255,0.78)',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 11.5,
     lineHeight: 15,
-    fontWeight: '500',
   },
   bottomContent: {
     alignItems: 'center',
-    paddingHorizontal: 8,
-    marginBottom: 28,
+    marginBottom: 30,
   },
   bottomHeading: {
     color: '#FFFFFF',
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
+    marginBottom: 10,
     textAlign: 'center',
-    marginBottom: 8,
   },
   bottomDescription: {
-    color: '#F0F0F0',
-    fontSize: 12.5,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
-    marginBottom: 20,
-    maxWidth: 330,
-    fontWeight: '500',
+    marginBottom: 22,
+    maxWidth: 320,
   },
   browseLotsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    minWidth: 250,
-    shadowColor: '#000',
-    shadowOpacity: 0.14,
+    backgroundColor: '#2E6B2E',
+    borderRadius: 40,
+    paddingVertical: 13,
+    paddingHorizontal: 26,
+    gap: 8,
+    shadowColor: '#2E6B2E',
+    shadowOpacity: 0.3,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
     elevation: 5,
   },
   browseLotsText: {
-    color: '#2E6B2E',
-    fontSize: 16,
-    fontWeight: '900',
-    marginLeft: 8,
-    letterSpacing: 0.3,
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-
-  // ✅ Footer
   footer: {
     alignItems: 'center',
-    paddingTop: 16,
+    paddingTop: 18,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   footerText: {
-    color: 'rgba(255,255,255,0.45)',
+    color: 'rgba(255,255,255,0.4)',
     fontSize: 10,
-    textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   footerContact: {
-    color: 'rgba(255,255,255,0.55)',
+    color: 'rgba(255,255,255,0.5)',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 
-  // Login screen styles
+  // ==================== LOGIN SCREEN - CLEAN & UPGRADED ====================
   loginContainer: {
     flex: 1,
-    backgroundColor: '#F4F6F3',
   },
-  loginContent: {
-    flexGrow: 1,
-    padding: 20,
-    paddingTop: 50,
+  loginBgImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
-  backButton: {
+  loginBgImageStyle: {
+    opacity: 0.92,
+  },
+  loginGradientOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(8, 20, 8, 0.65)',
+  },
+  backButtonFloat: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 54 : 44,
+    left: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 30,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  backText: {
-    color: themeColors.textPrimary,
-    fontSize: 15,
-    fontWeight: '500',
-    marginLeft: 8,
-  },
-  loginHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 26,
-  },
-  loginIconContainer: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#2E6B2E',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  loginSubtitle: {
-    fontSize: 12,
-    color: themeColors.textSecondary,
-    letterSpacing: 1,
-    marginBottom: 4,
+  backTextFloat: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '600',
   },
-  loginTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: themeColors.textPrimary,
+  loginScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingTop: 110,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
   },
-  formContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+  loginContentWrapper: {
+    width: '100%',
   },
-  inputContainer: {
+  loginBrandContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D9E0D3',
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    justifyContent: 'center',
     marginBottom: 16,
-    backgroundColor: '#F8FAF7',
   },
-  inputIcon: {
-    marginRight: 8,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    fontSize: 16,
-    color: themeColors.textPrimary,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  // ✅ Forgot Password is now clearly a green link
-  forgotPasswordText: {
-    color: '#2E6B2E',
-    fontSize: 14,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
-  },
-  loginButton: {
-    backgroundColor: '#2E6B2E',
-    borderRadius: 14,
-    paddingVertical: 16,
+  loginLogoCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(46, 107, 46, 0.9)',
+    justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 10,
+  },
+  loginBrandTextContainer: {
+    alignItems: 'flex-start',
+  },
+  loginBrandTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  loginBrandSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
+    letterSpacing: 0.5,
+  },
+  roleLoginLabel: {
+    textAlign: 'center',
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 28,
+  },
+  glassPremiumCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: 28,
+    padding: 26,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 25,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  inputField: {
     marginBottom: 18,
   },
-  loginButtonDisabled: {
-    opacity: 0.65,
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4A674A',
+    marginBottom: 6,
+    marginLeft: 4,
   },
-  // ✅ Fixed button text casing handled in JSX
-  loginButtonText: {
+  glassInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAF7',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8E0',
+    gap: 10,
+  },
+  glassInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#1E2A1E',
+    fontWeight: '500',
+  },
+  forgotPasswordContainer: {
+    alignSelf: 'flex-end',
+    marginBottom: 28,
+    marginTop: 4,
+  },
+  forgotPasswordText: {
+    color: '#2E6B2E',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  signInButton: {
+    backgroundColor: '#2E6B2E',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#2E6B2E',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  signInButtonDisabled: {
+    opacity: 0.7,
+  },
+  signInButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
-    letterSpacing: 0.2,
+    letterSpacing: 0.5,
   },
   registerSection: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 14,
+    paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: themeColors.border,
-    flexWrap: 'wrap',
+    borderTopColor: '#EDF2EA',
+    gap: 4,
   },
   registerText: {
-    color: themeColors.textSecondary,
-    fontSize: 14,
+    color: '#6B8F6B',
+    fontSize: 13,
   },
   registerLink: {
     color: '#2E6B2E',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    marginLeft: 4,
   },
-  // Forgot Password Modal Styles
+
+  // ==================== MODAL - CLEAN GLASS ====================
   modalOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+  glassModalContent: {
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 28,
     padding: 24,
-    width: '85%',
-    maxWidth: 400,
+    width: width > 500 ? 420 : '85%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 25,
+    elevation: 20,
+  },
+  modalIconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#E8F0E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#1E2A1E',
     marginBottom: 8,
     textAlign: 'center',
   },
   modalSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
+    fontSize: 13,
+    color: '#6B8F6B',
+    marginBottom: 24,
     textAlign: 'center',
+    lineHeight: 19,
+    paddingHorizontal: 8,
   },
-  modalInput: {
+  glassModalInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAF7',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 20,
+    borderColor: '#E2E8E0',
+    width: '100%',
+    gap: 10,
+  },
+  glassModalInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 15,
     color: '#1E2A1E',
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: 12,
+    width: '100%',
   },
   modalButton: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F0F3EF',
   },
   cancelButtonText: {
-    color: '#666',
-    fontSize: 16,
+    color: '#6B8F6B',
+    fontSize: 14,
     fontWeight: '600',
   },
   sendButton: {
     backgroundColor: '#2E6B2E',
   },
   sendButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#9BB89B',
   },
   sendButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
 

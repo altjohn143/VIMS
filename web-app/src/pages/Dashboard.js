@@ -36,6 +36,7 @@ import {
 import {
   Logout as LogoutIcon,
   Home as HomeIcon,
+  People as PeopleIcon,
   Security as SecurityIcon,
   AdminPanelSettings as AdminIcon,
   NotificationsNone as NotificationsIcon,
@@ -467,7 +468,7 @@ const Dashboard = () => {
       color: '#1e88e5',
       features: {
         dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
-        reservations: [{ title: 'Reservations', icon: <EventAvailableIcon />, link: '/reservations' }],
+        reservations: [{ title: 'Make Reservation', icon: <EventAvailableIcon />, link: '/reservations' }],
         visitors: [{ title: 'Generate Visitor Pass', icon: <QrCodeIcon />, link: '/visitors' }],
         services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/service-requests' }],
         payments: [{ title: 'Pay Dues', icon: <PaymentIcon />, link: '/payments' }],
@@ -488,8 +489,20 @@ const Dashboard = () => {
       color: '#166534',
       features: {
         dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
-        logs: [
+        visitors: [{ title: 'Visitor Management', icon: <PeopleIcon />, link: '/admin/visitor-management' }],
+        users: [
+          { title: 'User Management', icon: <GroupIcon />, link: '/admin/users' },
+          { title: 'Approval Requests', icon: <VerifiedUserIcon />, link: '/admin/approvals' }
+        ],
+        services: [
+          { title: 'Service Requests', icon: <BuildIcon />, link: '/admin/service-requests' },
           { title: 'Reservation Logs', icon: <EventAvailableIcon />, link: '/admin/reservations' }
+        ],
+        finance: [{ title: 'Payment Management', icon: <ReceiptIcon />, link: '/admin/payments' }],
+        announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/admin/announcements' }],
+        settings: [
+          { title: 'System Settings', icon: <SettingsIcon />, link: '/admin/settings' },
+          { title: 'Verification Queue', icon: <VerifiedUserIcon />, link: '/admin/verifications' }
         ]
       },
       stats: [

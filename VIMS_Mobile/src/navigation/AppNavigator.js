@@ -60,6 +60,7 @@ const Tab = createBottomTabNavigator();
 const ResidentTabs = () => {
   return (
     <Tab.Navigator
+      initialRouteName="DashboardTab"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
@@ -105,6 +106,7 @@ const ResidentTabs = () => {
 const AdminTabs = () => {
   return (
     <Tab.Navigator
+      initialRouteName="DashboardTab"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
@@ -150,6 +152,7 @@ const AdminTabs = () => {
 const SecurityTabs = () => {
   return (
     <Tab.Navigator
+      initialRouteName="DashboardTab"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;

@@ -212,7 +212,7 @@ const DashboardScreen = ({ navigation }) => {
       ],
       hints: ['all resident accounts', 'awaiting admin review', 'paid this month', 'open service requests'],
       quickActions: [
-        { title: 'Reservation Logs', subtitle: 'View reservation history', icon: 'calendar-outline',         screen: 'AdminReservations', color: '#7c3aed', bg: '#f5f3ff' },
+        { title: 'Reservation Logs', subtitle: 'View reservation history', icon: 'calendar-outline',         screen: 'LogsTab',         color: '#7c3aed', bg: '#f5f3ff' },
         { title: 'User Management', subtitle: 'View and manage users',     icon: 'people-outline',           screen: 'UsersTab',       color: '#7c3aed', bg: '#f5f3ff' },
         { title: 'Approvals',       subtitle: 'Review pending requests',   icon: 'checkmark-circle-outline', screen: 'AdminApprovals', color: '#d97706', bg: '#fffbeb' },
         { title: 'Visitor Logs',    subtitle: 'Full visitor history',      icon: 'qr-code-outline',          screen: 'VisitorsTab',    color: '#16a34a', bg: '#f0fdf4' },

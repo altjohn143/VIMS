@@ -825,5 +825,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AdminReservationsScreen;</content>
-<parameter name="filePath">c:\Users\johnm\Downloads\vims-system\VIMS_Mobile\src\screens\admin\AdminReservationsScreen.js
+export default AdminReservationsScreen;

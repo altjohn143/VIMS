@@ -138,7 +138,11 @@ const statCardStyles = [
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [anchorEl, setAnchorEl] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
@@ -148,10 +152,6 @@ const Dashboard = () => {
   const [liveStats, setLiveStats] = useState({});
   const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
   const { logout, getCurrentUser } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     const checkAuth = () => {

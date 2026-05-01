@@ -427,7 +427,7 @@ const AboutUsPage = ({ onClose }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LANDING PAGE - FIXED LAYOUT
+// LANDING PAGE - PREMIUM DESIGN
 // ═══════════════════════════════════════════════════════════════════════════════
 const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   const [showCalendar, setShowCalendar] = useState(false);
@@ -515,7 +515,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       }}
     >
 
-      {/* HERO BACKGROUND - REDUCED HEIGHT FOR BETTER LAYOUT */}
+      {/* HERO BACKGROUND */}
       <Box
         sx={{
           position: 'absolute',
@@ -727,7 +727,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
       </Drawer>
 
-      {/* HERO CONTENT - SHORTER */}
+      {/* HERO CONTENT */}
       <Box
         ref={homeRef}
         sx={{
@@ -1878,7 +1878,7 @@ const Login = () => {
           Reset Password
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
-          <Typography variant="body2" sx={{ mb: 2, color: hubColors.textMuted, fontWeight: 600 }}>Enter your email and we'll send you a reset link.</Typography>
+          <Typography variant="body2" sx={{ mb: 2, color: '#64748b', fontWeight: 600 }}>Enter your email and we'll send you a reset link.</Typography>
           <TextField
             sx={{
               '& .MuiOutlinedInput-root': {
@@ -1896,11 +1896,11 @@ const Login = () => {
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, bgcolor: '#f8fafc', borderTop: '1px solid rgba(15,23,42,0.08)' }}>
-          <Button onClick={() => setShowForgotPassword(false)} sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '12px', color: hubColors.textMuted }}>Cancel</Button>
+          <Button onClick={() => setShowForgotPassword(false)} sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '12px', color: '#64748b' }}>Cancel</Button>
           <Button
             onClick={handleForgotPassword}
             variant="contained"
-            sx={{ backgroundColor: hubColors.green, borderRadius: '12px', textTransform: 'none', fontWeight: 900, '&:hover': { bgcolor: hubColors.forest } }}
+            sx={{ backgroundColor: '#166534', borderRadius: '12px', textTransform: 'none', fontWeight: 900, '&:hover': { bgcolor: '#0b3d1f' } }}
             disabled={forgotLoading}
           >
             {forgotLoading ? <CircularProgress size={20} color="inherit" /> : 'Send Reset Link'}

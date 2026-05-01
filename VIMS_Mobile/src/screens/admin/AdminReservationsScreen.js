@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import api from '../utils/api';
+import api from '../../utils/api';
 
 const VENUES = [
   'Covered Court',

@@ -41,7 +41,10 @@ const allowedOrigins = [
   'http://localhost:19006',
   'exp://localhost:19000',
   'https://vims-one.vercel.app',
-  'https://casimiro-westville-homes-vims.online'
+  'https://casimiro-westville-homes-vims.online',
+  // Allow Expo tunnel domains (used for mobile testing)
+  'exp://eps6rsi-altjohn143-8081.exp.direct',
+  /exp:\/\/.*\.exp\.direct/, // Match any Expo tunnel URL
 ];
 
 // Add frontend URLs from environment variable
@@ -50,7 +53,8 @@ const frontendUrlsFromEnv = (process.env.FRONTEND_URL || '')
   .map(url => url.trim())
   .filter(Boolean);
 
-const allowedOriginSet = new Set([...allowedOrigins, ...frontendUrlsFromEnv]);
+// Combine all origins (including env-based ones and regex patterns)
+const allAllowedOrigins = [...allowedOrigins, ...frontendUrlsFromEnv];
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -58,14 +62,25 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     // Check if origin is in allowed list
-    if (allowedOriginSet.has(origin)) {
-      return callback(null, true);
+    for (const allowed of allAllowedOrigins) {
+      if (allowed instanceof RegExp) {
+        if (allowed.test(origin)) {
+          return callback(null, true);
+        }
+      } else if (allowed === origin) {
+        return callback(null, true);
+      }
     }
 
     // Allow localhost on any port for development
     if (process.env.NODE_ENV !== 'production') {
       const localhostPattern = /^http:\/\/localhost:\d+$/;
       if (localhostPattern.test(origin)) {
+        return callback(null, true);
+      }
+      // Also allow Expo dev URLs in development
+      const expoDevPattern = /^exp:\/\/.*/;
+      if (expoDevPattern.test(origin)) {
         return callback(null, true);
       }
     }

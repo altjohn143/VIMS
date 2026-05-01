@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import villageLogo from '../assets/village-logo.png';
 import { useAuth } from '../context/AuthContext';
 import {
   Container, Box, TextField, Button, Typography, Paper,
@@ -1219,6 +1220,9 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════════════════════════════════════════
+// Replace ONLY your current `const Login = () => { ... }` block with this.
+// This keeps your existing auth, role selection, forgot password API, lock timer, validation, and navigation flow intact.
+
 const Login = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -1232,8 +1236,18 @@ const Login = () => {
   const { login, loading } = useAuth();
   const navigate = useNavigate();
   const timerRef = useRef(null);
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
 
-  const themeColors = { primary: T.primary, primaryDark: T.dark, textPrimary: '#1e293b', textSecondary: '#64748b' };
+  const hubColors = {
+    deep: '#061b10',
+    forest: '#0b3d1f',
+    green: '#166534',
+    lime: '#86efac',
+    softLime: '#dcfce7',
+    textDark: '#0f172a',
+    textMuted: '#64748b',
+    border: 'rgba(255,255,255,0.16)'
+  };
 
   useEffect(() => {
     const storedAttempts = parseInt(localStorage.getItem('loginAttempts') || '0');
@@ -1244,6 +1258,17 @@ const Login = () => {
       else { localStorage.removeItem('loginAttempts'); localStorage.removeItem('lockTime'); }
     } else { setLoginAttempts(storedAttempts); }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      const x = (event.clientX - window.innerWidth / 2) / window.innerWidth;
+      const y = (event.clientY - window.innerHeight / 2) / window.innerHeight;
+      setMouse({ x, y });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   const startLockTimer = (s) => {
@@ -1313,208 +1338,539 @@ const Login = () => {
 
   if (!selectedRole) return <LandingPage onRoleSelect={setSelectedRole} onBrowseLots={() => navigate('/lots')} />;
 
+  const inputSx = {
+    ...noRedErrorFieldSx,
+    '& .MuiInputLabel-root': {
+      color: 'rgba(255,255,255,0.64)',
+      fontWeight: 700
+    },
+    '& .MuiInputLabel-root.Mui-focused': {
+      color: hubColors.lime
+    },
+    '& .MuiInputBase-input': {
+      color: 'white',
+      fontWeight: 700
+    },
+    '& .MuiFormHelperText-root': {
+      color: 'rgba(255,255,255,0.62)',
+      fontWeight: 600
+    },
+    '& .MuiOutlinedInput-root': {
+      borderRadius: '16px',
+      background: 'rgba(255,255,255,0.075)',
+      backdropFilter: 'blur(16px)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07)',
+      transition: 'transform 0.2s ease, background-color 0.2s ease',
+      '& fieldset': {
+        borderColor: 'rgba(255,255,255,0.14)'
+      },
+      '&:hover': {
+        background: 'rgba(255,255,255,0.095)',
+        transform: 'translateY(-1px)'
+      },
+      '&:hover fieldset': {
+        borderColor: 'rgba(134,239,172,0.42)'
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: hubColors.lime,
+        borderWidth: 1.5
+      }
+    }
+  };
+
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        // login background aligned with screenshot's deep green
-        background: `radial-gradient(circle at 18% 12%, rgba(47,143,70,0.35), transparent 55%),
-                     radial-gradient(circle at 82% 18%, rgba(124,219,107,0.22), transparent 60%),
-                     linear-gradient(135deg, ${T.dark} 0%, ${T.primary} 55%, #137d3a 100%)`,
+        position: 'relative',
+        overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        py: 4,
-        px: 2,
-        position: 'relative',
-        overflow: 'hidden',
+        px: { xs: 2, md: 3 },
+        py: { xs: 3, md: 5 },
+        background: hubColors.deep,
         '@keyframes fadeUpSoft': {
-          from: { opacity: 0, transform: 'translateY(14px)' },
+          from: { opacity: 0, transform: 'translateY(18px)' },
           to: { opacity: 1, transform: 'translateY(0)' },
+        },
+        '@keyframes floatSoft': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-12px)' },
+        },
+        '@keyframes glowPulse': {
+          '0%, 100%': { opacity: 0.42 },
+          '50%': { opacity: 0.72 },
         },
         '@media (prefers-reduced-motion: reduce)': {
           '*': { animation: 'none !important', transition: 'none !important' },
         },
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: -110,
-          right: -120,
-          width: 420,
-          height: 420,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.045)',
-          filter: 'blur(0px)',
-        },
-        '&::after': {
-          content: '""',
-          position: 'absolute',
-          bottom: -170,
-          left: -120,
-          width: 520,
-          height: 520,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.035)',
-        },
       }}
     >
-      <Container maxWidth="sm">
-        <Button startIcon={<ArrowBackIcon />} onClick={() => { setSelectedRole(null); setErrors({}); setFormData({ email: '', password: '' }); }}
-          sx={{
-            color: 'rgba(255,255,255,0.86)',
-            mb: 3,
-            borderRadius: 999,
-            textTransform: 'none',
-            fontWeight: 800,
-            px: 2,
-            py: 0.9,
-            bgcolor: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            '&:hover': { color: 'white', backgroundColor: 'rgba(255,255,255,0.10)' },
-            '&:active': { transform: 'translateY(1px) scale(0.99)' },
-            transition: 'transform 0.15s ease',
-          }}>
-          Back to Home
-        </Button>
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: -24,
+          backgroundImage: 'url(https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1800&q=85)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          transform: `translate(${mouse.x * 14}px, ${mouse.y * 14}px) scale(1.06)`,
+          filter: 'saturate(1.05) contrast(1.04)',
+          transition: 'transform 180ms ease-out'
+        }}
+      />
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Box sx={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.3)' }}>
-            {React.cloneElement(roleInfo.icon, { sx: { fontSize: 28, color: 'white' } })}
-          </Box>
-          <Box>
-            <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', letterSpacing: '0.12em' }}>WESTVILLE CASIMIRO HOMES</Typography>
-            <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '1.3rem' }}>{roleInfo.label} Login</Typography>
-          </Box>
-        </Box>
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background: `linear-gradient(90deg, rgba(2,6,23,0.92) 0%, rgba(6,27,16,0.86) 42%, rgba(6,27,16,0.66) 100%),
+                       radial-gradient(circle at 16% 12%, rgba(134,239,172,0.24), transparent 30%),
+                       radial-gradient(circle at 86% 20%, rgba(34,197,94,0.18), transparent 32%)`,
+          animation: 'glowPulse 7s ease-in-out infinite'
+        }}
+      />
 
-        <Paper
-          sx={{
-            borderRadius: 4,
-            boxShadow: '0 24px 70px rgba(0,0,0,0.35)',
-            border: '1px solid rgba(255,255,255,0.16)',
-            p: { xs: 3, md: 4 },
-            backgroundColor: 'rgba(255,255,255,0.97)',
-            backdropFilter: 'blur(20px)',
-            animation: 'fadeUpSoft 0.6s ease',
-          }}
-        >
-          <Typography variant="h5" sx={{ fontWeight: 700, color: themeColors.textPrimary, mb: 0.5 }}>Welcome back</Typography>
-          <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 3 }}>Sign in to your {roleInfo.label.toLowerCase()} account</Typography>
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.16,
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px)',
+          backgroundSize: '52px 52px',
+          transform: `translate(${mouse.x * -8}px, ${mouse.y * -8}px)`,
+          transition: 'transform 180ms ease-out'
+        }}
+      />
 
-          {isLocked && <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }} icon={<SecurityIcon />}>Account locked. Try again in {formatTime(lockTimer)}</Alert>}
-          {errors.submit && <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>{errors.submit}</Alert>}
-          {errors.submit?.includes('pending admin approval') && (
-            <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }} icon={<TimeIcon />}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Account Pending Approval</Typography>
-              <Typography variant="caption">Your registration is awaiting admin approval.</Typography>
-            </Alert>
-          )}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '12%',
+          left: '7%',
+          width: 190,
+          height: 190,
+          borderRadius: '48px',
+          border: '1px solid rgba(134,239,172,0.16)',
+          background: 'linear-gradient(135deg, rgba(134,239,172,0.14), rgba(255,255,255,0.035))',
+          backdropFilter: 'blur(14px)',
+          transform: `translate(${mouse.x * 32}px, ${mouse.y * 32}px) rotate(-10deg)`,
+          animation: 'floatSoft 7s ease-in-out infinite',
+          display: { xs: 'none', md: 'block' }
+        }}
+      />
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              sx={noRedErrorFieldSx}
-              fullWidth
-              label="Email Address"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              error={!!errors.email}
-              helperText={errors.email}
-              margin="normal"
-              InputLabelProps={{ sx: { fontWeight: 700 } }}
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><EmailIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} /></InputAdornment>,
-                sx: {
-                  borderRadius: 3,
-                  bgcolor: '#ffffff',
-                  boxShadow: '0 10px 22px rgba(15, 23, 42, 0.05)',
-                }
-              }}
-            />
-            <TextField
-              sx={noRedErrorFieldSx}
-              fullWidth
-              label="Password"
-              name="password"
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={handleChange}
-              error={!!errors.password}
-              helperText={errors.password}
-              margin="normal"
-              InputLabelProps={{ sx: { fontWeight: 700 } }}
-              InputProps={{
-                startAdornment: <InputAdornment position="start"><KeyIcon sx={{ color: themeColors.textSecondary, fontSize: 20 }} /></InputAdornment>,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                      size="small"
-                      sx={{ '&:active': { transform: 'scale(0.96)' }, transition: 'transform 0.12s ease' }}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: '9%',
+          right: '8%',
+          width: 240,
+          height: 240,
+          borderRadius: '999px',
+          border: '1px solid rgba(255,255,255,0.13)',
+          background: 'radial-gradient(circle, rgba(34,197,94,0.22), rgba(255,255,255,0.035), transparent 72%)',
+          transform: `translate(${mouse.x * -38}px, ${mouse.y * -38}px)`,
+          animation: 'floatSoft 8s ease-in-out infinite',
+          display: { xs: 'none', md: 'block' }
+        }}
+      />
+
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2 }}>
+        <Grid container spacing={{ xs: 3, md: 5 }} alignItems="center" justifyContent="center">
+          <Grid item xs={12} md={6.4}>
+            <Box sx={{ color: 'white', animation: 'fadeUpSoft 0.65s ease' }}>
+              <Button
+                startIcon={<ArrowBackIcon />}
+                onClick={() => { setSelectedRole(null); setErrors({}); setFormData({ email: '', password: '' }); }}
+                sx={{
+                  mb: 3,
+                  color: 'rgba(255,255,255,0.88)',
+                  borderRadius: '14px',
+                  textTransform: 'none',
+                  fontWeight: 900,
+                  px: 1.6,
+                  py: 0.9,
+                  bgcolor: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  backdropFilter: 'blur(12px)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255,255,255,0.12)',
+                    transform: 'translateX(-2px)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Back to Home
+              </Button>
+
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 1.35,
+                  py: 0.8,
+                  borderRadius: '999px',
+                  bgcolor: 'rgba(134,239,172,0.12)',
+                  border: '1px solid rgba(134,239,172,0.20)',
+                  color: hubColors.lime,
+                  fontSize: '0.76rem',
+                  fontWeight: 900,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  mb: 2
+                }}
+              >
+                <HomeIcon sx={{ fontSize: 16 }} />
+                Westville Community Hub
+              </Box>
+
+              <Typography
+                sx={{
+                  fontSize: { xs: '2.5rem', md: '4rem' },
+                  lineHeight: 0.96,
+                  fontWeight: 950,
+                  letterSpacing: '-0.06em',
+                  maxWidth: 620,
+                  textShadow: '0 22px 50px rgba(0,0,0,0.42)'
+                }}
+              >
+                Welcome back to your digital village gateway.
+              </Typography>
+
+              <Typography
+                sx={{
+                  mt: 2.3,
+                  color: 'rgba(255,255,255,0.74)',
+                  fontSize: { xs: '0.98rem', md: '1.05rem' },
+                  lineHeight: 1.75,
+                  maxWidth: 560,
+                  fontWeight: 500
+                }}
+              >
+                Access your {roleInfo.label.toLowerCase()} portal, manage community services, monitor updates, and stay connected with Casimiro Westville Homes.
+              </Typography>
+
+              <Grid container spacing={1.4} sx={{ mt: 3.2, maxWidth: 560 }}>
+                {[
+                  { value: '24/7', label: 'Community access' },
+                  { value: 'Secure', label: 'Role-based portal' },
+                  { value: 'Live', label: 'Village updates' },
+                ].map((item) => (
+                  <Grid item xs={12} sm={4} key={item.label}>
+                    <Box
+                      sx={{
+                        p: 1.6,
+                        borderRadius: '18px',
+                        bgcolor: 'rgba(255,255,255,0.075)',
+                        border: '1px solid rgba(255,255,255,0.11)',
+                        backdropFilter: 'blur(14px)'
+                      }}
                     >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-                sx: {
-                  borderRadius: 3,
-                  bgcolor: '#ffffff',
-                  boxShadow: '0 10px 22px rgba(15, 23, 42, 0.05)',
+                      <Typography sx={{ color: 'white', fontWeight: 950, fontSize: '1.15rem', lineHeight: 1 }}>
+                        {item.value}
+                      </Typography>
+                      <Typography sx={{ mt: 0.55, color: 'rgba(255,255,255,0.62)', fontWeight: 700, fontSize: '0.76rem' }}>
+                        {item.label}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          </Grid>
+
+          <Grid item xs={12} md={5.6}>
+            <Paper
+              sx={{
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: { xs: '26px', md: '32px' },
+                p: { xs: 2.4, sm: 3, md: 3.5 },
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.075))',
+                border: '1px solid rgba(255,255,255,0.18)',
+                boxShadow: '0 32px 90px rgba(0,0,0,0.42)',
+                backdropFilter: 'blur(28px)',
+                animation: 'fadeUpSoft 0.8s ease',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'radial-gradient(circle at top right, rgba(134,239,172,0.18), transparent 36%)',
+                  pointerEvents: 'none'
                 }
               }}
-            />
+            >
+              <Box sx={{ position: 'relative', zIndex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.4, mb: 2.4 }}>
+                  <Box
+                    sx={{
+                      width: 54,
+                      height: 54,
+                      borderRadius: '18px',
+                      background: 'linear-gradient(135deg, rgba(134,239,172,0.95), rgba(34,197,94,0.86))',
+                      color: '#052e16',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 14px 34px rgba(34,197,94,0.24)',
+                      border: '1px solid rgba(255,255,255,0.28)'
+                    }}
+                  >
+                  <Box
+                      component="img"
+                      src={villageLogo}
+                      alt="Westville Logo"
+                      sx={{
+                        width: 54,
+                        height: 54,
+                        borderRadius: '16px',
+                        objectFit: 'cover',
+                        border: '1px solid rgba(255,255,255,0.25)',
+                        boxShadow: '0 10px 24px rgba(0,0,0,0.3)'
+                      }}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.58)', fontSize: '0.74rem', letterSpacing: '0.12em', fontWeight: 900, textTransform: 'uppercase' }}>
+                      {roleInfo.label} Access
+                    </Typography>
+                    <Typography sx={{ color: 'white', fontWeight: 950, fontSize: { xs: '1.6rem', md: '1.85rem' }, lineHeight: 1.05 }}>
+                      Sign in securely
+                    </Typography>
+                  </Box>
+                </Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5, mb: 2 }}>
-              <Button size="small" onClick={() => setShowForgotPassword(true)} sx={{ color: themeColors.primary, textTransform: 'none', fontSize: '0.8rem' }}>Forgot Password?</Button>
-            </Box>
-            <Button type="submit" fullWidth variant="contained" disabled={loading || isLocked}
-              sx={{
-                backgroundColor: themeColors.primary,
-                '&:hover': { backgroundColor: themeColors.primaryDark, transform: 'translateY(-1px)' },
-                '&:active': { transform: 'translateY(1px) scale(0.99)' },
-                py: 1.5,
-                borderRadius: 999,
-                fontWeight: 900,
-                fontSize: '1rem',
-                textTransform: 'none',
-                boxShadow: '0 16px 34px rgba(15, 90, 42, 0.28)',
-                transition: 'transform 0.15s ease, background-color 0.15s ease',
-              }}>
-              {loading ? <CircularProgress size={22} color="inherit" /> : `Sign In as ${roleInfo.label}`}
-            </Button>
+                <Typography sx={{ color: 'rgba(255,255,255,0.66)', fontWeight: 600, fontSize: '0.9rem', lineHeight: 1.6, mb: 2.6 }}>
+                  Continue to your personalized dashboard and manage your community tools.
+                </Typography>
 
-            {selectedRole === 'resident' && (
-              <>
-                <Divider sx={{ my: 2.5 }}><Typography variant="caption" sx={{ color: themeColors.textSecondary }}>Don't have an account?</Typography></Divider>
-                <Button component={Link} to="/register" fullWidth variant="outlined"
-                  sx={{ borderColor: themeColors.primary, color: themeColors.primary, py: 1.2, borderRadius: 2, fontWeight: 600, textTransform: 'none', '&:hover': { backgroundColor: themeColors.primary + '0a' } }}>
-                  Register as Resident
-                </Button>
-              </>
-            )}
-          </Box>
-        </Paper>
+                {isLocked && (
+                  <Alert
+                    severity="warning"
+                    sx={{
+                      mb: 2,
+                      borderRadius: '16px',
+                      bgcolor: 'rgba(245,158,11,0.14)',
+                      color: '#fde68a',
+                      border: '1px solid rgba(245,158,11,0.22)',
+                      '& .MuiAlert-icon': { color: '#fbbf24' }
+                    }}
+                    icon={<SecurityIcon />}
+                  >
+                    Account locked. Try again in {formatTime(lockTimer)}
+                  </Alert>
+                )}
+                {errors.submit && (
+                  <Alert
+                    severity="warning"
+                    sx={{
+                      mb: 2,
+                      borderRadius: '16px',
+                      bgcolor: 'rgba(245,158,11,0.14)',
+                      color: '#fde68a',
+                      border: '1px solid rgba(245,158,11,0.22)',
+                      '& .MuiAlert-icon': { color: '#fbbf24' }
+                    }}
+                  >
+                    {errors.submit}
+                  </Alert>
+                )}
+                {errors.submit?.includes('pending admin approval') && (
+                  <Alert
+                    severity="warning"
+                    sx={{
+                      mb: 2,
+                      borderRadius: '16px',
+                      bgcolor: 'rgba(245,158,11,0.14)',
+                      color: '#fde68a',
+                      border: '1px solid rgba(245,158,11,0.22)',
+                      '& .MuiAlert-icon': { color: '#fbbf24' }
+                    }}
+                    icon={<TimeIcon />}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: 800, mb: 0.5 }}>Account Pending Approval</Typography>
+                    <Typography variant="caption">Your registration is awaiting admin approval.</Typography>
+                  </Alert>
+                )}
 
-        <Typography sx={{ textAlign: 'center', mt: 3, color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>
-          © {new Date().getFullYear()} Westville Casimiro Homes. All rights reserved.
-        </Typography>
+                <Box component="form" onSubmit={handleSubmit}>
+                  <TextField
+                    sx={inputSx}
+                    fullWidth
+                    label="Email Address"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    error={!!errors.email}
+                    helperText={errors.email}
+                    margin="normal"
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><EmailIcon sx={{ color: 'rgba(255,255,255,0.58)', fontSize: 20 }} /></InputAdornment>,
+                    }}
+                  />
+                  <TextField
+                    sx={inputSx}
+                    fullWidth
+                    label="Password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={handleChange}
+                    error={!!errors.password}
+                    helperText={errors.password}
+                    margin="normal"
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><KeyIcon sx={{ color: 'rgba(255,255,255,0.58)', fontSize: 20 }} /></InputAdornment>,
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                            size="small"
+                            sx={{ color: 'rgba(255,255,255,0.68)', '&:hover': { color: hubColors.lime }, '&:active': { transform: 'scale(0.96)' }, transition: 'all 0.15s ease' }}
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5, mt: 1.2, mb: 2.2 }}>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.78rem', fontWeight: 700 }}>
+                      Protected community portal
+                    </Typography>
+                    <Button
+                      size="small"
+                      onClick={() => setShowForgotPassword(true)}
+                      sx={{
+                        color: hubColors.lime,
+                        textTransform: 'none',
+                        fontSize: '0.8rem',
+                        fontWeight: 900,
+                        borderRadius: '999px',
+                        '&:hover': { bgcolor: 'rgba(134,239,172,0.10)' }
+                      }}
+                    >
+                      Forgot Password?
+                    </Button>
+                  </Box>
+
+                  <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    disabled={loading || isLocked}
+                    sx={{
+                      background: 'linear-gradient(135deg, #86efac 0%, #22c55e 52%, #16a34a 100%)',
+                      color: '#052e16',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #bbf7d0 0%, #4ade80 52%, #22c55e 100%)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 18px 44px rgba(34,197,94,0.28)'
+                      },
+                      '&:active': { transform: 'translateY(1px) scale(0.99)' },
+                      py: 1.55,
+                      borderRadius: '16px',
+                      fontWeight: 950,
+                      fontSize: '1rem',
+                      textTransform: 'none',
+                      boxShadow: '0 16px 34px rgba(34,197,94,0.22)',
+                      transition: 'all 0.18s ease'
+                    }}
+                  >
+                    {loading ? <CircularProgress size={22} color="inherit" /> : `Enter ${roleInfo.label} Portal`}
+                  </Button>
+
+                  {selectedRole === 'resident' && (
+                    <>
+                      <Divider sx={{ my: 2.5, borderColor: 'rgba(255,255,255,0.13)' }}>
+                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.52)', fontWeight: 800 }}>New to the community portal?</Typography>
+                      </Divider>
+                      <Button
+                        component={Link}
+                        to="/register"
+                        fullWidth
+                        variant="outlined"
+                        sx={{
+                          borderColor: 'rgba(134,239,172,0.36)',
+                          color: hubColors.lime,
+                          py: 1.25,
+                          borderRadius: '16px',
+                          fontWeight: 900,
+                          textTransform: 'none',
+                          '&:hover': {
+                            backgroundColor: 'rgba(134,239,172,0.10)',
+                            borderColor: hubColors.lime,
+                            transform: 'translateY(-1px)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Register as Resident
+                      </Button>
+                    </>
+                  )}
+                </Box>
+              </Box>
+            </Paper>
+
+            <Typography sx={{ textAlign: 'center', mt: 2.8, color: 'rgba(255,255,255,0.48)', fontSize: '0.78rem', fontWeight: 600 }}>
+              © {new Date().getFullYear()} Westville Casimiro Homes. All rights reserved.
+            </Typography>
+          </Grid>
+        </Grid>
       </Container>
 
-      <Dialog open={showForgotPassword} onClose={() => setShowForgotPassword(false)} PaperProps={{ sx: { borderRadius: 3 } }}>
-        <DialogTitle sx={{ fontWeight: 600 }}>Reset Password</DialogTitle>
-        <DialogContent sx={{ p: 3, pt: 1 }}>
-          <Typography variant="body2" sx={{ mb: 2, color: themeColors.textSecondary }}>Enter your email and we'll send you a reset link.</Typography>
-          <TextField sx={noRedErrorFieldSx} fullWidth label="Email Address" type="email" name="email" value={formData.email} onChange={handleChange}
-            InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment>, sx: { borderRadius: 2 } }} />
+      <Dialog
+        open={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: '24px',
+            overflow: 'hidden',
+            background: '#f8fafc',
+            boxShadow: '0 24px 70px rgba(15,23,42,0.24)'
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 950,
+            color: 'white',
+            background: 'linear-gradient(135deg, #0f172a 0%, #14532d 100%)',
+            p: 2.5
+          }}
+        >
+          Reset Password
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Typography variant="body2" sx={{ mb: 2, color: hubColors.textMuted, fontWeight: 600 }}>Enter your email and we'll send you a reset link.</Typography>
+          <TextField
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '14px',
+                backgroundColor: 'white'
+              }
+            }}
+            fullWidth
+            label="Email Address"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment> }}
+          />
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setShowForgotPassword(false)}>Cancel</Button>
-          <Button 
-            onClick={handleForgotPassword} 
-            variant="contained" 
-            sx={{ backgroundColor: themeColors.primary, borderRadius: 2 }}
+        <DialogActions sx={{ p: 2, bgcolor: '#f8fafc', borderTop: '1px solid rgba(15,23,42,0.08)' }}>
+          <Button onClick={() => setShowForgotPassword(false)} sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '12px', color: hubColors.textMuted }}>Cancel</Button>
+          <Button
+            onClick={handleForgotPassword}
+            variant="contained"
+            sx={{ backgroundColor: hubColors.green, borderRadius: '12px', textTransform: 'none', fontWeight: 900, '&:hover': { bgcolor: hubColors.forest } }}
             disabled={forgotLoading}
           >
             {forgotLoading ? <CircularProgress size={20} color="inherit" /> : 'Send Reset Link'}

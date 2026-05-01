@@ -9,6 +9,7 @@
     "@mui/material": "^6.4.5",
     "@mui/x-date-pickers": "^7.29.4",
     "axios": "^1.14.0",
+    "date-fns": "^2.30.0",
     "dayjs": "^1.11.20",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",

@@ -64,7 +64,8 @@ import {
   Campaign as CampaignIcon,
   ReportProblemOutlined as ReportProblemOutlinedIcon,
   ArrowOutward as ArrowOutwardIcon,
-  Apartment as ApartmentIcon
+  Apartment as ApartmentIcon,
+  EventAvailable as EventAvailableIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import AdminDashboardGraphs from '../components/AdminDashboardGraphs';
@@ -467,6 +468,7 @@ const Dashboard = () => {
       color: '#1e88e5',
       features: {
         dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
+        reservations: [{ title: 'Reservations', icon: <EventAvailableIcon />, link: '/reservations' }],
         visitors: [{ title: 'Generate Visitor Pass', icon: <QrCodeIcon />, link: '/visitors' }],
         services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/service-requests' }],
         payments: [{ title: 'Pay Dues', icon: <PaymentIcon />, link: '/payments' }],
@@ -492,7 +494,10 @@ const Dashboard = () => {
           { title: 'User Management', icon: <GroupIcon />, link: '/admin/users' },
           { title: 'Approval Requests', icon: <VerifiedUserIcon />, link: '/admin/approvals' }
         ],
-        services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/admin/service-requests' }],
+        services: [
+          { title: 'Service Requests', icon: <BuildIcon />, link: '/admin/service-requests' },
+          { title: 'Reservations', icon: <EventAvailableIcon />, link: '/admin/reservations' }
+        ],
         finance: [
           { title: 'Payment Management', icon: <ReceiptIcon />, link: '/admin/payments' },
           { title: 'Financial Reports', icon: <PaymentIcon />, link: '/admin/payments' }
@@ -500,8 +505,7 @@ const Dashboard = () => {
         announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/admin/announcements' }],
         settings: [
           { title: 'System Settings', icon: <SettingsIcon />, link: '/admin/settings' },
-          { title: 'Verification Queue', icon: <VerifiedUserIcon />, link: '/admin/verifications' },
-          { title: 'Reports Center', icon: <ReceiptIcon />, link: '/admin/reports' }
+          { title: 'Verification Queue', icon: <VerifiedUserIcon />, link: '/admin/verifications' }
         ]
       },
       stats: [

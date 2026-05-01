@@ -35,6 +35,10 @@ import Announcements from './pages/Announcements';
 import AdminAnnouncements from './pages/AdminAnnouncements';
 import Chatbot from './pages/Chatbot';
 
+// NEW RESERVATION PAGES
+import Reservations from './pages/Reservations';
+import AdminReservations from './pages/AdminReservations';
+
 // NEW ARCHIVE PAGES
 import ArchivedUsers from './pages/ArchivedUsers';
 import ArchivedAnnouncements from './pages/ArchivedAnnouncements';
@@ -117,6 +121,7 @@ function App() {
 
             {/* Admin-only routes */}
             <Route path="/admin/service-requests" element={<AdminRoute><AdminServiceRequests /></AdminRoute>} />
+            <Route path="/admin/reservations" element={<AdminRoute><AdminReservations /></AdminRoute>} />
             <Route path="/admin/visitor-management" element={<AdminRoute><AdminVisitorManagement /></AdminRoute>} />
             <Route path="/admin/visitor-reports" element={<AdminRoute><AdminVisitorReports /></AdminRoute>} />
             <Route path="/admin/approvals" element={<AdminRoute><AdminApprovals /></AdminRoute>} />
@@ -140,6 +145,7 @@ function App() {
             <Route path="/security/incidents" element={<SecurityRoute><SecurityIncidents /></SecurityRoute>} />
 
             {/* Resident-only routes */}
+            <Route path="/reservations" element={<ResidentRoute><Reservations /></ResidentRoute>} />
             <Route path="/visitors" element={<ResidentRoute><VisitorManagement /></ResidentRoute>} />
             <Route path="/service-requests" element={<ResidentRoute><ServiceRequests /></ResidentRoute>} />
             <Route path="/payments" element={<ResidentRoute><Payments /></ResidentRoute>} />

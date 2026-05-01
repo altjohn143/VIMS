@@ -16,6 +16,7 @@ import PublicLotMapScreen from '../screens/PublicLotMapScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import VisitorManagementScreen from '../screens/VisitorManagementScreen';
 import ServiceRequestsScreen from '../screens/ServiceRequestsScreen';
+import ReservationsScreen from '../screens/ReservationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 // Shared (all roles) Screens
@@ -26,6 +27,7 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import AdminApprovalsScreen from '../screens/admin/AdminApprovalsScreen';
 import AdminUserManagementScreen from '../screens/admin/AdminUserManagementScreen';
 import AdminServiceRequestsScreen from '../screens/admin/AdminServiceRequestsScreen';
+import AdminReservationsScreen from '../screens/admin/AdminReservationsScreen';
 import AdminVisitorManagementScreen from '../screens/admin/AdminVisitorManagementScreen';
 import AdminVisitorReportsScreen from '../screens/admin/AdminVisitorReportsScreen';
 import AdminVerificationQueueScreen from '../screens/admin/AdminVerificationQueueScreen';
@@ -63,6 +65,8 @@ const ResidentTabs = () => {
           let iconName;
           if (route.name === 'DashboardTab') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'ReservationsTab') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
           } else if (route.name === 'VisitorsTab') {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'ServicesTab') {
@@ -88,6 +92,7 @@ const ResidentTabs = () => {
       })}
     >
       <Tab.Screen name="DashboardTab" component={DashboardScreen} options={{ title: 'Home' }} />
+      <Tab.Screen name="ReservationsTab" component={ReservationsScreen} options={{ title: 'Reservations' }} />
       <Tab.Screen name="VisitorsTab" component={VisitorManagementScreen} options={{ title: 'Visitors' }} />
       <Tab.Screen name="ServicesTab" component={ServiceRequestsScreen} options={{ title: 'Services' }} />
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
@@ -207,11 +212,8 @@ const AppNavigator = () => {
               <Stack.Screen name="AdminApprovals" component={AdminApprovalsScreen} />
               <Stack.Screen name="AdminVisitorReports" component={AdminVisitorReportsScreen} />
               <Stack.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} />
-              <Stack.Screen
-                name="AdminReservations"
-                component={AdminReportSchedulesScreen}
-                options={{ title: 'Reservations' }}
-              />
+              <Stack.Screen name="AdminReservations" component={AdminReservationsScreen} />
+              <Stack.Screen name="AdminReportSchedules" component={AdminReportSchedulesScreen} />
               <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
               <Stack.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} />
               <Stack.Screen name="ArchivedUsers" component={ArchivedUsersScreen} />

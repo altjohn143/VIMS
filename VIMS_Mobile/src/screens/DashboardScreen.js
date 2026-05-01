@@ -195,6 +195,7 @@ const DashboardScreen = ({ navigation }) => {
       ],
       hints: ['live from users', "today's count", 'active now', 'awaiting approval'],
       quickActions: [
+        { title: 'Reservations',     subtitle: 'Book venues and equipment',   icon: 'calendar-outline',         screen: 'ReservationsTab', color: '#7c3aed', bg: '#f5f3ff' },
         { title: 'Visitor Pass',     subtitle: 'Manage visitor QR codes',     icon: 'qr-code-outline', screen: 'VisitorsTab', color: '#16a34a', bg: '#f0fdf4' },
         { title: 'Service Requests', subtitle: 'Submit maintenance requests', icon: 'build-outline',   screen: 'ServicesTab', color: '#d97706', bg: '#fffbeb' },
         { title: 'AI Assistant',     subtitle: 'Ask VIMS questions',          icon: 'sparkles-outline', screen: 'Chatbot', color: '#2563eb', bg: '#eff6ff' },
@@ -211,6 +212,7 @@ const DashboardScreen = ({ navigation }) => {
       ],
       hints: ['all resident accounts', 'awaiting admin review', 'paid this month', 'open service requests'],
       quickActions: [
+        { title: 'Reservations',    subtitle: 'Manage venue and equipment bookings', icon: 'calendar-outline',         screen: 'AdminReservations', color: '#7c3aed', bg: '#f5f3ff' },
         { title: 'User Management', subtitle: 'View and manage users',       icon: 'people-outline',           screen: 'UsersTab',       color: '#7c3aed', bg: '#f5f3ff' },
         { title: 'Approvals',       subtitle: 'Review pending requests',     icon: 'checkmark-circle-outline', screen: 'AdminApprovals', color: '#d97706', bg: '#fffbeb' },
         { title: 'Visitor Logs',    subtitle: 'Full visitor history',        icon: 'qr-code-outline',          screen: 'VisitorsTab',    color: '#16a34a', bg: '#f0fdf4' },

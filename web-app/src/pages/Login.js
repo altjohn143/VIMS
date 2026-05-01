@@ -333,7 +333,7 @@ const ContactPage = ({ onClose }) => {
   );
 };
 
-// ════════════════════════════════════════════════════════════��══════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 // PAGE: ABOUT US
 // ═══════════════════════════════════════════════════════════════════════════════
 const AboutUsPage = ({ onClose }) => (
@@ -427,7 +427,7 @@ const AboutUsPage = ({ onClose }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LANDING PAGE - UPGRADED DESIGN
+// LANDING PAGE - FIXED LAYOUT
 // ═══════════════════════════════════════════════════════════════════════════════
 const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   const [showCalendar, setShowCalendar] = useState(false);
@@ -515,14 +515,14 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       }}
     >
 
-      {/* HERO BACKGROUND */}
+      {/* HERO BACKGROUND - REDUCED HEIGHT FOR BETTER LAYOUT */}
       <Box
         sx={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          bottom: { xs: '50%', md: '40%' },
+          bottom: { xs: '65%', md: '60%' },
           backgroundImage: `url(${heroBg})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center top',
@@ -538,7 +538,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           top: 0,
           left: 0,
           right: 0,
-          bottom: { xs: '50%', md: '40%' },
+          bottom: { xs: '65%', md: '60%' },
           background: 'linear-gradient(to right, rgba(15, 90, 42, 0.72) 0%, rgba(15, 90, 42, 0.58) 45%, rgba(15, 90, 42, 0.35) 100%)',
           zIndex: 2,
         }}
@@ -727,26 +727,26 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
       </Drawer>
 
-      {/* HERO CONTENT */}
+      {/* HERO CONTENT - SHORTER */}
       <Box
         ref={homeRef}
         sx={{
           position: 'relative',
           zIndex: 5,
           px: { xs: 3, md: 6 },
-          pt: { xs: 4, md: 8 },
-          pb: { xs: 6, md: 8 },
+          pt: { xs: 3, md: 5 },
+          pb: { xs: 4, md: 5 },
           maxWidth: 900,
           animation: 'fadeUpSoft 0.75s ease',
         }}
       >
-        <Typography sx={{ fontSize: { xs: '2.5rem', md: '3.8rem' }, fontWeight: 900, color: 'white', lineHeight: 1.15, textTransform: 'uppercase', textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 2.5 }}>
+        <Typography sx={{ fontSize: { xs: '2rem', md: '3rem' }, fontWeight: 900, color: 'white', lineHeight: 1.15, textTransform: 'uppercase', textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 1.8 }}>
           Your Dream Life Awaits in Westville Homes
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: { xs: '0.95rem', md: '1.05rem' }, mb: 3.5, maxWidth: 520, lineHeight: 1.7 }}>
-          Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
+        <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: { xs: '0.90rem', md: '0.95rem' }, mb: 2.5, maxWidth: 500, lineHeight: 1.6 }}>
+          Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry.
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
           <Button
             variant="contained"
             onClick={() => scrollTo(aboutRef)}
@@ -754,10 +754,11 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               bgcolor: T.accent,
               color: T.dark,
               borderRadius: 3,
-              px: 2.8,
-              py: 1.2,
+              px: 2.2,
+              py: 0.95,
               fontWeight: 900,
               textTransform: 'none',
+              fontSize: '0.85rem',
               boxShadow: '0 14px 34px rgba(0,0,0,0.28)',
               '&:hover': { bgcolor: '#8CF07B', transform: 'translateY(-2px)' },
               '&:active': { transform: 'translateY(1px) scale(0.99)' },
@@ -773,10 +774,11 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               borderColor: 'rgba(255,255,255,0.40)',
               color: 'rgba(255,255,255,0.92)',
               borderRadius: 3,
-              px: 2.4,
-              py: 1.15,
+              px: 2,
+              py: 0.90,
               fontWeight: 900,
               textTransform: 'none',
+              fontSize: '0.85rem',
               '&:hover': { borderColor: T.accent, color: T.accent, bgcolor: 'rgba(124, 219, 107, 0.12)' },
               '&:active': { transform: 'translateY(1px) scale(0.99)' },
               transition: 'all 0.15s ease',
@@ -787,71 +789,71 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
       </Box>
 
-      {/* WHITE SECTION - ROLE CARDS */}
+      {/* WHITE SECTION - ROLE CARDS & CONTENT */}
       <Box
         sx={{
           position: 'relative',
           zIndex: 5,
           backgroundColor: '#ffffff',
           mt: 'auto',
-          pt: { xs: 6, md: 8 },
-          pb: { xs: 5, md: 7 },
+          pt: { xs: 5, md: 6 },
+          pb: { xs: 5, md: 6 },
           px: { xs: 2, md: 6 },
         }}
       >
         <Container maxWidth="lg" sx={{ maxWidth: '100%' }}>
           {/* Section Header */}
-          <Box sx={{ textAlign: 'center', mb: 4.5, animation: 'slideUp 0.8s ease' }}>
-            <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+          <Box sx={{ textAlign: 'center', mb: 4, animation: 'slideUp 0.8s ease' }}>
+            <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.74rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
               COMMUNITY PORTAL
             </Typography>
-            <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: { xs: '1.7rem', md: '2.2rem' }, mt: 1.2, mb: 0.8 }}>
+            <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: { xs: '1.55rem', md: '1.9rem' }, mt: 0.8, mb: 0.6 }}>
               Who are you logging in as?
             </Typography>
-            <Typography sx={{ color: 'rgba(15, 23, 42, 0.68)', fontWeight: 600, fontSize: '0.95rem', maxWidth: 600, mx: 'auto' }}>
-              Select your role to access your personalized dashboard and community features.
+            <Typography sx={{ color: 'rgba(15, 23, 42, 0.68)', fontWeight: 600, fontSize: '0.88rem', maxWidth: 600, mx: 'auto' }}>
+              Select your role to access personalized dashboard and community features.
             </Typography>
           </Box>
 
           {/* Role Cards Grid */}
-          <Grid container spacing={3.5} justifyContent="center" sx={{ mb: 6 }}>
+          <Grid container spacing={3} justifyContent="center" sx={{ mb: 5.5 }}>
             {ROLES.map((role, idx) => (
               <Grid item xs={12} sm={6} md={4} key={role.key} sx={{ animation: `cardPop 0.6s ease ${idx * 0.15}s both` }}>
                 <Card
                   onClick={() => onRoleSelect(role.key)}
                   sx={{
-                    borderRadius: 3.5,
+                    borderRadius: 3,
                     overflow: 'hidden',
                     cursor: 'pointer',
                     backgroundColor: 'white',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
+                    boxShadow: '0 10px 35px rgba(0,0,0,0.11)',
                     transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     '&:hover': {
-                      transform: 'translateY(-12px)',
-                      boxShadow: '0 28px 60px rgba(0,0,0,0.20)',
+                      transform: 'translateY(-10px)',
+                      boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
                     },
-                    '&:active': { transform: 'translateY(-6px)' },
+                    '&:active': { transform: 'translateY(-5px)' },
                   }}
                 >
                   {/* Image Section */}
-                  <Box sx={{ height: 180, backgroundImage: `url(${role.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', overflow: 'hidden' }}>
+                  <Box sx={{ height: 160, backgroundImage: `url(${role.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', overflow: 'hidden' }}>
                     <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(2,6,23,0.12), rgba(2,6,23,0.35))' }} />
                     <Box sx={{
                       position: 'absolute',
-                      bottom: -28,
+                      bottom: -24,
                       left: '50%',
                       transform: 'translateX(-50%)',
-                      width: 64,
-                      height: 64,
+                      width: 60,
+                      height: 60,
                       borderRadius: '50%',
                       backgroundColor: 'white',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
+                      boxShadow: '0 10px 28px rgba(0,0,0,0.16)',
                       border: '4px solid #f6faf7',
                       zIndex: 2
                     }}>
@@ -860,11 +862,11 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                   </Box>
 
                   {/* Content Section */}
-                  <CardContent sx={{ pt: 5.5, pb: 3.5, px: 3, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Typography sx={{ fontSize: '1.15rem', fontWeight: 900, color: T.primary, letterSpacing: '0.08em', mb: 1.2 }}>
+                  <CardContent sx={{ pt: 5, pb: 3, px: 2.8, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                    <Typography sx={{ fontSize: '1.05rem', fontWeight: 900, color: T.primary, letterSpacing: '0.08em', mb: 1 }}>
                       {role.label}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.88rem', color: '#64748b', mb: 2.8, lineHeight: 1.6, flexGrow: 1 }}>
+                    <Typography sx={{ fontSize: '0.82rem', color: '#64748b', mb: 2.4, lineHeight: 1.5, flexGrow: 1 }}>
                       {role.description}
                     </Typography>
                     <Button
@@ -873,14 +875,14 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                       sx={{
                         backgroundColor: T.primary,
                         color: 'white',
-                        borderRadius: 2.5,
-                        px: 3.2,
-                        py: 1,
-                        fontSize: '0.82rem',
+                        borderRadius: 2.2,
+                        px: 2.8,
+                        py: 0.85,
+                        fontSize: '0.78rem',
                         fontWeight: 900,
                         textTransform: 'none',
-                        boxShadow: '0 10px 24px rgba(15,90,42,0.24)',
-                        '&:hover': { backgroundColor: T.dark, transform: 'translateY(-2px)' },
+                        boxShadow: '0 8px 20px rgba(15,90,42,0.22)',
+                        '&:hover': { backgroundColor: T.dark, transform: 'translateY(-1px)' },
                         '&:active': { transform: 'translateY(0px) scale(0.99)' },
                         transition: 'all 0.2s ease',
                       }}
@@ -894,23 +896,23 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           </Grid>
 
           {/* Stats Section */}
-          <Box sx={{ mx: { xs: -2, md: 0 }, px: { xs: 2, md: 4 }, py: 4.5, background: 'linear-gradient(135deg, #1f5f33 0%, #2f7a43 100%)', borderRadius: { xs: 0, md: 3 }, mb: 6 }}>
+          <Box sx={{ mx: { xs: -2, md: 0 }, px: { xs: 2, md: 3.5 }, py: 4, background: 'linear-gradient(135deg, #1f5f33 0%, #2f7a43 100%)', borderRadius: { xs: 0, md: 2.5 }, mb: 5.5 }}>
             <Grid container spacing={3} justifyContent="center">
               {[
-                { k: '200+', l: 'Total Lots', icon: <MapIcon sx={{ fontSize: 18 }} /> },
-                { k: '45', l: 'Active Residents', icon: <HomeIcon sx={{ fontSize: 18 }} /> },
-                { k: '98%', l: 'Collection Rate', icon: <SecurityIcon sx={{ fontSize: 18 }} /> },
-                { k: '4.9', l: 'Community Rating', icon: <StarIcon sx={{ fontSize: 18 }} /> },
+                { k: '200+', l: 'Total Lots', icon: <MapIcon sx={{ fontSize: 16 }} /> },
+                { k: '45', l: 'Active Residents', icon: <HomeIcon sx={{ fontSize: 16 }} /> },
+                { k: '98%', l: 'Collection Rate', icon: <SecurityIcon sx={{ fontSize: 16 }} /> },
+                { k: '4.9', l: 'Community Rating', icon: <StarIcon sx={{ fontSize: 16 }} /> },
               ].map((s, idx) => (
-                <Grid item xs={6} md={3} key={s.l} sx={{ animation: `fadeUpSoft 0.7s ease ${0.4 + idx * 0.12}s both` }}>
+                <Grid item xs={6} md={3} key={s.l} sx={{ animation: `fadeUpSoft 0.7s ease ${0.3 + idx * 0.1}s both` }}>
                   <Box sx={{ textAlign: 'center', color: 'white' }}>
-                    <Box sx={{ width: 32, height: 32, mx: 'auto', borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'rgba(255,255,255,0.16)', border: '1.5px solid rgba(255,255,255,0.24)' }}>
+                    <Box sx={{ width: 30, height: 30, mx: 'auto', borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'rgba(255,255,255,0.14)', border: '1.5px solid rgba(255,255,255,0.22)' }}>
                       {s.icon}
                     </Box>
-                    <Typography sx={{ mt: 1, fontWeight: 950, fontSize: { xs: '1.6rem', md: '2rem' }, lineHeight: 1 }}>
+                    <Typography sx={{ mt: 0.8, fontWeight: 950, fontSize: { xs: '1.4rem', md: '1.75rem' }, lineHeight: 1 }}>
                       {s.k}
                     </Typography>
-                    <Typography sx={{ mt: 0.4, fontWeight: 800, color: 'rgba(255,255,255,0.80)', fontSize: '0.72rem', letterSpacing: '0.06em' }}>
+                    <Typography sx={{ mt: 0.3, fontWeight: 800, color: 'rgba(255,255,255,0.78)', fontSize: '0.68rem', letterSpacing: '0.05em' }}>
                       {s.l}
                     </Typography>
                   </Box>
@@ -920,21 +922,21 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           </Box>
 
           {/* Community Living Section */}
-          <Box sx={{ mb: 6, animation: 'slideUp 1s ease 0.2s both' }}>
-            <Grid container spacing={{ xs: 2.5, md: 4 }} alignItems="center">
+          <Box sx={{ mb: 5.5, animation: 'slideUp 1s ease 0.2s both' }}>
+            <Grid container spacing={{ xs: 2, md: 3.5 }} alignItems="center">
               <Grid item xs={12} md={6}>
-                <Box sx={{ mb: { xs: 3, md: 0 } }}>
-                  <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase', mb: 1.2 }}>
+                <Box sx={{ mb: { xs: 2.5, md: 0 } }}>
+                  <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.71rem', letterSpacing: '0.14em', textTransform: 'uppercase', mb: 1 }}>
                     WHAT WE OFFER
                   </Typography>
-                  <Typography sx={{ color: '#0f172a', fontWeight: 950, fontSize: { xs: '1.8rem', md: '2.1rem' }, lineHeight: 1.15, mb: 1.5 }}>
+                  <Typography sx={{ color: '#0f172a', fontWeight: 950, fontSize: { xs: '1.55rem', md: '1.85rem' }, lineHeight: 1.1, mb: 1.2 }}>
                     A Complete Community Living Experience
                   </Typography>
-                  <Typography sx={{ color: '#555', fontWeight: 600, fontSize: '0.95rem', lineHeight: 1.7, mb: 3.2, maxWidth: 480 }}>
+                  <Typography sx={{ color: '#555', fontWeight: 600, fontSize: '0.90rem', lineHeight: 1.65, mb: 2.5, maxWidth: 460 }}>
                     Casimiro Westville Homes is designed to provide everything your family needs — from modern utilities to lush green spaces and a strong, secure community.
                   </Typography>
 
-                  <Grid container spacing={1.8} sx={{ maxWidth: 480 }}>
+                  <Grid container spacing={1.4} sx={{ maxWidth: 460 }}>
                     {[
                       'High-Speed Internet',
                       'Water & Utilities',
@@ -943,30 +945,30 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                       'Parks & Greenery',
                       'Visitor Parking',
                     ].map((feature, idx) => (
-                      <Grid item xs={6} key={feature} sx={{ animation: `fadeUpSoft 0.6s ease ${0.3 + idx * 0.08}s both` }}>
+                      <Grid item xs={6} key={feature} sx={{ animation: `fadeUpSoft 0.6s ease ${0.2 + idx * 0.08}s both` }}>
                         <Box sx={{
                           backgroundColor: '#f0f7ee',
-                          borderRadius: 2,
-                          border: '1.5px solid rgba(15, 90, 42, 0.14)',
-                          px: 1.8,
-                          py: 1.2,
+                          borderRadius: 1.8,
+                          border: '1.5px solid rgba(15, 90, 42, 0.12)',
+                          px: 1.5,
+                          py: 1,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 1.2,
+                          gap: 1,
                           transition: 'all 0.2s ease',
                           '&:hover': {
                             backgroundColor: '#e8f3e5',
                             borderColor: T.primary,
-                            transform: 'translateX(4px)'
+                            transform: 'translateX(3px)'
                           }
                         }}>
                           <Box sx={{
-                            width: 20,
-                            height: 20,
+                            width: 18,
+                            height: 18,
                             borderRadius: '50%',
                             bgcolor: T.accent,
                             color: T.dark,
-                            fontSize: '0.75rem',
+                            fontSize: '0.70rem',
                             fontWeight: 900,
                             display: 'grid',
                             placeItems: 'center',
@@ -974,7 +976,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                           }}>
                             ✓
                           </Box>
-                          <Typography sx={{ color: '#1f2937', fontWeight: 700, fontSize: '0.80rem' }}>
+                          <Typography sx={{ color: '#1f2937', fontWeight: 700, fontSize: '0.77rem' }}>
                             {feature}
                           </Typography>
                         </Box>
@@ -984,23 +986,23 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                 </Box>
               </Grid>
 
-              <Grid item xs={12} md={6} sx={{ animation: 'slideUp 1s ease 0.4s both' }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 2.5 }}>
+              <Grid item xs={12} md={6} sx={{ animation: 'slideUp 1s ease 0.35s both' }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 2 }}>
                   <Box
                     component="img"
                     src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&q=80"
                     alt="Model House"
                     sx={{
                       width: '100%',
-                      height: { xs: 200, md: 240 },
+                      height: { xs: 180, md: 220 },
                       objectFit: 'cover',
-                      borderRadius: 3,
-                      boxShadow: '0 16px 40px rgba(0,0,0,0.14)',
+                      borderRadius: 2.5,
+                      boxShadow: '0 14px 35px rgba(0,0,0,0.12)',
                       transition: 'transform 0.3s ease',
                       '&:hover': { transform: 'scale(1.02)' }
                     }}
                   />
-                  <Grid container spacing={2}>
+                  <Grid container spacing={1.8}>
                     <Grid item xs={6}>
                       <Box
                         component="img"
@@ -1008,10 +1010,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                         alt="Park"
                         sx={{
                           width: '100%',
-                          height: 100,
+                          height: 90,
                           objectFit: 'cover',
-                          borderRadius: 2.5,
-                          boxShadow: '0 10px 28px rgba(0,0,0,0.12)',
+                          borderRadius: 2,
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
                           transition: 'transform 0.3s ease',
                           '&:hover': { transform: 'scale(1.02)' }
                         }}
@@ -1024,10 +1026,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                         alt="Community"
                         sx={{
                           width: '100%',
-                          height: 100,
+                          height: 90,
                           objectFit: 'cover',
-                          borderRadius: 2.5,
-                          boxShadow: '0 10px 28px rgba(0,0,0,0.12)',
+                          borderRadius: 2,
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
                           transition: 'transform 0.3s ease',
                           '&:hover': { transform: 'scale(1.02)' }
                         }}
@@ -1041,12 +1043,12 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
           {/* Announcements Preview */}
           <Box sx={{ animation: 'slideUp 1s ease 0.4s both' }}>
-            <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2, mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2, mb: 2.8 }}>
               <Box>
-                <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.74rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.71rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                   STAY INFORMED
                 </Typography>
-                <Typography sx={{ color: '#0f172a', fontWeight: 950, fontSize: { xs: '1.45rem', md: '1.65rem' }, mt: 0.8 }}>
+                <Typography sx={{ color: '#0f172a', fontWeight: 950, fontSize: { xs: '1.35rem', md: '1.55rem' }, mt: 0.6 }}>
                   Latest Announcements
                 </Typography>
               </Box>
@@ -1057,6 +1059,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                   color: T.primary,
                   fontWeight: 900,
                   textTransform: 'none',
+                  fontSize: '0.85rem',
                   '&:hover': { bgcolor: 'rgba(15, 90, 42, 0.06)' },
                   transition: 'all 0.2s ease'
                 }}
@@ -1065,49 +1068,49 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               </Button>
             </Box>
 
-            <Grid container spacing={3}>
+            <Grid container spacing={2.5}>
               {ANNOUNCEMENTS.slice(0, 3).map((ann, idx) => (
-                <Grid item xs={12} md={4} key={ann.id} sx={{ animation: `cardPop 0.6s ease ${0.5 + idx * 0.12}s both` }}>
+                <Grid item xs={12} md={4} key={ann.id} sx={{ animation: `cardPop 0.6s ease ${0.4 + idx * 0.12}s both` }}>
                   <Card
                     onClick={() => scrollTo(announcementRef)}
                     sx={{
-                      borderRadius: 3,
+                      borderRadius: 2.5,
                       bgcolor: '#ffffff',
                       border: '1.5px solid rgba(15, 90, 42, 0.08)',
                       cursor: 'pointer',
                       transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                      boxShadow: '0 6px 20px rgba(0,0,0,0.07)',
                       height: '100%',
                       '&:hover': {
-                        transform: 'translateY(-10px)',
-                        boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                        transform: 'translateY(-8px)',
+                        boxShadow: '0 18px 35px rgba(0,0,0,0.12)',
                         borderColor: T.primary
                       },
                     }}
                   >
-                    <CardContent sx={{ p: 2.8 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                    <CardContent sx={{ p: 2.4 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.2 }}>
                         <Chip
                           label={ann.category}
                           size="small"
                           sx={{
-                            bgcolor: ann.color + '18',
+                            bgcolor: ann.color + '16',
                             color: ann.color,
                             fontWeight: 900,
-                            fontSize: '0.70rem',
-                            height: 24
+                            fontSize: '0.68rem',
+                            height: 22
                           }}
                         />
-                        <Typography sx={{ color: '#94a3b8', fontSize: '0.73rem', fontWeight: 700 }}>
+                        <Typography sx={{ color: '#94a3b8', fontSize: '0.70rem', fontWeight: 700 }}>
                           {ann.date}
                         </Typography>
                       </Box>
                       <Typography sx={{
                         color: '#0f172a',
                         fontWeight: 900,
-                        fontSize: '0.98rem',
-                        lineHeight: 1.35,
-                        mb: 1.2,
+                        fontSize: '0.92rem',
+                        lineHeight: 1.3,
+                        mb: 1,
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
@@ -1118,22 +1121,22 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                       <Typography sx={{
                         color: '#64748b',
                         fontWeight: 600,
-                        fontSize: '0.84rem',
+                        fontSize: '0.80rem',
                         lineHeight: 1.5,
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
-                        mb: 1.8
+                        mb: 1.4
                       }}>
                         {ann.body}
                       </Typography>
                       <Typography sx={{
                         color: T.primary,
                         fontWeight: 900,
-                        fontSize: '0.82rem',
+                        fontSize: '0.78rem',
                         transition: 'transform 0.2s ease',
-                        '&:hover': { transform: 'translateX(4px)' }
+                        '&:hover': { transform: 'translateX(3px)' }
                       }}>
                         Read More →
                       </Typography>
@@ -1149,28 +1152,28 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       {/* CONTENT SECTIONS (scrollable) */}
       <Box sx={{ backgroundColor: T.bg }}>
         {/* Announcements */}
-        <Box ref={announcementRef} sx={{ py: { xs: 6, md: 10 } }}>
+        <Box ref={announcementRef} sx={{ py: { xs: 5.5, md: 9 } }}>
           <Container maxWidth="lg">
             <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+              <Typography sx={{ fontSize: '1.65rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 0.8 }}>
                 Announcements
               </Typography>
-              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+              <Typography sx={{ color: '#556', mb: 3.5, maxWidth: 760, lineHeight: 1.75 }}>
                 Stay updated with the latest advisories, maintenance schedules, and community events.
               </Typography>
             </Reveal>
-            <Grid container spacing={3}>
+            <Grid container spacing={2.8}>
               {ANNOUNCEMENTS.slice(0, 4).map((ann, idx) => (
                 <Grid item xs={12} md={6} key={ann.id}>
                   <Reveal delayMs={idx * 80}>
-                    <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', borderLeft: `5px solid ${ann.color}` }}>
-                      <CardContent sx={{ p: 3 }}>
+                    <Card sx={{ borderRadius: 2.5, boxShadow: '0 4px 18px rgba(0,0,0,0.08)', borderLeft: `5px solid ${ann.color}` }}>
+                      <CardContent sx={{ p: 2.8 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Chip label={ann.category} size="small" sx={{ backgroundColor: ann.color + '20', color: ann.color, fontWeight: 700, fontSize: '0.7rem' }} />
-                          <Typography sx={{ fontSize: '0.75rem', color: '#888' }}>{ann.date}</Typography>
+                          <Chip label={ann.category} size="small" sx={{ backgroundColor: ann.color + '20', color: ann.color, fontWeight: 700, fontSize: '0.68rem' }} />
+                          <Typography sx={{ fontSize: '0.73rem', color: '#888' }}>{ann.date}</Typography>
                         </Box>
-                        <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.95rem', mb: 1, lineHeight: 1.4 }}>{ann.title}</Typography>
-                        <Typography sx={{ color: '#666', fontSize: '0.82rem', lineHeight: 1.7 }}>{ann.body}</Typography>
+                        <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.92rem', mb: 0.8, lineHeight: 1.4 }}>{ann.title}</Typography>
+                        <Typography sx={{ color: '#666', fontSize: '0.80rem', lineHeight: 1.65 }}>{ann.body}</Typography>
                       </CardContent>
                     </Card>
                   </Reveal>
@@ -1181,31 +1184,31 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Officials */}
-        <Box ref={officialsRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
+        <Box ref={officialsRef} sx={{ py: { xs: 5.5, md: 9 }, backgroundColor: '#fff' }}>
           <Container maxWidth="lg">
             <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+              <Typography sx={{ fontSize: '1.65rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 0.8 }}>
                 Community Officials
               </Typography>
-              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+              <Typography sx={{ color: '#556', mb: 3.5, maxWidth: 760, lineHeight: 1.75 }}>
                 Meet the leaders who help keep Westville organized, safe, and thriving.
               </Typography>
             </Reveal>
-            <Grid container spacing={3}>
+            <Grid container spacing={2.8}>
               {OFFICIALS.map((official, idx) => (
                 <Grid item xs={12} sm={6} md={3} key={official.name}>
                   <Reveal delayMs={idx * 60}>
-                    <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center', overflow: 'hidden', height: '100%' }}>
-                      <Box sx={{ backgroundColor: T.primary, pt: 4, pb: 6, position: 'relative' }}>
-                        <Avatar sx={{ width: 80, height: 80, mx: 'auto', backgroundColor: T.accent, color: T.dark, fontSize: '1.4rem', fontWeight: 900, border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                    <Card sx={{ borderRadius: 2.5, boxShadow: '0 4px 18px rgba(0,0,0,0.08)', textAlign: 'center', overflow: 'hidden', height: '100%' }}>
+                      <Box sx={{ backgroundColor: T.primary, pt: 3.5, pb: 5.5, position: 'relative' }}>
+                        <Avatar sx={{ width: 75, height: 75, mx: 'auto', backgroundColor: T.accent, color: T.dark, fontSize: '1.3rem', fontWeight: 900, border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
                           {official.avatar}
                         </Avatar>
                       </Box>
-                      <Box sx={{ mt: -4, position: 'relative', zIndex: 2, px: 2, pb: 3 }}>
-                        <Box sx={{ backgroundColor: 'white', borderRadius: 3, p: 2.5, boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
-                          <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.9rem', mb: 0.5 }}>{official.name}</Typography>
-                          <Typography sx={{ color: T.primary, fontSize: '0.78rem', fontWeight: 700, mb: 1.5 }}>{official.position}</Typography>
-                          <Typography sx={{ color: '#666', fontSize: '0.76rem', lineHeight: 1.6 }}>{official.description}</Typography>
+                      <Box sx={{ mt: -3.5, position: 'relative', zIndex: 2, px: 2, pb: 2.5 }}>
+                        <Box sx={{ backgroundColor: 'white', borderRadius: 2.2, p: 2.2, boxShadow: '0 4px 14px rgba(0,0,0,0.09)' }}>
+                          <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.88rem', mb: 0.4 }}>{official.name}</Typography>
+                          <Typography sx={{ color: T.primary, fontSize: '0.75rem', fontWeight: 700, mb: 1.2 }}>{official.position}</Typography>
+                          <Typography sx={{ color: '#666', fontSize: '0.73rem', lineHeight: 1.55 }}>{official.description}</Typography>
                         </Box>
                       </Box>
                     </Card>
@@ -1217,13 +1220,13 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Contact */}
-        <Box ref={contactRef} sx={{ py: { xs: 6, md: 10 } }}>
+        <Box ref={contactRef} sx={{ py: { xs: 5.5, md: 9 } }}>
           <Container maxWidth="lg">
             <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+              <Typography sx={{ fontSize: '1.65rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 0.8 }}>
                 Contact Us
               </Typography>
-              <Typography sx={{ color: '#556', mb: 5, maxWidth: 760, lineHeight: 1.8 }}>
+              <Typography sx={{ color: '#556', mb: 4.5, maxWidth: 760, lineHeight: 1.75 }}>
                 Questions or concerns? Reach out to the Westville Casimiro Homes administration.
               </Typography>
             </Reveal>
@@ -1234,13 +1237,13 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* About */}
-        <Box ref={aboutRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
+        <Box ref={aboutRef} sx={{ py: { xs: 5.5, md: 9 }, backgroundColor: '#fff' }}>
           <Container maxWidth="lg">
             <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+              <Typography sx={{ fontSize: '1.65rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 0.8 }}>
                 About Us
               </Typography>
-              <Typography sx={{ color: '#556', mb: 5, maxWidth: 760, lineHeight: 1.8 }}>
+              <Typography sx={{ color: '#556', mb: 4.5, maxWidth: 760, lineHeight: 1.75 }}>
                 Learn more about Westville Casimiro Homes, our mission, and what we value as a community.
               </Typography>
             </Reveal>
@@ -1251,18 +1254,18 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Calendar */}
-        <Box ref={calendarSectionRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: T.bg }}>
+        <Box ref={calendarSectionRef} sx={{ py: { xs: 5.5, md: 9 }, backgroundColor: T.bg }}>
           <Container maxWidth="lg">
             <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+              <Typography sx={{ fontSize: '1.65rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 0.8 }}>
                 Calendar
               </Typography>
-              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+              <Typography sx={{ color: '#556', mb: 3.5, maxWidth: 760, lineHeight: 1.75 }}>
                 Quick view of the current month.
               </Typography>
             </Reveal>
-            <Reveal delayMs={80} sx={{ maxWidth: 420 }}>
-              <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: 2, border: '1px solid rgba(45,80,22,0.15)' }}>
+            <Reveal delayMs={80} sx={{ maxWidth: 400 }}>
+              <Box sx={{ backgroundColor: 'white', borderRadius: 2.5, boxShadow: '0 8px 28px rgba(0,0,0,0.09)', p: 2.2, border: '1px solid rgba(45,80,22,0.12)' }}>
                 <MiniCalendar
                   currentDate={currentDate}
                   onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}

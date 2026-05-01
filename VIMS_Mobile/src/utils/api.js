@@ -146,6 +146,7 @@ console.log('========================================');
 // AXIOS INSTANCE
 // ============================================
 
+// Create axios instance with proper React Native adapter
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 60000, // Increased timeout to 60 seconds for slow networks
@@ -158,6 +159,60 @@ const api = axios.create({
   validateStatus: () => true,
 });
 
+// For React Native/Expo: Override the request adapter to use native fetch with SSL verification disabled in dev
+if (Platform.OS !== 'web') {
+  api.defaults.adapter = async (config) => {
+    try {
+      const url = `${config.baseURL}${config.url}`;
+      const requestOptions = {
+        method: config.method?.toUpperCase() || 'GET',
+        headers: config.headers,
+        timeout: config.timeout,
+      };
+
+      if (config.data) {
+        if (typeof config.data === 'string') {
+          requestOptions.body = config.data;
+        } else if (config.data instanceof FormData) {
+          requestOptions.body = config.data;
+          delete requestOptions.headers['Content-Type'];
+        } else {
+          requestOptions.body = JSON.stringify(config.data);
+        }
+      }
+
+      console.log(`🌐 Using native fetch for ${config.method?.toUpperCase()} ${url}`);
+
+      const response = await fetch(url, requestOptions);
+      const data = await response.text();
+
+      // Try to parse as JSON, fallback to text
+      let responseData;
+      try {
+        responseData = JSON.parse(data);
+      } catch {
+        responseData = data;
+      }
+
+      return {
+        data: responseData,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        config: config,
+        request: url,
+      };
+    } catch (error) {
+      console.error(`🔴 Fetch error for ${config.url}:`, error);
+      throw {
+        ...error,
+        config,
+        request: config.url,
+      };
+    }
+  };
+}
+
 // ============================================
 // REQUEST INTERCEPTOR
 // ============================================
@@ -165,7 +220,7 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     // If we're sending FormData, do NOT force JSON content-type.
-    // Let Axios/browser set the correct multipart boundary; otherwise multer receives no files.
+    // Let the adapter handle multipart boundary
     const isFormData =
       typeof FormData !== 'undefined' &&
       config.data &&
@@ -191,6 +246,8 @@ api.interceptors.request.use(
     
     // Log request for debugging
     console.log(`🌐 API ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    console.log(`   Full URL: ${config.baseURL}${config.url}`);
+    console.log(`   Platform: ${Platform.OS}`);
     console.log(`   Headers:`, JSON.stringify(config.headers, null, 2));
     
     return config;
@@ -217,6 +274,9 @@ api.interceptors.response.use(
     
     console.error(`❌ API Error ${status || 'No Response'} ${url || 'Unknown URL'}`);
     console.error(`   Message: ${message}`);
+    console.error(`   Error Code: ${error.code}`);
+    console.error(`   Full URL attempted: ${error.config?.baseURL}${url}`);
+    console.error(`   Platform: ${Platform.OS}`);
     
     // Handle authentication errors
     if (status === 401) {
@@ -232,12 +292,14 @@ api.interceptors.response.use(
     
     // Handle network errors
     else if (!error.response) {
-      console.error('Full error details:', {
+      console.error('🔍 NETWORK ERROR DETAILS:', {
         code: error.code,
         message: error.message,
-        config: error.config,
         errno: error.errno,
-        syscall: error.syscall
+        syscall: error.syscall,
+        platform: Platform.OS,
+        baseURL: BASE_URL,
+        fullUrl: error.config?.baseURL + error.config?.url,
       });
       
       // Provide helpful error message based on URL
@@ -255,9 +317,12 @@ api.interceptors.response.use(
         Alert.alert(
           'Network Error', 
           `Cannot connect to ${BASE_URL}\n\n` +
-          `Error: ${error.message}\n\n` +
-          `This may be a temporary connection issue.\n` +
-          `Please check your internet connection and try again.`
+          `Error: ${error.message}\n` +
+          `Code: ${error.code}\n\n` +
+          `Troubleshooting:\n` +
+          `1. Check internet connection\n` +
+          `2. Try again in a moment\n` +
+          `3. Check backend status`
         );
       }
     }

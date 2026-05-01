@@ -12,10 +12,12 @@ import {
   Modal,
   Animated,
   TouchableWithoutFeedback,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api, { getProtectedImageDataUrl } from '../utils/api';
+import testDirectFetch from '../utils/testFetch';
 import { startUnreadCountPolling } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationModal from '../components/NotificationModal';
@@ -43,6 +45,13 @@ const DashboardScreen = ({ navigation }) => {
     let cancelled = false;
     (async () => {
       try {
+        // Test direct fetch on app load
+        console.log('🧪 Running initial fetch test...');
+        const fetchTestResult = await testDirectFetch();
+        if (!fetchTestResult.success) {
+          console.warn('⚠️ Direct fetch test failed - backend may be unreachable');
+        }
+        
         const userStr = await AsyncStorage.getItem('user');
         const userData = authUser || (userStr ? JSON.parse(userStr) : null);
         if (!userData) {

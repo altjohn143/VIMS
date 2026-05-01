@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import villageLogo from '../assets/village-logo.png';
+import bgImage from '../assets/Westville.png';
+import heroBg from '../assets/roof.png';
 import { useAuth } from '../context/AuthContext';
 import {
   Container, Box, TextField, Button, Typography, Paper,
@@ -58,7 +60,7 @@ const BackBtn = ({ onClose }) => (
 
 // ─── SHARED HERO ──────────────────────────────────────────────────────────────
 const PageHero = ({ title, subtitle, onClose }) => (
-  <Box sx={{ position: 'relative', height: { xs: 260, md: 360 }, backgroundImage: 'url(https://images.unsplash.com/photo-1605146769289-440113cc3d00?w=1400&q=80)', backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', '&::after': { content: '""', position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(20,50,5,0.65) 0%, rgba(20,50,5,0.80) 100%)' } }}>
+  <Box sx={{ position: 'relative', height: { xs: 260, md: 360 }, backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', '&::after': { content: '""', position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(20,50,5,0.65) 0%, rgba(20,50,5,0.80) 100%)' } }}>
     <BackBtn onClose={onClose} />
     <Box sx={{ position: 'relative', zIndex: 2, textAlign: 'center', px: 3 }}>
       <Typography sx={{ fontSize: { xs: '2rem', md: '3rem' }, fontWeight: 900, color: 'white', textTransform: 'uppercase', lineHeight: 1.1, textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 1.5 }}>{title}</Typography>
@@ -372,7 +374,7 @@ const AboutUsPage = ({ onClose }) => (
         </Grid>
       </Container>
     </Box>
-
+    
     {/* Core Values */}
     <Box sx={{ backgroundColor: T.bg, py: { xs: 6, md: 10 } }}>
       <Container maxWidth="lg">
@@ -526,7 +528,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           sx={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: 'url(https://images.unsplash.com/photo-1605146769289-440113cc3d00?w=1600&q=80)',
+            backgroundImage: `url(${heroBg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center top',
             filter: 'saturate(1.08) contrast(1.04)',
@@ -538,14 +540,19 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           sx={{
             position: 'absolute',
             inset: 0,
-            // overlay aligned with screenshot: dark green wash + readable text
-            background: `linear-gradient(
-              to bottom,
-              rgba(11, 61, 31, 0.55) 0%,
-              rgba(11, 61, 31, 0.78) 55%,
-              rgba(11, 61, 31, 0.92) 88%,
-              ${T.dark} 100%
-            )`,
+                        backgroundImage: `
+              linear-gradient(
+                90deg,
+                rgba(2,6,23,0.85) 0%,
+                rgba(2,6,23,0.65) 40%,
+                rgba(2,6,23,0.35) 70%,
+                rgba(2,6,23,0.15) 100%
+              ),
+              url(${heroBg})
+            `,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundBlendMode: 'overlay',
           }}
         />
         <Box
@@ -592,7 +599,32 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               boxShadow: '0 10px 24px rgba(0,0,0,0.22)',
             }}
           >
-            <HomeIcon sx={{ fontSize: 22, color: 'white' }} />
+          <Box onClick={() => window.location.reload()} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
+  
+            <Box
+              component="img"
+              src={villageLogo}
+              alt="Westville Logo"
+              sx={{
+                width: 44,
+                height: 44,
+                borderRadius: '12px',
+                objectFit: 'cover',
+                border: '1px solid rgba(255,255,255,0.25)',
+                boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
+              }}
+            />
+
+            <Box>
+              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem', lineHeight: 1 }}>
+                WESTVILLE CASIMIRO
+              </Typography>
+              <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+                HOMES
+              </Typography>
+            </Box>
+
+          </Box>
           </Box>
           <Box>
             <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', lineHeight: 1.1 }}>WESTVILLE CASIMIRO</Typography>
@@ -1217,12 +1249,6 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   );
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// LOGIN
-// ═══════════════════════════════════════════════════════════════════════════════
-// Replace ONLY your current `const Login = () => { ... }` block with this.
-// This keeps your existing auth, role selection, forgot password API, lock timer, validation, and navigation flow intact.
-
 const Login = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -1407,18 +1433,18 @@ const Login = () => {
         },
       }}
     >
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: -24,
-          backgroundImage: 'url(https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1800&q=85)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          transform: `translate(${mouse.x * 14}px, ${mouse.y * 14}px) scale(1.06)`,
-          filter: 'saturate(1.05) contrast(1.04)',
-          transition: 'transform 180ms ease-out'
-        }}
-      />
+              <Box
+          sx={{
+            position: 'absolute',
+            inset: -24,
+            backgroundImage: `url(${bgImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            transform: `translate(${mouse.x * 14}px, ${mouse.y * 14}px) scale(1.06)`,
+            filter: 'brightness(0.75)',
+            transition: 'transform 180ms ease-out'
+          }}
+        />
 
       <Box
         sx={{
@@ -1440,23 +1466,6 @@ const Login = () => {
           backgroundSize: '52px 52px',
           transform: `translate(${mouse.x * -8}px, ${mouse.y * -8}px)`,
           transition: 'transform 180ms ease-out'
-        }}
-      />
-
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '12%',
-          left: '7%',
-          width: 190,
-          height: 190,
-          borderRadius: '48px',
-          border: '1px solid rgba(134,239,172,0.16)',
-          background: 'linear-gradient(135deg, rgba(134,239,172,0.14), rgba(255,255,255,0.035))',
-          backdropFilter: 'blur(14px)',
-          transform: `translate(${mouse.x * 32}px, ${mouse.y * 32}px) rotate(-10deg)`,
-          animation: 'floatSoft 7s ease-in-out infinite',
-          display: { xs: 'none', md: 'block' }
         }}
       />
 
@@ -1536,7 +1545,7 @@ const Login = () => {
                   textShadow: '0 22px 50px rgba(0,0,0,0.42)'
                 }}
               >
-                Welcome back to your digital village gateway.
+                Casimiro Westville Homes.
               </Typography>
 
               <Typography

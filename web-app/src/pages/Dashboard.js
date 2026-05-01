@@ -36,7 +36,6 @@ import {
 import {
   Logout as LogoutIcon,
   Home as HomeIcon,
-  People as PeopleIcon,
   Security as SecurityIcon,
   AdminPanelSettings as AdminIcon,
   NotificationsNone as NotificationsIcon,

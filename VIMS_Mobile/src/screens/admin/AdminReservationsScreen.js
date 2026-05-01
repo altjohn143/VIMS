@@ -216,13 +216,7 @@ const AdminReservationsScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#166534" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Reservation Management</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => handleOpenModal()}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Reservation Logs</Text>
       </View>
 
       <ScrollView
@@ -239,87 +233,94 @@ const AdminReservationsScreen = ({ navigation }) => {
             <Text style={styles.emptySubtitle}>Create the first reservation</Text>
           </View>
         ) : (
-          reservations.map((reservation) => (
-            <View key={reservation._id} style={styles.reservationCard}>
-              <View style={styles.reservationHeader}>
-                <View style={styles.resourceInfo}>
-                  <Ionicons
-                    name={getResourceIcon(reservation.resourceType)}
-                    size={20}
-                    color="#166534"
-                  />
-                  <Text style={styles.resourceName}>{reservation.resourceName}</Text>
+          reservations.map((reservation) => {
+            const isOverdue = new Date(reservation.endDate) < new Date() && reservation.status !== 'returned' && reservation.status !== 'cancelled';
+            const displayStatus = isOverdue ? 'Overdue' : reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1);
+            const statusColor = isOverdue ? '#ef4444' : getStatusColor(reservation.status);
+            const statusIcon = isOverdue ? 'alert-circle' : getStatusIcon(reservation.status);
+
+            return (
+              <View key={reservation._id} style={styles.reservationCard}>
+                <View style={styles.reservationHeader}>
+                  <View style={styles.resourceInfo}>
+                    <Ionicons
+                      name={getResourceIcon(reservation.resourceType)}
+                      size={20}
+                      color="#166534"
+                    />
+                    <Text style={styles.resourceName}>{reservation.resourceName}</Text>
+                  </View>
+                  <View style={styles.cardActions}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => handleOpenModal(reservation)}
+                    >
+                      <Ionicons name="pencil" size={16} color="#166534" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleDelete(reservation._id)}
+                    >
+                      <Ionicons name="trash" size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <View style={styles.cardActions}>
-                  <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() => handleOpenModal(reservation)}
-                  >
-                    <Ionicons name="pencil" size={16} color="#166534" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(reservation._id)}
-                  >
-                    <Ionicons name="trash" size={16} color="#ef4444" />
-                  </TouchableOpacity>
+
+                <View style={styles.reservationDetails}>
+                  <View style={styles.detailRow}>
+                    <Ionicons name="person-outline" size={16} color="#64748b" />
+                    <Text style={styles.detailText}>
+                      {reservation.reservedBy?.firstName} {reservation.reservedBy?.lastName}
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailRow}>
+                    <Ionicons name="calendar-outline" size={16} color="#64748b" />
+                    <Text style={styles.detailText}>
+                      {formatDate(reservation.startDate)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.detailRow}>
+                    <Ionicons name="time-outline" size={16} color="#64748b" />
+                    <Text style={styles.detailText}>
+                      to {formatDate(reservation.endDate)}
+                    </Text>
+                  </View>
+
+                  {reservation.quantity > 1 && (
+                    <View style={styles.detailRow}>
+                      <Ionicons name="layers-outline" size={16} color="#64748b" />
+                      <Text style={styles.detailText}>Quantity: {reservation.quantity}</Text>
+                    </View>
+                  )}
+
+                  {reservation.description && (
+                    <View style={styles.detailRow}>
+                      <Ionicons name="document-text-outline" size={16} color="#64748b" />
+                      <Text style={styles.detailText}>{reservation.description}</Text>
+                    </View>
+                  )}
+
+                  {reservation.notes && (
+                    <View style={styles.detailRow}>
+                      <Ionicons name="chatbox-outline" size={16} color="#64748b" />
+                      <Text style={styles.detailText}>{reservation.notes}</Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.statusSection}>
+                  <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                    <Ionicons name={statusIcon} size={12} color="#fff" />
+                    <Text style={styles.statusText}>
+                      {displayStatus}
+                    </Text>
+                  </View>
                 </View>
               </View>
-
-              <View style={styles.reservationDetails}>
-                <View style={styles.detailRow}>
-                  <Ionicons name="person-outline" size={16} color="#64748b" />
-                  <Text style={styles.detailText}>
-                    {reservation.reservedBy?.firstName} {reservation.reservedBy?.lastName}
-                  </Text>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Ionicons name="calendar-outline" size={16} color="#64748b" />
-                  <Text style={styles.detailText}>
-                    {formatDate(reservation.startDate)}
-                  </Text>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Ionicons name="time-outline" size={16} color="#64748b" />
-                  <Text style={styles.detailText}>
-                    to {formatDate(reservation.endDate)}
-                  </Text>
-                </View>
-
-                {reservation.quantity > 1 && (
-                  <View style={styles.detailRow}>
-                    <Ionicons name="layers-outline" size={16} color="#64748b" />
-                    <Text style={styles.detailText}>Quantity: {reservation.quantity}</Text>
-                  </View>
-                )}
-
-                {reservation.description && (
-                  <View style={styles.detailRow}>
-                    <Ionicons name="document-text-outline" size={16} color="#64748b" />
-                    <Text style={styles.detailText}>{reservation.description}</Text>
-                  </View>
-                )}
-
-                {reservation.notes && (
-                  <View style={styles.detailRow}>
-                    <Ionicons name="chatbox-outline" size={16} color="#64748b" />
-                    <Text style={styles.detailText}>{reservation.notes}</Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.statusSection}>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(reservation.status) }]}>
-                  <Ionicons name={getStatusIcon(reservation.status)} size={12} color="#fff" />
-                  <Text style={styles.statusText}>
-                    {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
 

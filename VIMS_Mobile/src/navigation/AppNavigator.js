@@ -110,14 +110,8 @@ const AdminTabs = () => {
           let iconName;
           if (route.name === 'DashboardTab') {
             iconName = focused ? 'speedometer' : 'speedometer-outline';
-          } else if (route.name === 'UsersTab') {
-            iconName = focused ? 'people' : 'people-outline';
-          } else if (route.name === 'VisitorsTab') {
-            iconName = focused ? 'qr-code' : 'qr-code-outline';
-          } else if (route.name === 'ServicesTab') {
-            iconName = focused ? 'build' : 'build-outline';
-          } else if (route.name === 'PaymentsTab') {
-            iconName = focused ? 'cash' : 'cash-outline';
+          } else if (route.name === 'LogsTab') {
+            iconName = focused ? 'time' : 'time-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -135,10 +129,7 @@ const AdminTabs = () => {
       })}
     >
       <Tab.Screen name="DashboardTab" component={DashboardScreen} options={{ title: 'Dashboard' }} />
-      <Tab.Screen name="UsersTab" component={AdminUserManagementScreen} options={{ title: 'Users' }} />
-      <Tab.Screen name="VisitorsTab" component={AdminVisitorManagementScreen} options={{ title: 'Visitors' }} />
-      <Tab.Screen name="ServicesTab" component={AdminServiceRequestsScreen} options={{ title: 'Services' }} />
-      <Tab.Screen name="PaymentsTab" component={AdminPaymentsScreen} options={{ title: 'Payments' }} />
+      <Tab.Screen name="LogsTab" component={AdminReservationsScreen} options={{ title: 'Reservation Logs' }} />
     </Tab.Navigator>
   );
 };

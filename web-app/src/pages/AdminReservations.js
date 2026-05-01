@@ -37,7 +37,8 @@ import {
   Schedule as ScheduleIcon,
   EventAvailable as EventAvailableIcon,
   Build as BuildIcon,
-  MeetingRoom as MeetingRoomIcon
+  MeetingRoom as MeetingRoomIcon,
+  ReportProblemOutlined as ReportProblemOutlinedIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -219,16 +220,8 @@ const AdminReservations = () => {
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4" component="h1" gutterBottom>
-            Reservation Management
+            Reservation Logs
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-            sx={{ borderRadius: '28px' }}
-          >
-            Add Reservation
-          </Button>
         </Box>
 
         <Paper sx={{ width: '100%', overflow: 'hidden' }}>
@@ -246,65 +239,72 @@ const AdminReservations = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {reservations.map((reservation) => (
-                  <TableRow key={reservation._id} hover>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        {getResourceIcon(reservation.resourceType)}
-                        <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                          {reservation.resourceType}
+                {reservations.map((reservation) => {
+                  const isOverdue = new Date(reservation.endDate) < new Date() && reservation.status !== 'returned' && reservation.status !== 'cancelled';
+                  const displayStatus = isOverdue ? 'Overdue' : reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1);
+                  const statusColor = isOverdue ? 'error' : getStatusColor(reservation.status);
+                  const statusIcon = isOverdue ? <ReportProblemOutlinedIcon /> : getStatusIcon(reservation.status);
+
+                  return (
+                    <TableRow key={reservation._id} hover>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          {getResourceIcon(reservation.resourceType)}
+                          <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                            {reservation.resourceType}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {reservation.resourceName}
                         </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {reservation.resourceName}
-                      </Typography>
-                      {reservation.description && (
+                        {reservation.description && (
+                          <Typography variant="caption" color="text.secondary">
+                            {reservation.description}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {reservation.reservedBy?.firstName} {reservation.reservedBy?.lastName}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(reservation.startDate).toLocaleDateString()}
+                        <br />
                         <Typography variant="caption" color="text.secondary">
-                          {reservation.description}
+                          {new Date(reservation.startDate).toLocaleTimeString()}
                         </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {reservation.reservedBy?.firstName} {reservation.reservedBy?.lastName}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(reservation.startDate).toLocaleDateString()}
-                      <br />
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(reservation.startDate).toLocaleTimeString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(reservation.endDate).toLocaleDateString()}
-                      <br />
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(reservation.endDate).toLocaleTimeString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        icon={getStatusIcon(reservation.status)}
-                        label={reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
-                        color={getStatusColor(reservation.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title="Edit">
-                        <IconButton onClick={() => handleOpenDialog(reservation)} size="small">
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton onClick={() => handleDelete(reservation._id)} size="small" color="error">
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(reservation.endDate).toLocaleDateString()}
+                        <br />
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(reservation.endDate).toLocaleTimeString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          icon={statusIcon}
+                          label={displayStatus}
+                          color={statusColor}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title="Edit">
+                          <IconButton onClick={() => handleOpenDialog(reservation)} size="small">
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton onClick={() => handleDelete(reservation._id)} size="small" color="error">
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>

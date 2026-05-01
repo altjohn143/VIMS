@@ -489,23 +489,8 @@ const Dashboard = () => {
       color: '#166534',
       features: {
         dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
-        visitors: [{ title: 'Visitor Management', icon: <PeopleIcon />, link: '/admin/visitor-management' }],
-        users: [
-          { title: 'User Management', icon: <GroupIcon />, link: '/admin/users' },
-          { title: 'Approval Requests', icon: <VerifiedUserIcon />, link: '/admin/approvals' }
-        ],
-        services: [
-          { title: 'Service Requests', icon: <BuildIcon />, link: '/admin/service-requests' },
-          { title: 'Reservations', icon: <EventAvailableIcon />, link: '/admin/reservations' }
-        ],
-        finance: [
-          { title: 'Payment Management', icon: <ReceiptIcon />, link: '/admin/payments' },
-          { title: 'Financial Reports', icon: <PaymentIcon />, link: '/admin/payments' }
-        ],
-        announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/admin/announcements' }],
-        settings: [
-          { title: 'System Settings', icon: <SettingsIcon />, link: '/admin/settings' },
-          { title: 'Verification Queue', icon: <VerifiedUserIcon />, link: '/admin/verifications' }
+        logs: [
+          { title: 'Reservation Logs', icon: <EventAvailableIcon />, link: '/admin/reservations' }
         ]
       },
       stats: [

@@ -8,13 +8,15 @@ import { themeColors } from '../utils/theme';
 const LogoutButton = ({ navigation, color = '#ef4444', size = 18, label = 'Logout' }) => {
   const { logout } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (Platform.OS === 'web') {
       if (window.confirm('Are you sure you want to logout?')) {
-        logout();
-        // Navigate to Login if navigation prop is provided
+        await logout();
         if (navigation) {
-          navigation.replace('Login');
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
         }
       }
     } else {
@@ -28,9 +30,12 @@ const LogoutButton = ({ navigation, color = '#ef4444', size = 18, label = 'Logou
             style: 'destructive',
             onPress: async () => {
               await logout();
-              // Navigate to Login if navigation prop is provided
+              // Reset the navigation stack to Login if navigation prop is provided
               if (navigation) {
-                navigation.replace('Login');
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' }],
+                });
               }
             },
           },

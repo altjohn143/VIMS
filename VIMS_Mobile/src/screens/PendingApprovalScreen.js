@@ -32,25 +32,6 @@ const PendingApprovalScreen = ({ navigation, route }) => {
 
   const displayUser = registration || user;
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            // Navigate to Login screen to ensure clean navigation state
-            navigation.replace('Login');
-          },
-        },
-      ]
-    );
-  };
-
   const handleCheckStatus = () => {
     Alert.alert(
       'Check Status',
@@ -61,8 +42,10 @@ const PendingApprovalScreen = ({ navigation, route }) => {
           text: 'Logout',
           onPress: async () => {
             await logout();
-            // Navigate to Login screen to ensure clean navigation state
-            navigation.replace('Login');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
           },
         },
       ]

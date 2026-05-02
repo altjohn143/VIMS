@@ -84,8 +84,7 @@ router.post(
   protect, // SECURITY: Require authentication
   upload.fields([
     { name: 'frontImage', maxCount: 1 },
-    { name: 'backImage', maxCount: 1 },
-    { name: 'selfieImage', maxCount: 1 }
+    { name: 'backImage', maxCount: 1 }
   ]),
   async (req, res) => {
     try {
@@ -100,7 +99,6 @@ router.post(
 
       const frontFile = req.files?.frontImage?.[0] || null;
       const backFile = req.files?.backImage?.[0] || null;
-      const selfieFile = req.files?.selfieImage?.[0] || null;
 
       console.log('🧾 upload-id request files:', {
         user: { id: user._id.toString(), email: snapEmail },
@@ -109,15 +107,11 @@ router.post(
           : null,
         backImage: backFile
           ? { originalname: backFile.originalname, mimetype: backFile.mimetype, size: backFile.size }
-          : null,
-        selfieImage: selfieFile
-          ? { originalname: selfieFile.originalname, mimetype: selfieFile.mimetype, size: selfieFile.size }
           : null
       });
 
       const frontMeta = createFileMeta(frontFile);
       const backMeta = createFileMeta(backFile);
-      const selfieMeta = createFileMeta(selfieFile);
 
       if (!frontMeta || !backMeta) {
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
@@ -185,9 +179,6 @@ router.post(
             backImage,
             backImageData: backMeta.buffer,
             backImageMimeType: backMeta.mimetype,
-            selfieImage,
-            selfieImageData: selfieMeta?.buffer || null,
-            selfieImageMimeType: selfieMeta?.mimetype || null,
             status: 'manual_review',
             reviewNotes: 'OCR failed while extracting ID details. Routed to manual review.',
             rejectReason: ''
@@ -199,30 +190,12 @@ router.post(
           verification.backImage = backImage;
           verification.backImageData = backMeta.buffer;
           verification.backImageMimeType = backMeta.mimetype;
-          verification.selfieImage = selfieImage;
-          verification.selfieImageData = selfieMeta?.buffer || null;
-          verification.selfieImageMimeType = selfieMeta?.mimetype || null;
           verification.residentEmail = snapEmail;
           verification.residentDisplayName = snapName;
           verification.status = 'manual_review';
           verification.reviewNotes = 'OCR failed while extracting ID details. Routed to manual review.';
           verification.rejectReason = '';
           await verification.save();
-        }
-
-        if (selfieMeta) {
-          const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
-          if (!fs.existsSync(profilePhotoDir)) {
-            fs.mkdirSync(profilePhotoDir, { recursive: true });
-          }
-          const destPath = path.join(profilePhotoDir, selfieMeta.filename);
-          try {
-            fs.writeFileSync(destPath, selfieMeta.buffer);
-            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
-          } catch (copyError) {
-            console.error('Failed to write selfie to profile photos:', copyError);
-            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
-          }
         }
 
         return res.json({
@@ -254,9 +227,6 @@ router.post(
           backImage,
           backImageData: backMeta.buffer,
           backImageMimeType: backMeta.mimetype,
-          selfieImage,
-          selfieImageData: selfieMeta?.buffer || null,
-          selfieImageMimeType: selfieMeta?.mimetype || null,
           status: 'queued_ai'
         });
       } else {
@@ -266,9 +236,6 @@ router.post(
         verification.backImage = backImage;
         verification.backImageData = backMeta.buffer;
         verification.backImageMimeType = backMeta.mimetype;
-        verification.selfieImage = selfieImage;
-        verification.selfieImageData = selfieMeta?.buffer || null;
-        verification.selfieImageMimeType = selfieMeta?.mimetype || null;
         verification.residentEmail = snapEmail;
         verification.residentDisplayName = snapName;
         verification.status = 'queued_ai';
@@ -295,22 +262,6 @@ router.post(
         verification.reviewedAt = null;
 
         await verification.save();
-
-        // Update user's profile photo if selfie was provided
-        if (selfieMeta) {
-          const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
-          if (!fs.existsSync(profilePhotoDir)) {
-            fs.mkdirSync(profilePhotoDir, { recursive: true });
-          }
-          const destPath = path.join(profilePhotoDir, selfieMeta.filename);
-          try {
-            fs.writeFileSync(destPath, selfieMeta.buffer);
-            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
-          } catch (copyError) {
-            console.error('Failed to write selfie to profile photos:', copyError);
-            await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
-          }
-        }
 
         return res.json({
           success: true,

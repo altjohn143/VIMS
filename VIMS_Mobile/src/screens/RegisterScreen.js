@@ -90,7 +90,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [showCountryCodeDropdown, setShowCountryCodeDropdown] = useState(false);
 
   // OCR (backend-based)
-  const [idDocs, setIdDocs] = useState({ frontUri: null, backUri: null, selfieUri: null });
+  const [idDocs, setIdDocs] = useState({ frontUri: null, backUri: null });
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrUnavailable, setOcrUnavailable] = useState(false);
   const [lastOcrSignature, setLastOcrSignature] = useState('');
@@ -239,34 +239,6 @@ const RegisterScreen = ({ navigation, route }) => {
       setOcrIdNumber('');
     } catch (e) {
       console.error('pickIdImage error:', e);
-      Alert.alert('Error', e?.message || 'Failed to pick image.');
-    }
-  }, []);
-
-  const pickSelfieImage = useCallback(async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow photo access to upload your profile picture.');
-        return;
-      }
-      const imagesMediaTypes =
-        ImagePicker?.MediaType?.Images
-          ? [ImagePicker.MediaType.Images]
-          : ImagePicker.MediaTypeOptions.Images;
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: imagesMediaTypes,
-        quality: 1,
-      });
-      if (result.canceled) return;
-      const uri = result.assets?.[0]?.uri || null;
-      if (!uri) return;
-      setIdDocs((p) => ({
-        ...p,
-        selfieUri: uri,
-      }));
-    } catch (e) {
-      console.error('pickSelfieImage error:', e);
       Alert.alert('Error', e?.message || 'Failed to pick image.');
     }
   }, []);
@@ -577,7 +549,7 @@ const RegisterScreen = ({ navigation, route }) => {
         }
 
         // If resident selected ID images, upload in background after navigating away
-        const { frontUri, backUri, selfieUri } = idDocs || {};
+        const { frontUri, backUri } = idDocs || {};
         if (frontUri && backUri && Platform.OS !== 'web') {
           (async () => {
             try {
@@ -605,10 +577,6 @@ const RegisterScreen = ({ navigation, route }) => {
               fd.append('email', formData.email);
               fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
               fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
-              const selfieUriToUpload = selfieUri || profilePhoto;
-              if (selfieUriToUpload) {
-                fd.append('selfieImage', await mkFileAsync(selfieUriToUpload, 'selfie.jpg'));
-              }
 
               await api.post('/verifications/upload-id', fd);
             } catch (e) {

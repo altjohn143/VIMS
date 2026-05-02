@@ -304,7 +304,7 @@ const Reservations = () => {
             >
               Back
             </Button>
-          </Box> sx={{ px: { xs: 2, md: 3 } }}
+          </Box>
           <Grid container spacing={2.25}>
             <Grid item xs={12}>
               <Paper

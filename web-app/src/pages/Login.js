@@ -53,18 +53,18 @@ const ROLES = [
 // ─── SHARED BACK BUTTON ───────────────────────────────────────────────────────
 const BackBtn = ({ onClose }) => (
   <Button startIcon={<ArrowBackIcon />} onClick={onClose}
-    sx={{ position: 'absolute', top: 20, left: 20, zIndex: 10, color: 'white', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 2, textTransform: 'none', '&:hover': { backgroundColor: 'rgba(0,0,0,0.5)' } }}>
+    sx={{ position: 'absolute', top: { xs: 18, md: 28 }, left: { xs: 18, md: 30 }, zIndex: 10, color: 'white', backgroundColor: 'rgba(3, 18, 10, 0.28)', borderRadius: 999, px: 1.6, py: 0.9, textTransform: 'none', fontWeight: 800, fontSize: { xs: '0.9rem', md: '1rem' }, backdropFilter: 'blur(10px)', '&:hover': { backgroundColor: 'rgba(3, 18, 10, 0.44)', transform: 'translateX(-2px)' }, '&:active': { transform: 'translateX(-1px) scale(0.98)' }, transition: 'all 0.18s ease' }}>
     Back to Home
   </Button>
 );
 
 // ─── SHARED HERO ──────────────────────────────────────────────────────────────
 const PageHero = ({ title, subtitle, onClose }) => (
-  <Box sx={{ position: 'relative', height: { xs: 260, md: 360 }, backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', '&::after': { content: '""', position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(20,50,5,0.65) 0%, rgba(20,50,5,0.80) 100%)' } }}>
+  <Box sx={{ position: 'relative', minHeight: { xs: 330, md: 452 }, backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center 45%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(3, 24, 13, 0.72) 0%, rgba(11, 61, 31, 0.66) 44%, rgba(3, 24, 13, 0.44) 100%)' }, '&::after': { content: '""', position: 'absolute', inset: 0, background: 'radial-gradient(circle at 22% 16%, rgba(124,219,107,0.16), transparent 34%), linear-gradient(180deg, rgba(3,18,10,0.18) 0%, rgba(3,18,10,0.42) 100%)' } }}>
     <BackBtn onClose={onClose} />
-    <Box sx={{ position: 'relative', zIndex: 2, textAlign: 'center', px: 3 }}>
-      <Typography sx={{ fontSize: { xs: '2rem', md: '3rem' }, fontWeight: 900, color: 'white', textTransform: 'uppercase', lineHeight: 1.1, textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 1.5 }}>{title}</Typography>
-      {subtitle && <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: { xs: '0.85rem', md: '1rem' }, maxWidth: 600, mx: 'auto', lineHeight: 1.7 }}>{subtitle}</Typography>}
+    <Box sx={{ position: 'relative', zIndex: 2, textAlign: 'center', px: 3, pt: { xs: 4, md: 2 }, animation: 'fadeUpSoft 0.7s ease' }}>
+      <Typography sx={{ fontSize: { xs: '2.65rem', md: '4rem' }, fontWeight: 950, color: 'white', textTransform: 'uppercase', lineHeight: 0.98, letterSpacing: { xs: '0.02em', md: '0.04em' }, textShadow: '0 18px 40px rgba(0,0,0,0.42)', mb: 2 }}>{title}</Typography>
+      {subtitle && <Typography sx={{ color: 'rgba(255,255,255,0.88)', fontSize: { xs: '1rem', md: '1.25rem' }, maxWidth: 760, mx: 'auto', lineHeight: 1.65, fontWeight: 700, textShadow: '0 10px 24px rgba(0,0,0,0.35)' }}>{subtitle}</Typography>}
     </Box>
   </Box>
 );

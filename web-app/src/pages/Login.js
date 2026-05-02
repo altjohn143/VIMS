@@ -587,43 +587,25 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         {/* Logo */}
         <Box onClick={() => window.location.reload()} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
           <Box
+            component="img"
+            src={villageLogo}
+            alt="Westville Logo"
             sx={{
               width: 44,
               height: 44,
-              borderRadius: '14px',
-              background: `linear-gradient(135deg, ${T.light}, ${T.primary})`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid rgba(255,255,255,0.22)',
-              boxShadow: '0 10px 24px rgba(0,0,0,0.22)',
+              borderRadius: '12px',
+              objectFit: 'cover',
+              border: '1px solid rgba(255,255,255,0.25)',
+              boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
             }}
-          >
-          <Box onClick={() => window.location.reload()} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
-  
-            <Box
-              component="img"
-              src={villageLogo}
-              alt="Westville Logo"
-              sx={{
-                width: 44,
-                height: 44,
-                borderRadius: '12px',
-                objectFit: 'cover',
-                border: '1px solid rgba(255,255,255,0.25)',
-                boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
-              }}
-            />
-
-            <Box>
-              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem', lineHeight: 1 }}>
-                WESTVILLE CASIMIRO
-              </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
-                HOMES
-              </Typography>
-            </Box>
-          </Box>
+          />
+          <Box>
+            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem', lineHeight: 1 }}>
+              WESTVILLE CASIMIRO
+            </Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+              HOMES
+            </Typography>
           </Box>
         </Box>
 
@@ -780,13 +762,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         }}
       >
         <Typography sx={{ fontSize: { xs: '2.2rem', md: '3.2rem' }, fontWeight: 900, color: 'white', lineHeight: 1.1, textTransform: 'uppercase', textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 2 }}>
-        <Typography sx={{ fontSize: { xs: '2.2rem', md: '3.2rem' }, fontWeight: 900, color: 'white', lineHeight: 1.1, textTransform: 'uppercase', textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 2 }}>
           YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES
-        </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem', mb: 3, maxWidth: 500, lineHeight: 1.6 }}>
-          Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
-        </Typography>
-        {/* ... rest of your code remains unchanged ... */}
         </Typography>
         <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem', mb: 3, maxWidth: 500, lineHeight: 1.6 }}>
           Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.

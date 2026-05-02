@@ -219,7 +219,7 @@ const OFFICIALS = [
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAGE: CONTACT
 // ═══════════════════════════════════════════════════════════════════════════════
-const ContactPage = ({ onClose }) => {
+const ContactPage = ({ onClose, embedded = false }) => {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [sent, setSent] = useState(false);
   const [errors, setErrors] = useState({});
@@ -240,12 +240,8 @@ const ContactPage = ({ onClose }) => {
     setSent(true);
   };
 
-  return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
-      <PageHero title="Contact Us" subtitle="Have a question, concern, or suggestion? We'd love to hear from you. Reach out to the Westville Casimiro Homes administration." onClose={onClose} />
-
-      <Container maxWidth="lg" sx={{ py: { xs: 5, md: 8 } }}>
-        <Grid container spacing={5}>
+  const content = (
+    <Grid container spacing={5}>
 
           {/* Contact Info */}
           <Grid item xs={12} md={5}>
@@ -327,7 +323,16 @@ const ContactPage = ({ onClose }) => {
               )}
             </Paper>
           </Grid>
-        </Grid>
+    </Grid>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
+      <PageHero title="Contact Us" subtitle="Have a question, concern, or suggestion? We'd love to hear from you. Reach out to the Westville Casimiro Homes administration." onClose={onClose} />
+      <Container maxWidth="lg" sx={{ py: { xs: 5, md: 8 } }}>
+        {content}
       </Container>
       <PageFooter />
     </Box>
@@ -337,10 +342,9 @@ const ContactPage = ({ onClose }) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAGE: ABOUT US
 // ═══════════════════════════════════════════════════════════════════════════════
-const AboutUsPage = ({ onClose }) => (
-  <Box sx={{ minHeight: '100vh', backgroundColor: '#fff' }}>
-    <PageHero title="YOUR DREAM LIFE AWAITS IN WESTVILLE HOMES" subtitle="Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry." onClose={onClose} />
-
+const AboutUsPage = ({ onClose, embedded = false }) => {
+  const content = (
+    <>
     {/* Vision */}
     <Box sx={{ backgroundColor: T.bg, py: { xs: 6, md: 10 } }}>
       <Container maxWidth="lg">
@@ -422,10 +426,20 @@ const AboutUsPage = ({ onClose }) => (
           <Box key={i} sx={{ width: 48, height: 48, borderRadius: 2, backgroundColor: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', '&:hover': { backgroundColor: T.dark } }}>{icon}</Box>
         ))}
       </Box>
-    </Box>  
-    <PageFooter />
-  </Box>
-);
+    </Box>
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#fff' }}>
+      <PageHero title="YOUR DREAM LIFE AWAITS IN WESTVILLE HOMES" subtitle="Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry." onClose={onClose} />
+      {content}
+      <PageFooter />
+    </Box>
+  );
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LANDING PAGE
@@ -520,7 +534,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           top: 0,
           left: 0,
           right: 0,
-          bottom: { xs: '54%', md: '45%' },
+          height: { xs: 620, md: 680 },
           overflow: 'hidden',
         }}
       >
@@ -530,7 +544,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             inset: 0,
             backgroundImage: `url(${heroBg})`,
             backgroundSize: 'cover',
-            backgroundPosition: 'center top',
+            backgroundPosition: 'center 38%',
             filter: 'saturate(1.08) contrast(1.04)',
             animation: 'heroZoom 18s ease-in-out infinite alternate',
             transformOrigin: 'center',
@@ -540,13 +554,13 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           sx={{
             position: 'absolute',
             inset: 0,
-                        backgroundImage: `
+            backgroundImage: `
               linear-gradient(
                 90deg,
-                rgba(2,6,23,0.85) 0%,
-                rgba(2,6,23,0.65) 40%,
-                rgba(2,6,23,0.35) 70%,
-                rgba(2,6,23,0.15) 100%
+                rgba(2,6,23,0.86) 0%,
+                rgba(6,27,16,0.68) 42%,
+                rgba(6,27,16,0.32) 74%,
+                rgba(2,6,23,0.08) 100%
               ),
               url(${heroBg})
             `,
@@ -755,16 +769,19 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           position: 'relative',
           zIndex: 5,
           px: { xs: 3, md: 6 },
-          pt: { xs: 4, md: 6 },
-          pb: { xs: 3, md: 2 },
+          pt: { xs: 5, md: 8 },
+          pb: { xs: 5, md: 7 },
           maxWidth: 760,
           animation: 'fadeUpSoft 0.75s ease',
         }}
       >
-        <Typography sx={{ fontSize: { xs: '2.2rem', md: '3.2rem' }, fontWeight: 900, color: 'white', lineHeight: 1.1, textTransform: 'uppercase', textShadow: '0 2px 20px rgba(0,0,0,0.5)', mb: 2 }}>
+        <Typography sx={{ color: T.accent, fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', mb: 1.2 }}>
+          Paranaque City, Metro Manila
+        </Typography>
+        <Typography sx={{ fontFamily: 'Georgia, serif', fontSize: { xs: '2.45rem', md: '4rem' }, fontWeight: 900, color: 'white', lineHeight: 0.94, textTransform: 'uppercase', textShadow: '0 2px 22px rgba(0,0,0,0.5)', mb: 2 }}>
           YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem', mb: 3, maxWidth: 500, lineHeight: 1.6 }}>
+        <Typography sx={{ color: 'rgba(255,255,255,0.86)', fontSize: '0.92rem', mb: 3, maxWidth: 560, lineHeight: 1.65, fontWeight: 600 }}>
           Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
         </Typography>
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -874,10 +891,11 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                     overflow: 'hidden',
                     cursor: 'pointer',
                     backgroundColor: 'white',
-                    boxShadow: '0 10px 42px rgba(0,0,0,0.28)',
+                    border: '1px solid rgba(15, 23, 42, 0.08)',
+                    boxShadow: '0 12px 36px rgba(15,23,42,0.12)',
                     transition: 'transform 0.25s ease, box-shadow 0.25s ease',
                     animation: 'cardPop 0.6s ease both',
-                    '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 18px 62px rgba(0,0,0,0.40)' },
+                    '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 54px rgba(15,23,42,0.18)' },
                     '&:active': { transform: 'translateY(-4px)' },
                   }}
                 >
@@ -898,7 +916,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                       fontSize: '0.78rem',
                       fontWeight: 800,
                       textTransform: 'none',
-                      boxShadow: '0 10px 20px rgba(15,90,42,0.30)',
+                      boxShadow: '0 10px 20px rgba(15,90,42,0.22)',
                       '&:hover': { backgroundColor: T.dark, transform: 'translateY(-1px)' },
                       '&:active': { transform: 'translateY(1px) scale(0.99)' },
                       transition: 'transform 0.15s ease, background-color 0.15s ease',
@@ -1039,8 +1057,8 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                       border: '1px solid rgba(255,255,255,0.14)',
                       cursor: 'pointer',
                       transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-                      boxShadow: '0 10px 28px rgba(0,0,0,0.22)',
-                      '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 16px 40px rgba(0,0,0,0.30)' },
+                      boxShadow: '0 12px 32px rgba(15,23,42,0.10)',
+                      '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 18px 44px rgba(15,23,42,0.16)' },
                     }}
                   >
                     <CardContent sx={{ p: 2.5 }}>
@@ -1169,14 +1187,14 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               </Typography>
             </Reveal>
             <Reveal delayMs={80}>
-              <ContactPage onClose={() => {}} />
+              <ContactPage onClose={() => {}} embedded />
             </Reveal>
           </Container>
         </Box>
 
         {/* About */}
-        <Box ref={aboutRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
-          <Container maxWidth="lg">
+        <Box ref={aboutRef} sx={{ backgroundColor: '#fff' }}>
+          <Container maxWidth="lg" sx={{ pt: { xs: 6, md: 10 } }}>
             <Reveal>
               <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
                 About Us
@@ -1185,10 +1203,14 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                 Learn more about Westville Casimiro Homes, our mission, and what we value as a community.
               </Typography>
             </Reveal>
-            <Reveal delayMs={80}>
-              <AboutUsPage onClose={() => {}} />
-            </Reveal>
           </Container>
+          <Reveal delayMs={80}>
+            <AboutUsPage onClose={() => {}} embedded />
+          </Reveal>
+        </Box>
+
+        <Box sx={{ backgroundColor: '#0b5d91', color: 'white', px: { xs: 2, md: 6 }, py: 1, fontSize: '0.72rem', fontWeight: 700 }}>
+          This is a temporary development preview, and these links are not for public use. Publish your site to secure sharing or use an invite link.
         </Box>
 
         {/* Calendar (inline) */}

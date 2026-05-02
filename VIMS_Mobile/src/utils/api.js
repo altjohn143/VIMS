@@ -380,22 +380,56 @@ export const setBaseUrl = (newUrl) => {
   console.log('🔄 API base URL updated to:', newUrl);
 };
 
-export const arrayBufferToDataUrl = (buffer, mimeType = 'image/jpeg') => {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+const uint8ArrayToBase64 = (bytes) => {
+  if (typeof btoa === 'function') {
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
   }
-  const base64 = typeof btoa === 'function'
-    ? btoa(binary)
-    : typeof Buffer !== 'undefined'
-    ? Buffer.from(binary, 'binary').toString('base64')
-    : null;
+
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(bytes).toString('base64');
+  }
+
+  const lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let base64 = '';
+  let i;
+  const len = bytes.length;
+
+  for (i = 0; i + 2 < len; i += 3) {
+    const triplet = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+    base64 += lookup[(triplet >> 18) & 0x3f];
+    base64 += lookup[(triplet >> 12) & 0x3f];
+    base64 += lookup[(triplet >> 6) & 0x3f];
+    base64 += lookup[triplet & 0x3f];
+  }
+
+  if (i < len) {
+    const a = bytes[i++];
+    base64 += lookup[(a >> 2) & 0x3f];
+    if (i === len) {
+      base64 += lookup[(a << 4) & 0x3f] + '==';
+    } else {
+      const b = bytes[i];
+      base64 += lookup[((a << 4) & 0x30) | ((b >> 4) & 0x0f)];
+      base64 += lookup[(b << 2) & 0x3c] + '=';
+    }
+  }
+
+  return base64;
+};
+
+export const arrayBufferToDataUrl = (buffer, mimeType = 'image/jpeg') => {
+  const bytes = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : new Uint8Array(buffer);
+  const base64 = uint8ArrayToBase64(bytes);
 
   if (!base64) {
     throw new Error('Unable to create base64 data URL');
   }
+
   return `data:${mimeType};base64,${base64}`;
 };
 

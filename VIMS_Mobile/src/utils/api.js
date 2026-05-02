@@ -184,22 +184,33 @@ if (Platform.OS !== 'web') {
       console.log(`🌐 Using native fetch for ${config.method?.toUpperCase()} ${url}`);
 
       const response = await fetch(url, requestOptions);
-      const data = await response.text();
 
-      // Try to parse as JSON, fallback to text
       let responseData;
-      try {
-        responseData = JSON.parse(data);
-      } catch {
-        responseData = data;
+      const responseType = config.responseType?.toLowerCase();
+      if (responseType === 'blob') {
+        responseData = await response.blob();
+      } else if (responseType === 'arraybuffer') {
+        responseData = await response.arrayBuffer();
+      } else {
+        const text = await response.text();
+        try {
+          responseData = JSON.parse(text);
+        } catch {
+          responseData = text;
+        }
       }
+
+      const headers = {};
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
 
       return {
         data: responseData,
         status: response.status,
         statusText: response.statusText,
-        headers: response.headers,
-        config: config,
+        headers,
+        config,
         request: url,
       };
     } catch (error) {

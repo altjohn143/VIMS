@@ -287,8 +287,7 @@ const Reservations = () => {
           py: { xs: 2, md: 3 }
         }}
       >
-        <Container maxWidth={false}
-          >
+        <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 } }}>
           <Box mb={2}>
             <Button
               variant="outlined"

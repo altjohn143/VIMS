@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -44,7 +44,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
 const ProfileSettings = () => {
@@ -58,11 +58,9 @@ const ProfileSettings = () => {
     error: '#ef4444',
     info: '#3b82f6',
     background: '#f3f5f7',
-    cardBackground: '#ffffff',
-    textPrimary: '#0f172a',
-    textSecondary: '#64748b',
-    border: 'rgba(15, 23, 42, 0.08)'
   };
+
+  const backendBaseUrl = axios.defaults.baseURL?.replace(/\/api\/?$/, '') || 'https://vims-backend.onrender.com';
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -113,6 +111,26 @@ const ProfileSettings = () => {
     navigate('/login');
   };
 
+  const buildDocumentUrl = useCallback((filename) => {
+    if (!filename) return null;
+    return `/api/verifications/my-files/${filename}`;
+  }, []);
+
+  const fetchDocumentPreviewUrl = useCallback(async (filename) => {
+    if (!filename) return null;
+
+    try {
+      const response = await axios.get(`/api/verifications/my-files/${filename}`, {
+        responseType: 'blob'
+      });
+      return URL.createObjectURL(response.data);
+    } catch (error) {
+      console.error('Error loading document preview:', error);
+      toast.error('Unable to load document preview');
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -140,7 +158,7 @@ const ProfileSettings = () => {
         if (data.success) {
           userData = data.data;
           setUser(userData);
-          setProfilePhoto(userData.profilePhotoUrl || (userData.profilePhoto ? `/uploads/profile-photos/${userData.profilePhoto}` : null) || null);
+          setProfilePhoto(userData.profilePhotoUrl || (userData.profilePhoto ? `${backendBaseUrl}/uploads/profile-photos/${userData.profilePhoto}` : null) || null);
           setFormData({
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
@@ -197,7 +215,7 @@ const ProfileSettings = () => {
     };
 
     fetchUserProfile();
-  }, [getCurrentUser, navigate]);
+  }, [fetchDocumentPreviewUrl, buildDocumentUrl]);
 
   const submitMoveOutRequest = async () => {
     if (!user) return;
@@ -263,10 +281,10 @@ const ProfileSettings = () => {
         const updatedUser = {
           ...(user || {}),
           profilePhoto: updatedProfilePhoto,
-          profilePhotoUrl: updatedProfileUrl || (updatedProfilePhoto ? `/uploads/profile-photos/${updatedProfilePhoto}` : null)
+          profilePhotoUrl: updatedProfileUrl || (updatedProfilePhoto ? `${backendBaseUrl}/uploads/profile-photos/${updatedProfilePhoto}` : null)
         };
 
-        const finalProfilePhoto = updatedProfileUrl || (updatedProfilePhoto ? `/uploads/profile-photos/${updatedProfilePhoto}` : previewUrl);
+        const finalProfilePhoto = updatedProfileUrl || (updatedProfilePhoto ? `${backendBaseUrl}/uploads/profile-photos/${updatedProfilePhoto}` : previewUrl);
         setProfilePhoto(finalProfilePhoto);
         setUser(updatedUser);
         if (updateUser) {
@@ -287,26 +305,6 @@ const ProfileSettings = () => {
       toast.error(error.response?.data?.error || 'Failed to upload profile photo');
     } finally {
       setUploadingPhoto(false);
-    }
-  };
-
-  const buildDocumentUrl = (filename) => {
-    if (!filename) return null;
-    return `/api/verifications/my-files/${filename}`;
-  };
-
-  const fetchDocumentPreviewUrl = async (filename) => {
-    if (!filename) return null;
-
-    try {
-      const response = await axios.get(`/api/verifications/my-files/${filename}`, {
-        responseType: 'blob'
-      });
-      return URL.createObjectURL(response.data);
-    } catch (error) {
-      console.error('Error loading document preview:', error);
-      toast.error('Unable to load document preview');
-      return null;
     }
   };
 
@@ -338,7 +336,7 @@ const ProfileSettings = () => {
         if (url) URL.revokeObjectURL(url);
       });
     };
-  }, [documentPreviewUrls]);
+  }, []);
 
   const handleDownload = (imageUrl, filename) => {
     const link = document.createElement('a');

@@ -245,7 +245,8 @@ const Dashboard = () => {
   const buildProfilePhotoUrl = (photo) => {
     if (!photo) return null;
     if (photo.startsWith('http')) return photo;
-    return `${window.location.origin}/uploads/profile-photos/${photo}`;
+    const backendBaseUrl = axios.defaults.baseURL || window.location.origin;
+    return `${backendBaseUrl}/uploads/profile-photos/${photo}`;
   };
 
   const avatarSrc = user?.profilePhotoUrl ||

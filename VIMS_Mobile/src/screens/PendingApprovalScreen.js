@@ -43,7 +43,8 @@ const PendingApprovalScreen = ({ navigation, route }) => {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            // Don't navigate; AppNavigator will switch to auth stack.
+            // Navigate to Login screen to ensure clean navigation state
+            navigation.replace('Login');
           },
         },
       ]
@@ -60,7 +61,8 @@ const PendingApprovalScreen = ({ navigation, route }) => {
           text: 'Logout',
           onPress: async () => {
             await logout();
-            // AppNavigator will route to Login automatically.
+            // Navigate to Login screen to ensure clean navigation state
+            navigation.replace('Login');
           },
         },
       ]

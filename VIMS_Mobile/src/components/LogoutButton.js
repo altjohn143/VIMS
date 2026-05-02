@@ -12,7 +12,10 @@ const LogoutButton = ({ navigation, color = '#ef4444', size = 18, label = 'Logou
     if (Platform.OS === 'web') {
       if (window.confirm('Are you sure you want to logout?')) {
         logout();
-        // Don't navigate here. AppNavigator switches to auth stack when user becomes null.
+        // Navigate to Login if navigation prop is provided
+        if (navigation) {
+          navigation.replace('Login');
+        }
       }
     } else {
       Alert.alert(
@@ -25,7 +28,10 @@ const LogoutButton = ({ navigation, color = '#ef4444', size = 18, label = 'Logou
             style: 'destructive',
             onPress: async () => {
               await logout();
-              // Don't navigate here. AppNavigator switches to auth stack when user becomes null.
+              // Navigate to Login if navigation prop is provided
+              if (navigation) {
+                navigation.replace('Login');
+              }
             },
           },
         ]

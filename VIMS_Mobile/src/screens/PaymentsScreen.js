@@ -231,24 +231,24 @@ const PaymentsScreen = ({ navigation }) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: '#f0fdf4' }]}>
-            <Text style={[styles.statValue, { color: themeColors.success }]}>
-              {formatCurrency(summary.totalPaid)}
-            </Text>
-            <Text style={styles.statLabel}>Total Paid</Text>
+        <View style={styles.statsGrid}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+            <View style={styles.statCardHighlight} />
+            <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
+            <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalPaid)}</Text>
+            <Text style={styles.coloredStatLabel}>Total Paid</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: '#fffbeb' }]}>
-            <Text style={[styles.statValue, { color: themeColors.warning }]}>
-              {formatCurrency(summary.totalPending)}
-            </Text>
-            <Text style={styles.statLabel}>Pending Balance</Text>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#d97706' }]}>
+            <View style={styles.statCardHighlight} />
+            <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
+            <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalPending)}</Text>
+            <Text style={styles.coloredStatLabel}>Pending Balance</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: '#fef2f2' }]}>
-            <Text style={[styles.statValue, { color: themeColors.error }]}>
-              {formatCurrency(summary.overdueAmount)}
-            </Text>
-            <Text style={styles.statLabel}>Overdue</Text>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
+            <View style={styles.statCardHighlight} />
+            <Ionicons name="alert-circle-outline" style={styles.coloredStatBgIcon} />
+            <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.overdueAmount)}</Text>
+            <Text style={styles.coloredStatLabel}>Overdue</Text>
           </View>
         </View>
 
@@ -612,27 +612,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: themeColors.background,
   },
-  statsContainer: {
+  statsGrid: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    backgroundColor: '#f1f5f9',
   },
-  statCard: {
+  coloredStatCard: {
     flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 10,
+    padding: 8,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
+  statCardHighlight: {
+    position: 'absolute',
+    top: -15,
+    right: -15,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  statLabel: {
-    fontSize: 12,
-    color: themeColors.textSecondary,
-    marginTop: 4,
+  coloredStatBgIcon: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  coloredStatValue: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  coloredStatLabel: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 9,
+    fontWeight: '600',
   },
   currentDuesCard: {
     backgroundColor: '#fffbeb',

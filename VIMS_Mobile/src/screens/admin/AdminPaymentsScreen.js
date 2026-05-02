@@ -345,25 +345,18 @@ const AdminPaymentsScreen = ({ navigation }) => {
       </View>
 
       {/* Stats Cards */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.statsScroll}
-        contentContainerStyle={styles.statsContainer}
-      >
-        <View style={styles.statCard}>
-          <Text style={[styles.statValue, { color: themeColors.success }]}>
-            {formatCurrency(summary.totalCollected)}
-          </Text>
-          <Text style={styles.statLabel}>Total Collected</Text>
+      <View style={styles.statsGrid}>
+        <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+          <Ionicons name="cash-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalCollected)}</Text>
+          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Total Collected</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statValue, { color: themeColors.primary }]}>
-            {formatCurrency(summary.monthlyCollected)}
-          </Text>
-          <Text style={styles.statLabel}>Monthly Collection</Text>
+        <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
+          <Ionicons name="calendar-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.monthlyCollected)}</Text>
+          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Monthly</Text>
         </View>
-      </ScrollView>
+      </View>
 
       {/* Action Buttons */}
       <View style={styles.actionBar}>
@@ -670,32 +663,43 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
   },
-  statsScroll: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
-  },
-  statsContainer: {
+  statsGrid: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    backgroundColor: '#f1f5f9',
   },
-  statCard: {
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    minWidth: 140,
+  coloredStatCard: {
+    flex: 1,
+    borderRadius: 10,
+    padding: 12,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
+  coloredStatBgIcon: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    fontSize: 24,
+    color: 'rgba(255,255,255,0.4)',
   },
-  statLabel: {
-    fontSize: 12,
-    color: themeColors.textSecondary,
-    marginTop: 4,
+  coloredStatValue: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  coloredStatLabel: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 11,
+    fontWeight: '600',
   },
   actionBar: {
     flexDirection: 'row',

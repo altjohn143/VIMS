@@ -12,6 +12,7 @@ import {
   Platform,
   ActivityIndicator,
   ImageBackground,
+  Image,
   StatusBar,
   Dimensions,
   Animated,
@@ -241,7 +242,7 @@ const LoginScreen = ({ navigation }) => {
               {/* Brand Header */}
               <View style={styles.topBrandRow}>
                 <View style={styles.logoCircle}>
-                  <Ionicons name="business-outline" size={22} color="#ffffff" />
+                  <Image source={require('../../assets/village-logo.png')} style={{ width: '100%', height: '100%', borderRadius: 20 }} resizeMode="contain" />
                 </View>
                 <Text style={styles.brandTitle}>WESTVILLE CASIMIRO HOMES</Text>
               </View>
@@ -335,7 +336,7 @@ const LoginScreen = ({ navigation }) => {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ImageBackground
-        source={require('../../assets/westville.jpg')}
+        source={require('../../assets/roof.png')}
         resizeMode="cover"
         style={styles.loginBgImage}
         imageStyle={styles.loginBgImageStyle}
@@ -367,7 +368,7 @@ const LoginScreen = ({ navigation }) => {
               {/* Brand Header - Clean Minimal */}
               <View style={styles.loginBrandContainer}>
                 <View style={styles.loginLogoCircle}>
-                  <Ionicons name="business-outline" size={22} color="#FFFFFF" />
+                  <Image source={require('../../assets/village-logo.png')} style={{ width: '100%', height: '100%', borderRadius: 19 }} resizeMode="contain" />
                 </View>
                 <View style={styles.loginBrandTextContainer}>
                   <Text style={styles.loginBrandTitle}>WESTVILLE CASIMIRO</Text>

@@ -125,7 +125,6 @@ const ProfileSettings = () => {
       });
       return URL.createObjectURL(response.data);
     } catch (error) {
-      console.error('Error loading document preview:', error);
       toast.error('Unable to load document preview');
       return null;
     }
@@ -140,10 +139,7 @@ const ProfileSettings = () => {
           return;
         }
 
-        console.log('Fetching profile for user:', currentUser.id);
-        
         const token = localStorage.getItem('token') || currentUser.token || '';
-        console.log('Using token:', token ? 'Token exists' : 'No token');
 
         const response = await axios.get('/api/users/profile', {
           headers: {
@@ -153,7 +149,6 @@ const ProfileSettings = () => {
         
         let userData = null;
         const data = response.data;
-        console.log('Profile data:', data);
         
         if (data.success) {
           userData = data.data;
@@ -206,8 +201,6 @@ const ProfileSettings = () => {
           setUploadedDocuments(null);
         }
       } catch (error) {
-        console.error('Error fetching profile:', error);
-        console.error('Error details:', error.message);
         toast.error('Failed to load profile data: ' + error.message);
       } finally {
         setLoading(false);
@@ -215,7 +208,7 @@ const ProfileSettings = () => {
     };
 
     fetchUserProfile();
-  }, [fetchDocumentPreviewUrl, buildDocumentUrl]);
+  }, [fetchDocumentPreviewUrl, buildDocumentUrl, getCurrentUser, navigate, backendBaseUrl]);
 
   const submitMoveOutRequest = async () => {
     if (!user) return;
@@ -301,7 +294,6 @@ const ProfileSettings = () => {
         toast.success('Profile photo updated successfully');
       }
     } catch (error) {
-      console.error('Profile photo upload error:', error);
       toast.error(error.response?.data?.error || 'Failed to upload profile photo');
     } finally {
       setUploadingPhoto(false);
@@ -336,7 +328,7 @@ const ProfileSettings = () => {
         if (url) URL.revokeObjectURL(url);
       });
     };
-  }, []);
+  }, [documentPreviewUrls]);
 
   const handleDownload = (imageUrl, filename) => {
     const link = document.createElement('a');
@@ -471,7 +463,6 @@ const ProfileSettings = () => {
         setUser(response.data.data);
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
       toast.error(error.response?.data?.error || 'Failed to update profile');
     } finally {
       setSaving(false);
@@ -576,7 +567,6 @@ const ProfileSettings = () => {
         handleClosePasswordDialog();
       }
     } catch (error) {
-      console.error('Error changing password:', error);
       const errorMessage = error.response?.data?.error || 'Failed to change password';
       toast.error(errorMessage);
       

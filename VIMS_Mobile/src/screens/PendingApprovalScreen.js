@@ -21,6 +21,16 @@ const PendingApprovalScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     loadUser();
+
+    const timeoutId = setTimeout(async () => {
+      await logout();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    }, 3000);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const loadUser = async () => {

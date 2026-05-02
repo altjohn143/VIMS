@@ -557,10 +557,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             backgroundImage: `
               linear-gradient(
                 90deg,
-                rgba(2,6,23,0.86) 0%,
-                rgba(6,27,16,0.68) 42%,
-                rgba(6,27,16,0.32) 74%,
-                rgba(2,6,23,0.08) 100%
+                rgba(2, 26, 13, 0.88) 0%,
+                rgba(8, 55, 28, 0.78) 38%,
+                rgba(12, 76, 38, 0.64) 68%,
+                rgba(6, 36, 18, 0.56) 100%
               ),
               url(${heroBg})
             `,
@@ -574,7 +574,8 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             position: 'absolute',
             inset: 0,
             background: `radial-gradient(circle at 18% 12%, rgba(47, 143, 70, 0.22), transparent 42%),
-                         radial-gradient(circle at 82% 18%, rgba(124, 219, 107, 0.18), transparent 44%)`,
+                         radial-gradient(circle at 82% 18%, rgba(124, 219, 107, 0.18), transparent 44%),
+                         linear-gradient(180deg, rgba(4, 34, 17, 0.24) 0%, rgba(3, 20, 10, 0.46) 100%)`,
             animation: 'glowPulse 7.5s ease-in-out infinite',
           }}
         />
@@ -778,10 +779,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         <Typography sx={{ color: T.accent, fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', mb: 1.2 }}>
           Paranaque City, Metro Manila
         </Typography>
-        <Typography sx={{ fontFamily: 'Georgia, serif', fontSize: { xs: '2.45rem', md: '4rem' }, fontWeight: 900, color: 'white', lineHeight: 0.94, textTransform: 'uppercase', textShadow: '0 2px 22px rgba(0,0,0,0.5)', mb: 2 }}>
+        <Typography sx={{ fontFamily: 'Georgia, serif', fontSize: { xs: '2.45rem', md: '4rem' }, fontWeight: 900, color: 'white', lineHeight: 0.94, textTransform: 'uppercase', textShadow: '0 5px 26px rgba(0,0,0,0.72)', mb: 2 }}>
           YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.86)', fontSize: '0.92rem', mb: 3, maxWidth: 560, lineHeight: 1.65, fontWeight: 600 }}>
+        <Typography sx={{ color: 'rgba(255,255,255,0.94)', fontSize: '0.92rem', mb: 3, maxWidth: 560, lineHeight: 1.65, fontWeight: 700, textShadow: '0 3px 14px rgba(0,0,0,0.62)' }}>
           Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
         </Typography>
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>

@@ -22,10 +22,6 @@ import {
   Phone as PhoneIcon, LocationOn as LocationIcon,
   Star as StarIcon,
   Menu as MenuIcon,
-  ArrowForward as ArrowForwardIcon,
-  CheckCircle as CheckCircleIcon,
-  Groups as GroupsIcon,
-  BarChart as BarChartIcon,
 } from '@mui/icons-material';
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
@@ -49,11 +45,10 @@ const noRedErrorFieldSx = {
 };
 
 const ROLES = [
-  { key: 'admin', label: 'ADMIN', description: 'Manages the system, resident records, and community information.', icon: <AdminIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/admin.png' },
-  { key: 'resident', label: 'RESIDENT', description: 'Access personal information, community updates, and services.', icon: <HomeIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/resident.png' },
-  { key: 'security', label: 'SECURITY', description: 'Monitors entries and helps keep the community safe.', icon: <ShieldIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/security.png' },
+  { key: 'admin', label: 'ADMIN', description: 'Manages the system, resident records, and community information.', icon: <AdminIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80' },
+  { key: 'resident', label: 'RESIDENT', description: 'Access personal information, community updates, and services.', icon: <HomeIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80' },
+  { key: 'security', label: 'SECURITY', description: 'Monitors entries and helps keep the community safe.', icon: <ShieldIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
 ];
-
 
 // ─── SHARED BACK BUTTON ───────────────────────────────────────────────────────
 const BackBtn = ({ onClose }) => (
@@ -252,7 +247,7 @@ const ContactPage = ({ onClose, embedded = false }) => {
           <Grid item xs={12} md={5}>
             <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: T.primary, mb: 3 }}>Get in Touch</Typography>
             {[
-              { icon: <LocationIcon sx={{ color: T.primary }} />, label: 'Address', value: 'Westville Casimiro Homes, Casimiro Avenue, Bacoor City, Cavite, Philippines' },
+              { icon: <LocationIcon sx={{ color: T.primary }} />, label: 'Address', value: 'Westville Casimiro Homes, Casimiro Avenue, Paranaque City, Metro Manila, Philippines' },
               { icon: <PhoneIcon sx={{ color: T.primary }} />, label: 'Phone', value: '+63 (02) 8123-4567\n+63 917 123 4567 (Mobile)' },
               { icon: <EmailIcon sx={{ color: T.primary }} />, label: 'Email', value: 'admin@westvillecasimiro.com\nsecurity@westvillecasimiro.com' },
               { icon: <TimeIcon sx={{ color: T.primary }} />, label: 'Office Hours', value: 'Monday – Friday: 8:00 AM – 5:00 PM\nSaturday: 8:00 AM – 12:00 PM' },
@@ -355,11 +350,11 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
       <Container maxWidth="lg">
         <Grid container spacing={6} alignItems="center">
           <Grid item xs={12} md={6}>
-            <Box component="img" src='/images/vision.png' alt="Vision" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
+            <Box component="img" src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=700&q=80" alt="Vision" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
           </Grid>
           <Grid item xs={12} md={6}>
             <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: T.primary, mb: 3, textTransform: 'uppercase' }}>VISION</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is a premier residential community committed to delivering beautifully designed, affordable homes within a safe, well-planned, and sustainable environment in Bacoor, Cavite.</Typography>
+            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is a premier residential community committed to delivering beautifully designed, affordable homes within a safe, well-planned, and sustainable environment in Paranaque City.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>The Westville life inspires memories created within dream-like homes and moments nurtured in its exclusive amenities. Each home carries the distinct character of its surroundings and lush landscapes.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8 }}>More than places of residence, Westville homes serve as sanctuaries for Filipino families — a convergence of nature's serenity and urban convenience.</Typography>
           </Grid>
@@ -373,12 +368,12 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
         <Grid container spacing={6} alignItems="center" direction={{ xs: 'column-reverse', md: 'row' }}>
           <Grid item xs={12} md={6}>
             <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: T.primary, mb: 3, textTransform: 'uppercase' }}>MISSION</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>For years, we have built quality homes, well-planned communities, and safe living spaces across Bacoor City. These spaces elevate lives and are perfect for families who seek security, comfort, and a sense of belonging.</Typography>
+            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>For years, we have built quality homes, well-planned communities, and safe living spaces across Paranaque City. These spaces elevate lives and are perfect for families who seek security, comfort, and a sense of belonging.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is dedicated to providing residents with modern facilities, responsive management, and a thriving community where every member feels valued and heard.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8 }}>We continuously innovate through our Village Information Management System (VIMS), ensuring transparent governance, efficient visitor management, and accessible resident services.</Typography>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box component="img" src='/images/mission.png' alt="Mission" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
+            <Box component="img" src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=700&q=80" alt="Mission" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
           </Grid>
         </Grid>
       </Container>
@@ -390,10 +385,10 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
         <Typography sx={{ textAlign: 'center', fontSize: '2rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 6 }}>OUR CORE VALUES</Typography>
         <Grid container spacing={4}>
           {[
-            { title: 'Community', desc: 'We foster a strong sense of belonging, nurturing relationships and building a vibrant, inclusive neighborhood for all residents.', img: '/images/hoa1.png' },
-            { title: 'Safety & Security', desc: 'We prioritize every resident\'s safety through 24/7 security, controlled access, and vigilant community monitoring.', img: '/images/hoa2.png' },
-            { title: 'Sustainability', desc: 'We are committed to green living — maintaining clean surroundings, preserving green spaces, and promoting eco-friendly practices.', img: '/images/hoa3.png' },
-            { title: 'Transparency', desc: 'We uphold honest communication with all homeowners, ensuring fair governance and accessible community information.', img: '/images/hoa4.png' },
+            { title: 'Community', desc: 'We foster a strong sense of belonging, nurturing relationships and building a vibrant, inclusive neighborhood for all residents.', img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80' },
+            { title: 'Safety & Security', desc: 'We prioritize every resident\'s safety through 24/7 security, controlled access, and vigilant community monitoring.', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
+            { title: 'Sustainability', desc: 'We are committed to green living — maintaining clean surroundings, preserving green spaces, and promoting eco-friendly practices.', img: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80' },
+            { title: 'Transparency', desc: 'We uphold honest communication with all homeowners, ensuring fair governance and accessible community information.', img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80' },
           ].map((val) => (
             <Grid item xs={12} sm={6} md={3} key={val.title}>
               <Box sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 6px 24px rgba(0,0,0,0.1)', backgroundColor: 'white', height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-6px)' } }}>
@@ -539,7 +534,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           top: 0,
           left: 0,
           right: 0,
-          height: { xs: 760, md: 820 },
+          height: { xs: 620, md: 680 },
           overflow: 'hidden',
         }}
       >
@@ -549,7 +544,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             inset: 0,
             backgroundImage: `url(${heroBg})`,
             backgroundSize: 'cover',
-            backgroundPosition: 'center 32%',
+            backgroundPosition: 'center 38%',
             filter: 'saturate(1.08) contrast(1.04)',
             animation: 'heroZoom 18s ease-in-out infinite alternate',
             transformOrigin: 'center',
@@ -562,10 +557,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             backgroundImage: `
               linear-gradient(
                 90deg,
-                rgba(2, 18, 10, 0.90) 0%,
-                rgba(5, 42, 22, 0.82) 38%,
-                rgba(11, 61, 31, 0.68) 70%,
-                rgba(4, 27, 15, 0.58) 100%
+                rgba(2, 26, 13, 0.88) 0%,
+                rgba(8, 55, 28, 0.78) 38%,
+                rgba(12, 76, 38, 0.64) 68%,
+                rgba(6, 36, 18, 0.56) 100%
               ),
               url(${heroBg})
             `,
@@ -774,222 +769,90 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         sx={{
           position: 'relative',
           zIndex: 5,
-          px: { xs: 2.5, md: 6 },
-          pt: { xs: 5, md: 7 },
-          pb: { xs: 6, md: 8 },
+          px: { xs: 3, md: 6 },
+          pt: { xs: 5, md: 8 },
+          pb: { xs: 5, md: 7 },
+          maxWidth: 760,
           animation: 'fadeUpSoft 0.75s ease',
         }}
       >
-        <Grid container spacing={{ xs: 4, md: 7 }} alignItems="center" sx={{ maxWidth: 1240, mx: 'auto' }}>
-          <Grid item xs={12} md={6}>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1,
-                px: 2,
-                py: 0.8,
-                borderRadius: 999,
-                bgcolor: 'rgba(255,255,255,0.13)',
-                border: '1px solid rgba(255,255,255,0.16)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 14px 36px rgba(0,0,0,0.18)',
-                backdropFilter: 'blur(14px)',
-                mb: 2.8,
-              }}
-            >
-              <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#2ddf86', boxShadow: '0 0 18px rgba(45,223,134,0.8)' }} />
-              <Typography sx={{ color: 'rgba(255,255,255,0.92)', fontSize: '0.72rem', fontWeight: 950, letterSpacing: '0.09em', textTransform: 'uppercase' }}>
-                Welcome to Westville Casimiro Homes
-              </Typography>
-            </Box>
-
-            <Typography
-              sx={{
-                fontFamily: 'Georgia, "Times New Roman", serif',
-                fontSize: { xs: '3rem', sm: '3.6rem', md: '4.55rem' },
-                fontWeight: 900,
-                color: 'white',
-                lineHeight: 0.94,
-                letterSpacing: 0,
-                textShadow: '0 12px 38px rgba(0,0,0,0.50)',
-                maxWidth: 660,
-              }}
-            >
-              Your Dream Life
-              <Box component="span" sx={{ display: 'block', color: '#21a766' }}>
-                Awaits
+        <Typography sx={{ color: T.accent, fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', mb: 1.2 }}>
+          Paranaque City, Metro Manila
+        </Typography>
+        <Typography sx={{ fontFamily: 'Georgia, serif', fontSize: { xs: '2.45rem', md: '4rem' }, fontWeight: 900, color: 'white', lineHeight: 0.94, textTransform: 'uppercase', textShadow: '0 5px 26px rgba(0,0,0,0.72)', mb: 2 }}>
+          YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES
+        </Typography>
+        <Typography sx={{ color: 'rgba(255,255,255,0.94)', fontSize: '0.92rem', mb: 3, maxWidth: 560, lineHeight: 1.65, fontWeight: 700, textShadow: '0 3px 14px rgba(0,0,0,0.62)' }}>
+          Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Button
+            variant="contained"
+            onClick={() => scrollTo(aboutRef)}
+            sx={{
+              bgcolor: T.accent,
+              color: T.dark,
+              borderRadius: 999,
+              px: 2.4,
+              py: 1.1,
+              fontWeight: 900,
+              textTransform: 'none',
+              boxShadow: '0 14px 34px rgba(0,0,0,0.28)',
+              '&:hover': { bgcolor: '#8CF07B', transform: 'translateY(-1px)' },
+              '&:active': { transform: 'translateY(1px) scale(0.99)' },
+              transition: 'transform 0.2s ease, background-color 0.2s ease',
+            }}
+          >
+            Read more
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={onBrowseLots}
+            sx={{
+              borderColor: 'rgba(255,255,255,0.40)',
+              color: 'rgba(255,255,255,0.92)',
+              borderRadius: 999,
+              px: 2.2,
+              py: 1.05,
+              fontWeight: 900,
+              textTransform: 'none',
+              '&:hover': { borderColor: T.accent, color: T.accent, bgcolor: 'rgba(124, 219, 107, 0.12)' },
+              '&:active': { transform: 'translateY(1px) scale(0.99)' },
+              transition: 'transform 0.15s ease',
+            }}
+          >
+            View map
+          </Button>
+          <Box
+            sx={{
+              ml: { xs: 0, md: 1 },
+              display: { xs: 'none', md: 'flex' },
+              gap: 1.25,
+              alignItems: 'center',
+              px: 1.5,
+              py: 1,
+              borderRadius: 999,
+              bgcolor: 'rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              animation: 'floatY 6s ease-in-out infinite',
+            }}
+          >
+            {[
+              { k: '200+', l: 'Total lots' },
+              { k: '45', l: 'Active residents' },
+              { k: '98%', l: 'Collection rate' },
+            ].map((s) => (
+              <Box key={s.l} sx={{ minWidth: 98, textAlign: 'center' }}>
+                <Typography sx={{ color: 'white', fontWeight: 900, lineHeight: 1, fontSize: '1.05rem' }}>
+                  {s.k}
+                </Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.70)', fontSize: '0.72rem', fontWeight: 700, mt: 0.25 }}>
+                  {s.l}
+                </Typography>
               </Box>
-              <Box component="span" sx={{ display: 'block', color: '#21a766' }}>
-                in Westville
-              </Box>
-              <Box component="span" sx={{ display: 'block', color: '#21a766' }}>
-                Homes
-              </Box>
-            </Typography>
-
-            <Typography sx={{ color: 'rgba(255,255,255,0.94)', fontSize: { xs: '0.98rem', md: '1.06rem' }, mt: 3, mb: 2.6, maxWidth: 550, lineHeight: 1.65, fontWeight: 700, textShadow: '0 4px 18px rgba(0,0,0,0.55)' }}>
-              Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
-            </Typography>
-
-            <Box sx={{ display: 'flex', gap: 1.35, flexWrap: 'wrap', alignItems: 'center', mb: 3 }}>
-              {['Gated Community', '24/7 Security', 'Premium Amenities'].map((item) => (
-                <Box key={item} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.55 }}>
-                  <CheckCircleIcon sx={{ color: '#21a766', fontSize: 17 }} />
-                  <Typography sx={{ color: 'rgba(255,255,255,0.88)', fontSize: '0.78rem', fontWeight: 800 }}>
-                    {item}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 1.4, flexWrap: 'wrap', alignItems: 'center' }}>
-              <Button
-                variant="contained"
-                endIcon={<ArrowForwardIcon />}
-                onClick={onBrowseLots}
-                sx={{
-                  bgcolor: '#20a865',
-                  color: 'white',
-                  borderRadius: 999,
-                  px: 3,
-                  py: 1.15,
-                  minWidth: 210,
-                  fontWeight: 950,
-                  textTransform: 'none',
-                  boxShadow: '0 16px 38px rgba(0,0,0,0.30)',
-                  '&:hover': { bgcolor: '#27ba72', transform: 'translateY(-1px)', boxShadow: '0 18px 42px rgba(0,0,0,0.34)' },
-                  '&:active': { transform: 'translateY(1px) scale(0.99)' },
-                  transition: 'transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease',
-                }}
-              >
-                Browse Available Lots
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => scrollTo(contactRef)}
-                sx={{
-                  borderColor: 'rgba(255,255,255,0.42)',
-                  color: 'rgba(255,255,255,0.94)',
-                  borderRadius: 999,
-                  px: 3.3,
-                  py: 1.1,
-                  minWidth: 150,
-                  fontWeight: 900,
-                  textTransform: 'none',
-                  bgcolor: 'rgba(255,255,255,0.08)',
-                  backdropFilter: 'blur(12px)',
-                  '&:hover': { borderColor: 'rgba(255,255,255,0.72)', bgcolor: 'rgba(255,255,255,0.13)' },
-                  '&:active': { transform: 'translateY(1px) scale(0.99)' },
-                  transition: 'transform 0.15s ease, background-color 0.15s ease',
-                }}
-              >
-                Contact Us
-              </Button>
-            </Box>
-
-            <Grid container spacing={1.5} sx={{ mt: { xs: 4, md: 6 }, maxWidth: 470 }}>
-              {[
-                { k: '200+', l: 'Total Lots', icon: <LocationIcon sx={{ fontSize: 18 }} /> },
-                { k: '45', l: 'Active Residents', icon: <GroupsIcon sx={{ fontSize: 18 }} /> },
-                { k: '98%', l: 'Collection Rate', icon: <BarChartIcon sx={{ fontSize: 18 }} /> },
-              ].map((s) => (
-                <Grid item xs={4} key={s.l}>
-                  <Box
-                    sx={{
-                      minHeight: 106,
-                      px: { xs: 1, md: 2 },
-                      py: 1.7,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(255,255,255,0.12)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 16px 42px rgba(0,0,0,0.18)',
-                      backdropFilter: 'blur(14px)',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <Box sx={{ color: '#24bd72', display: 'grid', placeItems: 'center', mb: 1 }}>
-                      {s.icon}
-                    </Box>
-                    <Typography sx={{ color: 'white', fontWeight: 950, lineHeight: 1, fontSize: { xs: '1.28rem', md: '1.55rem' } }}>
-                      {s.k}
-                    </Typography>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.76)', fontSize: { xs: '0.66rem', md: '0.72rem' }, fontWeight: 800, mt: 0.7 }}>
-                      {s.l}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </Grid>
-
-          <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'block' } }}>
-            <Box
-              sx={{
-                position: 'relative',
-                height: 440,
-                maxWidth: 610,
-                ml: 'auto',
-                animation: 'floatY 7s ease-in-out infinite',
-              }}
-            >
-              {[
-                { src: bgImage, top: 54, left: 28, width: 282, height: 208, delay: '0ms' },
-                { src: '/images/mission.png', top: 86, left: 322, width: 284, height: 144, delay: '90ms' },
-                { src: '/images/security.png', top: 276, left: 28, width: 282, height: 144, delay: '160ms' },
-                { src: '/images/resident.png', top: 242, left: 324, width: 284, height: 208, delay: '220ms' },
-              ].map((photo, index) => (
-                <Box
-                  key={`${photo.src}-${index}`}
-                  component="img"
-                  src={photo.src}
-                  alt=""
-                  sx={{
-                    position: 'absolute',
-                    top: photo.top,
-                    left: photo.left,
-                    width: photo.width,
-                    height: photo.height,
-                    objectFit: 'cover',
-                    borderRadius: 2,
-                    boxShadow: '0 24px 60px rgba(0,0,0,0.34)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    animation: `cardPop 0.7s ease ${photo.delay} both`,
-                  }}
-                />
-              ))}
-
-              <Box
-                sx={{
-                  position: 'absolute',
-                  left: 12,
-                  top: 398,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.2,
-                  px: 2,
-                  py: 1.15,
-                  borderRadius: 2,
-                  bgcolor: 'white',
-                  color: '#0f172a',
-                  boxShadow: '0 18px 42px rgba(0,0,0,0.28)',
-                  animation: 'cardPop 0.8s ease 280ms both',
-                }}
-              >
-                <Box sx={{ display: 'flex', color: '#facc15' }}>
-                  {[0, 1, 2, 3, 4].map((star) => <StarIcon key={star} sx={{ fontSize: 16 }} />)}
-                </Box>
-                <Box>
-                  <Typography sx={{ fontWeight: 950, fontSize: '0.86rem', lineHeight: 1 }}>
-                    4.9 / 5.0
-                  </Typography>
-                  <Typography sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.64rem', mt: 0.25 }}>
-                    Community Rating
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Grid>
-        </Grid>
+            ))}
+          </Box>
+        </Box>
       </Box>
 
       {/* ROLE CARDS */}
@@ -1155,10 +1018,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
               <Grid item xs={12} md={6}>
                 <Box sx={{ maxWidth: 430, ml: { xs: 0, md: 'auto' } }}>
-                  <Box component="img" src='/images/hoa4.png' alt="Model house" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
+                  <Box component="img" src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&q=80" alt="Model house" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
                   <Box sx={{ mt: 1.3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.1 }}>
-                    <Box component="img" src='/images/hoa1.png' alt="Park" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
-                    <Box component="img" src='/images/hoa2.png' alt="Community homes" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                    <Box component="img" src="https://images.unsplash.com/photo-1448630360428-65456885c650?w=600&q=80" alt="Park" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                    <Box component="img" src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=80" alt="Community homes" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
                   </Box>
                 </Box>
               </Grid>

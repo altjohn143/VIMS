@@ -42,9 +42,10 @@ export const AuthProvider = ({ children }) => {
   const normalizeUserProfilePhoto = (user) => {
     if (!user) return user;
     if (!user.profilePhotoUrl && user.profilePhoto) {
+      const backendBaseUrl = axios.defaults.baseURL || 'https://vims-backend.onrender.com';
       const profilePhotoUrl = user.profilePhoto.startsWith('http')
         ? user.profilePhoto
-        : `${window.location.origin}/uploads/profile-photos/${user.profilePhoto}`;
+        : `${backendBaseUrl}/uploads/profile-photos/${user.profilePhoto}`;
       return { ...user, profilePhotoUrl };
     }
     return user;

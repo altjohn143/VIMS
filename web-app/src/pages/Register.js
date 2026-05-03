@@ -38,13 +38,16 @@ import {
   LocationOn as LocationIcon,
   Info as InfoIcon,
   Map as MapIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Image as ImageIcon
 } from '@mui/icons-material';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
 // Import the LotMap component
 import LotSelectionMap from '../components/LotSelectionMap';
+import ImagePreview from '../components/ImagePreview';
 
 // Country codes data
 const COUNTRY_CODES = [
@@ -106,8 +109,7 @@ const Register = () => {
   });
   const [idDocs, setIdDocs] = useState({
     frontImage: null,
-    backImage: null,
-    selfieImage: null
+    backImage: null
   });
   const [ocrLoading, setOcrLoading] = useState(false);
   const [lastOcrSignature, setLastOcrSignature] = useState('');
@@ -507,8 +509,6 @@ const Register = () => {
               multipart.append('email', emailLower);
               multipart.append('frontImage', idDocs.frontImage);
               multipart.append('backImage', idDocs.backImage);
-              const selfieUpload = idDocs.selfieImage || profilePhoto;
-              if (selfieUpload) multipart.append('selfieImage', selfieUpload);
               await axios.post('/api/verifications/upload-id', multipart);
             } catch (uploadError) {
               const status = uploadError?.response?.status;
@@ -1263,6 +1263,7 @@ const Register = () => {
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={4}>
                   <Button variant="outlined" component="label" fullWidth>
+                    <ImageIcon sx={{ mr: 1 }} />
                     Upload ID Front
                     <input
                       hidden
@@ -1281,10 +1282,33 @@ const Register = () => {
                       }}
                     />
                   </Button>
-                  <Typography variant="caption">{idDocs.frontImage?.name || 'No file selected'}</Typography>
+                  {idDocs.frontImage ? (
+                    <Box sx={{ mt: 1 }}>
+                      <ImagePreview
+                        file={idDocs.frontImage}
+                        label="ID Front"
+                        size={60}
+                        showRemove={true}
+                        onRemove={() => {
+                          setIdDocs((prev) => ({ ...prev, frontImage: null }));
+                          setOcrUnavailable(false);
+                          setLastOcrSignature('');
+                          setOcrIdNumber('');
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: themeColors.textSecondary }}>
+                        {idDocs.frontImage.name}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" sx={{ mt: 0.5, color: themeColors.textSecondary }}>
+                      No file selected
+                    </Typography>
+                  )}
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Button variant="outlined" component="label" fullWidth>
+                    <ImageIcon sx={{ mr: 1 }} />
                     Upload ID Back
                     <input
                       hidden
@@ -1303,7 +1327,29 @@ const Register = () => {
                       }}
                     />
                   </Button>
-                  <Typography variant="caption">{idDocs.backImage?.name || 'No file selected'}</Typography>
+                  {idDocs.backImage ? (
+                    <Box sx={{ mt: 1 }}>
+                      <ImagePreview
+                        file={idDocs.backImage}
+                        label="ID Back"
+                        size={60}
+                        showRemove={true}
+                        onRemove={() => {
+                          setIdDocs((prev) => ({ ...prev, backImage: null }));
+                          setOcrUnavailable(false);
+                          setLastOcrSignature('');
+                          setOcrIdNumber('');
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: themeColors.textSecondary }}>
+                        {idDocs.backImage.name}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" sx={{ mt: 0.5, color: themeColors.textSecondary }}>
+                      No file selected
+                    </Typography>
+                  )}
                 </Grid>
               </Grid>
               {ocrLoading && (
@@ -1344,7 +1390,7 @@ const Register = () => {
               <Typography variant="body2" sx={{ mb: 2, color: themeColors.textSecondary }}>
                 Upload a photo to set as your profile picture. This will be displayed on your account.
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                 <Button
                   variant="outlined"
                   component="label"
@@ -1359,7 +1405,8 @@ const Register = () => {
                     },
                   }}
                 >
-                  {uploadingPhoto ? <CircularProgress size={20} /> : 'Choose Photo'}
+                  <ImageIcon sx={{ mr: 1 }} />
+                  {uploadingPhoto ? <CircularProgress size={20} /> : 'Select Photo'}
                   <input
                     hidden
                     type="file"
@@ -1367,10 +1414,49 @@ const Register = () => {
                     onChange={handleProfilePhotoUpload}
                   />
                 </Button>
+
+                <Button
+                  variant="outlined"
+                  component="label"
+                  disabled={uploadingPhoto}
+                  sx={{
+                    minWidth: 150,
+                    borderColor: themeColors.primary,
+                    color: themeColors.primary,
+                    '&:hover': {
+                      borderColor: themeColors.primaryDark,
+                      backgroundColor: 'rgba(45, 80, 22, 0.04)',
+                    },
+                  }}
+                >
+                  <PhotoCameraIcon sx={{ mr: 1 }} />
+                  {uploadingPhoto ? <CircularProgress size={20} /> : 'Take Photo'}
+                  <input
+                    hidden
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleProfilePhotoUpload}
+                  />
+                </Button>
+
                 {profilePhoto && (
-                  <Typography variant="body2" sx={{ color: themeColors.success, fontWeight: 500 }}>
-                    ✓ Photo selected: {profilePhoto.name}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <ImagePreview
+                      file={profilePhoto}
+                      label="Profile Photo"
+                      size={80}
+                      onRemove={() => setProfilePhoto(null)}
+                    />
+                    <Box>
+                      <Typography variant="body2" sx={{ color: themeColors.success, fontWeight: 500 }}>
+                        ✓ Photo selected
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
+                        {profilePhoto.name}
+                      </Typography>
+                    </Box>
+                  </Box>
                 )}
               </Box>
               <Typography variant="caption" sx={{ display: 'block', mt: 1, color: themeColors.textSecondary }}>

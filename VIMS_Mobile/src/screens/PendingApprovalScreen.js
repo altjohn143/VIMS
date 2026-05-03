@@ -21,6 +21,16 @@ const PendingApprovalScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     loadUser();
+
+    const timeoutId = setTimeout(async () => {
+      await logout();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    }, 3000);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const loadUser = async () => {
@@ -32,24 +42,6 @@ const PendingApprovalScreen = ({ navigation, route }) => {
 
   const displayUser = registration || user;
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            // Don't navigate; AppNavigator will switch to auth stack.
-          },
-        },
-      ]
-    );
-  };
-
   const handleCheckStatus = () => {
     Alert.alert(
       'Check Status',
@@ -60,7 +52,10 @@ const PendingApprovalScreen = ({ navigation, route }) => {
           text: 'Logout',
           onPress: async () => {
             await logout();
-            // AppNavigator will route to Login automatically.
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
           },
         },
       ]

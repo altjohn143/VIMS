@@ -1,35 +1,19 @@
 ﻿// components/LogoutButton.js
 import React from 'react';
-import { TouchableOpacity, Alert, Platform, StyleSheet, View, Text } from 'react-native';
+import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import { themeColors } from '../utils/theme';
 
 const LogoutButton = ({ navigation, color = '#ef4444', size = 18, label = 'Logout' }) => {
   const { logout } = useAuth();
 
-  const handleLogout = () => {
-    if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to logout?')) {
-        logout();
-        // Don't navigate here. AppNavigator switches to auth stack when user becomes null.
-      }
-    } else {
-      Alert.alert(
-        'Logout',
-        'Are you sure you want to logout?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Logout',
-            style: 'destructive',
-            onPress: async () => {
-              await logout();
-              // Don't navigate here. AppNavigator switches to auth stack when user becomes null.
-            },
-          },
-        ]
-      );
+  const handleLogout = async () => {
+    await logout();
+    if (navigation) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
     }
   };
 

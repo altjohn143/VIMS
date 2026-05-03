@@ -151,7 +151,6 @@ const Dashboard = () => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [residentAnnouncements, setResidentAnnouncements] = useState([]);
   const [liveStats, setLiveStats] = useState({});
-  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
   const { logout, getCurrentUser } = useAuth();
 
@@ -195,48 +194,6 @@ const Dashboard = () => {
 
   // Fetch selfie for avatar
   useEffect(() => {
-    const fetchSelfiePreview = async () => {
-      if (!user?.id || user?.role !== 'resident') return;
-
-      try {
-        const token = localStorage.getItem('token') || '';
-        const response = await axios.get('/api/verifications/me', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (response.data?.success && response.data.data?.selfieImage) {
-          const selfieFilename = response.data.data.selfieImage;
-          const previewRes = await axios.get(`/api/verifications/my-files/${selfieFilename}`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            },
-            responseType: 'blob'
-          });
-
-          if (previewRes.status === 200 && previewRes.data) {
-            const url = URL.createObjectURL(previewRes.data);
-            setSelfiePreviewUrl(url);
-          }
-        }
-      } catch (error) {
-        console.warn('Could not load selfie preview:', error?.message);
-      }
-    };
-
-    fetchSelfiePreview();
-  }, [user?.id, user?.role]);
-
-  useEffect(() => {
-    return () => {
-      if (selfiePreviewUrl?.startsWith('blob:')) {
-        URL.revokeObjectURL(selfiePreviewUrl);
-      }
-    };
-  }, [selfiePreviewUrl]);
-
-  useEffect(() => {
     if (!isMobile) {
       setSidebarOpen(true);
     }
@@ -245,12 +202,11 @@ const Dashboard = () => {
   const buildProfilePhotoUrl = (photo) => {
     if (!photo) return null;
     if (photo.startsWith('http')) return photo;
-    return `${window.location.origin}/uploads/profile-photos/${photo}`;
+    const backendBaseUrl = axios.defaults.baseURL || window.location.origin;
+    return `${backendBaseUrl}/uploads/profile-photos/${photo}`;
   };
 
-  const avatarSrc = user?.profilePhotoUrl ||
-    buildProfilePhotoUrl(user?.profilePhoto) ||
-    selfiePreviewUrl;
+  const avatarSrc = user?.profilePhotoUrl || buildProfilePhotoUrl(user?.profilePhoto);
 
   const handleLogout = useCallback(() => {
     logout();

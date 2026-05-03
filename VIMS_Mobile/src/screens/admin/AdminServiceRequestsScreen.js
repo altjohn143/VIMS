@@ -347,30 +347,33 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
   </View>
 </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.total || 0}</Text>
-            <Text style={styles.statLabel}>Total</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.warning }]}>{stats.pending || 0}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.info }]}>{stats.inProgress || 0}</Text>
-            <Text style={styles.statLabel}>In Progress</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.success }]}>{stats.completed || 0}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.error }]}>{stats.urgent || 0}</Text>
-            <Text style={styles.statLabel}>Urgent</Text>
-          </View>
+      <View style={styles.statsGrid}>
+        <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
+          <Ionicons name="build-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.total || 0}</Text>
+          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Total</Text>
         </View>
-      </ScrollView>
+        <View style={[styles.coloredStatCard, { backgroundColor: '#d97706' }]}>
+          <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.pending || 0}</Text>
+          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Pending</Text>
+        </View>
+        <View style={[styles.coloredStatCard, { backgroundColor: '#0284c7' }]}>
+          <Ionicons name="cog-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.inProgress || 0}</Text>
+          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Active</Text>
+        </View>
+        <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+          <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.completed || 0}</Text>
+          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Done</Text>
+        </View>
+        <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
+          <Ionicons name="alert-circle-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.urgent || 0}</Text>
+          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Urgent</Text>
+        </View>
+      </View>
 
       <View style={styles.filterContainer}>
         <View style={styles.searchBox}>
@@ -698,27 +701,43 @@ const styles = StyleSheet.create({
   archivedButton: {
     padding: 8,
   },
-  statsScroll: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
-  },
-  statsContainer: {
+  statsGrid: {
     flexDirection: 'row',
-    padding: 16,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
+    backgroundColor: '#f1f5f9',
   },
-  statCard: {
-    alignItems: 'center',
-    marginRight: 20,
+  coloredStatCard: {
+    flex: 1,
+    borderRadius: 8,
+    padding: 6,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: themeColors.primary,
+  coloredStatBgIcon: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.4)',
   },
-  statLabel: {
-    fontSize: 11,
-    color: themeColors.textSecondary,
+  coloredStatValue: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  coloredStatLabel: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 8,
+    fontWeight: '600',
   },
   filterContainer: {
     backgroundColor: 'white',

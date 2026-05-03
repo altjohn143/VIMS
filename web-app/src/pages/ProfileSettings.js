@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -44,7 +44,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
 const ProfileSettings = () => {
@@ -58,11 +58,9 @@ const ProfileSettings = () => {
     error: '#ef4444',
     info: '#3b82f6',
     background: '#f3f5f7',
-    cardBackground: '#ffffff',
-    textPrimary: '#0f172a',
-    textSecondary: '#64748b',
-    border: 'rgba(15, 23, 42, 0.08)'
   };
+
+  const backendBaseUrl = axios.defaults.baseURL?.replace(/\/api\/?$/, '') || 'https://vims-backend.onrender.com';
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -113,6 +111,25 @@ const ProfileSettings = () => {
     navigate('/login');
   };
 
+  const buildDocumentUrl = useCallback((filename) => {
+    if (!filename) return null;
+    return `/api/verifications/my-files/${filename}`;
+  }, []);
+
+  const fetchDocumentPreviewUrl = useCallback(async (filename) => {
+    if (!filename) return null;
+
+    try {
+      const response = await axios.get(`/api/verifications/my-files/${filename}`, {
+        responseType: 'blob'
+      });
+      return URL.createObjectURL(response.data);
+    } catch (error) {
+      toast.error('Unable to load document preview');
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -122,10 +139,7 @@ const ProfileSettings = () => {
           return;
         }
 
-        console.log('Fetching profile for user:', currentUser.id);
-        
         const token = localStorage.getItem('token') || currentUser.token || '';
-        console.log('Using token:', token ? 'Token exists' : 'No token');
 
         const response = await axios.get('/api/users/profile', {
           headers: {
@@ -135,12 +149,11 @@ const ProfileSettings = () => {
         
         let userData = null;
         const data = response.data;
-        console.log('Profile data:', data);
         
         if (data.success) {
           userData = data.data;
           setUser(userData);
-          setProfilePhoto(userData.profilePhotoUrl || (userData.profilePhoto ? `/uploads/profile-photos/${userData.profilePhoto}` : null) || null);
+          setProfilePhoto(userData.profilePhotoUrl || (userData.profilePhoto ? `${backendBaseUrl}/uploads/profile-photos/${userData.profilePhoto}` : null) || null);
           setFormData({
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
@@ -188,8 +201,6 @@ const ProfileSettings = () => {
           setUploadedDocuments(null);
         }
       } catch (error) {
-        console.error('Error fetching profile:', error);
-        console.error('Error details:', error.message);
         toast.error('Failed to load profile data: ' + error.message);
       } finally {
         setLoading(false);
@@ -197,7 +208,7 @@ const ProfileSettings = () => {
     };
 
     fetchUserProfile();
-  }, [getCurrentUser, navigate]);
+  }, [fetchDocumentPreviewUrl, buildDocumentUrl, getCurrentUser, navigate, backendBaseUrl]);
 
   const submitMoveOutRequest = async () => {
     if (!user) return;
@@ -263,10 +274,10 @@ const ProfileSettings = () => {
         const updatedUser = {
           ...(user || {}),
           profilePhoto: updatedProfilePhoto,
-          profilePhotoUrl: updatedProfileUrl || (updatedProfilePhoto ? `/uploads/profile-photos/${updatedProfilePhoto}` : null)
+          profilePhotoUrl: updatedProfileUrl || (updatedProfilePhoto ? `${backendBaseUrl}/uploads/profile-photos/${updatedProfilePhoto}` : null)
         };
 
-        const finalProfilePhoto = updatedProfileUrl || (updatedProfilePhoto ? `/uploads/profile-photos/${updatedProfilePhoto}` : previewUrl);
+        const finalProfilePhoto = updatedProfileUrl || (updatedProfilePhoto ? `${backendBaseUrl}/uploads/profile-photos/${updatedProfilePhoto}` : previewUrl);
         setProfilePhoto(finalProfilePhoto);
         setUser(updatedUser);
         if (updateUser) {
@@ -283,30 +294,9 @@ const ProfileSettings = () => {
         toast.success('Profile photo updated successfully');
       }
     } catch (error) {
-      console.error('Profile photo upload error:', error);
       toast.error(error.response?.data?.error || 'Failed to upload profile photo');
     } finally {
       setUploadingPhoto(false);
-    }
-  };
-
-  const buildDocumentUrl = (filename) => {
-    if (!filename) return null;
-    return `/api/verifications/my-files/${filename}`;
-  };
-
-  const fetchDocumentPreviewUrl = async (filename) => {
-    if (!filename) return null;
-
-    try {
-      const response = await axios.get(`/api/verifications/my-files/${filename}`, {
-        responseType: 'blob'
-      });
-      return URL.createObjectURL(response.data);
-    } catch (error) {
-      console.error('Error loading document preview:', error);
-      toast.error('Unable to load document preview');
-      return null;
     }
   };
 
@@ -473,7 +463,6 @@ const ProfileSettings = () => {
         setUser(response.data.data);
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
       toast.error(error.response?.data?.error || 'Failed to update profile');
     } finally {
       setSaving(false);
@@ -578,7 +567,6 @@ const ProfileSettings = () => {
         handleClosePasswordDialog();
       }
     } catch (error) {
-      console.error('Error changing password:', error);
       const errorMessage = error.response?.data?.error || 'Failed to change password';
       toast.error(errorMessage);
       
@@ -742,16 +730,17 @@ const ProfileSettings = () => {
               backgroundColor: themeColors.cardBackground
             }}>
               <Box sx={{ textAlign: 'center' }}>
-                <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
                   <Avatar
-                    src={profilePhoto || documentPreviewUrls.selfie}
+                    src={profilePhoto}
                     sx={{
                       width: 120,
                       height: 120,
                       bgcolor: themeColors.primary,
                       fontSize: '2.5rem',
-                      mb: 2,
-                      boxShadow: `0 4px 12px ${themeColors.primary}40`
+                      boxShadow: `0 4px 16px ${themeColors.primary}40`,
+                      border: `3px solid white`,
+                      transition: 'transform 0.2s ease'
                     }}
                   >
                     {user?.firstName?.charAt(0)}
@@ -762,18 +751,21 @@ const ProfileSettings = () => {
                     disabled={uploadingPhoto}
                     sx={{
                       position: 'absolute',
-                      bottom: 8,
-                      right: 8,
-                      bgcolor: 'white',
-                      '&:hover': { bgcolor: 'grey.100' },
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      bottom: -8,
+                      right: -8,
+                      bgcolor: themeColors.primary,
+                      color: 'white',
+                      '&:hover': { bgcolor: themeColors.primaryDark },
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                      width: 40,
+                      height: 40,
                       opacity: uploadingPhoto ? 0.6 : 1
                     }}
                   >
                     {uploadingPhoto ? (
-                      <CircularProgress size={20} />
+                      <CircularProgress size={20} sx={{ color: 'white' }} />
                     ) : (
-                      <CameraIcon />
+                      <CameraIcon sx={{ fontSize: 20 }} />
                     )}
                     <input
                       type="file"
@@ -783,6 +775,31 @@ const ProfileSettings = () => {
                     />
                   </IconButton>
                 </Box>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  size="small"
+                  disabled={uploadingPhoto}
+                  sx={{
+                    borderColor: themeColors.primary,
+                    color: themeColors.primary,
+                    mb: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    '&:hover': {
+                      backgroundColor: 'rgba(22, 101, 52, 0.04)',
+                      borderColor: themeColors.primaryDark
+                    }
+                  }}
+                >
+                  {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={handleProfilePhotoUpload}
+                  />
+                </Button>
                 <Typography variant="h6" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
                   {user?.firstName} {user?.lastName}
                 </Typography>
@@ -791,6 +808,7 @@ const ProfileSettings = () => {
                   label={user?.role?.toUpperCase()}
                   color="primary"
                   variant="outlined"
+                  size="small"
                   sx={{ mb: 1 }}
                 />
                 <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
@@ -875,107 +893,111 @@ const ProfileSettings = () => {
                 
                 {uploadedDocuments ? (
                   <Box sx={{ mt: 2 }}>
-                    {uploadedDocuments.selfieImage && (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
-                          Profile Picture
+                    {/* Profile Picture from Registration */}
+                    {uploadedDocuments.frontImage && uploadedDocuments.backImage && (
+                      <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CameraIcon sx={{ fontSize: 18 }} />
+                          Uploaded Documents
                         </Typography>
-                        <Box
-                          component="img"
-                          src={documentPreviewUrls.selfie || buildDocumentUrl(uploadedDocuments.selfieImage)}
-                          alt="Profile Picture"
-                          sx={{
-                            width: '100%',
-                            maxWidth: 200,
-                            height: 150,
-                            objectFit: 'cover',
-                            borderRadius: 2,
-                            border: `1px solid ${themeColors.border}`,
-                            cursor: 'pointer',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
-                            '&:hover': {
-                              transform: 'scale(1.02)',
-                              boxShadow: `0 4px 12px rgba(22, 163, 74, 0.2)`
-                            }
-                          }}
-                          onClick={() => openPreview(uploadedDocuments.selfieImage, 'Profile Picture', 'selfie')}
-                        />
+                        
+                        {/* ID Documents in Grid */}
+                        <Grid container spacing={2} sx={{ mb: 3 }}>
+                          {uploadedDocuments.frontImage && (
+                            <Grid item xs={6} sm={6}>
+                              <Box>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: themeColors.textPrimary, display: 'block', mb: 1 }}>
+                                  ID Front
+                                </Typography>
+                                <Box
+                                  component="img"
+                                  src={documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage)}
+                                  alt="ID Front"
+                                  sx={{
+                                    width: '100%',
+                                    height: 120,
+                                    objectFit: 'cover',
+                                    borderRadius: 2,
+                                    border: `2px solid ${themeColors.border}`,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                      transform: 'scale(1.02)',
+                                      boxShadow: `0 4px 16px rgba(22, 163, 74, 0.25)`,
+                                      borderColor: themeColors.primary
+                                    }
+                                  }}
+                                  onClick={() => openPreview(uploadedDocuments.frontImage, 'ID Front', 'front')}
+                                />
+                                <Typography variant="caption" sx={{ color: themeColors.textSecondary, display: 'block', mt: 0.5 }}>
+                                  Tap to preview
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          )}
+                          
+                          {uploadedDocuments.backImage && (
+                            <Grid item xs={6} sm={6}>
+                              <Box>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: themeColors.textPrimary, display: 'block', mb: 1 }}>
+                                  ID Back
+                                </Typography>
+                                <Box
+                                  component="img"
+                                  src={documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage)}
+                                  alt="ID Back"
+                                  sx={{
+                                    width: '100%',
+                                    height: 120,
+                                    objectFit: 'cover',
+                                    borderRadius: 2,
+                                    border: `2px solid ${themeColors.border}`,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                      transform: 'scale(1.02)',
+                                      boxShadow: `0 4px 16px rgba(22, 163, 74, 0.25)`,
+                                      borderColor: themeColors.primary
+                                    }
+                                  }}
+                                  onClick={() => openPreview(uploadedDocuments.backImage, 'ID Back', 'back')}
+                                />
+                                <Typography variant="caption" sx={{ color: themeColors.textSecondary, display: 'block', mt: 0.5 }}>
+                                  Tap to preview
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          )}
+                        </Grid>
+                        
+                        {/* Verification Status */}
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1.5,
+                          p: 1.5,
+                          backgroundColor: uploadedDocuments.documentsVerified ? 'rgba(16, 185, 129, 0.05)' : 'rgba(245, 158, 11, 0.05)',
+                          border: `1px solid ${uploadedDocuments.documentsVerified ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+                          borderRadius: 1.5
+                        }}>
+                          <VerifiedUserIcon 
+                            sx={{ 
+                              color: uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning,
+                              fontSize: 18
+                            }} 
+                          />
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning,
+                              fontWeight: 600
+                            }}
+                          >
+                            {uploadedDocuments.documentsVerified ? '✓ Documents Verified' : '⏱ Verification Pending'}
+                          </Typography>
+                        </Box>
                       </Box>
                     )}
-                    
-                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                      {uploadedDocuments.frontImage && (
-                        <Box sx={{ flex: 1, minWidth: 150 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
-                            ID Front
-                          </Typography>
-                          <Box
-                            component="img"
-                            src={documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage)}
-                            alt="ID Front"
-                            sx={{
-                              width: '100%',
-                              height: 120,
-                              objectFit: 'cover',
-                              borderRadius: 2,
-                              border: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer',
-                              transition: 'transform 0.2s, box-shadow 0.2s',
-                              '&:hover': {
-                                transform: 'scale(1.02)',
-                                boxShadow: `0 4px 12px rgba(22, 163, 74, 0.2)`
-                              }
-                            }}
-                            onClick={() => openPreview(uploadedDocuments.frontImage, 'ID Front', 'front')}
-                          />
-                        </Box>
-                      )}
-                      
-                      {uploadedDocuments.backImage && (
-                        <Box sx={{ flex: 1, minWidth: 150 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
-                            ID Back
-                          </Typography>
-                          <Box
-                            component="img"
-                            src={documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage)}
-                            alt="ID Back"
-                            sx={{
-                              width: '100%',
-                              height: 120,
-                              objectFit: 'cover',
-                              borderRadius: 2,
-                              border: `1px solid ${themeColors.border}`,
-                              cursor: 'pointer',
-                              transition: 'transform 0.2s, box-shadow 0.2s',
-                              '&:hover': {
-                                transform: 'scale(1.02)',
-                                boxShadow: `0 4px 12px rgba(22, 163, 74, 0.2)`
-                              }
-                            }}
-                            onClick={() => openPreview(uploadedDocuments.backImage, 'ID Back', 'back')}
-                          />
-                        </Box>
-                      )}
-                    </Box>
-                    
-                    <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <VerifiedUserIcon 
-                        sx={{ 
-                          color: uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning,
-                          fontSize: 18
-                        }} 
-                      />
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning,
-                          fontWeight: 600
-                        }}
-                      >
-                        {uploadedDocuments.documentsVerified ? 'Documents Verified' : 'Verification Pending'}
-                      </Typography>
-                    </Box>
                   </Box>
                 ) : (
                   <Box sx={{ textAlign: 'center', py: 3 }}>

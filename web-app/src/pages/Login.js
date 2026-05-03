@@ -248,7 +248,7 @@ const ContactPage = ({ onClose, embedded = false }) => {
           <Grid item xs={12} md={5}>
             <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: T.primary, mb: 3 }}>Get in Touch</Typography>
             {[
-              { icon: <LocationIcon sx={{ color: T.primary }} />, label: 'Address', value: 'Westville Casimiro Homes, Casimiro Avenue, Paranaque City, Metro Manila, Philippines' },
+              { icon: <LocationIcon sx={{ color: T.primary }} />, label: 'Address', value: 'Westville Casimiro Homes, Casimiro Avenue, Bacoor City, Cavite, Philippines' },
               { icon: <PhoneIcon sx={{ color: T.primary }} />, label: 'Phone', value: '+63 (02) 8123-4567\n+63 917 123 4567 (Mobile)' },
               { icon: <EmailIcon sx={{ color: T.primary }} />, label: 'Email', value: 'admin@westvillecasimiro.com\nsecurity@westvillecasimiro.com' },
               { icon: <TimeIcon sx={{ color: T.primary }} />, label: 'Office Hours', value: 'Monday – Friday: 8:00 AM – 5:00 PM\nSaturday: 8:00 AM – 12:00 PM' },
@@ -355,7 +355,7 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
           </Grid>
           <Grid item xs={12} md={6}>
             <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: T.primary, mb: 3, textTransform: 'uppercase' }}>VISION</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is a premier residential community committed to delivering beautifully designed, affordable homes within a safe, well-planned, and sustainable environment in Paranaque City.</Typography>
+            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is a premier residential community committed to delivering beautifully designed, affordable homes within a safe, well-planned, and sustainable environment in Bacoor, Cavite.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>The Westville life inspires memories created within dream-like homes and moments nurtured in its exclusive amenities. Each home carries the distinct character of its surroundings and lush landscapes.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8 }}>More than places of residence, Westville homes serve as sanctuaries for Filipino families — a convergence of nature's serenity and urban convenience.</Typography>
           </Grid>
@@ -369,7 +369,7 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
         <Grid container spacing={6} alignItems="center" direction={{ xs: 'column-reverse', md: 'row' }}>
           <Grid item xs={12} md={6}>
             <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: T.primary, mb: 3, textTransform: 'uppercase' }}>MISSION</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>For years, we have built quality homes, well-planned communities, and safe living spaces across Paranaque City. These spaces elevate lives and are perfect for families who seek security, comfort, and a sense of belonging.</Typography>
+            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>For years, we have built quality homes, well-planned communities, and safe living spaces across Bacoor City. These spaces elevate lives and are perfect for families who seek security, comfort, and a sense of belonging.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is dedicated to providing residents with modern facilities, responsive management, and a thriving community where every member feels valued and heard.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8 }}>We continuously innovate through our Village Information Management System (VIMS), ensuring transparent governance, efficient visitor management, and accessible resident services.</Typography>
           </Grid>
@@ -386,10 +386,10 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
         <Typography sx={{ textAlign: 'center', fontSize: '2rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 6 }}>OUR CORE VALUES</Typography>
         <Grid container spacing={4}>
           {[
-            { title: 'Community', desc: 'We foster a strong sense of belonging, nurturing relationships and building a vibrant, inclusive neighborhood for all residents.', img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80' },
-            { title: 'Safety & Security', desc: 'We prioritize every resident\'s safety through 24/7 security, controlled access, and vigilant community monitoring.', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
-            { title: 'Sustainability', desc: 'We are committed to green living — maintaining clean surroundings, preserving green spaces, and promoting eco-friendly practices.', img: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80' },
-            { title: 'Transparency', desc: 'We uphold honest communication with all homeowners, ensuring fair governance and accessible community information.', img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80' },
+            { title: 'Community', desc: 'We foster a strong sense of belonging, nurturing relationships and building a vibrant, inclusive neighborhood for all residents.', img: '/images/hoa1.png' },
+            { title: 'Safety & Security', desc: 'We prioritize every resident\'s safety through 24/7 security, controlled access, and vigilant community monitoring.', img: '/images/hoa2.png' },
+            { title: 'Sustainability', desc: 'We are committed to green living — maintaining clean surroundings, preserving green spaces, and promoting eco-friendly practices.', img: '/images/hoa3.png' },
+            { title: 'Transparency', desc: 'We uphold honest communication with all homeowners, ensuring fair governance and accessible community information.', img: '/images/hoa4.png' },
           ].map((val) => (
             <Grid item xs={12} sm={6} md={3} key={val.title}>
               <Box sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 6px 24px rgba(0,0,0,0.1)', backgroundColor: 'white', height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-6px)' } }}>
@@ -778,7 +778,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         }}
       >
         <Typography sx={{ color: T.accent, fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', mb: 1.2 }}>
-          Paranaque City, Metro Manila
+          Bacoor City, Cavite, Philippines
         </Typography>
         <Typography sx={{ fontFamily: 'Georgia, serif', fontSize: { xs: '2.45rem', md: '4rem' }, fontWeight: 900, color: 'white', lineHeight: 0.94, textTransform: 'uppercase', textShadow: '0 5px 26px rgba(0,0,0,0.72)', mb: 2 }}>
           YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES

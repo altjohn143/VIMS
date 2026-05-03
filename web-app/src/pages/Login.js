@@ -1882,6 +1882,6 @@ const Login = () => {
       </Dialog>
     </Box>
   );
-};
+  };
 
-export default Login;
+export default Login.js;

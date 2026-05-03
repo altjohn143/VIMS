@@ -1019,10 +1019,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
               <Grid item xs={12} md={6}>
                 <Box sx={{ maxWidth: 430, ml: { xs: 0, md: 'auto' } }}>
-                  <Box component="img" src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&q=80" alt="Model house" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
+                  <Box component="img" src='/images/hoa4.png' alt="Model house" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
                   <Box sx={{ mt: 1.3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.1 }}>
-                    <Box component="img" src="https://images.unsplash.com/photo-1448630360428-65456885c650?w=600&q=80" alt="Park" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
-                    <Box component="img" src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=80" alt="Community homes" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                    <Box component="img" src='/images/hoa1.png' alt="Park" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                    <Box component="img" src='/images/hoa2.png' alt="Community homes" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
                   </Box>
                 </Box>
               </Grid>

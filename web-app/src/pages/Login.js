@@ -45,10 +45,11 @@ const noRedErrorFieldSx = {
 };
 
 const ROLES = [
-  { key: 'admin', label: 'ADMIN', description: 'Manages the system, resident records, and community information.', icon: <AdminIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80' },
-  { key: 'resident', label: 'RESIDENT', description: 'Access personal information, community updates, and services.', icon: <HomeIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80' },
-  { key: 'security', label: 'SECURITY', description: 'Monitors entries and helps keep the community safe.', icon: <ShieldIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
+  { key: 'admin', label: 'ADMIN', description: 'Manages the system, resident records, and community information.', icon: <AdminIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/admin.png' },
+  { key: 'resident', label: 'RESIDENT', description: 'Access personal information, community updates, and services.', icon: <HomeIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/resident.png' },
+  { key: 'security', label: 'SECURITY', description: 'Monitors entries and helps keep the community safe.', icon: <ShieldIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/security.png' },
 ];
+
 
 // ─── SHARED BACK BUTTON ───────────────────────────────────────────────────────
 const BackBtn = ({ onClose }) => (
@@ -247,7 +248,7 @@ const ContactPage = ({ onClose, embedded = false }) => {
           <Grid item xs={12} md={5}>
             <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: T.primary, mb: 3 }}>Get in Touch</Typography>
             {[
-              { icon: <LocationIcon sx={{ color: T.primary }} />, label: 'Address', value: 'Westville Casimiro Homes, Casimiro Avenue, Paranaque City, Metro Manila, Philippines' },
+              { icon: <LocationIcon sx={{ color: T.primary }} />, label: 'Address', value: 'Westville Casimiro Homes, Casimiro Avenue, Bacoor City, Cavite, Philippines' },
               { icon: <PhoneIcon sx={{ color: T.primary }} />, label: 'Phone', value: '+63 (02) 8123-4567\n+63 917 123 4567 (Mobile)' },
               { icon: <EmailIcon sx={{ color: T.primary }} />, label: 'Email', value: 'admin@westvillecasimiro.com\nsecurity@westvillecasimiro.com' },
               { icon: <TimeIcon sx={{ color: T.primary }} />, label: 'Office Hours', value: 'Monday – Friday: 8:00 AM – 5:00 PM\nSaturday: 8:00 AM – 12:00 PM' },
@@ -350,11 +351,11 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
       <Container maxWidth="lg">
         <Grid container spacing={6} alignItems="center">
           <Grid item xs={12} md={6}>
-            <Box component="img" src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=700&q=80" alt="Vision" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
+            <Box component="img" src='/images/vision.png' alt="Vision" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
           </Grid>
           <Grid item xs={12} md={6}>
             <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: T.primary, mb: 3, textTransform: 'uppercase' }}>VISION</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is a premier residential community committed to delivering beautifully designed, affordable homes within a safe, well-planned, and sustainable environment in Paranaque City.</Typography>
+            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is a premier residential community committed to delivering beautifully designed, affordable homes within a safe, well-planned, and sustainable environment in Bacoor, Cavite.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>The Westville life inspires memories created within dream-like homes and moments nurtured in its exclusive amenities. Each home carries the distinct character of its surroundings and lush landscapes.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8 }}>More than places of residence, Westville homes serve as sanctuaries for Filipino families — a convergence of nature's serenity and urban convenience.</Typography>
           </Grid>
@@ -368,12 +369,12 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
         <Grid container spacing={6} alignItems="center" direction={{ xs: 'column-reverse', md: 'row' }}>
           <Grid item xs={12} md={6}>
             <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: T.primary, mb: 3, textTransform: 'uppercase' }}>MISSION</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>For years, we have built quality homes, well-planned communities, and safe living spaces across Paranaque City. These spaces elevate lives and are perfect for families who seek security, comfort, and a sense of belonging.</Typography>
+            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>For years, we have built quality homes, well-planned communities, and safe living spaces across Bacoor City. These spaces elevate lives and are perfect for families who seek security, comfort, and a sense of belonging.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is dedicated to providing residents with modern facilities, responsive management, and a thriving community where every member feels valued and heard.</Typography>
             <Typography sx={{ color: '#333', lineHeight: 1.8 }}>We continuously innovate through our Village Information Management System (VIMS), ensuring transparent governance, efficient visitor management, and accessible resident services.</Typography>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box component="img" src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=700&q=80" alt="Mission" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
+            <Box component="img" src='/images/mission.png' alt="Mission" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
           </Grid>
         </Grid>
       </Container>
@@ -385,10 +386,10 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
         <Typography sx={{ textAlign: 'center', fontSize: '2rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 6 }}>OUR CORE VALUES</Typography>
         <Grid container spacing={4}>
           {[
-            { title: 'Community', desc: 'We foster a strong sense of belonging, nurturing relationships and building a vibrant, inclusive neighborhood for all residents.', img: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80' },
-            { title: 'Safety & Security', desc: 'We prioritize every resident\'s safety through 24/7 security, controlled access, and vigilant community monitoring.', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
-            { title: 'Sustainability', desc: 'We are committed to green living — maintaining clean surroundings, preserving green spaces, and promoting eco-friendly practices.', img: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80' },
-            { title: 'Transparency', desc: 'We uphold honest communication with all homeowners, ensuring fair governance and accessible community information.', img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80' },
+            { title: 'Community', desc: 'We foster a strong sense of belonging, nurturing relationships and building a vibrant, inclusive neighborhood for all residents.', img: '/images/hoa1.png' },
+            { title: 'Safety & Security', desc: 'We prioritize every resident\'s safety through 24/7 security, controlled access, and vigilant community monitoring.', img: '/images/hoa2.png' },
+            { title: 'Sustainability', desc: 'We are committed to green living — maintaining clean surroundings, preserving green spaces, and promoting eco-friendly practices.', img: '/images/hoa3.png' },
+            { title: 'Transparency', desc: 'We uphold honest communication with all homeowners, ensuring fair governance and accessible community information.', img: '/images/hoa4.png' },
           ].map((val) => (
             <Grid item xs={12} sm={6} md={3} key={val.title}>
               <Box sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 6px 24px rgba(0,0,0,0.1)', backgroundColor: 'white', height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-6px)' } }}>
@@ -777,7 +778,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         }}
       >
         <Typography sx={{ color: T.accent, fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', mb: 1.2 }}>
-          Paranaque City, Metro Manila
+          Bacoor City, Cavite, Philippines
         </Typography>
         <Typography sx={{ fontFamily: 'Georgia, serif', fontSize: { xs: '2.45rem', md: '4rem' }, fontWeight: 900, color: 'white', lineHeight: 0.94, textTransform: 'uppercase', textShadow: '0 5px 26px rgba(0,0,0,0.72)', mb: 2 }}>
           YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES
@@ -1018,10 +1019,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
               <Grid item xs={12} md={6}>
                 <Box sx={{ maxWidth: 430, ml: { xs: 0, md: 'auto' } }}>
-                  <Box component="img" src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&q=80" alt="Model house" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
+                  <Box component="img" src='/images/hoa4.png' alt="Model house" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
                   <Box sx={{ mt: 1.3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.1 }}>
-                    <Box component="img" src="https://images.unsplash.com/photo-1448630360428-65456885c650?w=600&q=80" alt="Park" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
-                    <Box component="img" src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=80" alt="Community homes" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                    <Box component="img" src='/images/hoa1.png' alt="Park" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                    <Box component="img" src='/images/hoa2.png' alt="Community homes" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
                   </Box>
                 </Box>
               </Grid>
@@ -1882,6 +1883,6 @@ const Login = () => {
       </Dialog>
     </Box>
   );
-  };
+};
 
 export default Login;

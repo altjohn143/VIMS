@@ -22,6 +22,10 @@ import {
   Phone as PhoneIcon, LocationOn as LocationIcon,
   Star as StarIcon,
   Menu as MenuIcon,
+  ArrowForward as ArrowForwardIcon,
+  CheckCircle as CheckCircleIcon,
+  Groups as GroupsIcon,
+  BarChart as BarChartIcon,
 } from '@mui/icons-material';
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
@@ -535,7 +539,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           top: 0,
           left: 0,
           right: 0,
-          height: { xs: 620, md: 680 },
+          height: { xs: 760, md: 820 },
           overflow: 'hidden',
         }}
       >
@@ -545,7 +549,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             inset: 0,
             backgroundImage: `url(${heroBg})`,
             backgroundSize: 'cover',
-            backgroundPosition: 'center 38%',
+            backgroundPosition: 'center 32%',
             filter: 'saturate(1.08) contrast(1.04)',
             animation: 'heroZoom 18s ease-in-out infinite alternate',
             transformOrigin: 'center',
@@ -558,10 +562,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             backgroundImage: `
               linear-gradient(
                 90deg,
-                rgba(2, 26, 13, 0.88) 0%,
-                rgba(8, 55, 28, 0.78) 38%,
-                rgba(12, 76, 38, 0.64) 68%,
-                rgba(6, 36, 18, 0.56) 100%
+                rgba(2, 18, 10, 0.90) 0%,
+                rgba(5, 42, 22, 0.82) 38%,
+                rgba(11, 61, 31, 0.68) 70%,
+                rgba(4, 27, 15, 0.58) 100%
               ),
               url(${heroBg})
             `,
@@ -770,90 +774,222 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         sx={{
           position: 'relative',
           zIndex: 5,
-          px: { xs: 3, md: 6 },
-          pt: { xs: 5, md: 8 },
-          pb: { xs: 5, md: 7 },
-          maxWidth: 760,
+          px: { xs: 2.5, md: 6 },
+          pt: { xs: 5, md: 7 },
+          pb: { xs: 6, md: 8 },
           animation: 'fadeUpSoft 0.75s ease',
         }}
       >
-        <Typography sx={{ color: T.accent, fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', mb: 1.2 }}>
-          Bacoor City, Cavite, Philippines
-        </Typography>
-        <Typography sx={{ fontFamily: 'Georgia, serif', fontSize: { xs: '2.45rem', md: '4rem' }, fontWeight: 900, color: 'white', lineHeight: 0.94, textTransform: 'uppercase', textShadow: '0 5px 26px rgba(0,0,0,0.72)', mb: 2 }}>
-          YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES
-        </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.94)', fontSize: '0.92rem', mb: 3, maxWidth: 560, lineHeight: 1.65, fontWeight: 700, textShadow: '0 3px 14px rgba(0,0,0,0.62)' }}>
-          Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Button
-            variant="contained"
-            onClick={() => scrollTo(aboutRef)}
-            sx={{
-              bgcolor: T.accent,
-              color: T.dark,
-              borderRadius: 999,
-              px: 2.4,
-              py: 1.1,
-              fontWeight: 900,
-              textTransform: 'none',
-              boxShadow: '0 14px 34px rgba(0,0,0,0.28)',
-              '&:hover': { bgcolor: '#8CF07B', transform: 'translateY(-1px)' },
-              '&:active': { transform: 'translateY(1px) scale(0.99)' },
-              transition: 'transform 0.2s ease, background-color 0.2s ease',
-            }}
-          >
-            Read more
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={onBrowseLots}
-            sx={{
-              borderColor: 'rgba(255,255,255,0.40)',
-              color: 'rgba(255,255,255,0.92)',
-              borderRadius: 999,
-              px: 2.2,
-              py: 1.05,
-              fontWeight: 900,
-              textTransform: 'none',
-              '&:hover': { borderColor: T.accent, color: T.accent, bgcolor: 'rgba(124, 219, 107, 0.12)' },
-              '&:active': { transform: 'translateY(1px) scale(0.99)' },
-              transition: 'transform 0.15s ease',
-            }}
-          >
-            View map
-          </Button>
-          <Box
-            sx={{
-              ml: { xs: 0, md: 1 },
-              display: { xs: 'none', md: 'flex' },
-              gap: 1.25,
-              alignItems: 'center',
-              px: 1.5,
-              py: 1,
-              borderRadius: 999,
-              bgcolor: 'rgba(255,255,255,0.10)',
-              border: '1px solid rgba(255,255,255,0.14)',
-              animation: 'floatY 6s ease-in-out infinite',
-            }}
-          >
-            {[
-              { k: '200+', l: 'Total lots' },
-              { k: '45', l: 'Active residents' },
-              { k: '98%', l: 'Collection rate' },
-            ].map((s) => (
-              <Box key={s.l} sx={{ minWidth: 98, textAlign: 'center' }}>
-                <Typography sx={{ color: 'white', fontWeight: 900, lineHeight: 1, fontSize: '1.05rem' }}>
-                  {s.k}
-                </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.70)', fontSize: '0.72rem', fontWeight: 700, mt: 0.25 }}>
-                  {s.l}
-                </Typography>
+        <Grid container spacing={{ xs: 4, md: 7 }} alignItems="center" sx={{ maxWidth: 1240, mx: 'auto' }}>
+          <Grid item xs={12} md={6}>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 2,
+                py: 0.8,
+                borderRadius: 999,
+                bgcolor: 'rgba(255,255,255,0.13)',
+                border: '1px solid rgba(255,255,255,0.16)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 14px 36px rgba(0,0,0,0.18)',
+                backdropFilter: 'blur(14px)',
+                mb: 2.8,
+              }}
+            >
+              <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#2ddf86', boxShadow: '0 0 18px rgba(45,223,134,0.8)' }} />
+              <Typography sx={{ color: 'rgba(255,255,255,0.92)', fontSize: '0.72rem', fontWeight: 950, letterSpacing: '0.09em', textTransform: 'uppercase' }}>
+                Welcome to Westville Casimiro Homes
+              </Typography>
+            </Box>
+
+            <Typography
+              sx={{
+                fontFamily: 'Georgia, "Times New Roman", serif',
+                fontSize: { xs: '3rem', sm: '3.6rem', md: '4.55rem' },
+                fontWeight: 900,
+                color: 'white',
+                lineHeight: 0.94,
+                letterSpacing: 0,
+                textShadow: '0 12px 38px rgba(0,0,0,0.50)',
+                maxWidth: 660,
+              }}
+            >
+              Your Dream Life
+              <Box component="span" sx={{ display: 'block', color: '#21a766' }}>
+                Awaits
               </Box>
-            ))}
-          </Box>
-        </Box>
+              <Box component="span" sx={{ display: 'block', color: '#21a766' }}>
+                in Westville
+              </Box>
+              <Box component="span" sx={{ display: 'block', color: '#21a766' }}>
+                Homes
+              </Box>
+            </Typography>
+
+            <Typography sx={{ color: 'rgba(255,255,255,0.94)', fontSize: { xs: '0.98rem', md: '1.06rem' }, mt: 3, mb: 2.6, maxWidth: 550, lineHeight: 1.65, fontWeight: 700, textShadow: '0 4px 18px rgba(0,0,0,0.55)' }}>
+              Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
+            </Typography>
+
+            <Box sx={{ display: 'flex', gap: 1.35, flexWrap: 'wrap', alignItems: 'center', mb: 3 }}>
+              {['Gated Community', '24/7 Security', 'Premium Amenities'].map((item) => (
+                <Box key={item} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.55 }}>
+                  <CheckCircleIcon sx={{ color: '#21a766', fontSize: 17 }} />
+                  <Typography sx={{ color: 'rgba(255,255,255,0.88)', fontSize: '0.78rem', fontWeight: 800 }}>
+                    {item}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 1.4, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Button
+                variant="contained"
+                endIcon={<ArrowForwardIcon />}
+                onClick={onBrowseLots}
+                sx={{
+                  bgcolor: '#20a865',
+                  color: 'white',
+                  borderRadius: 999,
+                  px: 3,
+                  py: 1.15,
+                  minWidth: 210,
+                  fontWeight: 950,
+                  textTransform: 'none',
+                  boxShadow: '0 16px 38px rgba(0,0,0,0.30)',
+                  '&:hover': { bgcolor: '#27ba72', transform: 'translateY(-1px)', boxShadow: '0 18px 42px rgba(0,0,0,0.34)' },
+                  '&:active': { transform: 'translateY(1px) scale(0.99)' },
+                  transition: 'transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease',
+                }}
+              >
+                Browse Available Lots
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => scrollTo(contactRef)}
+                sx={{
+                  borderColor: 'rgba(255,255,255,0.42)',
+                  color: 'rgba(255,255,255,0.94)',
+                  borderRadius: 999,
+                  px: 3.3,
+                  py: 1.1,
+                  minWidth: 150,
+                  fontWeight: 900,
+                  textTransform: 'none',
+                  bgcolor: 'rgba(255,255,255,0.08)',
+                  backdropFilter: 'blur(12px)',
+                  '&:hover': { borderColor: 'rgba(255,255,255,0.72)', bgcolor: 'rgba(255,255,255,0.13)' },
+                  '&:active': { transform: 'translateY(1px) scale(0.99)' },
+                  transition: 'transform 0.15s ease, background-color 0.15s ease',
+                }}
+              >
+                Contact Us
+              </Button>
+            </Box>
+
+            <Grid container spacing={1.5} sx={{ mt: { xs: 4, md: 6 }, maxWidth: 470 }}>
+              {[
+                { k: '200+', l: 'Total Lots', icon: <LocationIcon sx={{ fontSize: 18 }} /> },
+                { k: '45', l: 'Active Residents', icon: <GroupsIcon sx={{ fontSize: 18 }} /> },
+                { k: '98%', l: 'Collection Rate', icon: <BarChartIcon sx={{ fontSize: 18 }} /> },
+              ].map((s) => (
+                <Grid item xs={4} key={s.l}>
+                  <Box
+                    sx={{
+                      minHeight: 106,
+                      px: { xs: 1, md: 2 },
+                      py: 1.7,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.12)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 16px 42px rgba(0,0,0,0.18)',
+                      backdropFilter: 'blur(14px)',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <Box sx={{ color: '#24bd72', display: 'grid', placeItems: 'center', mb: 1 }}>
+                      {s.icon}
+                    </Box>
+                    <Typography sx={{ color: 'white', fontWeight: 950, lineHeight: 1, fontSize: { xs: '1.28rem', md: '1.55rem' } }}>
+                      {s.k}
+                    </Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.76)', fontSize: { xs: '0.66rem', md: '0.72rem' }, fontWeight: 800, mt: 0.7 }}>
+                      {s.l}
+                    </Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Grid>
+
+          <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'block' } }}>
+            <Box
+              sx={{
+                position: 'relative',
+                height: 440,
+                maxWidth: 610,
+                ml: 'auto',
+                animation: 'floatY 7s ease-in-out infinite',
+              }}
+            >
+              {[
+                { src: bgImage, top: 54, left: 28, width: 282, height: 208, delay: '0ms' },
+                { src: '/images/mission.png', top: 86, left: 322, width: 284, height: 144, delay: '90ms' },
+                { src: '/images/security.png', top: 276, left: 28, width: 282, height: 144, delay: '160ms' },
+                { src: '/images/resident.png', top: 242, left: 324, width: 284, height: 208, delay: '220ms' },
+              ].map((photo, index) => (
+                <Box
+                  key={`${photo.src}-${index}`}
+                  component="img"
+                  src={photo.src}
+                  alt=""
+                  sx={{
+                    position: 'absolute',
+                    top: photo.top,
+                    left: photo.left,
+                    width: photo.width,
+                    height: photo.height,
+                    objectFit: 'cover',
+                    borderRadius: 2,
+                    boxShadow: '0 24px 60px rgba(0,0,0,0.34)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    animation: `cardPop 0.7s ease ${photo.delay} both`,
+                  }}
+                />
+              ))}
+
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: 12,
+                  top: 398,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.2,
+                  px: 2,
+                  py: 1.15,
+                  borderRadius: 2,
+                  bgcolor: 'white',
+                  color: '#0f172a',
+                  boxShadow: '0 18px 42px rgba(0,0,0,0.28)',
+                  animation: 'cardPop 0.8s ease 280ms both',
+                }}
+              >
+                <Box sx={{ display: 'flex', color: '#facc15' }}>
+                  {[0, 1, 2, 3, 4].map((star) => <StarIcon key={star} sx={{ fontSize: 16 }} />)}
+                </Box>
+                <Box>
+                  <Typography sx={{ fontWeight: 950, fontSize: '0.86rem', lineHeight: 1 }}>
+                    4.9 / 5.0
+                  </Typography>
+                  <Typography sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.64rem', mt: 0.25 }}>
+                    Community Rating
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </Grid>
+        </Grid>
       </Box>
 
       {/* ROLE CARDS */}

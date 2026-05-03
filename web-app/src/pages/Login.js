@@ -1884,4 +1884,4 @@ const Login = () => {
   );
   };
 
-export default Login.js;
+export default Login;

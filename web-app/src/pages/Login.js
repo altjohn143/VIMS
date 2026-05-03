@@ -45,10 +45,11 @@ const noRedErrorFieldSx = {
 };
 
 const ROLES = [
-  { key: 'admin', label: 'ADMIN', description: 'Manages the system, resident records, and community information.', icon: <AdminIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&q=80' },
-  { key: 'resident', label: 'RESIDENT', description: 'Access personal information, community updates, and services.', icon: <HomeIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80' },
-  { key: 'security', label: 'SECURITY', description: 'Monitors entries and helps keep the community safe.', icon: <ShieldIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80' },
+  { key: 'admin', label: 'ADMIN', description: 'Manages the system, resident records, and community information.', icon: <AdminIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/admin.png' },
+  { key: 'resident', label: 'RESIDENT', description: 'Access personal information, community updates, and services.', icon: <HomeIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/resident.png' },
+  { key: 'security', label: 'SECURITY', description: 'Monitors entries and helps keep the community safe.', icon: <ShieldIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/security.png' },
 ];
+
 
 // ─── SHARED BACK BUTTON ───────────────────────────────────────────────────────
 const BackBtn = ({ onClose }) => (

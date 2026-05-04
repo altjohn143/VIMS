@@ -418,7 +418,7 @@ const DashboardScreen = ({ navigation }) => {
 
         {/* ── Hero Card ── */}
         <View style={styles.heroCard}>
-          <Image source={require('../../assets/dashboard_bg_placeholder.png')} style={styles.heroBg} resizeMode="cover" />
+          <Image source={require('../../assets/roof.png')} style={styles.heroBg} resizeMode="cover" />
           <View style={styles.heroOverlay} />
           <View style={styles.heroInner}>
             <View style={styles.heroLeft}>

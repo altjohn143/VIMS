@@ -724,6 +724,11 @@ const VisitorManagement = () => {
             <Typography variant="body1" sx={{ color: themeColors.textSecondary }}>
               {historyMode ? 'View all your previous visitor passes' : 'Manage visitor passes and access permissions'}
             </Typography>
+            {confirmError && (
+              <Box sx={{ mt: 2, maxWidth: 560 }}>
+                <Alert severity="error">{confirmError}</Alert>
+              </Box>
+            )}
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2 }}>
@@ -1166,14 +1171,19 @@ const VisitorManagement = () => {
                                 size="small"
                                 color="success"
                                 onClick={() => handleConfirmArrival(visitor)}
-                                title="Confirm Visitor Arrival"
+                                title={confirmingArrival && confirmingVisitorId === visitor._id ? 'Confirming arrival...' : 'Confirm Visitor Arrival'}
+                                disabled={confirmingArrival && confirmingVisitorId === visitor._id}
                                 sx={{
                                   '&:hover': {
                                     backgroundColor: themeColors.success + '20'
                                   }
                                 }}
                               >
-                                <CheckCircleIcon />
+                                {confirmingArrival && confirmingVisitorId === visitor._id ? (
+                                  <CircularProgress size={18} sx={{ color: themeColors.success }} />
+                                ) : (
+                                  <CheckCircleIcon />
+                                )}
                               </IconButton>
                             )}
 

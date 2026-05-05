@@ -71,6 +71,27 @@ import axios from 'axios';
 import AdminDashboardGraphs from '../components/AdminDashboardGraphs';
 import SecurityDashboardGraphs from '../components/SecurityDashboardGraphs';
 import NotificationPanel from '../components/NotificationPanel';
+import VisitorManagement from './VisitorManagement';
+import ServiceRequests from './ServiceRequests';
+import Payments from './Payments';
+import ProfileSettings from './ProfileSettings';
+import Announcements from './Announcements';
+import Reservations from './Reservations';
+import AdminVisitorManagement from './AdminVisitorManagement';
+import AdminUserManagement from './AdminUserManagement';
+import AdminApprovals from './AdminApprovals';
+import AdminServiceRequests from './AdminServiceRequests';
+import AdminReservations from './AdminReservations';
+import AdminPayments from './AdminPayments';
+import AdminAnnouncements from './AdminAnnouncements';
+import AdminVerificationQueue from './AdminVerificationQueue';
+import SecurityVisitorApproval from './SecurityVisitorApproval';
+import SecurityVisitorLogs from './SecurityVisitorLogs';
+import SecurityServiceRequests from './SecurityServiceRequests';
+import SecurityPatrolSchedule from './SecurityPatrolSchedule';
+import SecurityIncidents from './SecurityIncidents';
+import Notifications from './Notifications';
+import Chatbot from './Chatbot';
 
 const themeColors = {
   primary: '#166534',
@@ -400,6 +421,7 @@ const Dashboard = () => {
     loadRoleStats();
   }, [user?.role, unreadCount]);
 
+
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleProfileMenuClose = () => setAnchorEl(null);
   const handleSidebarToggle = () => setSidebarOpen((prev) => !prev);
@@ -426,12 +448,12 @@ const Dashboard = () => {
       color: '#1e88e5',
       features: {
         dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
-        reservations: [{ title: 'Make Reservation', icon: <EventAvailableIcon />, link: '/reservations' }],
-        visitors: [{ title: 'Generate Visitor Pass', icon: <QrCodeIcon />, link: '/visitors' }],
-        services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/service-requests' }],
-        payments: [{ title: 'Pay Dues', icon: <PaymentIcon />, link: '/payments' }],
-        community: [{ title: 'Announcements', icon: <AnnouncementIcon />, link: '/announcements' }],
-        settings: [{ title: 'Profile Settings', icon: <SettingsIcon />, link: '/profile' }]
+        reservations: [{ title: 'Make Reservation', icon: <EventAvailableIcon />, link: '/dashboard/reservations' }],
+        visitors: [{ title: 'Generate Visitor Pass', icon: <QrCodeIcon />, link: '/dashboard/visitors' }],
+        services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/dashboard/service-requests' }],
+        payments: [{ title: 'Pay Dues', icon: <PaymentIcon />, link: '/dashboard/payments' }],
+        community: [{ title: 'Announcements', icon: <AnnouncementIcon />, link: '/dashboard/announcements' }],
+        settings: [{ title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' }]
       },
       stats: [
         { label: 'Pending Visitors', value: '3', helper: '+1 today' },
@@ -447,20 +469,20 @@ const Dashboard = () => {
       color: '#166534',
       features: {
         dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
-        visitors: [{ title: 'Visitor Management', icon: <PeopleIcon />, link: '/admin/visitor-management' }],
+        visitors: [{ title: 'Visitor Management', icon: <PeopleIcon />, link: '/dashboard/admin/visitor-management' }],
         users: [
-          { title: 'User Management', icon: <GroupIcon />, link: '/admin/users' },
-          { title: 'Approval Requests', icon: <VerifiedUserIcon />, link: '/admin/approvals' }
+          { title: 'User Management', icon: <GroupIcon />, link: '/dashboard/admin/users' },
+          { title: 'Approval Requests', icon: <VerifiedUserIcon />, link: '/dashboard/admin/approvals' }
         ],
         services: [
-          { title: 'Service Requests', icon: <BuildIcon />, link: '/admin/service-requests' },
-          { title: 'Reservation Logs', icon: <EventAvailableIcon />, link: '/admin/reservations' }
+          { title: 'Service Requests', icon: <BuildIcon />, link: '/dashboard/admin/service-requests' },
+          { title: 'Reservation Logs', icon: <EventAvailableIcon />, link: '/dashboard/admin/reservations' }
         ],
-        finance: [{ title: 'Payment Management', icon: <ReceiptIcon />, link: '/admin/payments' }],
-        announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/admin/announcements' }],
+        finance: [{ title: 'Payment Management', icon: <ReceiptIcon />, link: '/dashboard/admin/payments' }],
+        announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/dashboard/admin/announcements' }],
         settings: [
-          { title: 'System Settings', icon: <SettingsIcon />, link: '/admin/settings' },
-          { title: 'Verification Queue', icon: <VerifiedUserIcon />, link: '/admin/verifications' }
+          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' },
+          { title: 'Verification Queue', icon: <VerifiedUserIcon />, link: '/dashboard/admin/verifications' }
         ]
       },
       stats: [
@@ -478,15 +500,15 @@ const Dashboard = () => {
       features: {
         dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
         visitors: [
-          { title: 'Visitor Approvals', icon: <CheckCircleIcon />, link: '/security/visitor-approval' },
-          { title: 'Visitor Logs', icon: <HistoryIcon />, link: '/security/visitor-logs' }
+          { title: 'Visitor Approvals', icon: <CheckCircleIcon />, link: '/dashboard/security/visitor-approval' },
+          { title: 'Visitor Logs', icon: <HistoryIcon />, link: '/dashboard/security/visitor-logs' }
         ],
-        patrol: [{ title: 'Patrol Schedule', icon: <AssignmentIcon />, link: '/security/schedule' }],
-        services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/security/service-requests' }],
-        incidents: [{ title: 'Incident Reports', icon: <AssignmentIcon />, link: '/security/incidents' }],
+        patrol: [{ title: 'Patrol Schedule', icon: <AssignmentIcon />, link: '/dashboard/security/schedule' }],
+        services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/dashboard/security/service-requests' }],
+        incidents: [{ title: 'Incident Reports', icon: <AssignmentIcon />, link: '/dashboard/security/incidents' }],
         settings: [
-          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/profile' },
-          { title: 'Notifications', icon: <NotificationsIcon />, link: '/notifications' }
+          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' },
+          { title: 'Notifications', icon: <NotificationsIcon />, link: '/dashboard/notifications' }
         ]
       },
       stats: [
@@ -499,6 +521,72 @@ const Dashboard = () => {
   };
 
   const config = roleConfig[user.role] || roleConfig.resident;
+
+  const getActivePageKey = () => {
+    const base = '/dashboard/';
+    const path = location.pathname.replace(/\/+$/, '');
+    if (path === '/dashboard') return 'dashboard';
+    if (path.startsWith(base)) return path.slice(base.length);
+    return 'dashboard';
+  };
+
+  const activePageKey = getActivePageKey();
+
+  const getPageLabelFromKey = (key) => {
+    const pageLabels = {
+      dashboard: config.title,
+      reservations: 'Make Reservation',
+      visitors: 'Generate Visitor Pass',
+      'service-requests': 'Service Requests',
+      payments: 'Pay Dues',
+      announcements: 'Announcements',
+      profile: 'Profile Settings',
+      'admin/visitor-management': 'Visitor Management',
+      'admin/users': 'User Management',
+      'admin/approvals': 'Approval Requests',
+      'admin/service-requests': 'Service Requests',
+      'admin/reservations': 'Reservation Logs',
+      'admin/payments': 'Payment Management',
+      'admin/announcements': 'Announcements',
+      'admin/verifications': 'Verification Queue',
+      'security/visitor-approval': 'Visitor Approvals',
+      'security/visitor-logs': 'Visitor Logs',
+      'security/schedule': 'Patrol Schedule',
+      'security/incidents': 'Incident Reports',
+      'security/service-requests': 'Service Requests',
+      notifications: 'Notifications',
+      'ai-assistant': 'AI Assistant'
+    };
+    return pageLabels[key] || key.replace(/[-/]/g, ' ').replace(/\b\w/g, (chr) => chr.toUpperCase());
+  };
+
+  const activePageLabel = getPageLabelFromKey(activePageKey);
+
+  const contentComponentMap = {
+    reservations: <Reservations />,
+    visitors: <VisitorManagement />,
+    'service-requests': <ServiceRequests />,
+    payments: <Payments />,
+    announcements: <Announcements />,
+    profile: <ProfileSettings />,
+    'admin/visitor-management': <AdminVisitorManagement />,
+    'admin/users': <AdminUserManagement />,
+    'admin/approvals': <AdminApprovals />,
+    'admin/service-requests': <AdminServiceRequests />,
+    'admin/reservations': <AdminReservations />,
+    'admin/payments': <AdminPayments />,
+    'admin/announcements': <AdminAnnouncements />,
+    'admin/verifications': <AdminVerificationQueue />,
+    'security/visitor-approval': <SecurityVisitorApproval />,
+    'security/visitor-logs': <SecurityVisitorLogs />,
+    'security/schedule': <SecurityPatrolSchedule />,
+    'security/incidents': <SecurityIncidents />,
+    'security/service-requests': <SecurityServiceRequests />,
+    notifications: <Notifications />,
+    'ai-assistant': <Chatbot />
+  };
+
+  const activePageContent = contentComponentMap[activePageKey] || null;
 
   const accountInfo = [
     { label: 'Name', value: `${user.firstName} ${user.lastName}` },
@@ -581,25 +669,25 @@ const Dashboard = () => {
       title: user.role === 'admin' ? 'Add New Resident' : 'Open Dashboard',
       subtitle: user.role === 'admin' ? 'Register a homeowner' : 'Go to main view',
       icon: <PersonAddAlt1Icon />,
-      link: user.role === 'admin' ? '/admin/users' : '/dashboard'
+      link: user.role === 'admin' ? '/dashboard/admin/users' : '/dashboard'
     },
     {
       title: user.role === 'admin' ? 'Post Announcement' : 'View Announcements',
       subtitle: user.role === 'admin' ? 'Notify all residents' : 'Community updates',
       icon: <CampaignIcon />,
-      link: user.role === 'admin' ? '/admin/announcements' : '/announcements'
+      link: user.role === 'admin' ? '/dashboard/admin/announcements' : '/dashboard/announcements'
     },
     {
       title: user.role === 'admin' ? 'Issue Visitor Access' : 'Visitor Pass',
       subtitle: user.role === 'admin' ? 'Grant temporary access' : 'Generate a visitor pass',
       icon: <QrCodeIcon />,
-      link: user.role === 'admin' ? '/admin/visitor-management' : '/visitors'
+      link: user.role === 'admin' ? '/dashboard/admin/visitor-management' : '/dashboard/visitors'
     },
     {
       title: user.role === 'admin' ? 'Report an Issue' : 'Submit Request',
       subtitle: user.role === 'admin' ? 'Track active concerns' : 'Create a service request',
       icon: <BuildIcon />,
-      link: user.role === 'admin' ? '/admin/service-requests' : '/service-requests'
+      link: user.role === 'admin' ? '/dashboard/admin/service-requests' : '/dashboard/service-requests'
     },
     {
       title: 'AI Assistant',
@@ -818,6 +906,8 @@ const Dashboard = () => {
             const currentIcon = getSectionIcon(section, items);
             const sectionLabel = getSectionLabel(section);
             const hasChildren = items.length > 1;
+            const sectionIsActive = items.some((item) => item.link === location.pathname);
+            const isSectionExpanded = expandedSections[section] || sectionIsActive;
 
             if (!sidebarOpen) {
               return (
@@ -828,11 +918,13 @@ const Dashboard = () => {
                   onClick={() => {
                     if (isMobile) setSidebarOpen(false);
                   }}
+                  selected={items[0].link === location.pathname}
                   sx={{
                     minHeight: 48,
                     justifyContent: 'center',
                     borderRadius: '14px',
                     color: 'rgba(255,255,255,0.88)',
+                    bgcolor: items[0].link === location.pathname ? 'rgba(255,255,255,0.12)' : 'transparent',
                     '&:hover': {
                       bgcolor: 'rgba(255,255,255,0.10)'
                     }
@@ -860,7 +952,9 @@ const Dashboard = () => {
                         minHeight: 46,
                         borderRadius: '14px',
                         px: 1.5,
-                        color: 'rgba(255,255,255,0.92)',
+                        color: sectionIsActive ? 'white' : 'rgba(255,255,255,0.92)',
+                        bgcolor: sectionIsActive ? 'rgba(255,255,255,0.14)' : 'transparent',
+                        boxShadow: sectionIsActive ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : 'none',
                         '&:hover': {
                           bgcolor: 'rgba(255,255,255,0.10)'
                         }
@@ -874,41 +968,47 @@ const Dashboard = () => {
                           fontWeight: 700
                         }}
                       />
-                      {expandedSections[section] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      {isSectionExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                     </ListItemButton>
 
-                    <Collapse in={expandedSections[section]} timeout="auto" unmountOnExit>
+                    <Collapse in={isSectionExpanded} timeout="auto" unmountOnExit>
                       <List disablePadding sx={{ mt: 0.5, mb: 0.5 }}>
-                        {items.map((item, index) => (
-                          <ListItemButton
-                            key={index}
-                            component={RouterLink}
-                            to={item.link}
-                            onClick={() => {
-                              if (isMobile) setSidebarOpen(false);
-                            }}
-                            sx={{
-                              ml: 1,
-                              mr: 0.5,
-                              minHeight: 42,
-                              borderRadius: '12px',
-                              px: 1.5,
-                              color: 'rgba(255,255,255,0.82)',
-                              '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.08)'
-                              }
-                            }}
-                          >
-                            <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>{item.icon}</ListItemIcon>
-                            <ListItemText
-                              primary={item.title}
-                              primaryTypographyProps={{
-                                fontSize: '0.86rem',
-                                fontWeight: 600
+                        {items.map((item, index) => {
+                          const isActive = item.link === location.pathname;
+                          return (
+                            <ListItemButton
+                              key={index}
+                              component={RouterLink}
+                              to={item.link}
+                              onClick={() => {
+                                if (isMobile) setSidebarOpen(false);
                               }}
-                            />
-                          </ListItemButton>
-                        ))}
+                              selected={isActive}
+                              sx={{
+                                ml: 1,
+                                mr: 0.5,
+                                minHeight: 42,
+                                borderRadius: '12px',
+                                px: 1.5,
+                                color: isActive ? 'white' : 'rgba(255,255,255,0.82)',
+                                bgcolor: isActive ? 'rgba(255,255,255,0.16)' : 'transparent',
+                                boxShadow: isActive ? 'inset 0 1px 0 rgba(255,255,255,0.08)' : 'none',
+                                '&:hover': {
+                                  bgcolor: 'rgba(255,255,255,0.08)'
+                                }
+                              }}
+                            >
+                              <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>{item.icon}</ListItemIcon>
+                              <ListItemText
+                                primary={item.title}
+                                primaryTypographyProps={{
+                                  fontSize: '0.86rem',
+                                  fontWeight: 600
+                                }}
+                              />
+                            </ListItemButton>
+                          );
+                        })}
                       </List>
                     </Collapse>
                   </>
@@ -919,13 +1019,14 @@ const Dashboard = () => {
                     onClick={() => {
                       if (isMobile) setSidebarOpen(false);
                     }}
+                    selected={items[0].link === location.pathname}
                     sx={{
                       minHeight: 48,
                       borderRadius: '14px',
                       px: 1.5,
-                      color: section === 'dashboard' ? 'white' : 'rgba(255,255,255,0.9)',
-                      bgcolor: section === 'dashboard' ? 'rgba(255,255,255,0.14)' : 'transparent',
-                      boxShadow: section === 'dashboard' ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : 'none',
+                      color: section === 'dashboard' || items[0].link === location.pathname ? 'white' : 'rgba(255,255,255,0.9)',
+                      bgcolor: items[0].link === location.pathname ? 'rgba(255,255,255,0.14)' : 'transparent',
+                      boxShadow: items[0].link === location.pathname ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : 'none',
                       '&:hover': {
                         bgcolor: 'rgba(255,255,255,0.10)'
                       }
@@ -1065,6 +1166,19 @@ const Dashboard = () => {
               >
                 {config.subtitle}
               </Typography>
+              {activePageKey !== 'dashboard' && (
+                <Chip
+                  label={activePageLabel}
+                  size="small"
+                  sx={{
+                    mt: 1,
+                    bgcolor: themeColors.primarySoft,
+                    color: themeColors.primary,
+                    fontWeight: 700,
+                    borderRadius: '999px'
+                  }}
+                />
+              )}
             </Box>
           </Box>
 
@@ -1174,7 +1288,7 @@ const Dashboard = () => {
               <Typography variant="body2" sx={{ fontWeight: 600 }}>Dashboard</Typography>
             </MenuItem>
 
-            <MenuItem component={RouterLink} to="/profile" onClick={handleProfileMenuClose} sx={{ py: 1.5 }}>
+            <MenuItem component={RouterLink} to="/dashboard/profile" onClick={handleProfileMenuClose} sx={{ py: 1.5 }}>
               <ListItemIcon>
                 <SettingsIcon fontSize="small" sx={{ color: themeColors.primary }} />
               </ListItemIcon>
@@ -1251,7 +1365,12 @@ const Dashboard = () => {
               borderRadius: '24px'
             }}
           >
-            <Grid container spacing={2.25}>
+            {activePageContent ? (
+              <Box sx={{ minHeight: '72vh', p: 2, background: themeColors.cardBackground, borderRadius: '24px', boxShadow: '0 14px 32px rgba(15,23,42,0.08)' }}>
+                {activePageContent}
+              </Box>
+            ) : (
+              <Grid container spacing={2.25}>
               <Grid item xs={12}>
                 <Paper
                   sx={{
@@ -1837,7 +1956,7 @@ const Dashboard = () => {
                     <Button
                       variant="contained"
                       component={RouterLink}
-                      to="/profile"
+                      to="/dashboard/profile"
                       startIcon={<SettingsIcon />}
                       sx={{
                         textTransform: 'none',
@@ -1938,6 +2057,7 @@ const Dashboard = () => {
                 </Box>
               </Grid>
             </Grid>
+          )}
           </Box>
         </Container>
       </Box>

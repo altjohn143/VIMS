@@ -115,8 +115,8 @@ function App() {
             <Route path="/lots" element={<PublicLotMap />} />
             <Route path="/pending-approval" element={<PendingApproval />} />
 
-            {/* Main dashboard */}
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            {/* Main dashboard and embedded dashboard modules */}
+            <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
 
             {/* Admin-only routes */}

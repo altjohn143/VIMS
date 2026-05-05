@@ -23,7 +23,11 @@ import {
   Chip,
   Drawer,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   Visibility,
@@ -118,6 +122,8 @@ const Register = () => {
   const [ocrUnavailable, setOcrUnavailable] = useState(false);
   const [ocrIdNumber, setOcrIdNumber] = useState('');
   const [registrationMode, setRegistrationMode] = useState(null);
+  const [ocrDialogOpen, setOcrDialogOpen] = useState(false);
+  const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
 
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -776,6 +782,8 @@ const Register = () => {
                       variant="contained"
                       onClick={() => {
                         setRegistrationMode('ocr');
+                        setOcrDialogOpen(true);
+                        setOcrStepCompleted(false);
                         setErrors(prev => ({ ...prev, mode: '' }));
                       }}
                       sx={{ textTransform: 'none', borderRadius: 2 }}
@@ -831,7 +839,7 @@ const Register = () => {
             </Alert>
           )}
 
-          {registrationMode && (
+          {registrationMode && (registrationMode !== 'ocr' || ocrStepCompleted) && (
             <Box component="form" onSubmit={handleSubmit}>
               <Grid container spacing={2}>
               {/* First Name */}
@@ -1588,13 +1596,160 @@ const Register = () => {
               Sign in to existing account
             </Button>
           </Box>
-          )}
+              )}
+            </>
         </Paper>
 
         <Typography sx={{ textAlign: 'center', mt: 3, color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>
           © {new Date().getFullYear()} Westville Casimiro Homes. All rights reserved.
         </Typography>
       </Container>
+
+      <Dialog
+        open={ocrDialogOpen}
+        onClose={() => {
+          setOcrDialogOpen(false);
+          setRegistrationMode(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ backgroundColor: themeColors.primary, color: 'white' }}>
+          Upload your ID first
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography sx={{ mb: 2, color: themeColors.textSecondary }}>
+            To use OCR autofill, please upload both the front and back images of your valid ID first. We will scan it and prefill your name, date of birth, and ID number before showing the full registration form.
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <Button variant="outlined" component="label" fullWidth>
+                <ImageIcon sx={{ mr: 1 }} />
+                Upload ID Front
+                <input
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setOcrUnavailable(false);
+                    setLastOcrSignature('');
+                    setOcrIdNumber('');
+                    setIdDocs((prev) => {
+                      const next = { ...prev, frontImage: file };
+                      queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                      return next;
+                    });
+                  }}
+                />
+              </Button>
+              {idDocs.frontImage ? (
+                <Box sx={{ mt: 1 }}>
+                  <ImagePreview
+                    file={idDocs.frontImage}
+                    label="ID Front"
+                    size={60}
+                    showRemove
+                    onRemove={() => {
+                      setIdDocs((prev) => ({ ...prev, frontImage: null }));
+                      setOcrUnavailable(false);
+                      setLastOcrSignature('');
+                      setOcrIdNumber('');
+                    }}
+                  />
+                  <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: themeColors.textSecondary }}>
+                    {idDocs.frontImage.name}
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography variant="caption" sx={{ mt: 0.5, color: themeColors.textSecondary }}>
+                  No file selected
+                </Typography>
+              )}
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Button variant="outlined" component="label" fullWidth>
+                <ImageIcon sx={{ mr: 1 }} />
+                Upload ID Back
+                <input
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setOcrUnavailable(false);
+                    setLastOcrSignature('');
+                    setOcrIdNumber('');
+                    setIdDocs((prev) => {
+                      const next = { ...prev, backImage: file };
+                      queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                      return next;
+                    });
+                  }}
+                />
+              </Button>
+              {idDocs.backImage ? (
+                <Box sx={{ mt: 1 }}>
+                  <ImagePreview
+                    file={idDocs.backImage}
+                    label="ID Back"
+                    size={60}
+                    showRemove
+                    onRemove={() => {
+                      setIdDocs((prev) => ({ ...prev, backImage: null }));
+                      setOcrUnavailable(false);
+                      setLastOcrSignature('');
+                      setOcrIdNumber('');
+                    }}
+                  />
+                  <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: themeColors.textSecondary }}>
+                    {idDocs.backImage.name}
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography variant="caption" sx={{ mt: 0.5, color: themeColors.textSecondary }}>
+                  No file selected
+                </Typography>
+              )}
+            </Grid>
+          </Grid>
+          {ocrLoading && (
+            <Typography variant="caption" sx={{ display: 'block', mt: 2, color: themeColors.textSecondary }}>
+              Scanning ID to autofill details…
+            </Typography>
+          )}
+          {ocrUnavailable && (
+            <Typography variant="caption" sx={{ display: 'block', mt: 2, color: themeColors.warning }}>
+              ID autofill is temporarily unavailable. You can continue manually if needed, or try again later.
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => {
+              setOcrDialogOpen(false);
+              setRegistrationMode(null);
+            }}
+            sx={{ textTransform: 'none' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (!idDocs.frontImage || !idDocs.backImage) {
+                toast.error('Please upload both the front and back of your ID before continuing.');
+                return;
+              }
+              setOcrStepCompleted(true);
+              setOcrDialogOpen(false);
+            }}
+            sx={{ textTransform: 'none' }}
+          >
+            Continue to registration
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Map Drawer - Shows the interactive lot map */}
       <Drawer

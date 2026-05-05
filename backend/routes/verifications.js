@@ -124,7 +124,6 @@ router.post(
 
       const frontImage = frontMeta.filename;
       const backImage = backMeta.filename;
-      const selfieImage = selfieMeta?.filename || null;
 
       const frontPath = path.join(idsDir, frontMeta.filename);
       const backPath = path.join(idsDir, backMeta.filename);
@@ -138,25 +137,6 @@ router.post(
         }
       } else {
         console.warn('⚠️ Skipping local file save in production - ID documents stored in DB only');
-      }
-
-      if (selfieMeta) {
-        const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
-        if (!fs.existsSync(profilePhotoDir)) {
-          fs.mkdirSync(profilePhotoDir, { recursive: true });
-        }
-        const destPath = path.join(profilePhotoDir, selfieMeta.filename);
-        if (process.env.NODE_ENV !== 'production') {
-          try {
-            fs.writeFileSync(destPath, selfieMeta.buffer);
-            console.log('✅ Saved selfie/profile photo to disk:', destPath);
-          } catch (copyError) {
-            console.error('Failed to write selfie to profile photos:', copyError);
-          }
-        } else {
-          console.warn('⚠️ Skipping local file save in production - selfie stored in DB only');
-        }
-        await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
       }
 
       const front = frontMeta;
@@ -274,21 +254,6 @@ router.post(
       verification.reviewNotes = localDecision.reason;
       verification.rejectReason = localDecision.decision === 'rejected' ? localDecision.reason : '';
       await verification.save();
-
-      if (selfieMeta) {
-        const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
-        if (!fs.existsSync(profilePhotoDir)) {
-          fs.mkdirSync(profilePhotoDir, { recursive: true });
-        }
-        const destPath = path.join(profilePhotoDir, selfieMeta.filename);
-        try {
-          fs.writeFileSync(destPath, selfieMeta.buffer);
-          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
-        } catch (copyError) {
-          console.error('Failed to write selfie to profile photos:', copyError);
-          await User.findByIdAndUpdate(user._id, { profilePhoto: selfieMeta.filename });
-        }
-      }
 
       return res.json({
         success: true,

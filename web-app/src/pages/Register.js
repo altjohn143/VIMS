@@ -1595,8 +1595,6 @@ const Register = () => {
             >
               Sign in to existing account
             </Button>
-          </Grid>
-        </Grid>
       </Box>
           )}
         </Paper>

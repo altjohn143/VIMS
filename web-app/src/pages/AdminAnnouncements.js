@@ -34,12 +34,16 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null };
+const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null, category: 'general' };
 
 const AdminAnnouncements = () => {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(emptyForm);
+  const announcementCategories = [
+    { value: 'general', label: 'General announcement' },
+    { value: 'monthlyCollection', label: 'Monthly collection' }
+  ];
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
   const [viewFilter, setViewFilter] = useState('all');
@@ -81,7 +85,8 @@ const AdminAnnouncements = () => {
       const payload = {
         title: form.title,
         body: form.body,
-        status: form.status
+        status: form.status,
+        category: form.category
       };
       if (form.status === 'scheduled') {
         payload.scheduledAt = form.scheduledAt.toISOString();
@@ -257,6 +262,19 @@ const AdminAnnouncements = () => {
                   <MenuItem value="draft">Save as draft</MenuItem>
                 </Select>
               </FormControl>
+              <FormControl fullWidth>
+                <Select
+                  value={form.category}
+                  onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
+                  displayEmpty
+                >
+                  {announcementCategories.map((category) => (
+                    <MenuItem key={category.value} value={category.value}>
+                      {category.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               {form.status === 'scheduled' && (
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <DateTimePicker
@@ -327,10 +345,22 @@ const AdminAnnouncements = () => {
                     } 
                   />
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Author: {item.createdBy?.firstName || 'System'} {item.createdBy?.lastName || ''}{' '}
-                  {item.createdBy?.role ? `(${item.createdBy.role})` : ''}
-                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Author: {item.createdBy?.firstName || 'System'} {item.createdBy?.lastName || ''}{' '}
+                    {item.createdBy?.role ? `(${item.createdBy.role})` : ''}
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={item.category === 'monthlyCollection' ? 'Monthly Collection' : 'General'}
+                    sx={{
+                      bgcolor: item.category === 'monthlyCollection' ? '#ecfdf5' : '#eff6ff',
+                      color: item.category === 'monthlyCollection' ? '#166534' : '#1d4ed8',
+                      fontWeight: 700,
+                      borderRadius: '999px'
+                    }}
+                  />
+                </Stack>
                 <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
                   {item.status === 'published' && item.publishedAt ? `Published: ${new Date(item.publishedAt).toLocaleString()}` :
                    item.status === 'scheduled' && item.scheduledAt ? `Scheduled: ${new Date(item.scheduledAt).toLocaleString()}` :

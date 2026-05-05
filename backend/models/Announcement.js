@@ -8,6 +8,12 @@ const announcementSchema = new mongoose.Schema(
     scheduledAt: { type: Date },
     publishedAt: { type: Date },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    category: {
+      type: String,
+      enum: ['general', 'monthlyCollection'],
+      default: 'general',
+      trim: true
+    },
     
     // Archive fields
     isArchived: {

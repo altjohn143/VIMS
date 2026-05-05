@@ -36,12 +36,17 @@ router.get('/admin', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+const ALLOWED_ANNOUNCEMENT_CATEGORIES = ['general', 'monthlyCollection'];
+
 // Create announcement
 router.post('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const { title, body, status = 'published', scheduledAt } = req.body;
+    const { title, body, status = 'published', scheduledAt, category = 'general' } = req.body;
     if (!title || !body) {
       return res.status(400).json({ success: false, error: 'Title and body are required' });
+    }
+    if (!ALLOWED_ANNOUNCEMENT_CATEGORIES.includes(category)) {
+      return res.status(400).json({ success: false, error: 'Invalid announcement category' });
     }
 
     if (status === 'scheduled' && !scheduledAt) {
@@ -56,6 +61,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       title: String(title).trim(),
       body: String(body).trim(),
       status,
+      category,
       scheduledAt: status === 'scheduled' ? new Date(scheduledAt) : null,
       publishedAt: status === 'published' ? new Date() : null,
       createdBy: req.user._id
@@ -70,12 +76,19 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
 // Update announcement
 router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const { title, body, status, scheduledAt } = req.body;
+    const { title, body, status, scheduledAt, category } = req.body;
     const row = await Announcement.findById(req.params.id);
     if (!row) return res.status(404).json({ success: false, error: 'Announcement not found' });
 
     if (typeof title === 'string') row.title = title.trim();
     if (typeof body === 'string') row.body = body.trim();
+
+    if (typeof category === 'string') {
+      if (!ALLOWED_ANNOUNCEMENT_CATEGORIES.includes(category)) {
+        return res.status(400).json({ success: false, error: 'Invalid announcement category' });
+      }
+      row.category = category;
+    }
 
     if (typeof status === 'string') {
       if (status === 'scheduled' && !scheduledAt) {

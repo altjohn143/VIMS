@@ -771,6 +771,13 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
     }
 
     if (visitor.status === 'active') {
+      if (!visitor.residentDepartureConfirmedAt) {
+        return res.status(400).json({
+          success: false,
+          error: 'Resident must confirm departure before exit scan.'
+        });
+      }
+
       visitor.actualExit = new Date();
       visitor.status = 'completed';
       if (securityNotes) {
@@ -829,29 +836,38 @@ router.post('/confirm-arrival', protect, authorize('resident'), async (req, res)
       });
     }
 
-    if (visitor.residentEntryConfirmedAt) {
-      return res.json({
-        success: true,
-        message: 'Visitor already confirmed.',
-        data: { visitor, alreadyConfirmed: true }
+    let message = 'Visitor already confirmed.';
+    let confirmedType = 'alreadyConfirmed';
+
+    if (!visitor.residentEntryConfirmedAt) {
+      visitor.residentEntryConfirmedAt = new Date();
+      confirmedType = 'arrival';
+      message = 'Visitor arrival confirmed successfully.';
+    } else if (!visitor.residentDepartureConfirmedAt) {
+      visitor.residentDepartureConfirmedAt = new Date();
+      confirmedType = 'departure';
+      message = 'Visitor departure confirmed successfully.';
+    }
+
+    if (confirmedType !== 'alreadyConfirmed') {
+      await visitor.save();
+
+      await createInAppNotification({
+        userId: visitor.residentId,
+        type: 'visitor',
+        title: confirmedType === 'arrival' ? 'Visitor confirmed' : 'Visitor departure confirmed',
+        body:
+          confirmedType === 'arrival'
+            ? `${visitor.visitorName} has been confirmed at your residence.`
+            : `${visitor.visitorName} is leaving and has been confirmed for departure.`,
+        metadata: { visitorId: visitor._id, event: confirmedType === 'arrival' ? 'resident_confirmed' : 'resident_departure_confirmed' }
       });
     }
 
-    visitor.residentEntryConfirmedAt = new Date();
-    await visitor.save();
-
-    await createInAppNotification({
-      userId: visitor.residentId,
-      type: 'visitor',
-      title: 'Visitor confirmed',
-      body: `${visitor.visitorName} has been confirmed at your residence.`,
-      metadata: { visitorId: visitor._id, event: 'resident_confirmed' }
-    });
-
     return res.json({
       success: true,
-      message: 'Visitor confirmed successfully.',
-      data: { visitor, confirmed: true }
+      message,
+      data: { visitor, confirmedType }
     });
   } catch (error) {
     console.error('Resident confirm arrival error:', error);

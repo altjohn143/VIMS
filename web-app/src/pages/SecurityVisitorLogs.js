@@ -99,6 +99,7 @@ const SecurityVisitorLogs = () => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [scanInProgress, setScanInProgress] = useState(false);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
@@ -352,6 +353,22 @@ const SecurityVisitorLogs = () => {
     const departureDate = visitor.expectedDeparture ? new Date(visitor.expectedDeparture) : null;
     
     if (visitor.status === 'active') {
+      if (visitor.residentEntryConfirmedAt) {
+        return (
+          <Chip 
+            label="RESIDENT CONFIRMED" 
+            sx={{ 
+              bgcolor: `${themeColors.info}20`,
+              color: themeColors.info,
+              border: `1px solid ${themeColors.info}40`,
+              fontWeight: 600
+            }} 
+            size="small" 
+            icon={<CheckCircleIcon />} 
+          />
+        );
+      }
+
       return (
         <Chip 
           label="ACTIVE NOW" 
@@ -468,11 +485,36 @@ const SecurityVisitorLogs = () => {
   const getScanStatus = (visitor) => {
     if (visitor.actualEntry) {
       return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CheckCircleIcon sx={{ color: themeColors.success }} fontSize="small" />
-          <Typography variant="body2" sx={{ color: themeColors.success }}>
-            Scanned at {formatDate(visitor.actualEntry)}
-          </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CheckCircleIcon sx={{ color: themeColors.success }} fontSize="small" />
+            <Typography variant="body2" sx={{ color: themeColors.success }}>
+              Scanned at {formatDate(visitor.actualEntry)}
+            </Typography>
+          </Box>
+          {visitor.residentEntryConfirmedAt && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CheckCircleIcon sx={{ color: themeColors.info }} fontSize="small" />
+              <Typography variant="body2" sx={{ color: themeColors.info }}>
+                Resident confirmed at {formatDate(visitor.residentEntryConfirmedAt)}
+              </Typography>
+            </Box>
+          )}
+          {visitor.residentDepartureConfirmedAt ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CheckCircleIcon sx={{ color: themeColors.warning }} fontSize="small" />
+              <Typography variant="body2" sx={{ color: themeColors.warning }}>
+                Departure confirmed at {formatDate(visitor.residentDepartureConfirmedAt)}
+              </Typography>
+            </Box>
+          ) : visitor.status === 'active' ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ScheduleIcon sx={{ color: themeColors.warning }} fontSize="small" />
+              <Typography variant="body2" sx={{ color: themeColors.warning }}>
+                Awaiting resident departure confirmation
+              </Typography>
+            </Box>
+          ) : null}
         </Box>
       );
     } else if (visitor.status === 'approved') {
@@ -711,6 +753,29 @@ const SecurityVisitorLogs = () => {
     } catch (error) {
       console.error('Print error:', error);
       toast.error('Failed to open print window');
+    }
+  };
+
+  const handleSecurityScanAction = async (visitor) => {
+    if (!visitor) return;
+
+    const scanValue = visitor.qrToken || visitor.qrCode;
+    if (!scanValue) {
+      toast.error('Unable to process this visitor scan');
+      return;
+    }
+
+    setScanInProgress(true);
+    try {
+      const response = await axios.post('/api/visitors/scan-action', { scanValue });
+      if (response.data.success) {
+        toast.success(response.data.message || 'Visitor scan action completed');
+        fetchVisitors();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to process visitor scan action');
+    } finally {
+      setScanInProgress(false);
     }
   };
 
@@ -1477,6 +1542,45 @@ const SecurityVisitorLogs = () => {
                         >
                           <ViewIcon />
                         </IconButton>
+
+                        {visitor.status === 'approved' && !visitor.actualEntry && (
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleSecurityScanAction(visitor)}
+                            title="Log Entry"
+                            disabled={scanInProgress}
+                            sx={{
+                              color: themeColors.textSecondary,
+                              '&:hover': {
+                                color: themeColors.primary,
+                                bgcolor: themeColors.primary + '10'
+                              }
+                            }}
+                          >
+                            <QrCodeScannerIcon />
+                          </IconButton>
+                        )}
+
+                        {visitor.status === 'active' && (
+                          <IconButton
+                            size="small"
+                            color="success"
+                            onClick={() => handleSecurityScanAction(visitor)}
+                            title={visitor.residentDepartureConfirmedAt ? 'Log Exit' : 'Awaiting resident departure confirmation'}
+                            disabled={scanInProgress || !visitor.residentDepartureConfirmedAt}
+                            sx={{
+                              color: themeColors.textSecondary,
+                              '&:hover': {
+                                color: visitor.residentDepartureConfirmedAt ? themeColors.success : themeColors.warning,
+                                bgcolor: visitor.residentDepartureConfirmedAt ? themeColors.success + '10' : themeColors.warning + '10'
+                              }
+                            }}
+                          >
+                            <CarIcon />
+                          </IconButton>
+                        )}
+
                         {visitor.qrCodeVisible && visitor.qrCode && (
                           <IconButton
                             size="small"
@@ -1617,6 +1721,16 @@ const SecurityVisitorLogs = () => {
                     </Typography>
                     <Typography variant="body1" gutterBottom sx={{ color: themeColors.textPrimary }}>
                       {formatDate(selectedVisitor.actualExit)}
+                    </Typography>
+                  </Grid>
+                )}
+                {selectedVisitor.residentEntryConfirmedAt && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" sx={{ color: themeColors.textSecondary }}>
+                      Resident Confirmation
+                    </Typography>
+                    <Typography variant="body1" gutterBottom sx={{ color: themeColors.textPrimary }}>
+                      {formatDate(selectedVisitor.residentEntryConfirmedAt)}
                     </Typography>
                   </Grid>
                 )}

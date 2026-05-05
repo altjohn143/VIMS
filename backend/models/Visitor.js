@@ -64,6 +64,10 @@ const visitorSchema = new mongoose.Schema({
     type: Date
   },
 
+  residentDepartureConfirmedAt: {
+    type: Date
+  },
+
   overstayNotifiedAt: {
     type: Date
   },

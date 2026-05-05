@@ -79,6 +79,9 @@ const VisitorManagement = () => {
   const [loading, setLoading] = useState(false);
   const [historyMode, setHistoryMode] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
+  const [confirmingVisitorId, setConfirmingVisitorId] = useState(null);
+  const [confirmingArrival, setConfirmingArrival] = useState(false);
+  const [confirmError, setConfirmError] = useState('');
   const [formData, setFormData] = useState({
     visitorName: '',
     visitorPhone: '',
@@ -274,7 +277,11 @@ const VisitorManagement = () => {
     }
   };
 
-  const getStatusChip = (status) => {
+  const getStatusChip = (status, visitor) => {
+    if (status === 'active' && visitor?.residentEntryConfirmedAt) {
+      return <Chip label="Confirmed" color="success" size="small" />;
+    }
+
     const statusConfig = {
       pending: { label: 'Pending', color: 'warning' },
       approved: { label: 'Approved', color: 'success' },
@@ -305,6 +312,36 @@ const VisitorManagement = () => {
 
   const isVisitorLeft = (visitor) => {
     return visitor.actualExit && visitor.status === 'completed';
+  };
+
+  const handleConfirmArrival = async (visitor) => {
+    if (!visitor || !visitor.qrToken) {
+      toast.error('Unable to confirm arrival for this visitor');
+      return;
+    }
+
+    setConfirmingVisitorId(visitor._id);
+    setConfirmingArrival(true);
+    setConfirmError('');
+
+    try {
+      const response = await axios.post('/api/visitors/confirm-arrival', {
+        scanValue: visitor.qrToken
+      });
+
+      if (response.data.success) {
+        toast.success('Visitor arrival confirmed successfully');
+        fetchMyVisitors();
+        fetchAllVisitors();
+      }
+    } catch (error) {
+      const message = error.response?.data?.error || 'Failed to confirm visitor arrival';
+      setConfirmError(message);
+      toast.error(message);
+    } finally {
+      setConfirmingArrival(false);
+      setConfirmingVisitorId(null);
+    }
   };
 
   const handleViewQRCode = async (visitorId, isExpired = false) => {
@@ -458,6 +495,12 @@ const VisitorManagement = () => {
                 <div class="info-row">
                   <span class="info-label">Exit Time:</span>
                   <span class="info-value">${new Date(visitor.actualExit).toLocaleString()}</span>
+                </div>
+                ` : ''}
+                ${visitor.residentEntryConfirmedAt ? `
+                <div class="info-row">
+                  <span class="info-label">Resident Confirmed:</span>
+                  <span class="info-value">${new Date(visitor.residentEntryConfirmedAt).toLocaleString()}</span>
                 </div>
                 ` : ''}
                 <div class="info-row">
@@ -1052,7 +1095,7 @@ const VisitorManagement = () => {
                           </TableCell>
                         )}
                         
-                        <TableCell>{getStatusChip(visitor.status)}</TableCell>
+                        <TableCell>{getStatusChip(visitor.status, visitor)}</TableCell>
                         
                         {historyMode && (
                           <TableCell>
@@ -1117,7 +1160,23 @@ const VisitorManagement = () => {
                             >
                               <VisibilityIcon />
                             </IconButton>
-                            
+
+                            {visitor.status === 'active' && !visitor.residentEntryConfirmedAt && (
+                              <IconButton
+                                size="small"
+                                color="success"
+                                onClick={() => handleConfirmArrival(visitor)}
+                                title="Confirm Visitor Arrival"
+                                sx={{
+                                  '&:hover': {
+                                    backgroundColor: themeColors.success + '20'
+                                  }
+                                }}
+                              >
+                                <CheckCircleIcon />
+                              </IconButton>
+                            )}
+
                             {/* Print Button - Only for valid QR codes */}
                             {qrValid && !expired && !left && (
                               <IconButton 

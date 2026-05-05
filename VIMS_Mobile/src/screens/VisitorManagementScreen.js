@@ -255,7 +255,7 @@ const VisitorManagementScreen = ({ navigation }) => {
     try {
       const response = await api.post('/visitors/confirm-arrival', { scanValue: data });
       if (response.data?.success) {
-        Alert.alert('Confirmed', 'Visitor arrival confirmed successfully.');
+        Alert.alert('Confirmed', response.data.message || 'Visitor confirmed successfully.');
         setShowConfirmScanner(false);
         fetchVisitors();
       }
@@ -265,6 +265,19 @@ const VisitorManagementScreen = ({ navigation }) => {
       setTimeout(() => setIsConfirmingScan(false), 800);
     }
   };
+
+  const activeVisitors = visitors.filter((visitor) => visitor.status === 'active');
+  const hasArrivalPending = activeVisitors.some((visitor) => !visitor.residentEntryConfirmedAt);
+  const hasDeparturePending = !hasArrivalPending && activeVisitors.some(
+    (visitor) => visitor.residentEntryConfirmedAt && !visitor.residentDepartureConfirmedAt
+  );
+  const confirmScannerTitle = hasDeparturePending ? 'Confirm Visitor Departure' : 'Confirm Visitor Arrival';
+  const confirmScannerHint = hasDeparturePending
+    ? 'Scan the visitor pass when the visitor is leaving, before security logs the exit.'
+    : 'Scan the visitor pass when the visitor arrives at your home.';
+  const confirmButtonText = hasDeparturePending
+    ? 'Confirm Visitor Departure via QR Scan'
+    : 'Confirm Visitor via QR Scan';
 
   const getStatusChip = (status, visitor = null) => {
     const config = {
@@ -276,8 +289,18 @@ const VisitorManagementScreen = ({ navigation }) => {
       completed: { label: 'Completed', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
       cancelled: { label: 'Cancelled', color: themeColors.error, icon: 'ban', bg: themeColors.error + '20' },
     };
-    if (status === 'active' && visitor?.residentEntryConfirmedAt) {
-      return config.confirmed;
+    if (status === 'active') {
+      if (visitor?.residentDepartureConfirmedAt) {
+        return {
+          label: 'Departing',
+          color: themeColors.warning,
+          icon: 'arrow-forward-circle',
+          bg: themeColors.warning + '20'
+        };
+      }
+      if (visitor?.residentEntryConfirmedAt) {
+        return config.confirmed;
+      }
     }
     return config[status] || config.pending;
   };
@@ -381,6 +404,14 @@ const VisitorManagementScreen = ({ navigation }) => {
               </Text>
             </View>
           ) : null}
+          {item.residentDepartureConfirmedAt ? (
+            <View style={styles.confirmedRow}>
+              <Ionicons name="arrow-forward-circle" size={16} color={themeColors.warning} />
+              <Text style={styles.confirmedText}>
+                Departure confirmed: {formatDate(item.residentDepartureConfirmedAt)}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -460,7 +491,7 @@ const VisitorManagementScreen = ({ navigation }) => {
         <View style={styles.confirmBar}>
           <TouchableOpacity style={styles.confirmScanButton} onPress={openResidentScanner}>
             <Ionicons name="scan" size={18} color="white" />
-            <Text style={styles.confirmScanText}>Confirm Visitor via QR Scan</Text>
+            <Text style={styles.confirmScanText}>{confirmButtonText}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -766,7 +797,7 @@ const VisitorManagementScreen = ({ navigation }) => {
       >
         <View style={styles.scannerContainer}>
           <View style={styles.scannerHeader}>
-            <Text style={styles.scannerTitle}>Confirm Visitor Arrival</Text>
+            <Text style={styles.scannerTitle}>{confirmScannerTitle}</Text>
             <TouchableOpacity onPress={() => setShowConfirmScanner(false)}>
               <Ionicons name="close" size={28} color="white" />
             </TouchableOpacity>
@@ -777,7 +808,7 @@ const VisitorManagementScreen = ({ navigation }) => {
             onBarcodeScanned={isConfirmingScan ? undefined : handleResidentConfirmScan}
           />
           <View style={styles.scannerHintWrap}>
-            <Text style={styles.scannerHint}>Scan the visitor pass when they arrive at your home.</Text>
+            <Text style={styles.scannerHint}>{confirmScannerHint}</Text>
           </View>
         </View>
       </Modal>

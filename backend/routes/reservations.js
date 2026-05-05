@@ -51,6 +51,21 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Resource type, name, start, and end times are required' });
     }
 
+    const now = new Date();
+    const existingActive = await Reservation.findOne({
+      reservedBy: req.user._id,
+      resourceName,
+      status: { $in: ['pending', 'confirmed', 'borrowed'] },
+      endDate: { $gte: now }
+    });
+
+    if (existingActive) {
+      return res.status(409).json({
+        success: false,
+        error: `You already have an active or pending reservation for ${resourceName}. Please wait until that reservation is completed or expired before requesting it again.`
+      });
+    }
+
     const reservation = await Reservation.create({
       resourceType,
       resourceName,

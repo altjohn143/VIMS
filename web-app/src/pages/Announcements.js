@@ -19,6 +19,7 @@ const themeColors = {
 
 const Announcements = () => {
   const [rows, setRows] = useState([]);
+  const [filterCategory, setFilterCategory] = useState('all');
   const navigate = useNavigate();
 
   const load = useCallback(async () => {
@@ -127,7 +128,26 @@ const Announcements = () => {
           </Card>
         </Box>
 
-        {rows.length === 0 && (
+        <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          {['all', 'monthlyCollection'].map((category) => (
+            <Chip
+              key={category}
+              label={category === 'all' ? 'All announcements' : 'Monthly collection'}
+              clickable
+              size="small"
+              onClick={() => setFilterCategory(category)}
+              sx={{
+                borderRadius: '999px',
+                fontWeight: 700,
+                bgcolor: filterCategory === category ? '#d1fae5' : '#f8fafc',
+                color: filterCategory === category ? themeColors.primary : themeColors.textSecondary,
+                border: filterCategory === category ? `1px solid ${themeColors.primary}` : `1px solid ${themeColors.border}`,
+              }}
+            />
+          ))}
+        </Box>
+
+        {rows.filter((item) => filterCategory === 'all' || item.category === 'monthlyCollection').length === 0 && (
           <Card
             elevation={0}
             sx={{
@@ -149,7 +169,9 @@ const Announcements = () => {
         )}
 
         <Box sx={{ display: 'grid', gap: 2.5 }}>
-          {rows.map((item) => (
+          {rows
+            .filter((item) => filterCategory === 'all' || item.category === 'monthlyCollection')
+            .map((item) => (
             <Card
               key={item._id}
               elevation={0}
@@ -193,17 +215,28 @@ const Announcements = () => {
                     </Typography>
                   </Box>
 
-                  <Chip
-                    size="small"
-                    label={item.publishedAt ? new Date(item.publishedAt).toLocaleString() : 'Draft'}
-                    sx={{
-                      alignSelf: 'flex-start',
-                      bgcolor: item.publishedAt ? '#dcfce7' : '#e5e7eb',
-                      color: item.publishedAt ? themeColors.primary : '#4b5563',
-                      fontWeight: 700,
-                      borderRadius: 999,
-                    }}
-                  />
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                    <Chip
+                      size="small"
+                      label={item.category === 'monthlyCollection' ? 'Monthly collection' : 'Community'}
+                      sx={{
+                        bgcolor: item.category === 'monthlyCollection' ? '#f0fdf4' : '#eff6ff',
+                        color: item.category === 'monthlyCollection' ? '#166534' : '#1d4ed8',
+                        fontWeight: 700,
+                        borderRadius: 999,
+                      }}
+                    />
+                    <Chip
+                      size="small"
+                      label={item.publishedAt ? new Date(item.publishedAt).toLocaleString() : 'Draft'}
+                      sx={{
+                        bgcolor: item.publishedAt ? '#dcfce7' : '#e5e7eb',
+                        color: item.publishedAt ? themeColors.primary : '#4b5563',
+                        fontWeight: 700,
+                        borderRadius: 999,
+                      }}
+                    />
+                  </Stack>
                 </Box>
 
                 <Divider sx={{ my: 1.5 }} />

@@ -102,6 +102,7 @@ const Register = () => {
     address: '',
     role: 'resident',
     selectedLot: '',
+    idNumber: '',
     noVehicles: false,
     soloResident: false,
     vehicles: [EMPTY_VEHICLE],
@@ -116,6 +117,7 @@ const Register = () => {
   const [lastOcrAt, setLastOcrAt] = useState(0);
   const [ocrUnavailable, setOcrUnavailable] = useState(false);
   const [ocrIdNumber, setOcrIdNumber] = useState('');
+  const [registrationMode, setRegistrationMode] = useState(null);
 
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -343,6 +345,9 @@ const Register = () => {
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm your password';
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     
+    if (!formData.idNumber.trim()) newErrors.idNumber = 'ID number is required';
+    if (!idDocs.frontImage) newErrors.frontImage = 'Please upload the front side of your ID';
+    if (!idDocs.backImage) newErrors.backImage = 'Please upload the back side of your ID';
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot from the map or dropdown';
 
     if (formData.middleName.trim() && formData.middleName.length > 50) {
@@ -415,6 +420,9 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
+    if (!registrationMode) {
+      validationErrors.mode = 'Please select a registration method before continuing.';
+    }
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -575,7 +583,8 @@ const Register = () => {
           middleName: prev.middleName?.trim() ? prev.middleName : (ocr.middleName || prev.middleName),
           dateOfBirth: prev.dateOfBirth?.trim()
             ? prev.dateOfBirth
-            : (/^\d{4}-\d{2}-\d{2}$/.test(ocr.dob || '') ? ocr.dob : prev.dateOfBirth)
+            : (/^\d{4}-\d{2}-\d{2}$/.test(ocr.dob || '') ? ocr.dob : prev.dateOfBirth),
+          idNumber: prev.idNumber?.trim() ? prev.idNumber : (ocr.idNumber || prev.idNumber)
         }));
         if (ocr.idNumber) {
           setOcrIdNumber(ocr.idNumber);
@@ -717,8 +726,91 @@ const Register = () => {
             Create your account
           </Typography>
           <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 3 }}>
-            Fill in your details to join the Westville community
+            Choose how you want to register before completing the form.
           </Typography>
+
+          {!registrationMode ? (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+                Registration method
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      border: `1px solid ${themeColors.border}`,
+                      borderRadius: 3,
+                      backgroundColor: '#f8faf5'
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 700, mb: 1 }}>Manual entry</Typography>
+                    <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 2 }}>
+                      Enter your details manually and upload your ID. The ID upload will still extract your ID number automatically.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      onClick={() => {
+                        setRegistrationMode('manual');
+                        setErrors(prev => ({ ...prev, mode: '' }));
+                      }}
+                      sx={{ textTransform: 'none', borderRadius: 2 }}
+                    >
+                      Register manually
+                    </Button>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      border: `1px solid ${themeColors.border}`,
+                      borderRadius: 3,
+                      backgroundColor: '#ffffff'
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 700, mb: 1 }}>ID upload + OCR autofill</Typography>
+                    <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 2 }}>
+                      Upload your ID and let the OCR attempt to populate your name, date of birth, and ID number automatically.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      onClick={() => {
+                        setRegistrationMode('ocr');
+                        setErrors(prev => ({ ...prev, mode: '' }));
+                      }}
+                      sx={{ textTransform: 'none', borderRadius: 2 }}
+                    >
+                      Use OCR autofill
+                    </Button>
+                  </Paper>
+                </Grid>
+              </Grid>
+              {errors.mode && (
+                <Typography sx={{ color: themeColors.error, mt: 2 }}>{errors.mode}</Typography>
+              )}
+            </Box>
+          ) : (
+            <Box sx={{ mb: 3, p: 2, border: `1px solid ${themeColors.border}`, borderRadius: 3, backgroundColor: '#f8faf5' }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                You selected: {registrationMode === 'manual' ? 'Manual entry' : 'OCR autofill'}
+              </Typography>
+              <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 1 }}>
+                {registrationMode === 'manual'
+                  ? 'Please fill in your fields manually. Your ID upload will still extract the ID number automatically.'
+                  : 'Upload your ID images to automatically populate your name, date of birth, and ID number where possible.'}
+              </Typography>
+              <Button
+                variant="text"
+                onClick={() => setRegistrationMode(null)}
+                sx={{ textTransform: 'none', color: themeColors.primary }}
+              >
+                Change registration method
+              </Button>
+            </Box>
+          )}
 
           {errors.submit && (
             <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
@@ -742,8 +834,9 @@ const Register = () => {
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={2}>
+          {registrationMode && (
+            <Box component="form" onSubmit={handleSubmit}>
+              <Grid container spacing={2}>
               {/* First Name */}
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -814,6 +907,22 @@ const Register = () => {
                   error={!!errors.dateOfBirth}
                   helperText={errors.dateOfBirth || 'From your ID if readable'}
                   InputLabelProps={{ shrink: true }}
+                  InputProps={{ sx: { borderRadius: 2 } }}
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="ID Number"
+                  name="idNumber"
+                  value={formData.idNumber}
+                  onChange={handleChange}
+                  error={!!errors.idNumber}
+                  helperText={errors.idNumber || 'Required for verification and enrollment'}
+                  required
+                  placeholder="Enter your ID number"
                   InputProps={{ sx: { borderRadius: 2 } }}
                   sx={fieldSx}
                 />
@@ -1509,6 +1618,7 @@ const Register = () => {
               Sign in to existing account
             </Button>
           </Box>
+          )}
         </Paper>
 
         <Typography sx={{ textAlign: 'center', mt: 3, color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>

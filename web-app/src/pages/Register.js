@@ -1595,9 +1595,11 @@ const Register = () => {
             >
               Sign in to existing account
             </Button>
-          </Box>
-              )}
-            </>
+          </Grid>
+        </Grid>
+      </Box>
+          )}
+        </>
         </Paper>
 
         <Typography sx={{ textAlign: 'center', mt: 3, color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem' }}>

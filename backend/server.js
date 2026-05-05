@@ -215,8 +215,8 @@ async function autoSeedDatabase() {
     
     // Create Admin with compliant password
     const adminUser = new User({
-      firstName: 'System',
-      lastName: 'Administrator',
+      firstName: 'John',
+      lastName: 'Doe',
       email: 'admin@vims.com',
       phone: '9876543210',
       password: compliantPassword,
@@ -229,8 +229,8 @@ async function autoSeedDatabase() {
 
     // Create Security with compliant password
     const securityUser = new User({
-      firstName: 'Security',
-      lastName: 'Officer',
+      firstName: 'Jane',
+      lastName: 'Smith',
       email: 'security@vims.com',
       phone: '9876543211',
       password: compliantPassword,

@@ -732,6 +732,67 @@ router.put('/:id/status', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// Create admin and security users (admin only)
+router.post('/', protect, authorize('admin'), async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      role,
+      assignedPhases = [],
+      assignedAreas = [],
+      patrolSchedule = ''
+    } = req.body;
+
+    if (!firstName || !lastName || !email || !phone || !password || !role) {
+      return res.status(400).json({ success: false, error: 'All required fields must be provided' });
+    }
+
+    if (!['admin', 'security'].includes(role)) {
+      return res.status(400).json({ success: false, error: 'Only admin or security accounts can be created here' });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ success: false, error: 'A user with this email already exists' });
+    }
+
+    const validAssignedPhases = Array.isArray(assignedPhases)
+      ? assignedPhases.map((phase) => Number(phase)).filter((phase) => Number.isInteger(phase) && phase >= 1 && phase <= 10)
+      : [];
+
+    const validAssignedAreas = Array.isArray(assignedAreas)
+      ? assignedAreas.map((area) => String(area).trim()).filter(Boolean)
+      : [];
+
+    const userData = {
+      firstName: String(firstName).trim(),
+      lastName: String(lastName).trim(),
+      email: String(email).toLowerCase().trim(),
+      phone: String(phone).trim(),
+      password,
+      role,
+      isApproved: true,
+      isActive: true,
+      profileComplete: true,
+      assignedPhases: role === 'security' ? validAssignedPhases : [],
+      assignedAreas: role === 'security' ? validAssignedAreas : [],
+      patrolSchedule: role === 'security' ? String(patrolSchedule).trim() : ''
+    };
+
+    const newUser = await User.create(userData);
+    newUser.password = undefined;
+
+    res.status(201).json({ success: true, data: newUser });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ success: false, error: 'Failed to create user' });
+  }
+});
+
 // Wildcard route for debugging
 router.get('*', (req, res) => {
   console.log('Wildcard route hit in users.js!');
@@ -753,6 +814,7 @@ router.get('*', (req, res) => {
       'PUT /api/users/profile',
       'GET /api/users/:id/profile',
       'GET /api/users/',
+      'POST /api/users/',
       'GET /api/users/pending-approvals',
       'PUT /api/users/:id/approve',
       'DELETE /api/users/:id',

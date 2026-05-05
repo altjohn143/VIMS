@@ -63,6 +63,24 @@ const userSchema = new mongoose.Schema({
     default: 'resident'
   },
   
+  // Security-specific fields
+  assignedPhases: [{
+    type: Number,
+    min: 1,
+    max: 5
+  }],
+  
+  assignedAreas: [{
+    type: String,
+    trim: true
+  }],
+  
+  patrolSchedule: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  
   houseNumber: {
     type: String,
     required: function() { return this.role === 'resident'; }

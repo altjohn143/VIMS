@@ -19,7 +19,7 @@ import api from '../../utils/api';
 import { themeColors, shadows } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 
-const initialForm = { area: '', checkpoint: '', notes: '' };
+const initialForm = { phase: '', area: '', checkpoint: '', notes: '' };
 
 const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
@@ -79,13 +79,16 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
   };
 
   const submit = async () => {
-    if (!form.area.trim() || !form.checkpoint.trim()) {
-      Alert.alert('Error', 'Area and checkpoint are required');
+    if (!form.phase || !form.area.trim() || !form.checkpoint.trim()) {
+      Alert.alert('Error', 'Phase, area and checkpoint are required');
       return;
     }
     setProcessing(true);
     try {
-      const res = await api.post('/patrols/log', form);
+      const res = await api.post('/patrols/log', {
+        ...form,
+        phase: Number(form.phase)
+      });
       if (res.data?.success) {
         Alert.alert('Success', 'Patrol log submitted');
         setCreateOpen(false);
@@ -170,28 +173,40 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <ScrollView>
-              <Text style={styles.label}>Area</Text>
+              <Text style={styles.label}>Phase</Text>
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={form.area}
-                  onValueChange={(value) => setForm((p) => ({ ...p, area: value, checkpoint: '' }))}
+                  selectedValue={form.phase}
+                  onValueChange={(value) => setForm((p) => ({
+                    ...p,
+                    phase: value,
+                    area: value ? `Phase ${value}` : '',
+                    checkpoint: ''
+                  }))}
                 >
-                  <Picker.Item label="Select area" value="" />
-                  {Array.from(new Set(lots.map((lot) => `Phase ${lot.phase}`))).map((area) => (
-                    <Picker.Item key={area} label={area} value={area} />
+                  <Picker.Item label="Select phase" value="" />
+                  {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                    <Picker.Item key={phase} label={`Phase ${phase}`} value={String(phase)} />
                   ))}
                 </Picker>
               </View>
+              <Text style={styles.label}>Area</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: '#e2e8f0' }]}
+                value={form.area}
+                editable={false}
+                placeholder="Select phase first"
+              />
               <Text style={styles.label}>Checkpoint</Text>
-              <View style={[styles.pickerContainer, !form.area && styles.pickerDisabled]}>
+              <View style={[styles.pickerContainer, !form.phase && styles.pickerDisabled]}>
                 <Picker
                   selectedValue={form.checkpoint}
-                  enabled={!!form.area}
+                  enabled={!!form.phase}
                   onValueChange={(value) => setForm((p) => ({ ...p, checkpoint: value }))}
                 >
-                  <Picker.Item label={form.area ? 'Select checkpoint' : 'Select area first'} value="" />
+                  <Picker.Item label={form.phase ? 'Select checkpoint' : 'Select phase first'} value="" />
                   {lots
-                    .filter((lot) => `Phase ${lot.phase}` === form.area)
+                    .filter((lot) => String(lot.phase) === String(form.phase))
                     .map((lot) => (
                       <Picker.Item
                         key={lot.lotId}

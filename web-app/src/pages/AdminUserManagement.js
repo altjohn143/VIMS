@@ -103,6 +103,27 @@ const AdminUserManagement = () => {
   const [moveOutDialogOpen, setMoveOutDialogOpen] = useState(false);
   const [moveOutAction, setMoveOutAction] = useState('approve'); // approve | deny
   const [moveOutNotes, setMoveOutNotes] = useState('');
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createProcessing, setCreateProcessing] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'security',
+    assignedPhases: '',
+    assignedAreas: '',
+    patrolSchedule: ''
+  });
+  const [securityAssignments, setSecurityAssignments] = useState([]);
+  const [assignmentEditMode, setAssignmentEditMode] = useState(false);
+  const [assignmentForm, setAssignmentForm] = useState({
+    assignedPhases: '',
+    assignedAreas: '',
+    patrolSchedule: ''
+  });
+  const [assignmentProcessing, setAssignmentProcessing] = useState(false);
   
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -195,6 +216,35 @@ const AdminUserManagement = () => {
     }
   }, [filterUsers, searchQuery, roleFilter, statusFilter, approvalFilter, activeTab]); // Added all dependencies
 
+  const loadSecurityAssignments = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('/api/patrols/assignments', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (response.data.success) {
+        setSecurityAssignments(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading security assignments:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedUser?.role === 'security') {
+      setAssignmentForm({
+        assignedPhases: (selectedUser.assignedPhases || []).join(', '),
+        assignedAreas: (selectedUser.assignedAreas || []).join(', '),
+        patrolSchedule: selectedUser.patrolSchedule || ''
+      });
+    } else {
+      setAssignmentForm({ assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
+      setAssignmentEditMode(false);
+    }
+  }, [selectedUser]);
+
   // Handle search and filter changes
   useEffect(() => {
     filterUsers(users, searchQuery, roleFilter, statusFilter, approvalFilter, activeTab);
@@ -208,7 +258,8 @@ const AdminUserManagement = () => {
       return;
     }
     fetchUsers();
-  }, [getCurrentUser, navigate, fetchUsers]); // Added fetchUsers dependency
+    loadSecurityAssignments();
+  }, [getCurrentUser, navigate, fetchUsers, loadSecurityAssignments]); // Added fetchUsers dependency
 
   const handleArchiveUser = async () => {
     if (!selectedUser) return;
@@ -306,6 +357,135 @@ const AdminUserManagement = () => {
       toast.error(error.response?.data?.error || 'Failed to update approval status');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const resetNewUserForm = () => {
+    setNewUserForm({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      password: '',
+      role: 'security',
+      assignedPhases: '',
+      assignedAreas: '',
+      patrolSchedule: ''
+    });
+  };
+
+  const handleCreateUser = async () => {
+    const { firstName, lastName, email, phone, password, role, assignedPhases, assignedAreas, patrolSchedule } = newUserForm;
+    if (!firstName || !lastName || !email || !phone || !password || !role) {
+      toast.error('Please complete all required fields');
+      return;
+    }
+
+    try {
+      setCreateProcessing(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        '/api/users',
+        {
+          firstName,
+          lastName,
+          email,
+          phone,
+          password,
+          role,
+          assignedPhases: assignedPhases
+            .split(',')
+            .map((value) => Number(value.trim()))
+            .filter((value) => Number.isInteger(value) && value > 0),
+          assignedAreas: assignedAreas
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean),
+          patrolSchedule
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        toast.success('User created successfully');
+        setCreateDialogOpen(false);
+        resetNewUserForm();
+        fetchUsers();
+        loadSecurityAssignments();
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error(error.response?.data?.error || 'Failed to create user');
+    } finally {
+      setCreateProcessing(false);
+    }
+  };
+
+  const handleStartAssignmentEdit = () => {
+    setAssignmentEditMode(true);
+  };
+
+  const handleCancelAssignmentEdit = () => {
+    if (selectedUser?.role === 'security') {
+      setAssignmentForm({
+        assignedPhases: (selectedUser.assignedPhases || []).join(', '),
+        assignedAreas: (selectedUser.assignedAreas || []).join(', '),
+        patrolSchedule: selectedUser.patrolSchedule || ''
+      });
+    } else {
+      setAssignmentForm({ assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
+    }
+    setAssignmentEditMode(false);
+  };
+
+  const handleSaveAssignmentUpdate = async () => {
+    if (!selectedUser || selectedUser.role !== 'security') {
+      toast.error('Only security users can have patrol assignments updated');
+      return;
+    }
+
+    try {
+      setAssignmentProcessing(true);
+      const token = localStorage.getItem('token');
+      const payload = {
+        assignedPhases: assignmentForm.assignedPhases
+          .split(',')
+          .map((value) => Number(value.trim()))
+          .filter((value) => Number.isInteger(value) && value > 0),
+        assignedAreas: assignmentForm.assignedAreas
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
+        patrolSchedule: assignmentForm.patrolSchedule
+      };
+
+      const response = await axios.put(
+        `/api/patrols/assign/${selectedUser._id}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        const updatedUser = response.data.data;
+        toast.success('Security patrol assignment updated');
+        setSelectedUser((prev) => prev ? { ...prev, ...updatedUser } : prev);
+        setUsers((prev) => prev.map((user) => (user._id === updatedUser._id ? { ...user, ...updatedUser } : user)));
+        setAssignmentEditMode(false);
+        loadSecurityAssignments();
+      }
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      toast.error(error.response?.data?.error || 'Failed to update assignment');
+    } finally {
+      setAssignmentProcessing(false);
     }
   };
 
@@ -466,6 +646,22 @@ const AdminUserManagement = () => {
           </Button>
 
           <Button
+            onClick={() => setCreateDialogOpen(true)}
+            variant="contained"
+            sx={{
+              mr: 2,
+              bgcolor: themeColors.primary,
+              color: '#fff',
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              '&:hover': { bgcolor: themeColors.primaryDark }
+            }}
+          >
+            New Staff
+          </Button>
+
+          <Button
             onClick={() => navigate('/admin/archived-users')}
             variant="outlined"
             sx={{
@@ -568,6 +764,45 @@ const AdminUserManagement = () => {
             </Grid>
           ))}
         </Grid>
+
+        {securityAssignments.length > 0 && (
+          <Paper
+            sx={{
+              p: 3,
+              mb: 3,
+              borderRadius: '20px',
+              border: `1px solid ${themeColors.border}`,
+              boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)'
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+              Security Patrol Assignments
+            </Typography>
+            <Grid container spacing={2}>
+              {securityAssignments.map((officer) => (
+                <Grid item xs={12} md={6} key={officer._id}>
+                  <Paper sx={{ p: 2, borderRadius: '18px', backgroundColor: '#f8fafc' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                      {officer.firstName} {officer.lastName}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                      Email: {officer.email}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                      Phases: {officer.assignedPhases?.join(', ') || 'None'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                      Areas: {officer.assignedAreas?.join(', ') || 'None'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
+                      Schedule: {officer.patrolSchedule || 'Not set'}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+        )}
 
         {/* Filters and Search */}
         <Paper
@@ -980,6 +1215,75 @@ const AdminUserManagement = () => {
                           <Typography variant="body2" color="textSecondary">Last updated:</Typography>
                           <Typography variant="body2">{formatDate(selectedUser.updatedAt)}</Typography>
                         </Box>
+                        {selectedUser.role === 'security' && (
+                          <Box sx={{ mt: 2, px: 2, py: 1.5, bgcolor: '#f8fafc', borderRadius: 2 }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, color: themeColors.primary, fontWeight: 600 }}>
+                              Patrol Assignment
+                            </Typography>
+                            {assignmentEditMode ? (
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <TextField
+                                  fullWidth
+                                  label="Assigned Phases"
+                                  value={assignmentForm.assignedPhases}
+                                  onChange={(e) => setAssignmentForm((prev) => ({ ...prev, assignedPhases: e.target.value }))}
+                                  helperText="Comma-separated phase numbers, e.g. 1,2"
+                                />
+                                <TextField
+                                  fullWidth
+                                  label="Assigned Areas"
+                                  value={assignmentForm.assignedAreas}
+                                  onChange={(e) => setAssignmentForm((prev) => ({ ...prev, assignedAreas: e.target.value }))}
+                                  helperText="Comma-separated area names, e.g. Phase 1,Phase 2"
+                                />
+                                <TextField
+                                  fullWidth
+                                  label="Patrol Schedule"
+                                  value={assignmentForm.patrolSchedule}
+                                  onChange={(e) => setAssignmentForm((prev) => ({ ...prev, patrolSchedule: e.target.value }))}
+                                  helperText="Example: Mon/Wed/Fri 6am-10am"
+                                />
+                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                                  <Button
+                                    onClick={handleCancelAssignmentEdit}
+                                    disabled={assignmentProcessing}
+                                    sx={{ textTransform: 'none' }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    variant="contained"
+                                    onClick={handleSaveAssignmentUpdate}
+                                    disabled={assignmentProcessing}
+                                    sx={{ textTransform: 'none', fontWeight: 700 }}
+                                  >
+                                    {assignmentProcessing ? 'Saving…' : 'Save Assignment'}
+                                  </Button>
+                                </Box>
+                              </Box>
+                            ) : (
+                              <>
+                                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                  Phases: {selectedUser.assignedPhases?.join(', ') || 'None'}
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                  Areas: {selectedUser.assignedAreas?.join(', ') || 'None'}
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
+                                  Schedule: {selectedUser.patrolSchedule || 'Not set'}
+                                </Typography>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={handleStartAssignmentEdit}
+                                  sx={{ mt: 2, textTransform: 'none', borderRadius: 2.5 }}
+                                >
+                                  Edit Assignment
+                                </Button>
+                              </>
+                            )}
+                          </Box>
+                        )}
                       </Box>
                     </Paper>
                   </Grid>
@@ -1071,7 +1375,132 @@ const AdminUserManagement = () => {
           )}
         </Dialog>
 
-        {/* Archive Confirmation Dialog */}
+        <Dialog
+        open={createDialogOpen}
+        onClose={() => !createProcessing && setCreateDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '18px' } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Create Admin / Security User</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: themeColors.textSecondary, mb: 2 }}>
+            Add a new staff account with optional patrol assignments for security officers.
+          </Typography>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="First Name"
+                value={newUserForm.firstName}
+                onChange={(e) => setNewUserForm((prev) => ({ ...prev, firstName: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Last Name"
+                value={newUserForm.lastName}
+                onChange={(e) => setNewUserForm((prev) => ({ ...prev, lastName: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Email"
+                value={newUserForm.email}
+                onChange={(e) => setNewUserForm((prev) => ({ ...prev, email: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Phone"
+                value={newUserForm.phone}
+                onChange={(e) => setNewUserForm((prev) => ({ ...prev, phone: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Password"
+                type="password"
+                value={newUserForm.password}
+                onChange={(e) => setNewUserForm((prev) => ({ ...prev, password: e.target.value }))}
+                helperText="Must be at least 12 chars with uppercase, lowercase, number, and symbol"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={newUserForm.role}
+                  label="Role"
+                  onChange={(e) => setNewUserForm((prev) => ({ ...prev, role: e.target.value }))}
+                >
+                  <MenuItem value="admin">Admin</MenuItem>
+                  <MenuItem value="security">Security</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {newUserForm.role === 'security' && (
+              <>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Assigned Phases"
+                    value={newUserForm.assignedPhases}
+                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, assignedPhases: e.target.value }))}
+                    helperText="Comma-separated phase numbers, e.g. 1,2"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Assigned Areas"
+                    value={newUserForm.assignedAreas}
+                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, assignedAreas: e.target.value }))}
+                    helperText="Comma-separated area names, e.g. Phase 1,Phase 2"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Patrol Schedule"
+                    value={newUserForm.patrolSchedule}
+                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, patrolSchedule: e.target.value }))}
+                    helperText="Example: Mon/Wed/Fri 6am-10am"
+                  />
+                </Grid>
+              </>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${themeColors.border}` }}>
+          <Button
+            onClick={() => {
+              setCreateDialogOpen(false);
+              resetNewUserForm();
+            }}
+            disabled={createProcessing}
+            sx={{ textTransform: 'none' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleCreateUser}
+            disabled={createProcessing}
+            sx={{ textTransform: 'none', fontWeight: 800 }}
+          >
+            {createProcessing ? 'Creating…' : 'Create User'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Archive Confirmation Dialog */}
         <Dialog
           open={deleteDialogOpen}
           onClose={() => !processing && setDeleteDialogOpen(false)}

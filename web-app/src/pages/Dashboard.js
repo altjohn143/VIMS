@@ -596,7 +596,7 @@ const Dashboard = () => {
       label: 'Role',
       value: (
         <Chip
-          label={user.role}
+          label={user.role === 'admin' ? 'Administrator' : user.role === 'security' ? 'Security Officer' : user.role}
           size="small"
           sx={{
             bgcolor: config.color,
@@ -1435,7 +1435,7 @@ const Dashboard = () => {
                             mb: 1
                           }}
                         >
-                          Good morning, {user.firstName || 'Administrator'}
+                          Good morning, {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.role === 'admin' ? 'Administrator' : user.role === 'security' ? 'Security Officer' : 'User'}
                         </Typography>
 
                         <Typography

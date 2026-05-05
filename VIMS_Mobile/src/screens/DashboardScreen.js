@@ -261,9 +261,9 @@ const DashboardScreen = ({ navigation }) => {
     return 'Good evening,';
   };
 
-  const roleName = userToShow?.role
-    ? userToShow.role.charAt(0).toUpperCase() + userToShow.role.slice(1)
-    : 'User';
+  const roleDisplay = userToShow?.role
+    ? userToShow.role === 'admin' ? 'Administrator' : userToShow.role === 'security' ? 'Security' : 'Approved'
+    : 'Approved';
 
   const initials = [userToShow?.firstName?.[0], userToShow?.lastName?.[0]]
     .filter(Boolean).join('') || 'U';
@@ -318,7 +318,7 @@ const DashboardScreen = ({ navigation }) => {
             </View>
             <View style={styles.userPillText}>
               <Text style={styles.userPillName} numberOfLines={1}>{fullName}</Text>
-              <Text style={styles.userPillRole}>● Approved</Text>
+              <Text style={styles.userPillRole}>● {roleDisplay}</Text>
             </View>
             <Ionicons name="chevron-down" size={12} color="rgba(255,255,255,0.8)" style={{ marginLeft: 2 }} />
           </TouchableOpacity>

@@ -18,7 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-const initialForm = { area: '', checkpoint: '', notes: '', status: 'completed' };
+const initialForm = { phase: '', area: '', checkpoint: '', notes: '', status: 'completed' };
 
 const SecurityPatrolSchedule = () => {
   const themeColors = {
@@ -61,12 +61,15 @@ const SecurityPatrolSchedule = () => {
   }, [load, loadLots]);
 
   const submit = async () => {
-    if (!form.area || !form.checkpoint) {
-      toast.error('Area and checkpoint are required');
+    if (!form.phase || !form.area || !form.checkpoint) {
+      toast.error('Phase, area and checkpoint are required');
       return;
     }
     try {
-      await axios.post('/api/patrols/log', form);
+      await axios.post('/api/patrols/log', {
+        ...form,
+        phase: Number(form.phase)
+      });
       toast.success('Patrol log submitted');
       setForm(initialForm);
       load();
@@ -140,22 +143,38 @@ const SecurityPatrolSchedule = () => {
 
         <Paper sx={{ p: 2.5, mb: 2, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
           <Stack spacing={2}>
-            <TextField select label="Area" value={form.area} onChange={(e) => setForm((p) => ({ ...p, area: e.target.value, checkpoint: '' }))}>
-              <MenuItem value="">Select area</MenuItem>
-              {Array.from(new Set(lots.map((lot) => `Phase ${lot.phase}`))).map((area) => (
-                <MenuItem key={area} value={area}>{area}</MenuItem>
+            <TextField
+              select
+              label="Phase"
+              value={form.phase}
+              onChange={(e) => setForm((p) => ({
+                ...p,
+                phase: e.target.value,
+                area: e.target.value ? `Phase ${e.target.value}` : '',
+                checkpoint: ''
+              }))}
+            >
+              <MenuItem value="">Select phase</MenuItem>
+              {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                <MenuItem key={phase} value={phase}>{`Phase ${phase}`}</MenuItem>
               ))}
             </TextField>
+            <TextField
+              label="Area"
+              value={form.area}
+              disabled
+              helperText={form.phase ? `Patrol area set for Phase ${form.phase}` : 'Select a phase first'}
+            />
             <TextField
               select
               label="Checkpoint"
               value={form.checkpoint}
               onChange={(e) => setForm((p) => ({ ...p, checkpoint: e.target.value }))}
-              disabled={!form.area}
+              disabled={!form.phase}
             >
               <MenuItem value="">Select checkpoint</MenuItem>
               {lots
-                .filter((lot) => `Phase ${lot.phase}` === form.area)
+                .filter((lot) => String(lot.phase) === String(form.phase))
                 .map((lot) => (
                   <MenuItem key={lot.lotId} value={lot.lotId}>
                     {`Block ${lot.block} - Lot ${lot.lotNumber}`}

@@ -31,6 +31,19 @@ const AdminUserManagementScreen = ({ navigation }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createProcessing, setCreateProcessing] = useState(false);
+  const [newUserData, setNewUserData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'security',
+    assignedPhases: '',
+    assignedAreas: '',
+    patrolSchedule: ''
+  });
   const [stats, setStats] = useState({
     total: 0,
     residents: 0,
@@ -349,6 +362,9 @@ const AdminUserManagementScreen = ({ navigation }) => {
   </TouchableOpacity>
   <Text style={styles.headerTitle}>User Management</Text>
   <View style={styles.headerRight}>
+    <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.createButton}>
+      <Ionicons name="add" size={24} color="white" />
+    </TouchableOpacity>
     <TouchableOpacity onPress={fetchUsers} style={styles.refreshButton}>
       <Ionicons name="refresh" size={24} color="white" />
     </TouchableOpacity>
@@ -480,6 +496,186 @@ const AdminUserManagementScreen = ({ navigation }) => {
           </View>
         }
       />
+
+      <Modal
+        visible={createOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => !createProcessing && setCreateOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.createModalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Create Staff User</Text>
+              <TouchableOpacity onPress={() => !createProcessing && setCreateOpen(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView>
+              <View style={styles.formRow}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="First Name"
+                  value={newUserData.firstName}
+                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, firstName: text }))}
+                />
+              </View>
+              <View style={styles.formRow}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Last Name"
+                  value={newUserData.lastName}
+                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, lastName: text }))}
+                />
+              </View>
+              <View style={styles.formRow}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={newUserData.email}
+                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, email: text }))}
+                />
+              </View>
+              <View style={styles.formRow}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Phone"
+                  keyboardType="phone-pad"
+                  value={newUserData.phone}
+                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, phone: text }))}
+                />
+              </View>
+              <View style={styles.formRow}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  secureTextEntry
+                  value={newUserData.password}
+                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, password: text }))}
+                />
+              </View>
+              <View style={styles.formRow}>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={newUserData.role}
+                    onValueChange={(value) => setNewUserData((prev) => ({ ...prev, role: value }))}
+                  >
+                    <Picker.Item label="Security" value="security" />
+                    <Picker.Item label="Admin" value="admin" />
+                  </Picker>
+                </View>
+              </View>
+              {newUserData.role === 'security' && (
+                <>
+                  <View style={styles.formRow}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Assigned Phases (1,2)"
+                      value={newUserData.assignedPhases}
+                      onChangeText={(text) => setNewUserData((prev) => ({ ...prev, assignedPhases: text }))}
+                    />
+                  </View>
+                  <View style={styles.formRow}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Assigned Areas (Phase 1, Phase 2)"
+                      value={newUserData.assignedAreas}
+                      onChangeText={(text) => setNewUserData((prev) => ({ ...prev, assignedAreas: text }))}
+                    />
+                  </View>
+                  <View style={styles.formRow}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Patrol Schedule"
+                      value={newUserData.patrolSchedule}
+                      onChangeText={(text) => setNewUserData((prev) => ({ ...prev, patrolSchedule: text }))}
+                    />
+                  </View>
+                </>
+              )}
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.secondaryBtn}
+                  onPress={() => {
+                    if (!createProcessing) {
+                      setCreateOpen(false);
+                      setNewUserData({
+                        firstName: '',
+                        lastName: '',
+                        email: '',
+                        phone: '',
+                        password: '',
+                        role: 'security',
+                        assignedPhases: '',
+                        assignedAreas: '',
+                        patrolSchedule: ''
+                      });
+                    }
+                  }}
+                >
+                  <Text style={styles.secondaryText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.primaryBtn, createProcessing && styles.disabled]}
+                  onPress={async () => {
+                    if (createProcessing) return;
+                    const { firstName, lastName, email, phone, password, role } = newUserData;
+                    if (!firstName || !lastName || !email || !phone || !password || !role) {
+                      return Alert.alert('Validation', 'Please complete all required fields');
+                    }
+                    setCreateProcessing(true);
+                    try {
+                      const response = await api.post('/users', {
+                        firstName: firstName.trim(),
+                        lastName: lastName.trim(),
+                        email: email.trim(),
+                        phone: phone.trim(),
+                        password,
+                        role,
+                        assignedPhases: newUserData.assignedPhases
+                          .split(',')
+                          .map((item) => Number(item.trim()))
+                          .filter((item) => Number.isInteger(item) && item > 0),
+                        assignedAreas: newUserData.assignedAreas
+                          .split(',')
+                          .map((item) => item.trim())
+                          .filter(Boolean),
+                        patrolSchedule: newUserData.patrolSchedule.trim()
+                      });
+                      if (response.data.success) {
+                        Alert.alert('Success', 'Staff account created successfully');
+                        setCreateOpen(false);
+                        setNewUserData({
+                          firstName: '',
+                          lastName: '',
+                          email: '',
+                          phone: '',
+                          password: '',
+                          role: 'security',
+                          assignedPhases: '',
+                          assignedAreas: '',
+                          patrolSchedule: ''
+                        });
+                        fetchUsers();
+                      } else {
+                        Alert.alert('Error', response.data.error || 'Unable to create staff account');
+                      }
+                    } catch (error) {
+                      Alert.alert('Error', error.response?.data?.error || 'Failed to create staff account');
+                    } finally {
+                      setCreateProcessing(false);
+                    }
+                  }}
+                >
+                  <Text style={styles.primaryText}>{createProcessing ? 'Saving…' : 'Create User'}</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Details Modal */}
       <Modal
@@ -739,9 +935,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerRight: {
-  flexDirection: 'row',
-  alignItems: 'center',
-},
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  createButton: {
+    padding: 8,
+    marginRight: 4,
+  },
   backButton: {
     padding: 8,
   },
@@ -962,6 +1162,59 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     maxHeight: '80%',
+  },
+  createModalCard: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '90%',
+  },
+  input: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    color: themeColors.textPrimary,
+  },
+  formRow: {
+    marginBottom: 12,
+  },
+  pickerContainer: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 10,
+  },
+  secondaryBtn: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  primaryBtn: {
+    flex: 1,
+    backgroundColor: themeColors.primary,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryText: {
+    color: themeColors.textSecondary,
+    fontWeight: '700',
+  },
+  primaryText: {
+    color: 'white',
+    fontWeight: '700',
+  },
+  disabled: {
+    opacity: 0.6,
   },
   modalHeader: {
     flexDirection: 'row',

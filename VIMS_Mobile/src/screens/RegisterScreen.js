@@ -101,6 +101,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [lastOcrAt, setLastOcrAt] = useState(0);
   const [ocrIdNumber, setOcrIdNumber] = useState('');
   const [registrationMode, setRegistrationMode] = useState(null);
+  const [showIdUploadStep, setShowIdUploadStep] = useState(false);
 
   // DOB picker
   const [dobPickerOpen, setDobPickerOpen] = useState(false);
@@ -396,6 +397,26 @@ const RegisterScreen = ({ navigation, route }) => {
       setOcrLoading(false);
     }
   }, [idDocs, lastOcrAt, lastOcrSignature, ocrLoading, ocrUnavailable]);
+
+  const handleIdUploadComplete = useCallback(async () => {
+    if (!idDocs.frontUri || !idDocs.backUri) {
+      Alert.alert('Missing images', 'Please select both front and back ID images first.');
+      return;
+    }
+
+    setOcrLoading(true);
+    try {
+      // Wait for OCR to complete
+      await tryOcrAutofill();
+      
+      // After OCR completes, hide the ID upload step and show the form
+      setShowIdUploadStep(false);
+    } catch (error) {
+      Alert.alert('OCR Error', 'Failed to process ID images. Please try again.');
+    } finally {
+      setOcrLoading(false);
+    }
+  }, [idDocs, tryOcrAutofill]);
 
   useEffect(() => {
     if (!idDocs.frontUri || !idDocs.backUri) return;
@@ -739,7 +760,10 @@ const RegisterScreen = ({ navigation, route }) => {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.modeCard} onPress={() => setRegistrationMode('ocr')}>
+              <TouchableOpacity style={styles.modeCard} onPress={() => {
+                setRegistrationMode('ocr');
+                setShowIdUploadStep(true);
+              }}>
                 <Text style={styles.modeTitle}>ID upload + OCR autofill</Text>
                 <Text style={styles.modeDescription}>
                   Upload your ID and let the OCR attempt to populate your name, date of birth, and ID number automatically.
@@ -766,7 +790,71 @@ const RegisterScreen = ({ navigation, route }) => {
           )}
         </View>
 
-        {registrationMode && (
+        {showIdUploadStep && (
+          <View style={[styles.formCard, shadows.medium]}>
+            <View style={styles.idUploadHeader}>
+              <Ionicons name="document" size={32} color={themeColors.primary} />
+              <Text style={styles.idUploadTitle}>Upload Your ID for OCR</Text>
+              <Text style={styles.idUploadSubtitle}>
+                Please upload both front and back images of your government-issued ID. The system will automatically extract your information.
+              </Text>
+            </View>
+
+            <View style={styles.ocrBox}>
+              <View style={styles.ocrTitleRow}>
+                <Text style={styles.ocrTitle}>ID Images</Text>
+                {ocrLoading ? <ActivityIndicator size="small" color={themeColors.primary} /> : null}
+              </View>
+              <Text style={styles.ocrSub}>
+                Select both front and back images of your ID for automatic data extraction.
+              </Text>
+              <View style={styles.ocrBtnRow}>
+                <TouchableOpacity style={styles.ocrBtn} onPress={() => pickIdImage('front')} disabled={ocrLoading}>
+                  <Ionicons name="camera" size={20} color={themeColors.primary} />
+                  <Text style={styles.ocrBtnText}>{idDocs.frontUri ? 'Front selected ✓' : 'Pick front'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.ocrBtn} onPress={() => pickIdImage('back')} disabled={ocrLoading}>
+                  <Ionicons name="camera" size={20} color={themeColors.primary} />
+                  <Text style={styles.ocrBtnText}>{idDocs.backUri ? 'Back selected ✓' : 'Pick back'}</Text>
+                </TouchableOpacity>
+              </View>
+              {idDocs.frontUri && idDocs.backUri && !ocrLoading && (
+                <Text style={styles.ocrHint}>
+                  Both images selected! Click "Process ID" to extract your information.
+                </Text>
+              )}
+              {ocrUnavailable && (
+                <Text style={styles.ocrHint}>
+                  OCR unavailable. You can still proceed manually.
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.idUploadActions}>
+              <TouchableOpacity 
+                style={[styles.submitButton, (!idDocs.frontUri || !idDocs.backUri || ocrLoading) && styles.submitButtonDisabled]}
+                onPress={handleIdUploadComplete}
+                disabled={!idDocs.frontUri || !idDocs.backUri || ocrLoading}
+              >
+                <Text style={styles.submitButtonText}>
+                  {ocrLoading ? 'Processing...' : 'Process ID & Continue'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.mapButton, { marginTop: 12 }]} 
+                onPress={() => {
+                  setShowIdUploadStep(false);
+                  setRegistrationMode('manual');
+                }}
+              >
+                <Text style={styles.mapButtonText}>Skip OCR & Enter Manually</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {registrationMode && !showIdUploadStep && (
           <View style={[styles.formCard, shadows.medium]}>
           <View style={styles.inputContainer}>
             <Ionicons name="person" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
@@ -1221,7 +1309,7 @@ const RegisterScreen = ({ navigation, route }) => {
               <Text style={styles.loginButtonText}>Sign In</Text>
             </TouchableOpacity>
           </View>
-        </View>
+          </View>
         )}
       </ScrollView>
 

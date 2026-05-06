@@ -192,7 +192,7 @@ export const styles = StyleSheet.create({
   ocrTitle: { fontSize: 13, fontWeight: '900', color: themeColors.textPrimary },
   ocrSub: { marginTop: 6, fontSize: 12, color: themeColors.textSecondary, fontWeight: '600', lineHeight: 18 },
   ocrBtnRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  ocrBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white' },
+  ocrBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white' },
   ocrBtnText: { fontWeight: '900', color: themeColors.textPrimary },
   ocrHint: { marginTop: 10, fontSize: 11, color: themeColors.textSecondary, fontWeight: '600' },
 
@@ -209,6 +209,12 @@ export const styles = StyleSheet.create({
   selectedModeText: { fontSize: 13, color: themeColors.textSecondary, lineHeight: 20 },
   selectedModeChangeButton: { marginTop: 12, alignSelf: 'flex-start' },
   selectedModeChangeText: { fontSize: 14, fontWeight: '700', color: themeColors.primary },
+
+  // ID Upload Step styles
+  idUploadHeader: { alignItems: 'center', marginBottom: 20 },
+  idUploadTitle: { fontSize: 20, fontWeight: '700', color: themeColors.textPrimary, marginTop: 12, marginBottom: 8, textAlign: 'center' },
+  idUploadSubtitle: { fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  idUploadActions: { marginTop: 20 },
 
   // Success Modal styles (used at end of RegisterScreen)
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },

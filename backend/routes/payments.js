@@ -449,7 +449,7 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
     if (year && month) {
       // Specific month
       startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+      endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
     } else {
       // Current month by default
       startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -472,6 +472,37 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to get stats' });
+  }
+});
+
+router.get('/admin/methods', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { year, month } = req.query;
+    const match = { status: 'completed' };
+
+    if (year && month) {
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
+      match.createdAt = { $gte: startDate, $lte: endDate };
+    }
+
+    const methods = await Payment.aggregate([
+      { $match: match },
+      { $group: { _id: '$paymentMethod', count: { $sum: 1 }, total: { $sum: '$amount' } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: methods.map(method => ({
+        method: method._id || 'Unknown',
+        count: method.count || 0,
+        total: method.total || 0
+      }))
+    });
+  } catch (error) {
+    console.error('Get payment method stats error:', error);
+    res.status(500).json({ success: false, error: 'Failed to get payment method stats' });
   }
 });
 

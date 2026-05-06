@@ -68,7 +68,11 @@ const RegisterScreen = ({ navigation, route }) => {
     password: '',
     confirmPassword: '',
     address: '',
-    selectedLot: ''
+    selectedLot: '',
+    noVehicles: false,
+    soloResident: false,
+    vehicles: [{ plateNumber: '', make: '', model: '', color: '' }],
+    familyMembers: [{ name: '', relationship: '', age: '', phone: '' }],
   });
 
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -96,6 +100,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [lastOcrSignature, setLastOcrSignature] = useState('');
   const [lastOcrAt, setLastOcrAt] = useState(0);
   const [ocrIdNumber, setOcrIdNumber] = useState('');
+  const [registrationMode, setRegistrationMode] = useState(null);
 
   // DOB picker
   const [dobPickerOpen, setDobPickerOpen] = useState(false);
@@ -170,6 +175,60 @@ const RegisterScreen = ({ navigation, route }) => {
         setFormData(prev => ({ ...prev, address: selected.address }));
       }
     }
+  };
+
+  const handleArrayFieldChange = (section, index, key, value) => {
+    setFormData(prev => {
+      const items = [...prev[section]];
+      items[index] = { ...items[index], [key]: value };
+      return { ...prev, [section]: items };
+    });
+  };
+
+  const addVehicle = () => {
+    setFormData(prev => ({
+      ...prev,
+      noVehicles: false,
+      vehicles: [...(prev.vehicles || []), { plateNumber: '', make: '', model: '', color: '' }]
+    }));
+  };
+
+  const removeVehicle = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      vehicles: prev.vehicles.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addFamilyMember = () => {
+    setFormData(prev => ({
+      ...prev,
+      soloResident: false,
+      familyMembers: [...(prev.familyMembers || []), { name: '', relationship: '', age: '', phone: '' }]
+    }));
+  };
+
+  const removeFamilyMember = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      familyMembers: prev.familyMembers.filter((_, i) => i !== index)
+    }));
+  };
+
+  const toggleNoVehicles = () => {
+    setFormData(prev => ({
+      ...prev,
+      noVehicles: !prev.noVehicles,
+      vehicles: prev.noVehicles ? [{ plateNumber: '', make: '', model: '', color: '' }] : []
+    }));
+  };
+
+  const toggleSoloResident = () => {
+    setFormData(prev => ({
+      ...prev,
+      soloResident: !prev.soloResident,
+      familyMembers: prev.soloResident ? [{ name: '', relationship: '', age: '', phone: '' }] : []
+    }));
   };
 
   const handleLotSelect = (lot) => {
@@ -502,6 +561,8 @@ const RegisterScreen = ({ navigation, route }) => {
       formDataToSend.append('role', 'resident');
       formDataToSend.append('selectedLot', formData.selectedLot);
       formDataToSend.append('countryCode', formData.countryCode);
+      formDataToSend.append('vehicles', JSON.stringify(formData.vehicles || []));
+      formDataToSend.append('familyMembers', JSON.stringify(formData.familyMembers || []));
       if (ocrIdNumber.trim()) {
         formDataToSend.append('idNumber', ocrIdNumber.trim());
       }
@@ -660,7 +721,53 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        <View style={[styles.formCard, shadows.medium]}>
+        <View style={styles.registrationModePrompt}>
+          <Text style={styles.registrationIntroTitle}>Choose how you want to register</Text>
+          <Text style={styles.registrationIntroSubtitle}>
+            Select manual entry or upload ID for OCR before completing the registration form.
+          </Text>
+
+          {!registrationMode ? (
+            <View>
+              <TouchableOpacity style={styles.modeCard} onPress={() => setRegistrationMode('manual')}>
+                <Text style={styles.modeTitle}>Manual entry</Text>
+                <Text style={styles.modeDescription}>
+                  Enter your details manually and upload your ID. The ID upload will still extract your ID number automatically.
+                </Text>
+                <View style={styles.modeButton}>
+                  <Text style={styles.modeButtonText}>Register manually</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.modeCard} onPress={() => setRegistrationMode('ocr')}>
+                <Text style={styles.modeTitle}>ID upload + OCR autofill</Text>
+                <Text style={styles.modeDescription}>
+                  Upload your ID and let the OCR attempt to populate your name, date of birth, and ID number automatically.
+                </Text>
+                <View style={styles.modeButton}>
+                  <Text style={styles.modeButtonText}>Use OCR autofill</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.selectedModeBanner}>
+              <Text style={styles.selectedModeTitle}>
+                You selected: {registrationMode === 'manual' ? 'Manual entry' : 'OCR autofill'}
+              </Text>
+              <Text style={styles.selectedModeText}>
+                {registrationMode === 'manual'
+                  ? 'Please fill in your fields manually. Your ID upload will still extract the ID number automatically.'
+                  : 'Upload your ID images to automatically populate your name, date of birth, and ID number where possible.'}
+              </Text>
+              <TouchableOpacity style={styles.selectedModeChangeButton} onPress={() => setRegistrationMode(null)}>
+                <Text style={styles.selectedModeChangeText}>Change registration method</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {registrationMode && (
+          <View style={[styles.formCard, shadows.medium]}>
           <View style={styles.inputContainer}>
             <Ionicons name="person" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput style={styles.input} placeholder="First Name" value={formData.firstName} onChangeText={(text) => handleChange('firstName', text)} />
@@ -871,6 +978,152 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
           {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
 
+          <View style={styles.toggleRow}>
+            <TouchableOpacity
+              style={[styles.toggleOption, formData.noVehicles && styles.toggleOptionActive]}
+              onPress={toggleNoVehicles}
+            >
+              <Ionicons
+                name={formData.noVehicles ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                size={20}
+                color={formData.noVehicles ? themeColors.primary : themeColors.textSecondary}
+              />
+              <Text style={styles.toggleOptionText}>No vehicles to register</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.toggleOption, formData.soloResident && styles.toggleOptionActive]}
+              onPress={toggleSoloResident}
+            >
+              <Ionicons
+                name={formData.soloResident ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                size={20}
+                color={formData.soloResident ? themeColors.primary : themeColors.textSecondary}
+              />
+              <Text style={styles.toggleOptionText}>Solo resident / no family members</Text>
+            </TouchableOpacity>
+          </View>
+
+          {!formData.noVehicles && (
+            <View style={styles.arraySection}>
+              <Text style={styles.sectionLabel}>Registered Vehicles</Text>
+              {formData.vehicles.map((vehicle, index) => (
+                <View key={`vehicle-${index}`} style={styles.arrayCard}>
+                  <View style={styles.arrayHeader}>
+                    <Text style={styles.arrayTitle}>Vehicle {index + 1}</Text>
+                    {formData.vehicles.length > 1 && (
+                      <TouchableOpacity onPress={() => removeVehicle(index)}>
+                        <Text style={styles.arrayRemoveText}>Remove</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <View style={[styles.inputContainer, { marginBottom: 8 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Plate Number"
+                      value={vehicle.plateNumber}
+                      onChangeText={(text) => handleArrayFieldChange('vehicles', index, 'plateNumber', text)}
+                    />
+                  </View>
+
+                  <View style={[styles.inputContainer, { marginBottom: 8 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Make"
+                      value={vehicle.make}
+                      onChangeText={(text) => handleArrayFieldChange('vehicles', index, 'make', text)}
+                    />
+                  </View>
+
+                  <View style={[styles.inputContainer, { marginBottom: 8 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Model"
+                      value={vehicle.model}
+                      onChangeText={(text) => handleArrayFieldChange('vehicles', index, 'model', text)}
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Color"
+                      value={vehicle.color}
+                      onChangeText={(text) => handleArrayFieldChange('vehicles', index, 'color', text)}
+                    />
+                  </View>
+                </View>
+              ))}
+
+              <TouchableOpacity style={styles.addRowButton} onPress={addVehicle}>
+                <Ionicons name="add-circle-outline" size={18} color={themeColors.primary} />
+                <Text style={styles.addRowButtonText}>Add another vehicle</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {!formData.soloResident && (
+            <View style={styles.arraySection}>
+              <Text style={styles.sectionLabel}>Family Members</Text>
+              {formData.familyMembers.map((member, index) => (
+                <View key={`family-${index}`} style={styles.arrayCard}>
+                  <View style={styles.arrayHeader}>
+                    <Text style={styles.arrayTitle}>Family Member {index + 1}</Text>
+                    {formData.familyMembers.length > 1 && (
+                      <TouchableOpacity onPress={() => removeFamilyMember(index)}>
+                        <Text style={styles.arrayRemoveText}>Remove</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <View style={[styles.inputContainer, { marginBottom: 8 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Name"
+                      value={member.name}
+                      onChangeText={(text) => handleArrayFieldChange('familyMembers', index, 'name', text)}
+                    />
+                  </View>
+
+                  <View style={[styles.inputContainer, { marginBottom: 8 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Relationship"
+                      value={member.relationship}
+                      onChangeText={(text) => handleArrayFieldChange('familyMembers', index, 'relationship', text)}
+                    />
+                  </View>
+
+                  <View style={[styles.inputContainer, { marginBottom: 8 }]}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Age"
+                      value={member.age}
+                      onChangeText={(text) => handleArrayFieldChange('familyMembers', index, 'age', text)}
+                      keyboardType="numeric"
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Phone"
+                      value={member.phone}
+                      onChangeText={(text) => handleArrayFieldChange('familyMembers', index, 'phone', text)}
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+                </View>
+              ))}
+
+              <TouchableOpacity style={styles.addRowButton} onPress={addFamilyMember}>
+                <Ionicons name="add-circle-outline" size={18} color={themeColors.primary} />
+                <Text style={styles.addRowButtonText}>Add another family member</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput style={styles.input} placeholder="Password" value={formData.password} onChangeText={(text) => handleChange('password', text)} secureTextEntry={!showPassword} />
@@ -969,6 +1222,7 @@ const RegisterScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
         </View>
+        )}
       </ScrollView>
 
       {/* Country Code Dropdown Modal */}

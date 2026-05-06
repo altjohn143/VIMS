@@ -93,6 +93,24 @@ const buildProfilePhotoUrl = (req, filename) => {
   return `${req.protocol}://${req.get('host')}/uploads/profile-photos/${filename}`;
 };
 
+const parseJsonArrayField = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (err) {
+      return [];
+    }
+  }
+  return [];
+};
+
+const parseBooleanField = (value) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value.toLowerCase() === 'true';
+  return Boolean(value);
+};
+
 const getFallbackLots = async () => {
   const lots = await Lot.find({ status: 'vacant' })
     .select('lotId block lotNumber type sqm price status')
@@ -201,10 +219,14 @@ router.post('/register', profilePhotoUpload.single('profilePhoto'), async (req, 
       password,
       role,
       selectedLot,
-      vehicles = [],
-      familyMembers = [],
-      noVehicles = false
+      vehicles: vehiclesRaw = [],
+      familyMembers: familyMembersRaw = [],
+      noVehicles: noVehiclesRaw = false
     } = req.body;
+
+    const vehicles = parseJsonArrayField(vehiclesRaw);
+    const familyMembers = parseJsonArrayField(familyMembersRaw);
+    const noVehicles = parseBooleanField(noVehiclesRaw);
 
     // Validation
     if (!firstName || !lastName || !email || !phone || !password) {
@@ -407,7 +429,9 @@ router.post('/register', profilePhotoUpload.single('profilePhoto'), async (req, 
         isActive: user.isActive,
         profileComplete: user.profileComplete,
         profilePhoto: user.profilePhoto,
-        profilePhotoUrl: buildProfilePhotoUrl(req, user.profilePhoto)
+        profilePhotoUrl: buildProfilePhotoUrl(req, user.profilePhoto),
+        vehicles: user.vehicles || [],
+        familyMembers: user.familyMembers || []
       }
     });
     
@@ -519,7 +543,9 @@ router.post('/login', loginLimiter, async (req, res) => {
         isActive: user.isActive,
         profileComplete: user.profileComplete,
         profilePhoto: user.profilePhoto,
-        profilePhotoUrl: buildProfilePhotoUrl(req, user.profilePhoto)
+        profilePhotoUrl: buildProfilePhotoUrl(req, user.profilePhoto),
+        vehicles: user.vehicles || [],
+        familyMembers: user.familyMembers || []
       }
     });
     

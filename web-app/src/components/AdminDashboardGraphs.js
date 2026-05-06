@@ -30,7 +30,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import axios from 'axios';
+import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1'];
@@ -38,6 +38,7 @@ const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1'];
 const AdminDashboardGraphs = () => {
   const [paymentData, setPaymentData] = useState([]);
   const [userData, setUserData] = useState([]);
+  const [paymentMethodData, setPaymentMethodData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiReportOpen, setAiReportOpen] = useState(false);
   const [reportType, setReportType] = useState('financial');
@@ -108,6 +109,17 @@ const AdminDashboardGraphs = () => {
 
       const userResults = await Promise.all(userPromises);
       setUserData(userResults);
+
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
+      const methodResponse = await axios.get(`/api/payments/admin/methods?year=${currentYear}&month=${currentMonth}`);
+      const methodResults = methodResponse.data?.data || [];
+      setPaymentMethodData(
+        methodResults.map(item => ({
+          name: item.method || 'Unknown',
+          value: item.count || 0
+        }))
+      );
 
     } catch (error) {
       console.error('Error loading graph data:', error);
@@ -192,7 +204,7 @@ const AdminDashboardGraphs = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={[
+                    data={paymentMethodData.length > 0 ? paymentMethodData : [
                       { name: 'Online', value: 65 },
                       { name: 'Cash', value: 25 },
                       { name: 'Check', value: 10 }
@@ -205,11 +217,11 @@ const AdminDashboardGraphs = () => {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {[
+                    {(paymentMethodData.length > 0 ? paymentMethodData : [
                       { name: 'Online', value: 65 },
                       { name: 'Cash', value: 25 },
                       { name: 'Check', value: 10 }
-                    ].map((entry, index) => (
+                    ]).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

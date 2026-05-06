@@ -30,7 +30,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import axios from 'axios';
+import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1'];

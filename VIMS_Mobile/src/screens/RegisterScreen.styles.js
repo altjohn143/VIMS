@@ -140,6 +140,32 @@ export const styles = StyleSheet.create({
   loginText: { color: themeColors.textSecondary, fontSize: 14 },
   loginButtonText: { color: themeColors.primary, fontSize: 14, fontWeight: '600', marginLeft: 4 },
 
+  toggleRow: { marginVertical: 16, gap: 12 },
+  toggleOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: '#f8fafc',
+    gap: 10,
+  },
+  toggleOptionActive: {
+    borderColor: themeColors.primary,
+    backgroundColor: themeColors.primary + '10',
+  },
+  toggleOptionText: { flex: 1, fontSize: 14, color: themeColors.textPrimary, fontWeight: '600' },
+
+  arraySection: { marginTop: 16 },
+  arrayCard: { backgroundColor: '#f8fafc', borderRadius: 14, borderWidth: 1, borderColor: themeColors.border, padding: 14, marginBottom: 12 },
+  arrayHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  arrayTitle: { fontSize: 14, fontWeight: '700', color: themeColors.textPrimary },
+  arrayRemoveText: { color: themeColors.error, fontSize: 13, fontWeight: '700' },
+  addRowButton: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: themeColors.primary, backgroundColor: '#ffffff' },
+  addRowButtonText: { color: themeColors.primary, fontSize: 14, fontWeight: '700' },
+
   // Dropdown modal styles
   dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   dropdownModal: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' },
@@ -169,6 +195,20 @@ export const styles = StyleSheet.create({
   ocrBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white' },
   ocrBtnText: { fontWeight: '900', color: themeColors.textPrimary },
   ocrHint: { marginTop: 10, fontSize: 11, color: themeColors.textSecondary, fontWeight: '600' },
+
+  registrationModePrompt: { marginBottom: 20, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc' },
+  registrationIntroTitle: { fontSize: 18, fontWeight: '700', color: themeColors.textPrimary, marginBottom: 8 },
+  registrationIntroSubtitle: { fontSize: 13, color: themeColors.textSecondary, lineHeight: 20, marginBottom: 14 },
+  modeCard: { backgroundColor: 'white', borderRadius: 14, borderWidth: 1, borderColor: themeColors.border, padding: 16, marginBottom: 12 },
+  modeTitle: { fontSize: 15, fontWeight: '700', color: themeColors.textPrimary, marginBottom: 8 },
+  modeDescription: { fontSize: 13, color: themeColors.textSecondary, lineHeight: 20, marginBottom: 14 },
+  modeButton: { backgroundColor: themeColors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  modeButtonText: { color: 'white', fontSize: 14, fontWeight: '700' },
+  selectedModeBanner: { backgroundColor: 'white', borderRadius: 14, borderWidth: 1, borderColor: themeColors.border, padding: 16, marginBottom: 16 },
+  selectedModeTitle: { fontSize: 15, fontWeight: '700', color: themeColors.textPrimary, marginBottom: 8 },
+  selectedModeText: { fontSize: 13, color: themeColors.textSecondary, lineHeight: 20 },
+  selectedModeChangeButton: { marginTop: 12, alignSelf: 'flex-start' },
+  selectedModeChangeText: { fontSize: 14, fontWeight: '700', color: themeColors.primary },
 
   // Success Modal styles (used at end of RegisterScreen)
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },

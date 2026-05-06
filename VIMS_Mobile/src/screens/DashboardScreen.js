@@ -277,6 +277,9 @@ const DashboardScreen = ({ navigation }) => {
       : selfiePreviewUrl;
 
   const fullName = `${userToShow?.firstName || ''} ${userToShow?.lastName || ''}`.trim() || 'User';
+  const roleName = userToShow?.role
+    ? userToShow.role.charAt(0).toUpperCase() + userToShow.role.slice(1)
+    : 'User';
 
   return (
     <View style={styles.container}>

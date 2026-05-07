@@ -51,23 +51,6 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
-const VENUES = [
-  'Covered Court',
-  'Swimming Pool',
-  'Multi-Purpose Hall',
-  'Function Room',
-  'Conference Room',
-];
-
-const EQUIPMENT = [
-  'Tables',
-  'Chairs',
-  'Speakers',
-  'Microphones',
-  'Projector',
-  'Podium',
-];
-
 const themeColors = {
   primary: '#166534',
   primaryDark: '#14532d',

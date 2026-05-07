@@ -12,6 +12,9 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import PublicLotMap from './pages/PublicLotMap';
 import PendingApproval from './pages/PendingApproval';
+import PaymentRedirect from './pages/PaymentRedirect';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentCancelled from './pages/PaymentCancelled';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 

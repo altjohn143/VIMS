@@ -185,6 +185,7 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
       }
     }
     
+    user.approvalDate = new Date();
     user.isApproved = true;
     await user.save();
     await sendOnboardingNotification(user, {

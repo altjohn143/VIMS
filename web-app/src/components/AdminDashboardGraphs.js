@@ -50,6 +50,9 @@ const AdminDashboardGraphs = () => {
 
   useEffect(() => {
     loadGraphData();
+    // Set up auto-refresh every 30 seconds for live updates
+    const interval = setInterval(loadGraphData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadGraphData = async () => {

@@ -57,7 +57,6 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -250,11 +249,6 @@ const handleReject = async () => {
         expectedDeparture: formatDate(v.expectedDeparture)
       }));
 
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Visitors');
-      XLSX.writeFile(wb, `visitors_export_${new Date().toISOString().split('T')[0]}.xlsx`);
-
       const pdf = new jsPDF({ orientation: 'landscape' });
       pdf.text('Visitor Report', 14, 14);
       autoTable(pdf, {
@@ -265,7 +259,7 @@ const handleReject = async () => {
       });
       pdf.save(`visitors_export_${new Date().toISOString().split('T')[0]}.pdf`);
 
-      toast.success(`Exported ${rows.length} visitors (XLSX + PDF)`);
+      toast.success(`Exported ${rows.length} visitors to PDF`);
       setExportDialogOpen(false);
     } catch (error) {
       toast.error('Failed to export data');

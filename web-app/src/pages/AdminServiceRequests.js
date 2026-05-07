@@ -57,7 +57,6 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import * as XLSX from 'xlsx';
 import ReportToolbar from '../components/ReportToolbar';
 
 // Dashboard Theme Colors (from Login.js)
@@ -372,34 +371,7 @@ useEffect(() => {
     }
   }, []);
 
-  const handleExportXlsx = useCallback(() => {
-    if (!filteredRequests.length) {
-      toast.error('No records to export');
-      return;
-    }
 
-    const rows = filteredRequests.map((request) => ({
-      ID: request._id ? request._id.toString().slice(-6) : 'N/A',
-      Resident: `${request.residentId?.firstName || ''} ${request.residentId?.lastName || ''}`.trim() || 'N/A',
-      House: request.residentId?.houseNumber || 'N/A',
-      Category: request.category || 'N/A',
-      Priority: request.priority || 'N/A',
-      Status: request.status || 'N/A',
-      AssignedTo: request.assignedTo
-        ? `${request.assignedTo.firstName || ''} ${request.assignedTo.lastName || ''}`.trim()
-        : 'Unassigned',
-      CreatedAt: formatDate(request.createdAt),
-      UpdatedAt: formatDate(request.updatedAt),
-      Title: request.title || 'N/A',
-      Description: request.description || 'N/A'
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Service Requests');
-    XLSX.writeFile(wb, `admin_service_requests_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success('Excel exported successfully');
-  }, [filteredRequests, formatDate]);
 
   const handleExportPdf = useCallback(async () => {
     try {
@@ -960,7 +932,7 @@ useEffect(() => {
               Service Requests Management
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <ReportToolbar onExportXlsx={handleExportXlsx} onExportPdf={handleExportPdf} />
+              <ReportToolbar onExportPdf={handleExportPdf} />
               <Button
                 startIcon={<BuildIcon />}
                 variant="outlined"

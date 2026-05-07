@@ -41,7 +41,6 @@ import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tool
 import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -132,29 +131,6 @@ const AdminVisitorReports = () => {
         }))
       };
 
-      // Export to Excel
-      const ws = XLSX.utils.json_to_sheet([
-        ['VISITOR REPORTS'],
-        ['Generated:', exportData.generatedAt],
-        ['Date Range:', exportData.dateRange],
-        ['Report Type:', exportData.reportType],
-        [],
-        ['STATISTICS'],
-        ['Total Visitors:', exportData.statistics.totalVisitors || 0],
-        ['Approved:', exportData.statistics.approvedVisitors || 0],
-        ['Pending:', exportData.statistics.pendingVisitors || 0],
-        ['Rejected:', exportData.statistics.rejectedVisitors || 0],
-        ['Active Now:', exportData.statistics.activeVisitors || 0],
-        [],
-        ['RECENT VISITORS']
-      ]);
-
-      const visitorData = XLSX.utils.json_to_sheet(exportData.recentVisitors);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Summary');
-      XLSX.utils.book_append_sheet(wb, visitorData, 'Visitors');
-      XLSX.writeFile(wb, `visitor_report_${new Date().toISOString().split('T')[0]}.xlsx`);
-
       // Export to PDF
       const pdf = new jsPDF({ orientation: 'portrait' });
       pdf.setFont('helvetica', 'bold');
@@ -204,7 +180,7 @@ const AdminVisitorReports = () => {
       });
 
       pdf.save(`visitor_report_${new Date().toISOString().split('T')[0]}.pdf`);
-      toast.success('Report exported successfully (Excel + PDF)');
+      toast.success('Report exported successfully to PDF');
     } catch (error) {
       toast.error('Failed to export report');
       console.error('Error exporting report:', error);

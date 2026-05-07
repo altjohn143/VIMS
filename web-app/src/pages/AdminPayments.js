@@ -61,7 +61,6 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -286,35 +285,7 @@ const AdminPayments = () => {
     }
   };
 
-  const handleExportExcel = () => {
-    if (payments.length === 0) {
-      toast.error('No data to export');
-      return;
-    }
-    
-    const exportData = payments.map(p => ({
-      'Invoice #': p.invoiceNumber,
-      'Resident': `${p.residentId?.firstName} ${p.residentId?.lastName}`,
-      'House': p.residentId?.houseNumber,
-      'Description': p.description,
-      'Amount': p.amount,
-      'Status': p.status,
-      'Payment Method': p.paymentMethod || '',
-      'Reference #': p.referenceNumber || '',
-      'Due Date': p.dueDate ? new Date(p.dueDate).toLocaleDateString() : '',
-      'Payment Date': p.paymentDate ? new Date(p.paymentDate).toLocaleDateString() : '',
-      'Receipt #': p.receiptNumber || '',
-      'Receipt Image': p.receiptImage || '',
-      'Notes': p.notes || ''
-    }));
-    
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Payments');
-    XLSX.writeFile(wb, `payments_export_${new Date().toISOString().split('T')[0]}.xlsx`);
-    
-    toast.success(`Exported ${exportData.length} records`);
-  };
+
 
   const handleExportPdf = () => {
     if (payments.length === 0) {
@@ -522,68 +493,100 @@ const AdminPayments = () => {
           <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
-                borderRadius: '20px',
-                border: `1px solid ${themeColors.border}`,
-                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.07)',
-                animation: 'fadeUpSoft .45s ease-out'
+                borderRadius: '16px',
+                border: `2px solid ${themeColors.success}`,
+                boxShadow: '0 8px 24px rgba(34, 197, 94, 0.15)',
+                animation: 'fadeUpSoft .45s ease-out',
+                background: `linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(34, 197, 94, 0.02) 100%)`,
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(34, 197, 94, 0.25)' }
               }}
             >
               <CardContent>
-                <Typography variant="body2" color="textSecondary">Total Collected</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.success }}>
-                  {formatCurrency(summary.totalCollected)}
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box>
+                    <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.875rem' }}>Total Collected</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: themeColors.success, mt: 1 }}>
+                      {formatCurrency(summary.totalCollected)}
+                    </Typography>
+                  </Box>
+                  <ReceiptIcon sx={{ fontSize: 40, color: themeColors.success, opacity: 0.2 }} />
+                </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
-                borderRadius: '20px',
-                border: `1px solid ${themeColors.border}`,
-                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.07)',
-                animation: 'fadeUpSoft .5s ease-out'
+                borderRadius: '16px',
+                border: `2px solid ${themeColors.primary}`,
+                boxShadow: '0 8px 24px rgba(22, 101, 52, 0.15)',
+                animation: 'fadeUpSoft .5s ease-out',
+                background: `linear-gradient(135deg, rgba(22, 101, 52, 0.05) 0%, rgba(22, 101, 52, 0.02) 100%)`,
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(22, 101, 52, 0.25)' }
               }}
             >
               <CardContent>
-                <Typography variant="body2" color="textSecondary">Monthly Collection</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                  {formatCurrency(summary.monthlyCollected)}
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box>
+                    <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.875rem' }}>This Month</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: themeColors.primary, mt: 1 }}>
+                      {formatCurrency(summary.monthlyCollected)}
+                    </Typography>
+                  </Box>
+                  <CheckCircleIcon sx={{ fontSize: 40, color: themeColors.primary, opacity: 0.2 }} />
+                </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
-                borderRadius: '20px',
-                border: `1px solid ${themeColors.border}`,
-                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.07)',
-                animation: 'fadeUpSoft .55s ease-out'
+                borderRadius: '16px',
+                border: `2px solid ${themeColors.warning}`,
+                boxShadow: '0 8px 24px rgba(245, 158, 11, 0.15)',
+                animation: 'fadeUpSoft .55s ease-out',
+                background: `linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%)`,
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(245, 158, 11, 0.25)' }
               }}
             >
               <CardContent>
-                <Typography variant="body2" color="textSecondary">Pending Balance</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.warning }}>
-                  {formatCurrency(summary.pendingTotal)}
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box>
+                    <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.875rem' }}>Pending</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: themeColors.warning, mt: 1 }}>
+                      {formatCurrency(summary.pendingTotal)}
+                    </Typography>
+                  </Box>
+                  <PendingIcon sx={{ fontSize: 40, color: themeColors.warning, opacity: 0.2 }} />
+                </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
-                borderRadius: '20px',
-                border: `1px solid ${themeColors.border}`,
-                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.07)',
-                animation: 'fadeUpSoft .6s ease-out'
+                borderRadius: '16px',
+                border: `2px solid ${themeColors.info}`,
+                boxShadow: '0 8px 24px rgba(59, 130, 246, 0.15)',
+                animation: 'fadeUpSoft .6s ease-out',
+                background: `linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%)`,
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(59, 130, 246, 0.25)' }
               }}
             >
               <CardContent>
-                <Typography variant="body2" color="textSecondary">Collection Rate</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: themeColors.info }}>
-                  {summary.collectionRate || 0}%
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box>
+                    <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.875rem' }}>Collection Rate</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: themeColors.info, mt: 1 }}>
+                      {summary.collectionRate || 0}%
+                    </Typography>
+                  </Box>
+                  <CheckCircleIcon sx={{ fontSize: 40, color: themeColors.info, opacity: 0.2 }} />
+                </Box>
               </CardContent>
             </Card>
           </Grid>
@@ -592,37 +595,35 @@ const AdminPayments = () => {
         {/* Action Buttons */}
         <Paper
           sx={{
-            p: 2,
+            p: 2.5,
             mb: 3,
             borderRadius: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-            flexWrap: 'wrap',
             border: `1px solid ${themeColors.border}`,
             boxShadow: '0 10px 26px rgba(15, 23, 42, 0.06)'
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Monthly Dues Amount: {formatCurrency(monthlyDuesAmount)}
-            </Typography>
-            <Button variant="outlined" startIcon={<SettingsIcon />} onClick={() => setDuesAmountDialogOpen(true)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
-              Set Monthly Dues
-            </Button>
-          </Box>
-          <Button variant="outlined" startIcon={<SendIcon />} onClick={() => setReminderDialogOpen(true)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
-            Send Overdue Reminders
-          </Button>
-          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExportExcel} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
-            Export to Excel
-          </Button>
-          <Button variant="outlined" onClick={handleExportPdf} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
-            Export to PDF
-          </Button>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchPayments} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
-            Refresh
-          </Button>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6} md={4}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ReceiptIcon sx={{ color: themeColors.primary }} />
+                Monthly Dues: {formatCurrency(monthlyDuesAmount)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={8} sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <Button variant="contained" startIcon={<SettingsIcon />} onClick={() => setDuesAmountDialogOpen(true)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary }}>
+                Set Dues
+              </Button>
+              <Button variant="outlined" startIcon={<SendIcon />} onClick={() => setReminderDialogOpen(true)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+                Send Reminders
+              </Button>
+              <Button variant="outlined" onClick={handleExportPdf} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+                Export PDF
+              </Button>
+              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchPayments} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+                Refresh
+              </Button>
+            </Grid>
+          </Grid>
         </Paper>
 
         {/* Filters */}

@@ -65,10 +65,32 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
     const defaultInclusions = ['Maintenance', 'Security', 'Garbage', 'Common Area Upkeep', 'Administrative fees'];
 
     // Users created after the 10th of the current month should be billed next month.
-    const createdAt = req.user.createdAt ? new Date(req.user.createdAt) : null;
     let targetMonth = currentMonth;
     let targetYear = currentYear;
 
+    console.log(`Fetching current dues for user ${req.user.id}, month: ${targetMonth}, year: ${targetYear}`);
+
+    // Check if user was created/approved in the target month - if so, exempt them
+    const user = await User.findById(req.user.id);
+    const createdAt = user.createdAt ? new Date(user.createdAt) : null;
+    const approvalDate = user.approvalDate ? new Date(user.approvalDate) : createdAt;
+    
+    if (createdAt || approvalDate) {
+      const joinDate = approvalDate || createdAt;
+      if (
+        joinDate.getFullYear() === targetYear &&
+        joinDate.getMonth() === targetMonth - 1
+      ) {
+        // User was created/approved in this month - exempt them
+        return res.status(400).json({
+          success: false,
+          error: 'You are exempted from payments for your first month',
+          exempted: true
+        });
+      }
+    }
+
+    // Check if user was created after the 10th - bill them next month
     if (
       createdAt &&
       createdAt.getFullYear() === currentYear &&
@@ -81,8 +103,6 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
         targetYear += 1;
       }
     }
-
-    console.log(`Fetching current dues for user ${req.user.id}, month: ${targetMonth}, year: ${targetYear}`);
 
     let existingDues = await Payment.findOne({
       residentId: req.user.id,
@@ -403,12 +423,15 @@ router.post('/generate-monthly', protect, authorize('admin'), async (req, res) =
 
     for (const resident of residents) {
       const residentCreatedAt = resident.createdAt ? new Date(resident.createdAt) : null;
-      const shouldDelayFirstInvoice = residentCreatedAt &&
-        residentCreatedAt.getFullYear() === targetYear &&
-        residentCreatedAt.getMonth() === targetMonth - 1 &&
-        residentCreatedAt.getDate() > dueDay;
+      const approvalDate = resident.approvalDate ? new Date(resident.approvalDate) : residentCreatedAt;
+      
+      // Exempt residents who were created/approved in the billing month
+      const isExemptedThisMonth = approvalDate &&
+        approvalDate.getFullYear() === targetYear &&
+        approvalDate.getMonth() === targetMonth - 1;
 
-      if (shouldDelayFirstInvoice) {
+      if (isExemptedThisMonth) {
+        console.log(`Skipping invoice for resident ${resident._id} - exempted (created/approved in ${targetMonth}/${targetYear})`);
         continue;
       }
 

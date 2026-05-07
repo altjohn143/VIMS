@@ -118,6 +118,11 @@ const userSchema = new mongoose.Schema({
     default: false
   },
 
+  approvalDate: {
+    type: Date,
+    default: null
+  },
+
   profileComplete: {
     type: Boolean,
     default: false

@@ -12,6 +12,7 @@ import {
   RefreshControl,
   FlatList,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';

@@ -194,6 +194,7 @@ async function autoSeedDatabase() {
   try {
     const bcrypt = require('bcryptjs');
     const User = require('./models/User');
+    const Resource = require('./models/Resource');
     
     console.log('Checking/creating admin and security accounts...');
     
@@ -202,49 +203,86 @@ async function autoSeedDatabase() {
     const existingSecurity = await User.findOne({ email: 'security@vims.com' });
     
     if (existingAdmin && existingSecurity) {
-      console.log('Admin and Security accounts already exist, skipping seed...');
-      return;
-    }
-    
-    // Delete existing accounts to ensure clean slate (only if they exist)
-    await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
-    console.log('Removed existing admin/security accounts');
-    
-    // Use compliant password for production seeding (must be 12+ chars with uppercase, lowercase, number, special char)
-    const compliantPassword = 'SecureVIMS@123';
-    
-    // Create Admin with compliant password
-    const adminUser = new User({
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'admin@vims.com',
-      phone: '9876543210',
-      password: compliantPassword,
-      role: 'admin',
-      isApproved: true,
-      isActive: true
-    });
-    await adminUser.save();
-    console.log('✅ Admin account created with password: SecureVIMS@123');
+      console.log('Admin and Security accounts already exist, skipping user seed...');
+    } else {
+      // Delete existing accounts to ensure clean slate (only if they exist)
+      await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
+      console.log('Removed existing admin/security accounts');
+      
+      // Use compliant password for production seeding (must be 12+ chars with uppercase, lowercase, number, special char)
+      const compliantPassword = 'SecureVIMS@123';
+      
+      // Create Admin with compliant password
+      const adminUser = new User({
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'admin@vims.com',
+        phone: '9876543210',
+        password: compliantPassword,
+        role: 'admin',
+        isApproved: true,
+        isActive: true
+      });
+      await adminUser.save();
+      console.log('✅ Admin account created with password: SecureVIMS@123');
 
-    // Create seeded security head officer account with compliant password
-    const securityUser = new User({
-      firstName: 'Jane',
-      lastName: 'Smith',
-      email: 'security@vims.com',
-      phone: '9876543211',
-      password: compliantPassword,
-      role: 'security',
-      securityLevel: 'head-officer',
-      isApproved: true,
-      isActive: true
-    });
-    await securityUser.save();
-    console.log('✅ Security account created with password: SecureVIMS@123');
-    
-    console.log('\n✅ Login credentials:');
-    console.log('   Admin: admin@vims.com / SecureVIMS@123');
-    console.log('   Security: security@vims.com / SecureVIMS@123');
+      // Create seeded security head officer account with compliant password
+      const securityUser = new User({
+        firstName: 'Jane',
+        lastName: 'Smith',
+        email: 'security@vims.com',
+        phone: '9876543211',
+        password: compliantPassword,
+        role: 'security',
+        securityLevel: 'head-officer',
+        isApproved: true,
+        isActive: true
+      });
+      await securityUser.save();
+      console.log('✅ Security account created with password: SecureVIMS@123');
+      
+      console.log('\n✅ Login credentials:');
+      console.log('   Admin: admin@vims.com / SecureVIMS@123');
+      console.log('   Security: security@vims.com / SecureVIMS@123');
+    }
+
+    // Seed resources if they don't exist
+    const existingResources = await Resource.find({});
+    if (existingResources.length === 0) {
+      console.log('Seeding resources...');
+      
+      const resources = [
+        // Venues
+        { type: 'venue', name: 'Covered Court', description: 'Outdoor basketball court with roof covering' },
+        { type: 'venue', name: 'Swimming Pool', description: 'Community swimming pool' },
+        { type: 'venue', name: 'Multi-Purpose Hall', description: 'Large hall for events and gatherings' },
+        { type: 'venue', name: 'Function Room', description: 'Small room for meetings and functions' },
+        { type: 'venue', name: 'Conference Room', description: 'Room equipped for conferences and presentations' },
+
+        // Equipment
+        { type: 'equipment', name: 'Tables', description: 'Folding tables for events' },
+        { type: 'equipment', name: 'Chairs', description: 'Folding chairs for events' },
+        { type: 'equipment', name: 'Speakers', description: 'Audio speakers for announcements' },
+        { type: 'equipment', name: 'Microphones', description: 'Wireless microphones' },
+        { type: 'equipment', name: 'Projector', description: 'Video projector for presentations' },
+        { type: 'equipment', name: 'Podium', description: 'Speaker podium' },
+      ];
+
+      const adminUser = await User.findOne({ role: 'admin' });
+      if (adminUser) {
+        const resourcesWithCreator = resources.map(resource => ({
+          ...resource,
+          createdBy: adminUser._id,
+        }));
+
+        await Resource.insertMany(resourcesWithCreator);
+        console.log('✅ Resources seeded successfully');
+      } else {
+        console.log('⚠️ Admin user not found, skipping resource seeding');
+      }
+    } else {
+      console.log('Resources already exist, skipping resource seed...');
+    }
     
   } catch (error) {
     console.error('Auto-seed error:', error.message);

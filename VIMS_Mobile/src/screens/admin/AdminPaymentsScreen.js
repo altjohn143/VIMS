@@ -32,7 +32,6 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showQRVerifyDialog, setShowQRVerifyDialog] = useState(false);
-  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [showReminderDialog, setShowReminderDialog] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -46,7 +45,6 @@ const AdminPaymentsScreen = ({ navigation }) => {
     setSelectedImagePayment(null);
     setSelectedImageUri(null);
   };
-  const [generateForm, setGenerateForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [processing, setProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -136,23 +134,6 @@ const AdminPaymentsScreen = ({ navigation }) => {
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to verify payment');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleGenerateInvoices = async () => {
-    setProcessing(true);
-    try {
-      const response = await api.post('/payments/generate-monthly', generateForm);
-      
-      if (response.data.success) {
-        Alert.alert('Success', response.data.message);
-        fetchPayments();
-        setShowGenerateDialog(false);
-      }
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to generate invoices');
     } finally {
       setProcessing(false);
     }
@@ -360,10 +341,6 @@ const AdminPaymentsScreen = ({ navigation }) => {
 
       {/* Action Buttons */}
       <View style={styles.actionBar}>
-        <TouchableOpacity style={styles.actionBarButton} onPress={() => setShowGenerateDialog(true)}>
-          <Ionicons name="add-circle" size={20} color="white" />
-          <Text style={styles.actionBarButtonText}>Generate</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.actionBarButton} onPress={() => setShowReminderDialog(true)}>
           <Ionicons name="send" size={20} color="white" />
           <Text style={styles.actionBarButtonText}>Reminders</Text>
@@ -522,58 +499,6 @@ const AdminPaymentsScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </ScrollView>
             )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Generate Invoices Dialog */}
-      <Modal
-        visible={showGenerateDialog}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowGenerateDialog(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.generateModal}>
-            <Text style={styles.generateTitle}>Generate Monthly Invoices</Text>
-            
-            <View style={styles.monthPicker}>
-              <Text style={styles.pickerLabel}>Month</Text>
-              <View style={styles.pickerButtons}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
-                  <TouchableOpacity
-                    key={month}
-                    style={[styles.monthButton, generateForm.month === month && styles.selectedMonth]}
-                    onPress={() => setGenerateForm(prev => ({ ...prev, month }))}
-                  >
-                    <Text style={[styles.monthButtonText, generateForm.month === month && styles.selectedMonthText]}>
-                      {new Date(2000, month - 1).toLocaleString('default', { month: 'short' })}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            
-            <TextInput
-              style={styles.yearInput}
-              placeholder="Year"
-              value={String(generateForm.year)}
-              onChangeText={(text) => setGenerateForm(prev => ({ ...prev, year: parseInt(text) || new Date().getFullYear() }))}
-              keyboardType="numeric"
-            />
-            
-            <Text style={styles.warningText}>
-              This will generate invoices for all active residents. Existing invoices for this month will be skipped.
-            </Text>
-            
-            <View style={styles.generateActions}>
-              <TouchableOpacity style={styles.cancelGenerateButton} onPress={() => setShowGenerateDialog(false)}>
-                <Text style={styles.cancelGenerateText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.generateButton} onPress={handleGenerateInvoices} disabled={processing}>
-                {processing ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.generateButtonText}>Generate</Text>}
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>

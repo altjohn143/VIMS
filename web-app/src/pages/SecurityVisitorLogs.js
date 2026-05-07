@@ -69,7 +69,6 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -558,45 +557,6 @@ const SecurityVisitorLogs = () => {
     setViewDialogOpen(true);
   };
 
-  // Handle export to Excel
-  const handleExportExcel = () => {
-    if (visitors.length === 0) {
-      toast.error('No data to export');
-      return;
-    }
-
-    try {
-      const data = visitors.map(visitor => ({
-        'Visitor Name': visitor.visitorName || 'N/A',
-        'Visitor Phone': visitor.visitorPhone || 'N/A',
-        'Resident Name': visitor.residentId ? `${visitor.residentId.firstName || ''} ${visitor.residentId.lastName || ''}`.trim() : 'N/A',
-        'House Number': visitor.residentId?.houseNumber || 'N/A',
-        'Purpose': visitor.purpose || 'N/A',
-        'Vehicle Number': visitor.vehicleNumber || 'N/A',
-        'Expected Arrival': formatDate(visitor.expectedArrival),
-        'Expected Departure': formatDate(visitor.expectedDeparture),
-        'Actual Entry': formatDate(visitor.actualEntry),
-        'Actual Exit': formatDate(visitor.actualExit),
-        'Status': visitor.status || 'N/A',
-        'Scan Status': visitor.actualEntry ? 'Scanned' : 'Not Scanned',
-        'QR Status': visitor.qrCodeVisible ? 'Visible' : 'Hidden',
-        'Approved By': visitor.approvedBy ? `${visitor.approvedBy.firstName || ''} ${visitor.approvedBy.lastName || ''}`.trim() : 'N/A',
-        'Approval Time': formatDate(visitor.approvedAt),
-        'Created At': formatDate(visitor.createdAt)
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Visitor Logs');
-      
-      const fileName = `visitor_logs_${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(wb, fileName);
-      
-      toast.success(`Exported ${data.length} records`);
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export data');
-    }
   };
 
   // Handle print visitor pass
@@ -1322,26 +1282,6 @@ const SecurityVisitorLogs = () => {
               }}
             >
               {loading ? 'Loading...' : 'Refresh'}
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<DownloadIcon />}
-              onClick={handleExportExcel}
-              disabled={loading || visitors.length === 0}
-              sx={{ 
-                bgcolor: themeColors.primary,
-                borderRadius: 2.5,
-                textTransform: 'none',
-                fontWeight: 600,
-                '&:hover': {
-                  bgcolor: themeColors.primaryDark,
-                  transform: 'translateY(-2px)',
-                  boxShadow: `0 8px 25px ${themeColors.primary}40`
-                },
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Export Excel
             </Button>
           </Box>
         </Box>

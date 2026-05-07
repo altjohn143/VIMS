@@ -46,7 +46,6 @@ import {
   Logout as LogoutIcon,
   Refresh as RefreshIcon,
   Send as SendIcon,
-  Add as AddIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
   AdminPanelSettings as AdminIcon,
@@ -94,12 +93,13 @@ const AdminPayments = () => {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [generateInvoiceDialogOpen, setGenerateInvoiceDialogOpen] = useState(false);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [qrphDialogOpen, setQrphDialogOpen] = useState(false);
   const [selectedQRPhPayment, setSelectedQRPhPayment] = useState(null);
   const [verificationNotes, setVerificationNotes] = useState('');
-  const [generateForm, setGenerateForm] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
+  const [monthlyDuesAmount, setMonthlyDuesAmount] = useState(500);
+  const [duesAmountDialogOpen, setDuesAmountDialogOpen] = useState(false);
+  const [duesAmountDraft, setDuesAmountDraft] = useState('');
   const [processing, setProcessing] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   
@@ -158,11 +158,27 @@ const AdminPayments = () => {
     }
   }, []);
 
+  const fetchMonthlyDuesAmount = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('/api/payments/admin/monthly-dues-amount', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setMonthlyDuesAmount(response.data.data.amount);
+        setDuesAmountDraft(String(response.data.data.amount));
+      }
+    } catch (error) {
+      console.error('Error fetching monthly dues amount:', error);
+    }
+  }, []);
+
   // Now useEffect with proper dependencies
   useEffect(() => {
     fetchPayments();
     fetchStats();
-  }, [fetchPayments, fetchStats]);
+    fetchMonthlyDuesAmount();
+  }, [fetchPayments, fetchStats, fetchMonthlyDuesAmount]);
 
   const handleConfirmCashPayment = async () => {
     if (!selectedPayment) return;
@@ -184,6 +200,33 @@ const AdminPayments = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to confirm payment');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleUpdateDuesAmount = async () => {
+    const amount = parseFloat(duesAmountDraft);
+    if (Number.isNaN(amount) || amount < 0) {
+      toast.error('Please enter a valid dues amount');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        '/api/payments/admin/monthly-dues-amount',
+        { amount },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        toast.success('Monthly dues amount updated');
+        setMonthlyDuesAmount(response.data.data.amount);
+        setDuesAmountDialogOpen(false);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to update dues amount');
     } finally {
       setProcessing(false);
     }
@@ -216,28 +259,6 @@ const AdminPayments = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to verify payment');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleGenerateInvoices = async () => {
-    setProcessing(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        '/api/payments/generate-monthly',
-        generateForm,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      if (response.data.success) {
-        toast.success(response.data.message);
-        fetchPayments();
-        setGenerateInvoiceDialogOpen(false);
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to generate invoices');
     } finally {
       setProcessing(false);
     }
@@ -575,20 +596,21 @@ const AdminPayments = () => {
             mb: 3,
             borderRadius: '20px',
             display: 'flex',
-            gap: 1.25,
+            flexDirection: 'column',
+            gap: 2,
             flexWrap: 'wrap',
             border: `1px solid ${themeColors.border}`,
             boxShadow: '0 10px 26px rgba(15, 23, 42, 0.06)'
           }}
         >
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setGenerateInvoiceDialogOpen(true)}
-            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}
-          >
-            Generate Monthly Invoices
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Monthly Dues Amount: {formatCurrency(monthlyDuesAmount)}
+            </Typography>
+            <Button variant="outlined" startIcon={<SettingsIcon />} onClick={() => setDuesAmountDialogOpen(true)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+              Set Monthly Dues
+            </Button>
+          </Box>
           <Button variant="outlined" startIcon={<SendIcon />} onClick={() => setReminderDialogOpen(true)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
             Send Overdue Reminders
           </Button>
@@ -730,6 +752,15 @@ const AdminPayments = () => {
                       <TableCell>{payment.residentId?.houseNumber || 'N/A'}</TableCell>
                       <TableCell>
                         <Typography variant="body2">{payment.description}</Typography>
+                        {payment.inclusions?.length > 0 && (
+                          <Box sx={{ mt: 0.5 }}>
+                            {payment.inclusions.map((item) => (
+                              <Typography key={item} variant="caption" color="textSecondary" display="block">
+                                • {item}
+                              </Typography>
+                            ))}
+                          </Box>
+                        )}
                         {payment.notes && (
                           <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
                             {payment.notes}
@@ -858,6 +889,41 @@ const AdminPayments = () => {
             }}
           />
         </Paper>
+
+        {/* Monthly Dues Amount Dialog */}
+        <Dialog
+          open={duesAmountDialogOpen}
+          onClose={() => setDuesAmountDialogOpen(false)}
+          maxWidth="xs"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: '18px' } }}
+        >
+          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+            Update Monthly Dues
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Set the monthly association dues amount that will be used for all newly generated dues invoices.
+            </Typography>
+            <TextField
+              fullWidth
+              type="number"
+              label="Monthly Dues Amount"
+              value={duesAmountDraft}
+              onChange={(e) => setDuesAmountDraft(e.target.value)}
+              inputProps={{ min: 0, step: 1 }}
+              sx={{ mt: 1 }}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
+            <Button onClick={() => setDuesAmountDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+              Cancel
+            </Button>
+            <Button variant="contained" color="primary" onClick={handleUpdateDuesAmount} disabled={processing} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+              {processing ? <CircularProgress size={20} /> : 'Save'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Confirm Cash Payment Dialog */}
         <Dialog
@@ -1197,46 +1263,6 @@ const AdminPayments = () => {
         </Dialog>
 
         {/* Generate Invoices Dialog */}
-        <Dialog open={generateInvoiceDialogOpen} onClose={() => setGenerateInvoiceDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
-          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
-            Generate Monthly Invoices
-          </DialogTitle>
-          <DialogContent>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Month</InputLabel>
-                  <Select value={generateForm.month} onChange={(e) => setGenerateForm({ ...generateForm, month: e.target.value })}>
-                    {[...Array(12)].map((_, i) => (
-                      <MenuItem key={i + 1} value={i + 1}>
-                        {new Date(2000, i).toLocaleString('default', { month: 'long' })}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Year"
-                  type="number"
-                  value={generateForm.year}
-                  onChange={(e) => setGenerateForm({ ...generateForm, year: parseInt(e.target.value) })}
-                />
-              </Grid>
-            </Grid>
-            <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
-              This will generate invoices for all active residents. Existing invoices for this month will be skipped.
-            </Alert>
-          </DialogContent>
-          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            <Button onClick={() => setGenerateInvoiceDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
-            <Button variant="contained" onClick={handleGenerateInvoices} disabled={processing} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
-              {processing ? <CircularProgress size={20} /> : 'Generate'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
         {/* Send Reminders Dialog */}
         <Dialog open={reminderDialogOpen} onClose={() => setReminderDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>

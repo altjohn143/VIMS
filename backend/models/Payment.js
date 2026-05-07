@@ -31,6 +31,7 @@ const paymentSchema = new mongoose.Schema({
   },
   description: { type: String },
   notes: { type: String },
+  inclusions: { type: [String], default: [] }, // What's included in this payment (e.g., Maintenance, Security, Garbage, etc.)
   processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   processedAt: { type: Date },
   overdueReminderSent: { type: Boolean, default: false },

@@ -487,6 +487,15 @@ const Payments = () => {
                 <Typography variant="caption" color="textSecondary">
                   Due Date: {formatDate(currentDues.dueDate)}
                 </Typography>
+                {currentDues.inclusions?.length > 0 && (
+                  <Box sx={{ mt: 1 }}>
+                    {currentDues.inclusions.map((item) => (
+                      <Typography key={item} variant="body2" sx={{ color: themeColors.textSecondary, fontSize: 12, lineHeight: 1.5 }}>
+                        • {item}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
               </Box>
               <Button
                 variant="contained"
@@ -565,6 +574,15 @@ const Payments = () => {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">{payment.description}</Typography>
+                        {payment.inclusions?.length > 0 && (
+                          <Box sx={{ mt: 0.5 }}>
+                            {payment.inclusions.map((item) => (
+                              <Typography key={item} variant="caption" color="textSecondary" display="block">
+                                • {item}
+                              </Typography>
+                            ))}
+                          </Box>
+                        )}
                         {payment.notes && (
                           <Typography variant="caption" color="textSecondary">{payment.notes}</Typography>
                         )}

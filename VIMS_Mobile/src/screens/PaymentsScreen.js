@@ -261,6 +261,13 @@ const PaymentsScreen = ({ navigation }) => {
                 <Text style={styles.currentDuesDesc}>{currentDues.description}</Text>
                 <Text style={styles.currentDuesAmount}>{formatCurrency(currentDues.amount)}</Text>
                 <Text style={styles.currentDuesDue}>Due: {formatDate(currentDues.dueDate)}</Text>
+                {currentDues.inclusions?.length > 0 && (
+                  <View style={styles.inclusionsList}>
+                    {currentDues.inclusions.map((item, index) => (
+                      <Text key={index} style={styles.inclusionItem}>• {item}</Text>
+                    ))}
+                  </View>
+                )}
               </View>
               <TouchableOpacity
                 style={styles.payNowButton}
@@ -321,6 +328,13 @@ const PaymentsScreen = ({ navigation }) => {
                 </View>
                 
                 <Text style={styles.paymentDesc}>{payment.description}</Text>
+                {payment.inclusions?.length > 0 && (
+                  <View style={styles.inclusionsList}>
+                    {payment.inclusions.map((item, index) => (
+                      <Text key={index} style={styles.inclusionItem}>• {item}</Text>
+                    ))}
+                  </View>
+                )}
                 {payment.notes && (
                   <Text style={styles.paymentNotes}>{payment.notes}</Text>
                 )}
@@ -771,6 +785,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: themeColors.textPrimary,
     marginBottom: 4,
+  },
+  inclusionsList: {
+    marginTop: 8,
+  },
+  inclusionItem: {
+    fontSize: 11,
+    color: themeColors.textSecondary,
+    marginBottom: 2,
   },
   paymentNotes: {
     fontSize: 11,

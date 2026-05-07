@@ -228,7 +228,11 @@ router.post(
         await verification.save();
       }
 
-      const localDecision = verifyUserAgainstOcr({ user, ocr });
+      const localDecision = verifyUserAgainstOcr({ 
+        user, 
+        ocr,
+        documentType: req.body.documentType || 'valid_id'
+      });
       verification.aiResult = {
         score: localDecision.score ?? null,
         ocrName: ocrFullName,

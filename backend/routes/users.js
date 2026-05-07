@@ -775,6 +775,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       phone: String(phone).trim(),
       password,
       role,
+      securityLevel: role === 'security' ? 'personnel' : null,
       isApproved: true,
       isActive: true,
       profileComplete: true,

@@ -216,7 +216,8 @@ router.put('/:id/status', protect, async (req, res) => {
       }
     }
     else if (req.user.role === 'security') {
-      if (request.assignedTo?.toString() !== req.user.id) {
+      const assignedToId = request.assignedTo?._id?.toString() || request.assignedTo?.toString();
+      if (assignedToId !== req.user.id) {
         return res.status(403).json({
           success: false,
           error: 'Not assigned to this request'

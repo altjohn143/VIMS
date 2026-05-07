@@ -62,6 +62,12 @@ const userSchema = new mongoose.Schema({
     enum: ['resident', 'admin', 'security'],
     default: 'resident'
   },
+
+  securityLevel: {
+    type: String,
+    enum: ['head-officer', 'personnel'],
+    default: null
+  },
   
   // Security-specific fields
   assignedPhases: [{

@@ -227,7 +227,7 @@ async function autoSeedDatabase() {
     await adminUser.save();
     console.log('✅ Admin account created with password: SecureVIMS@123');
 
-    // Create Security with compliant password
+    // Create seeded security head officer account with compliant password
     const securityUser = new User({
       firstName: 'Jane',
       lastName: 'Smith',
@@ -235,6 +235,7 @@ async function autoSeedDatabase() {
       phone: '9876543211',
       password: compliantPassword,
       role: 'security',
+      securityLevel: 'head-officer',
       isApproved: true,
       isActive: true
     });

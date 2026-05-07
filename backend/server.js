@@ -279,6 +279,8 @@ try {
   console.log('/api/report-schedules routes imported');
   const reservationRoutes = require('./routes/reservations');
   console.log('/api/reservations routes imported');
+  const resourceRoutes = require('./routes/resources');
+  console.log('/api/resources routes imported');
   const announcementRoutes = require('./routes/announcements');
   console.log('/api/announcements routes imported');
   const incidentRoutes = require('./routes/incidents');
@@ -314,6 +316,8 @@ try {
   console.log('/api/report-schedules routes registered');
   app.use('/api/reservations', reservationRoutes);
   console.log('/api/reservations routes registered');
+  app.use('/api/resources', resourceRoutes);
+  console.log('/api/resources routes registered');
   app.use('/api/announcements', announcementRoutes);
   console.log('/api/announcements routes registered');
   app.use('/api/incidents', incidentRoutes);

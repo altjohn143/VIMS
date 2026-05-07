@@ -17,23 +17,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import api from '../../utils/api';
 
-const VENUES = [
-  'Covered Court',
-  'Swimming Pool',
-  'Multi-Purpose Hall',
-  'Function Room',
-  'Conference Room',
-];
-
-const EQUIPMENT = [
-  'Tables',
-  'Chairs',
-  'Speakers',
-  'Microphones',
-  'Projector',
-  'Podium',
-];
-
 const AdminReservationsScreen = ({ navigation }) => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +24,8 @@ const AdminReservationsScreen = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resources, setResources] = useState({ venue: [], equipment: [] });
+  const [resourceModalVisible, setResourceModalVisible] = useState(false);
 
   const [formData, setFormData] = useState({
     resourceType: 'venue',
@@ -53,6 +38,12 @@ const AdminReservationsScreen = ({ navigation }) => {
     notes: '',
   });
 
+  const [resourceFormData, setResourceFormData] = useState({
+    type: 'venue',
+    name: '',
+    description: '',
+  });
+
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -60,6 +51,7 @@ const AdminReservationsScreen = ({ navigation }) => {
 
   useEffect(() => {
     fetchReservations();
+    fetchResources();
   }, []);
 
   const fetchReservations = async () => {
@@ -74,6 +66,17 @@ const AdminReservationsScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const fetchResources = async () => {
+    try {
+      const response = await api.get('/reservations/resources');
+      if (response.data.success) {
+        setResources(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching resources:', error);
     }
   };
 
@@ -165,6 +168,37 @@ const AdminReservationsScreen = ({ navigation }) => {
         },
       ]
     );
+  };
+
+  const handleResourceModalOpen = () => {
+    setResourceFormData({
+      type: 'venue',
+      name: '',
+      description: '',
+    });
+    setResourceModalVisible(true);
+  };
+
+  const handleResourceModalClose = () => {
+    setResourceModalVisible(false);
+  };
+
+  const handleResourceSubmit = async () => {
+    if (!resourceFormData.name.trim()) {
+      Alert.alert('Error', 'Please enter a resource name');
+      return;
+    }
+
+    try {
+      await api.post('/resources', resourceFormData);
+      Alert.alert('Success', 'Resource added successfully');
+      fetchResources();
+      handleResourceModalClose();
+    } catch (error) {
+      console.error('Error adding resource:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to add resource';
+      Alert.alert('Error', errorMessage);
+    }
   };
 
   const handleUpdateStatus = async (id, status) => {
@@ -369,17 +403,25 @@ const AdminReservationsScreen = ({ navigation }) => {
 
               {/* Resource Name */}
               <Text style={styles.label}>Resource Name</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={formData.resourceName}
-                  onValueChange={(value) => setFormData({ ...formData, resourceName: value })}
-                  style={styles.picker}
+              <View style={styles.resourceNameRow}>
+                <View style={[styles.pickerContainer, { flex: 1, marginRight: 10 }]}>
+                  <Picker
+                    selectedValue={formData.resourceName}
+                    onValueChange={(value) => setFormData({ ...formData, resourceName: value })}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Select resource..." value="" />
+                    {(resources[formData.resourceType] || []).map((item) => (
+                      <Picker.Item key={item} label={item} value={item} />
+                    ))}
+                  </Picker>
+                </View>
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={handleResourceModalOpen}
                 >
-                  <Picker.Item label="Select resource..." value="" />
-                  {(formData.resourceType === 'venue' ? VENUES : EQUIPMENT).map((item) => (
-                    <Picker.Item key={item} label={item} value={item} />
-                  ))}
-                </Picker>
+                  <Ionicons name="add" size={24} color="#166534" />
+                </TouchableOpacity>
               </View>
 
               {/* Description */}
@@ -500,6 +542,76 @@ const AdminReservationsScreen = ({ navigation }) => {
                     {editingReservation ? 'Update' : 'Create'}
                   </Text>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Resource Modal */}
+      <Modal
+        visible={resourceModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleResourceModalClose}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add New Resource</Text>
+              <TouchableOpacity onPress={handleResourceModalClose}>
+                <Ionicons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Resource Type */}
+              <Text style={styles.label}>Resource Type</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={resourceFormData.type}
+                  onValueChange={(value) => setResourceFormData({ ...resourceFormData, type: value })}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Venue" value="venue" />
+                  <Picker.Item label="Equipment" value="equipment" />
+                </Picker>
+              </View>
+
+              {/* Resource Name */}
+              <Text style={styles.label}>Resource Name *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Enter resource name"
+                value={resourceFormData.name}
+                onChangeText={(text) => setResourceFormData({ ...resourceFormData, name: text })}
+              />
+
+              {/* Description */}
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Brief description (optional)"
+                value={resourceFormData.description}
+                onChangeText={(text) => setResourceFormData({ ...resourceFormData, description: text })}
+                multiline
+                numberOfLines={2}
+              />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleResourceModalClose}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, !resourceFormData.name.trim() && styles.submitButtonDisabled]}
+                onPress={handleResourceSubmit}
+                disabled={!resourceFormData.name.trim()}
+              >
+                <Text style={styles.submitButtonText}>Add Resource</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -767,6 +879,20 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+  },
+  resourceNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#f0fdf4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#dcfce7',
   },
   textInput: {
     borderWidth: 1,

@@ -102,25 +102,16 @@ const AdminServiceRequests = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
 
-  // Category to role/specialization mapping
-  const categorySpecializationMap = {
-    plumbing: ['admin', 'security'],
-    electrical: ['admin', 'security'],
-    carpentry: ['admin', 'security'],
-    cleaning: ['admin', 'security'],
-    gardening: ['admin'],
-    security: ['security'],
-    other: ['admin', 'security']
-  };
-
   // Emergency categories that require immediate security response
   const emergencyCategories = useMemo(() => ['security'], []);
   const emergencyKeywords = useMemo(() => ['fire', 'emergency', 'alert', 'danger', 'urgent'], []);
 
   // Function to get staff members suitable for a specific category
   const getStaffForCategory = (category) => {
-    const allowedRoles = categorySpecializationMap[category] || ['admin', 'security'];
-    return staffMembers.filter(staff => allowedRoles.includes(staff.role));
+    if (category === 'security') {
+      return staffMembers.filter(staff => staff.role === 'security');
+    }
+    return staffMembers.filter(staff => staff.role !== 'security');
   };
 
   // Function to check if request is emergency

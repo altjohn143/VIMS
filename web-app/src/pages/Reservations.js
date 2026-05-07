@@ -128,6 +128,7 @@ const Reservations = () => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [resources, setResources] = useState({ venue: [], equipment: [] });
 
   const [formData, setFormData] = useState({
     resourceType: 'venue',
@@ -141,6 +142,7 @@ const Reservations = () => {
 
   useEffect(() => {
     fetchReservations();
+    fetchResources();
   }, []);
 
   const fetchReservations = async () => {
@@ -157,6 +159,20 @@ const Reservations = () => {
       setSnackbar({ open: true, message: 'Failed to fetch reservations', severity: 'error' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchResources = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('/api/reservations/resources', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setResources(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching resources:', error);
     }
   };
 
@@ -874,7 +890,7 @@ const Reservations = () => {
                     label="Resource Name"
                     onChange={(e) => setFormData({ ...formData, resourceName: e.target.value })}
                   >
-                    {(formData.resourceType === 'venue' ? VENUES : EQUIPMENT).map((item) => (
+                    {(resources[formData.resourceType] || []).map((item) => (
                       <MenuItem key={item} value={item}>{item}</MenuItem>
                     ))}
                   </Select>

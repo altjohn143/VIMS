@@ -16,28 +16,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import api from '../utils/api';
 
-const VENUES = [
-  'Covered Court',
-  'Swimming Pool',
-  'Multi-Purpose Hall',
-  'Function Room',
-  'Conference Room',
-];
-
-const EQUIPMENT = [
-  'Tables',
-  'Chairs',
-  'Speakers',
-  'Microphones',
-  'Projector',
-  'Podium',
-];
-
 const ReservationsScreen = ({ navigation }) => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resources, setResources] = useState({ venue: [], equipment: [] });
 
   const [formData, setFormData] = useState({
     resourceType: 'venue',
@@ -56,6 +40,7 @@ const ReservationsScreen = ({ navigation }) => {
 
   useEffect(() => {
     fetchReservations();
+    fetchResources();
   }, []);
 
   const fetchReservations = async () => {
@@ -69,6 +54,17 @@ const ReservationsScreen = ({ navigation }) => {
       Alert.alert('Error', 'Failed to fetch reservations');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchResources = async () => {
+    try {
+      const response = await api.get('/reservations/resources');
+      if (response.data.success) {
+        setResources(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching resources:', error);
     }
   };
 
@@ -325,7 +321,7 @@ const ReservationsScreen = ({ navigation }) => {
                   style={styles.picker}
                 >
                   <Picker.Item label="Select resource..." value="" />
-                  {(formData.resourceType === 'venue' ? VENUES : EQUIPMENT).map((item) => (
+                  {(resources[formData.resourceType] || []).map((item) => (
                     <Picker.Item key={item} label={item} value={item} />
                   ))}
                 </Picker>

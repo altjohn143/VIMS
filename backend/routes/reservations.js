@@ -1,25 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const Reservation = require('../models/Reservation');
+const Resource = require('../models/Resource');
 const { protect, authorize } = require('../middleware/auth');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 
-const VENUES = [
-  'Covered Court',
-  'Swimming Pool',
-  'Multi-Purpose Hall',
-  'Function Room',
-  'Conference Room',
-];
-
-const EQUIPMENT = [
-  'Tables',
-  'Chairs',
-  'Speakers',
-  'Microphones',
-  'Projector',
-  'Podium',
-];
+// Get available resources for dropdown
+router.get('/resources', protect, async (req, res) => {
+  try {
+    const resources = await Resource.find({ isActive: true }).sort({ type: 1, name: 1 });
+    const grouped = resources.reduce((acc, resource) => {
+      if (!acc[resource.type]) {
+        acc[resource.type] = [];
+      }
+      acc[resource.type].push(resource.name);
+      return acc;
+    }, {});
+    res.json({ success: true, data: grouped });
+  } catch (error) {
+    console.error('Get resources error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch resources' });
+  }
+});
 
 router.get('/', protect, async (req, res) => {
   try {
@@ -49,6 +51,12 @@ router.post('/', protect, async (req, res) => {
 
     if (!resourceType || !resourceName || !startDate || !endDate) {
       return res.status(400).json({ success: false, error: 'Resource type, name, start, and end times are required' });
+    }
+
+    // Validate that the resource exists
+    const resource = await Resource.findOne({ name: resourceName, type: resourceType, isActive: true });
+    if (!resource) {
+      return res.status(400).json({ success: false, error: 'Invalid resource selected' });
     }
 
     const now = new Date();

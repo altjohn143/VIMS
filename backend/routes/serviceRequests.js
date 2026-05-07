@@ -539,13 +539,27 @@ router.put('/:id/assign-staff', protect, authorize('admin'), async (req, res) =>
     }
     
     const staff = await User.findById(assignedTo);
-    if (!staff || !['admin', 'security'].includes(staff.role)) {
+    if (!staff || !staff.isActive || staff.role === 'resident') {
       return res.status(400).json({
         success: false,
         error: 'Invalid staff member'
       });
     }
-    
+
+    if (request.category === 'security' && staff.role !== 'security') {
+      return res.status(400).json({
+        success: false,
+        error: 'Security requests must be assigned to security staff'
+      });
+    }
+
+    if (request.category !== 'security' && staff.role === 'security') {
+      return res.status(400).json({
+        success: false,
+        error: 'Security staff can only be assigned to security requests'
+      });
+    }
+
     request.status = 'assigned';
     request.assignedTo = assignedTo;
     request.assignedAt = new Date();
@@ -701,7 +715,7 @@ router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
 router.get('/admin/staff', protect, authorize('admin'), async (req, res) => {
   try {
     const staffMembers = await User.find({
-      role: { $in: ['admin', 'security'] },
+      role: { $ne: 'resident' },
       isActive: true
     }).select('firstName lastName email phone role');
     

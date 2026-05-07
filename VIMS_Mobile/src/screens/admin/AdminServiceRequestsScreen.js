@@ -56,6 +56,13 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     { value: 'other', label: 'Other', icon: 'apps' },
   ];
 
+  const getStaffForCategory = (category) => {
+    if (category === 'security') {
+      return staffMembers.filter(staff => staff.role === 'security');
+    }
+    return staffMembers.filter(staff => staff.role !== 'security');
+  };
+
   const priorityColors = {
     low: themeColors.success,
     medium: themeColors.warning,
@@ -495,7 +502,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                           style={styles.picker}
                         >
                           <Picker.Item label="Select staff member" value="" />
-                          {staffMembers.map(staff => (
+                          {getStaffForCategory(selectedRequest.category).map(staff => (
                             <Picker.Item
                               key={staff._id}
                               label={`${staff.firstName} ${staff.lastName} (${staff.role})`}

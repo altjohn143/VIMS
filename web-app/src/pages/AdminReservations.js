@@ -44,23 +44,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-
-const VENUES = [
-  'Covered Court',
-  'Swimming Pool',
-  'Multi-Purpose Hall',
-  'Function Room',
-  'Conference Room',
-];
-
-const EQUIPMENT = [
-  'Tables',
-  'Chairs',
-  'Speakers',
-  'Microphones',
-  'Projector',
-  'Podium',
-];
+import { Add as AddIcon } from '@mui/icons-material';
 
 const AdminReservations = () => {
   const [reservations, setReservations] = useState([]);
@@ -68,6 +52,8 @@ const AdminReservations = () => {
   const [open, setOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [resources, setResources] = useState({ venue: [], equipment: [] });
+  const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     resourceType: 'venue',
@@ -80,8 +66,15 @@ const AdminReservations = () => {
     notes: '',
   });
 
+  const [resourceFormData, setResourceFormData] = useState({
+    type: 'venue',
+    name: '',
+    description: '',
+  });
+
   useEffect(() => {
     fetchReservations();
+    fetchResources();
   }, []);
 
   const fetchReservations = async () => {
@@ -98,6 +91,21 @@ const AdminReservations = () => {
       setSnackbar({ open: true, message: 'Failed to fetch reservations', severity: 'error' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchResources = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('/api/reservations/resources', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setResources(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching resources:', error);
+      setSnackbar({ open: true, message: 'Failed to fetch resources', severity: 'error' });
     }
   };
 
@@ -191,6 +199,35 @@ const AdminReservations = () => {
     } catch (error) {
       console.error('Error updating reservation status:', error);
       setSnackbar({ open: true, message: 'Failed to update reservation status', severity: 'error' });
+    }
+  };
+
+  const handleResourceDialogOpen = () => {
+    setResourceFormData({
+      type: 'venue',
+      name: '',
+      description: '',
+    });
+    setResourceDialogOpen(true);
+  };
+
+  const handleResourceDialogClose = () => {
+    setResourceDialogOpen(false);
+  };
+
+  const handleResourceSubmit = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/resources', resourceFormData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSnackbar({ open: true, message: 'Resource added successfully', severity: 'success' });
+      fetchResources();
+      handleResourceDialogClose();
+    } catch (error) {
+      console.error('Error adding resource:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to add resource';
+      setSnackbar({ open: true, message: errorMessage, severity: 'error' });
     }
   };
 
@@ -373,11 +410,20 @@ const AdminReservations = () => {
                     label="Resource Name"
                     onChange={(e) => setFormData({ ...formData, resourceName: e.target.value })}
                   >
-                    {(formData.resourceType === 'venue' ? VENUES : EQUIPMENT).map((item) => (
+                    {(resources[formData.resourceType] || []).map((item) => (
                       <MenuItem key={item} value={item}>{item}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
+                <IconButton
+                  onClick={handleResourceDialogOpen}
+                  sx={{ mt: 1, ml: 1 }}
+                  size="small"
+                  color="primary"
+                  title="Add new resource"
+                >
+                  <AddIcon />
+                </IconButton>
               </Grid>
               <Grid item xs={12}>
                 <TextField
@@ -471,6 +517,57 @@ const AdminReservations = () => {
             <Button onClick={handleCloseDialog}>Cancel</Button>
             <Button onClick={handleSubmit} variant="contained">
               {editingReservation ? 'Update' : 'Create'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Add Resource Dialog */}
+        <Dialog open={resourceDialogOpen} onClose={handleResourceDialogClose} maxWidth="sm" fullWidth>
+          <DialogTitle>Add New Resource</DialogTitle>
+          <DialogContent>
+            <Grid container spacing={3} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Resource Type</InputLabel>
+                  <Select
+                    value={resourceFormData.type}
+                    label="Resource Type"
+                    onChange={(e) => setResourceFormData({ ...resourceFormData, type: e.target.value })}
+                  >
+                    <MenuItem value="venue">Venue</MenuItem>
+                    <MenuItem value="equipment">Equipment</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Resource Name"
+                  value={resourceFormData.name}
+                  onChange={(e) => setResourceFormData({ ...resourceFormData, name: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Description"
+                  multiline
+                  rows={2}
+                  value={resourceFormData.description}
+                  onChange={(e) => setResourceFormData({ ...resourceFormData, description: e.target.value })}
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleResourceDialogClose}>Cancel</Button>
+            <Button
+              onClick={handleResourceSubmit}
+              variant="contained"
+              disabled={!resourceFormData.name.trim()}
+            >
+              Add Resource
             </Button>
           </DialogActions>
         </Dialog>

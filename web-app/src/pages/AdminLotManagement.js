@@ -167,8 +167,6 @@ const AdminLotManagement = () => {
     }
   };
 
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'vacant': return themeColors.success;

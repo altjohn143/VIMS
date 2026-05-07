@@ -564,6 +564,7 @@ const Register = () => {
   };
 
   const tryOcrAutofill = async (nextFront, nextBack) => {
+    if (registrationMode !== 'ocr') return;
     if (!nextFront || !nextBack) return;
     if (ocrLoading) return;
     if (ocrUnavailable) return;

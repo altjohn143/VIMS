@@ -110,6 +110,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [ocrIdNumber, setOcrIdNumber] = useState('');
   const [registrationMode, setRegistrationMode] = useState(null);
   const [showIdUploadStep, setShowIdUploadStep] = useState(false);
+  const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
 
   // DOB picker
   const [dobPickerOpen, setDobPickerOpen] = useState(false);
@@ -765,7 +766,11 @@ const RegisterScreen = ({ navigation, route }) => {
 
           {!registrationMode ? (
             <View>
-              <TouchableOpacity style={styles.modeCard} onPress={() => setRegistrationMode('manual')}>
+              <TouchableOpacity style={styles.modeCard} onPress={() => {
+                setRegistrationMode('manual');
+                setShowIdUploadStep(false);
+                setOcrStepCompleted(false);
+              }}>
                 <Text style={styles.modeTitle}>Manual entry</Text>
                 <Text style={styles.modeDescription}>
                   Enter your details manually and upload your ID. The ID upload will be used for verification only and will not trigger OCR automatically.
@@ -778,6 +783,7 @@ const RegisterScreen = ({ navigation, route }) => {
               <TouchableOpacity style={styles.modeCard} onPress={() => {
                 setRegistrationMode('ocr');
                 setShowIdUploadStep(true);
+                setOcrStepCompleted(false);
               }}>
                 <Text style={styles.modeTitle}>ID upload + OCR autofill</Text>
                 <Text style={styles.modeDescription}>
@@ -881,6 +887,7 @@ const RegisterScreen = ({ navigation, route }) => {
                 onPress={() => {
                   setShowIdUploadStep(false);
                   setRegistrationMode('manual');
+                  setOcrStepCompleted(false);
                 }}
               >
                 <Text style={styles.mapButtonText}>Skip OCR & Enter Manually</Text>
@@ -889,7 +896,7 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        {registrationMode && !showIdUploadStep && (
+        {registrationMode && (!showIdUploadStep && (registrationMode !== 'ocr' || ocrStepCompleted)) && (
           <View style={[styles.formCard, shadows.medium]}>
           <View style={styles.inputContainer}>
             <Ionicons name="person" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />

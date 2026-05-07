@@ -10,45 +10,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
-import VisitorManagement from './pages/VisitorManagement';
-import ServiceRequests from './pages/ServiceRequests';
-import SecurityVisitorApproval from './pages/SecurityVisitorApproval';
-import AdminVisitorManagement from './pages/AdminVisitorManagement';
-import AdminVisitorReports from './pages/AdminVisitorReports';
-import SecurityVisitorLogs from './pages/SecurityVisitorLogs';
-import SecurityServiceRequests from './pages/SecurityServiceRequests';
-import SecurityPatrolSchedule from './pages/SecurityPatrolSchedule';
-import SecurityIncidents from './pages/SecurityIncidents';
-import AdminServiceRequests from './pages/AdminServiceRequests';
-import ProfileSettings from './pages/ProfileSettings';
 import PublicLotMap from './pages/PublicLotMap';
-import AdminApprovals from './pages/AdminApprovals';
 import PendingApproval from './pages/PendingApproval';
-import AdminUserManagement from './pages/AdminUserManagement';
-import Payments from './pages/Payments';
-import AdminPayments from './pages/AdminPayments';
-import AdminVerificationQueue from './pages/AdminVerificationQueue';
-import Notifications from './pages/Notifications';
-import AdminReportSchedules from './pages/AdminReportSchedules';
-import AdminReports from './pages/AdminReports';
-import Announcements from './pages/Announcements';
-import AdminAnnouncements from './pages/AdminAnnouncements';
-import AdminLotManagement from './pages/AdminLotManagement';
-import Chatbot from './pages/Chatbot';
-
-// NEW RESERVATION PAGES
-import Reservations from './pages/Reservations';
-import AdminReservations from './pages/AdminReservations';
-
-// NEW ARCHIVE PAGES
-import ArchivedUsers from './pages/ArchivedUsers';
-import ArchivedAnnouncements from './pages/ArchivedAnnouncements';
-import ArchivedServiceRequests from './pages/ArchivedServiceRequests';
-
-// NEW PAYMENT PAGES
-import PaymentRedirect from './pages/PaymentRedirect';
-import PaymentSuccess from './pages/PaymentSuccess';
-import PaymentCancelled from './pages/PaymentCancelled';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 

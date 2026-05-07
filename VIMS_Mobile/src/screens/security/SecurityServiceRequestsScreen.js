@@ -80,9 +80,15 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   };
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return rows;
+    const onlyAssigned = rows.filter((r) => {
+      const assignedId = r?.assignedTo?._id || r?.assignedTo;
+      const myId = user?.id || user?._id;
+      return Boolean(myId && assignedId && String(assignedId) === String(myId));
+    });
+
+    if (!query.trim()) return onlyAssigned;
     const q = query.trim().toLowerCase();
-    return rows.filter((r) => {
+    return onlyAssigned.filter((r) => {
       const residentName = `${r?.residentId?.firstName || ''} ${r?.residentId?.lastName || ''}`.toLowerCase();
       return (
         String(r?.title || '').toLowerCase().includes(q) ||
@@ -92,7 +98,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         String(r?.residentId?.houseNumber || '').toLowerCase().includes(q)
       );
     });
-  }, [rows, query]);
+  }, [rows, query, user]);
 
   const canUpdate = useCallback(
     (req) => {

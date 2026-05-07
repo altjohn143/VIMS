@@ -82,6 +82,10 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
     
     let filter = { isArchived: false };
 
+    if (req.user.role === 'security') {
+      filter.assignedTo = req.user.id;
+    }
+
     if (status && status !== 'all') {
       filter.status = status;
     }

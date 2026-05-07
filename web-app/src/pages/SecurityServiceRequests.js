@@ -61,7 +61,6 @@ const SecurityServiceRequests = () => {
   const [priority, setPriority] = useState('all');
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
-  const [assignedOnly, setAssignedOnly] = useState(true);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
 
   const load = useCallback(async () => {
@@ -91,7 +90,6 @@ const SecurityServiceRequests = () => {
   };
 
   const filteredRows = rows.filter((item) => {
-    if (assignedOnly && item.assignedTo?._id !== currentUser?._id) return false;
     const haystack = `${item.title || ''} ${item.description || ''} ${item.residentId?.firstName || ''} ${item.residentId?.lastName || ''}`.toLowerCase();
     return haystack.includes(query.toLowerCase());
   });
@@ -256,14 +254,6 @@ const SecurityServiceRequests = () => {
             <MenuItem value="sanitation">Sanitation</MenuItem>
             <MenuItem value="other">Other</MenuItem>
           </TextField>
-          <Button
-            variant={assignedOnly ? 'contained' : 'outlined'}
-            size="small"
-            onClick={() => setAssignedOnly((v) => !v)}
-            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
-          >
-            {assignedOnly ? 'Assigned to me' : 'All visible'}
-          </Button>
           </Box>
         </Box>
 

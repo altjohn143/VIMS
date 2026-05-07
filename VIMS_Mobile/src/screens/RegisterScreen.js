@@ -26,9 +26,20 @@ import RegisterLotMapModal from './register/RegisterLotMapModal';
 
 const ID_DOCUMENT_TYPE_OPTIONS = [
   { value: 'national_id', label: 'National ID' },
-  { value: 'driver_license', label: 'Driver’s License' },
+  { value: 'sss', label: 'SSS ID' },
+  { value: 'gsis', label: 'GSIS ID' },
+  { value: 'umid', label: 'UMID' },
   { value: 'passport', label: 'Passport' },
-  { value: 'other', label: 'Other ID' }
+  { value: 'driver_license', label: 'Driver\'s License' },
+  { value: 'prc', label: 'PRC ID' },
+  { value: 'voters', label: 'Voter\'s ID' },
+  { value: 'nbi', label: 'NBI Clearance' },
+  { value: 'owwa', label: 'OWWA ID' },
+  { value: 'philhealth', label: 'PhilHealth ID' },
+  { value: 'tin', label: 'TIN ID' },
+  { value: 'pagibig', label: 'Pag-Ibig ID' },
+  { value: 'afp', label: 'AFP ID' },
+  { value: 'pnp', label: 'PNP ID' }
 ];
 
 const RegisterScreen = ({ navigation, route }) => {

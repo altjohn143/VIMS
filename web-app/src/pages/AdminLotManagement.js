@@ -24,18 +24,15 @@ import {
   MenuItem,
   TextField,
   InputAdornment,
-  CircularProgress,
-  Alert
+  CircularProgress
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
-  Home as HomeIcon,
   Search as SearchIcon,
   Assessment as AssessmentIcon,
   Business as BusinessIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import ReportToolbar from '../components/ReportToolbar';
@@ -56,7 +53,6 @@ const themeColors = {
 };
 
 const AdminLotManagement = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [lots, setLots] = useState([]);
   const [filteredLots, setFilteredLots] = useState([]);

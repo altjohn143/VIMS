@@ -58,8 +58,6 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import ReportToolbar from '../components/ReportToolbar';
 
 // Dashboard Theme Colors (from Login.js)

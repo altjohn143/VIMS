@@ -725,7 +725,7 @@ const AdminUserManagement = () => {
           </Button>
 
           <Button
-            onClick={() => navigate('/admin/archived-users')}
+            onClick={() => navigate('/dashboard/admin/archived-users')}
             variant="outlined"
             sx={{
               mr: 2,

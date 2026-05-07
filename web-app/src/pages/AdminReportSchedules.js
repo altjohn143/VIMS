@@ -201,7 +201,7 @@ const AdminReportSchedules = () => {
         <Toolbar>
           <IconButton
             component={RouterLink}
-            to="/admin/reports"
+            to="/dashboard/admin/reports"
             sx={{
               mr: 2,
               color: themeColors.primary,

@@ -129,7 +129,7 @@ const ArchivedUsers = () => {
       <Box sx={{ mb: 4 }}>
         <Button
           variant="outlined"
-          onClick={() => navigate('/admin/users')}
+          onClick={() => navigate('/dashboard/admin/users')}
           sx={{ mb: 2 }}
         >
           ← Back to User Management

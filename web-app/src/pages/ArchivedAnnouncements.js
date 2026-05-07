@@ -119,7 +119,7 @@ const ArchivedAnnouncements = () => {
       <Box sx={{ mb: 4 }}>
         <Button
           variant="outlined"
-          onClick={() => navigate('/admin/announcements')}
+          onClick={() => navigate('/dashboard/admin/announcements')}
           sx={{ mb: 2 }}
         >
           ← Back to Announcements

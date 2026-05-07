@@ -153,6 +153,7 @@ router.post(
             userId: user._id,
             residentEmail: snapEmail,
             residentDisplayName: snapName,
+            documentType: req.body.documentType || 'valid_id',
             frontImage,
             frontImageData: frontMeta.buffer,
             frontImageMimeType: frontMeta.mimetype,
@@ -172,6 +173,7 @@ router.post(
           verification.backImageMimeType = backMeta.mimetype;
           verification.residentEmail = snapEmail;
           verification.residentDisplayName = snapName;
+          verification.documentType = req.body.documentType || verification.documentType || 'valid_id';
           verification.status = 'manual_review';
           verification.reviewNotes = 'OCR failed while extracting ID details. Routed to manual review.';
           verification.rejectReason = '';
@@ -201,6 +203,7 @@ router.post(
           userId: user._id,
           residentEmail: snapEmail,
           residentDisplayName: snapName,
+          documentType: req.body.documentType || 'valid_id',
           frontImage,
           frontImageData: frontMeta.buffer,
           frontImageMimeType: frontMeta.mimetype,
@@ -218,6 +221,7 @@ router.post(
         verification.backImageMimeType = backMeta.mimetype;
         verification.residentEmail = snapEmail;
         verification.residentDisplayName = snapName;
+        verification.documentType = req.body.documentType || verification.documentType || 'valid_id';
         verification.status = 'queued_ai';
         verification.rejectReason = '';
         verification.reviewNotes = '';

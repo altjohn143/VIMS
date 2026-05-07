@@ -78,6 +78,12 @@ const COUNTRY_CODES = [
 const EMPTY_VEHICLE = { plateNumber: '', make: '', model: '', color: '' };
 const EMPTY_FAMILY_MEMBER = { name: '', relationship: '', otherRelationship: '', age: '', phone: '' };
 const RELATIONSHIP_OPTIONS = ['Mother', 'Father', 'Brother', 'Sister', 'Spouse', 'Son', 'Daughter', 'Grandparent', 'Other'];
+const ID_DOCUMENT_TYPE_OPTIONS = [
+  { value: 'national_id', label: 'National ID' },
+  { value: 'driver_license', label: 'Driver’s License' },
+  { value: 'passport', label: 'Passport' },
+  { value: 'other', label: 'Other ID' }
+];
 
 const Register = () => {
   const themeColors = {
@@ -107,6 +113,7 @@ const Register = () => {
     role: 'resident',
     selectedLot: '',
     idNumber: '',
+    documentType: 'national_id',
     noVehicles: false,
     soloResident: false,
     vehicles: [EMPTY_VEHICLE],
@@ -457,6 +464,7 @@ const Register = () => {
     if (ocrIdNumber.trim()) {
       formDataToSend.append('idNumber', ocrIdNumber.trim());
     }
+    formDataToSend.append('documentType', formData.documentType);
 
     // Add vehicles
     const validVehicles = formData.noVehicles
@@ -518,6 +526,7 @@ const Register = () => {
             try {
               const multipart = new FormData();
               multipart.append('email', emailLower);
+              multipart.append('documentType', formData.documentType);
               multipart.append('frontImage', idDocs.frontImage);
               multipart.append('backImage', idDocs.backImage);
               await axios.post('/api/verifications/upload-id', multipart);
@@ -574,6 +583,7 @@ const Register = () => {
       const multipart = new FormData();
       multipart.append('frontImage', nextFront);
       multipart.append('backImage', nextBack);
+      multipart.append('documentType', formData.documentType);
 
       const res = await axios.post('/api/verifications/ocr-id', multipart);
 
@@ -1363,7 +1373,9 @@ const Register = () => {
                         setOcrIdNumber('');
                         setIdDocs((prev) => {
                           const next = { ...prev, frontImage: file };
-                          queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                          if (registrationMode === 'ocr') {
+                            queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                          }
                           return next;
                         });
                       }}
@@ -1393,7 +1405,24 @@ const Register = () => {
                     </Typography>
                   )}
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12}>
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel id="document-type-label">ID document type</InputLabel>
+                  <Select
+                    labelId="document-type-label"
+                    id="document-type"
+                    name="documentType"
+                    value={formData.documentType}
+                    label="ID document type"
+                    onChange={(e) => setFormData(prev => ({ ...prev, documentType: e.target.value }))}
+                  >
+                    {ID_DOCUMENT_TYPE_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={4}>
                   <Button variant="outlined" component="label" fullWidth>
                     <ImageIcon sx={{ mr: 1 }} />
                     Upload ID Back
@@ -1408,7 +1437,9 @@ const Register = () => {
                         setOcrIdNumber('');
                         setIdDocs((prev) => {
                           const next = { ...prev, backImage: file };
-                          queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                          if (registrationMode === 'ocr') {
+                            queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                          }
                           return next;
                         });
                       }}
@@ -1621,6 +1652,23 @@ const Register = () => {
             To use OCR autofill, please upload both the front and back images of your valid ID first. We will scan it and prefill your name, date of birth, and ID number before showing the full registration form.
           </Typography>
           <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="dialog-document-type-label">ID document type</InputLabel>
+                <Select
+                  labelId="dialog-document-type-label"
+                  id="dialog-document-type"
+                  name="documentType"
+                  value={formData.documentType}
+                  label="ID document type"
+                  onChange={(e) => setFormData(prev => ({ ...prev, documentType: e.target.value }))}
+                >
+                  {ID_DOCUMENT_TYPE_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid item xs={12} sm={6}>
               <Button variant="outlined" component="label" fullWidth>
                 <ImageIcon sx={{ mr: 1 }} />
@@ -1636,7 +1684,9 @@ const Register = () => {
                     setOcrIdNumber('');
                     setIdDocs((prev) => {
                       const next = { ...prev, frontImage: file };
-                      queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                      if (registrationMode === 'ocr') {
+                        queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                      }
                       return next;
                     });
                   }}
@@ -1681,7 +1731,9 @@ const Register = () => {
                     setOcrIdNumber('');
                     setIdDocs((prev) => {
                       const next = { ...prev, backImage: file };
-                      queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                      if (registrationMode === 'ocr') {
+                        queueMicrotask(() => tryOcrAutofill(next.frontImage, next.backImage));
+                      }
                       return next;
                     });
                   }}

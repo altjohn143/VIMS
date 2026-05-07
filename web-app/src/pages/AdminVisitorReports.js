@@ -280,7 +280,7 @@ const AdminVisitorReports = () => {
       >
         <Toolbar>
           <IconButton
-            onClick={() => navigate('/admin/visitor-management')}
+            onClick={() => navigate('/dashboard/admin/visitor-management')}
             sx={{
               mr: 2,
               color: themeColors.textPrimary,

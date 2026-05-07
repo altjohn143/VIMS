@@ -180,7 +180,7 @@ const AdminAnnouncements = () => {
           <Typography variant="h6" sx={{ fontWeight: 800 }}>Admin Announcements</Typography>
           <Box sx={{ flexGrow: 1 }} />
           <Button
-            onClick={() => navigate('/admin/archived-announcements')}
+            onClick={() => navigate('/dashboard/admin/archived-announcements')}
             variant="outlined"
             sx={{
               color: themeColors.warning,

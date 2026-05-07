@@ -214,6 +214,11 @@ export const styles = StyleSheet.create({
   idUploadHeader: { alignItems: 'center', marginBottom: 20 },
   idUploadTitle: { fontSize: 20, fontWeight: '700', color: themeColors.textPrimary, marginTop: 12, marginBottom: 8, textAlign: 'center' },
   idUploadSubtitle: { fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  idTypeRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 12, marginHorizontal: -4 },
+  idTypeOption: { margin: 4, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#ffffff' },
+  idTypeOptionActive: { borderColor: themeColors.primary, backgroundColor: themeColors.primary + '15' },
+  idTypeOptionText: { fontSize: 13, color: themeColors.textPrimary, fontWeight: '600' },
+  idTypeOptionTextActive: { color: themeColors.primary },
   idUploadActions: { marginTop: 20 },
 
   // Success Modal styles (used at end of RegisterScreen)

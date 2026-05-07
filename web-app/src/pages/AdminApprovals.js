@@ -273,7 +273,7 @@ const AdminApprovals = () => {
             Pending Approvals
           </Typography>
           <Button
-            onClick={() => navigate('/admin/verifications')}
+            onClick={() => navigate('/dashboard/admin/verifications')}
             sx={{ mr: 1, color: themeColors.primary, borderRadius: '12px', textTransform: 'none', fontWeight: 700, '&:hover': { backgroundColor: themeColors.primary + '10' } }}
           >
             Verification Queue

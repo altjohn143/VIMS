@@ -707,7 +707,7 @@ useEffect(() => {
           </Box>
 
           <Button
-            onClick={() => navigate('/admin/archived-service-requests')}
+            onClick={() => navigate('/dashboard/admin/archived-service-requests')}
             variant="outlined"
             sx={{
               mr: 2,

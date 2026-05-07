@@ -24,6 +24,13 @@ import { COUNTRY_CODES } from './RegisterScreen.constants';
 import { styles } from './RegisterScreen.styles';
 import RegisterLotMapModal from './register/RegisterLotMapModal';
 
+const ID_DOCUMENT_TYPE_OPTIONS = [
+  { value: 'national_id', label: 'National ID' },
+  { value: 'driver_license', label: 'Driver’s License' },
+  { value: 'passport', label: 'Passport' },
+  { value: 'other', label: 'Other ID' }
+];
+
 const RegisterScreen = ({ navigation, route }) => {
   const { updateUser } = useAuth();
   const WebDateInput = Platform.OS === 'web'
@@ -69,6 +76,7 @@ const RegisterScreen = ({ navigation, route }) => {
     confirmPassword: '',
     address: '',
     selectedLot: '',
+    documentType: 'national_id',
     noVehicles: false,
     soloResident: false,
     vehicles: [{ plateNumber: '', make: '', model: '', color: '' }],
@@ -304,6 +312,7 @@ const RegisterScreen = ({ navigation, route }) => {
   }, []);
 
   const tryOcrAutofill = useCallback(async () => {
+    if (registrationMode !== 'ocr') return;
     if (ocrLoading || ocrUnavailable) return;
     const { frontUri, backUri } = idDocs;
     if (!frontUri || !backUri) {
@@ -353,6 +362,7 @@ const RegisterScreen = ({ navigation, route }) => {
         fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
         fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
       }
+      fd.append('documentType', formData.documentType || 'national_id');
 
       // RN note: Axios multipart uploads can fail with "Network Error" even when the
       // server is reachable. Use fetch for this endpoint to reliably send FormData.
@@ -406,8 +416,10 @@ const RegisterScreen = ({ navigation, route }) => {
 
     setOcrLoading(true);
     try {
-      // Wait for OCR to complete
-      await tryOcrAutofill();
+      if (registrationMode === 'ocr') {
+        // Wait for OCR to complete only when OCR mode is selected
+        await tryOcrAutofill();
+      }
       
       // After OCR completes, hide the ID upload step and show the form
       setShowIdUploadStep(false);
@@ -416,13 +428,14 @@ const RegisterScreen = ({ navigation, route }) => {
     } finally {
       setOcrLoading(false);
     }
-  }, [idDocs, tryOcrAutofill]);
+  }, [idDocs, registrationMode, tryOcrAutofill]);
 
   useEffect(() => {
     if (!idDocs.frontUri || !idDocs.backUri) return;
     if (ocrLoading || ocrUnavailable) return;
+    if (registrationMode !== 'ocr') return;
     tryOcrAutofill();
-  }, [idDocs.frontUri, idDocs.backUri, ocrLoading, ocrUnavailable, tryOcrAutofill]);
+  }, [idDocs.frontUri, idDocs.backUri, ocrLoading, ocrUnavailable, registrationMode, tryOcrAutofill]);
 
   useEffect(() => {
     const checkEmailAvailability = async () => {
@@ -587,6 +600,7 @@ const RegisterScreen = ({ navigation, route }) => {
       if (ocrIdNumber.trim()) {
         formDataToSend.append('idNumber', ocrIdNumber.trim());
       }
+      formDataToSend.append('documentType', formData.documentType);
 
       // Add profile photo if selected
       if (profilePhoto) {
@@ -657,6 +671,7 @@ const RegisterScreen = ({ navigation, route }) => {
 
               const fd = new FormData();
               fd.append('email', formData.email);
+              fd.append('documentType', formData.documentType || 'national_id');
               fd.append('frontImage', await mkFileAsync(frontUri, 'front.jpg'));
               fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
 
@@ -753,7 +768,7 @@ const RegisterScreen = ({ navigation, route }) => {
               <TouchableOpacity style={styles.modeCard} onPress={() => setRegistrationMode('manual')}>
                 <Text style={styles.modeTitle}>Manual entry</Text>
                 <Text style={styles.modeDescription}>
-                  Enter your details manually and upload your ID. The ID upload will still extract your ID number automatically.
+                  Enter your details manually and upload your ID. The ID upload will be used for verification only and will not trigger OCR automatically.
                 </Text>
                 <View style={styles.modeButton}>
                   <Text style={styles.modeButtonText}>Register manually</Text>
@@ -780,7 +795,7 @@ const RegisterScreen = ({ navigation, route }) => {
               </Text>
               <Text style={styles.selectedModeText}>
                 {registrationMode === 'manual'
-                  ? 'Please fill in your fields manually. Your ID upload will still extract the ID number automatically.'
+                  ? 'Please fill in your fields manually. Your ID upload will be used for verification only and will not trigger OCR automatically.'
                   : 'Upload your ID images to automatically populate your name, date of birth, and ID number where possible.'}
               </Text>
               <TouchableOpacity style={styles.selectedModeChangeButton} onPress={() => setRegistrationMode(null)}>
@@ -798,6 +813,26 @@ const RegisterScreen = ({ navigation, route }) => {
               <Text style={styles.idUploadSubtitle}>
                 Please upload both front and back images of your government-issued ID. The system will automatically extract your information.
               </Text>
+              <Text style={styles.sectionLabel}>ID document type</Text>
+              <View style={styles.idTypeRow}>
+                {ID_DOCUMENT_TYPE_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.idTypeOption,
+                      formData.documentType === option.value && styles.idTypeOptionActive,
+                    ]}
+                    onPress={() => handleChange('documentType', option.value)}
+                  >
+                    <Text style={[
+                      styles.idTypeOptionText,
+                      formData.documentType === option.value && styles.idTypeOptionTextActive,
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             <View style={styles.ocrBox}>
@@ -961,6 +996,26 @@ const RegisterScreen = ({ navigation, route }) => {
             <Text style={styles.ocrSub}>
               Upload front/back ID images to autofill name and DOB. OCR runs on the backend (fast + stable).
             </Text>
+            <Text style={styles.sectionLabel}>ID document type</Text>
+            <View style={styles.idTypeRow}>
+              {ID_DOCUMENT_TYPE_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.idTypeOption,
+                    formData.documentType === option.value && styles.idTypeOptionActive,
+                  ]}
+                  onPress={() => handleChange('documentType', option.value)}
+                >
+                  <Text style={[
+                    styles.idTypeOptionText,
+                    formData.documentType === option.value && styles.idTypeOptionTextActive,
+                  ]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <View style={styles.ocrBtnRow}>
               <TouchableOpacity style={styles.ocrBtn} onPress={() => pickIdImage('front')} disabled={ocrLoading}>
                 <Text style={styles.ocrBtnText}>{idDocs.frontUri ? 'Front selected' : 'Pick front'}</Text>

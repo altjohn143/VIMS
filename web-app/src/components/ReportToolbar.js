@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Button } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
-const ReportToolbar = ({ onExportXlsx, onExportPdf, scheduleLink = '/admin/report-schedules' }) => {
+const ReportToolbar = ({ onExportXlsx, onExportPdf, scheduleLink = '/dashboard/admin/report-schedules' }) => {
   return (
     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
       {onExportXlsx && (

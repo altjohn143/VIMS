@@ -84,7 +84,14 @@ import AdminServiceRequests from './AdminServiceRequests';
 import AdminReservations from './AdminReservations';
 import AdminPayments from './AdminPayments';
 import AdminAnnouncements from './AdminAnnouncements';
+import AdminVisitorReports from './AdminVisitorReports';
+import AdminReports from './AdminReports';
+import AdminReportSchedules from './AdminReportSchedules';
+import AdminLotManagement from './AdminLotManagement';
 import AdminVerificationQueue from './AdminVerificationQueue';
+import ArchivedUsers from './ArchivedUsers';
+import ArchivedAnnouncements from './ArchivedAnnouncements';
+import ArchivedServiceRequests from './ArchivedServiceRequests';
 import SecurityVisitorApproval from './SecurityVisitorApproval';
 import SecurityVisitorLogs from './SecurityVisitorLogs';
 import SecurityServiceRequests from './SecurityServiceRequests';
@@ -549,6 +556,13 @@ const Dashboard = () => {
       'admin/payments': 'Payment Management',
       'admin/announcements': 'Announcements',
       'admin/verifications': 'Verification Queue',
+      'admin/visitor-reports': 'Visitor Reports',
+      'admin/reports': 'Reports',
+      'admin/report-schedules': 'Report Schedules',
+      'admin/lot-management': 'Lot Management',
+      'admin/archived-users': 'Archived Users',
+      'admin/archived-announcements': 'Archived Announcements',
+      'admin/archived-service-requests': 'Archived Service Requests',
       'security/visitor-approval': 'Visitor Approvals',
       'security/visitor-logs': 'Visitor Logs',
       'security/schedule': 'Patrol Schedule',
@@ -576,6 +590,13 @@ const Dashboard = () => {
     'admin/reservations': <AdminReservations />,
     'admin/payments': <AdminPayments />,
     'admin/announcements': <AdminAnnouncements />,
+    'admin/visitor-reports': <AdminVisitorReports />,
+    'admin/reports': <AdminReports />,
+    'admin/report-schedules': <AdminReportSchedules />,
+    'admin/lot-management': <AdminLotManagement />,
+    'admin/archived-users': <ArchivedUsers />,
+    'admin/archived-announcements': <ArchivedAnnouncements />,
+    'admin/archived-service-requests': <ArchivedServiceRequests />,
     'admin/verifications': <AdminVerificationQueue />,
     'security/visitor-approval': <SecurityVisitorApproval />,
     'security/visitor-logs': <SecurityVisitorLogs />,
@@ -1607,7 +1628,7 @@ const Dashboard = () => {
 
                     <Button
                       component={RouterLink}
-                      to={user.role === 'admin' ? '/admin/approvals' : '/announcements'}
+                      to={user.role === 'admin' ? '/dashboard/admin/approvals' : '/dashboard/announcements'}
                       endIcon={<ArrowOutwardIcon />}
                       sx={{
                         textTransform: 'none',

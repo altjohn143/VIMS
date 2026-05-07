@@ -118,42 +118,42 @@ function App() {
 
             {/* Main dashboard and embedded dashboard modules */}
             <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Navigate to="/dashboard/profile" replace /></ProtectedRoute>} />
 
             {/* Admin-only routes */}
-            <Route path="/admin/service-requests" element={<AdminRoute><AdminServiceRequests /></AdminRoute>} />
-            <Route path="/admin/reservations" element={<AdminRoute><AdminReservations /></AdminRoute>} />
-            <Route path="/admin/visitor-management" element={<AdminRoute><AdminVisitorManagement /></AdminRoute>} />
-            <Route path="/admin/visitor-reports" element={<AdminRoute><AdminVisitorReports /></AdminRoute>} />
-            <Route path="/admin/approvals" element={<AdminRoute><AdminApprovals /></AdminRoute>} />
-            <Route path="/admin/users" element={<AdminRoute><AdminUserManagement /></AdminRoute>} />
-            <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
-            <Route path="/admin/verifications" element={<AdminRoute><AdminVerificationQueue /></AdminRoute>} />
-            <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
-            <Route path="/admin/report-schedules" element={<AdminRoute><AdminReportSchedules /></AdminRoute>} />
-            <Route path="/admin/announcements" element={<AdminRoute><AdminAnnouncements /></AdminRoute>} />
-            <Route path="/admin/lot-management" element={<AdminRoute><AdminLotManagement /></AdminRoute>} />
+            <Route path="/admin/service-requests" element={<AdminRoute><Navigate to="/dashboard/admin/service-requests" replace /></AdminRoute>} />
+            <Route path="/admin/reservations" element={<AdminRoute><Navigate to="/dashboard/admin/reservations" replace /></AdminRoute>} />
+            <Route path="/admin/visitor-management" element={<AdminRoute><Navigate to="/dashboard/admin/visitor-management" replace /></AdminRoute>} />
+            <Route path="/admin/visitor-reports" element={<AdminRoute><Navigate to="/dashboard/admin/visitor-reports" replace /></AdminRoute>} />
+            <Route path="/admin/approvals" element={<AdminRoute><Navigate to="/dashboard/admin/approvals" replace /></AdminRoute>} />
+            <Route path="/admin/users" element={<AdminRoute><Navigate to="/dashboard/admin/users" replace /></AdminRoute>} />
+            <Route path="/admin/payments" element={<AdminRoute><Navigate to="/dashboard/admin/payments" replace /></AdminRoute>} />
+            <Route path="/admin/verifications" element={<AdminRoute><Navigate to="/dashboard/admin/verifications" replace /></AdminRoute>} />
+            <Route path="/admin/reports" element={<AdminRoute><Navigate to="/dashboard/admin/reports" replace /></AdminRoute>} />
+            <Route path="/admin/report-schedules" element={<AdminRoute><Navigate to="/dashboard/admin/report-schedules" replace /></AdminRoute>} />
+            <Route path="/admin/announcements" element={<AdminRoute><Navigate to="/dashboard/admin/announcements" replace /></AdminRoute>} />
+            <Route path="/admin/lot-management" element={<AdminRoute><Navigate to="/dashboard/admin/lot-management" replace /></AdminRoute>} />
 
             {/* NEW ARCHIVE ROUTES */}
-            <Route path="/admin/archived-users" element={<AdminRoute><ArchivedUsers /></AdminRoute>} />
-            <Route path="/admin/archived-announcements" element={<AdminRoute><ArchivedAnnouncements /></AdminRoute>} />
-            <Route path="/admin/archived-service-requests" element={<AdminRoute><ArchivedServiceRequests /></AdminRoute>} />
+            <Route path="/admin/archived-users" element={<AdminRoute><Navigate to="/dashboard/admin/archived-users" replace /></AdminRoute>} />
+            <Route path="/admin/archived-announcements" element={<AdminRoute><Navigate to="/dashboard/admin/archived-announcements" replace /></AdminRoute>} />
+            <Route path="/admin/archived-service-requests" element={<AdminRoute><Navigate to="/dashboard/admin/archived-service-requests" replace /></AdminRoute>} />
 
             {/* Security-only routes */}
-            <Route path="/security/visitor-approval" element={<SecurityRoute><SecurityVisitorApproval /></SecurityRoute>} />
-            <Route path="/security/visitor-logs" element={<SecurityRoute><SecurityVisitorLogs /></SecurityRoute>} />
-            <Route path="/security/service-requests" element={<SecurityRoute><SecurityServiceRequests /></SecurityRoute>} />
-            <Route path="/security/schedule" element={<SecurityRoute><SecurityPatrolSchedule /></SecurityRoute>} />
-            <Route path="/security/incidents" element={<SecurityRoute><SecurityIncidents /></SecurityRoute>} />
+            <Route path="/security/visitor-approval" element={<SecurityRoute><Navigate to="/dashboard/security/visitor-approval" replace /></SecurityRoute>} />
+            <Route path="/security/visitor-logs" element={<SecurityRoute><Navigate to="/dashboard/security/visitor-logs" replace /></SecurityRoute>} />
+            <Route path="/security/service-requests" element={<SecurityRoute><Navigate to="/dashboard/security/service-requests" replace /></SecurityRoute>} />
+            <Route path="/security/schedule" element={<SecurityRoute><Navigate to="/dashboard/security/schedule" replace /></SecurityRoute>} />
+            <Route path="/security/incidents" element={<SecurityRoute><Navigate to="/dashboard/security/incidents" replace /></SecurityRoute>} />
 
             {/* Resident-only routes */}
-            <Route path="/reservations" element={<ResidentRoute><Reservations /></ResidentRoute>} />
-            <Route path="/visitors" element={<ResidentRoute><VisitorManagement /></ResidentRoute>} />
-            <Route path="/service-requests" element={<ResidentRoute><ServiceRequests /></ResidentRoute>} />
-            <Route path="/payments" element={<ResidentRoute><Payments /></ResidentRoute>} />
-            <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-            <Route path="/ai-assistant" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
+            <Route path="/reservations" element={<ResidentRoute><Navigate to="/dashboard/reservations" replace /></ResidentRoute>} />
+            <Route path="/visitors" element={<ResidentRoute><Navigate to="/dashboard/visitors" replace /></ResidentRoute>} />
+            <Route path="/service-requests" element={<ResidentRoute><Navigate to="/dashboard/service-requests" replace /></ResidentRoute>} />
+            <Route path="/payments" element={<ResidentRoute><Navigate to="/dashboard/payments" replace /></ResidentRoute>} />
+            <Route path="/announcements" element={<ProtectedRoute><Navigate to="/dashboard/announcements" replace /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Navigate to="/dashboard/notifications" replace /></ProtectedRoute>} />
+            <Route path="/ai-assistant" element={<ProtectedRoute><Navigate to="/dashboard/ai-assistant" replace /></ProtectedRoute>} />
 
             {/* NEW PAYMENT ROUTES */}
             <Route path="/payment-redirect" element={<ProtectedRoute><PaymentRedirect /></ProtectedRoute>} />

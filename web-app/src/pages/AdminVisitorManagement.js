@@ -748,7 +748,7 @@ const handleReject = async () => {
             <Button
               variant="contained"
               startIcon={<ChartIcon />}
-              onClick={() => navigate('/admin/visitor-reports')}
+              onClick={() => navigate('/dashboard/admin/visitor-reports')}
               sx={{ 
                 borderRadius: '12px',
                 bgcolor: themeColors.primary,
@@ -1134,7 +1134,7 @@ const handleReject = async () => {
             Reject (Override)
           </MenuItem>
           
-          <MenuItem onClick={() => navigate(`/admin/visitor-logs?visitorId=${selectedVisitor?._id}`)}>
+          <MenuItem onClick={() => navigate(`/dashboard/security/visitor-logs?visitorId=${selectedVisitor?._id}`)}>
             <ListItemIcon>
               <HistoryIcon fontSize="small" />
             </ListItemIcon>

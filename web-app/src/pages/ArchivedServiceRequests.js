@@ -123,7 +123,7 @@ const ArchivedServiceRequests = () => {
       <Box sx={{ mb: 4 }}>
         <Button
           variant="outlined"
-          onClick={() => navigate('/admin/service-requests')}
+          onClick={() => navigate('/dashboard/admin/service-requests')}
           sx={{ mb: 2 }}
         >
           ← Back to Service Requests

@@ -133,7 +133,7 @@ const AdminLotManagement = () => {
   }, [fetchLots]);
 
   const handleBack = () => {
-    navigate('/admin/reports');
+    navigate('/dashboard/admin/reports');
   };
 
   const handleExportPdf = async () => {

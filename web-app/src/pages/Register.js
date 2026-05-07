@@ -355,7 +355,7 @@ const Register = () => {
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm your password';
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     
-    if (!formData.idNumber.trim()) newErrors.idNumber = 'ID number is required';
+    if (registrationMode === 'ocr' && !formData.idNumber.trim()) newErrors.idNumber = 'ID number is required';
     if (!idDocs.frontImage) newErrors.frontImage = 'Please upload the front side of your ID';
     if (!idDocs.backImage) newErrors.backImage = 'Please upload the back side of your ID';
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot from the map or dropdown';
@@ -760,7 +760,7 @@ const Register = () => {
                   >
                     <Typography sx={{ fontWeight: 700, mb: 1 }}>Manual entry</Typography>
                     <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 2 }}>
-                      Enter your details manually and upload your ID. The ID upload will still extract your ID number automatically.
+                      Enter your details manually and upload your ID. The ID upload will be used for verification only and will not trigger OCR automatically.
                     </Typography>
                     <Button
                       variant="contained"
@@ -927,21 +927,23 @@ const Register = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="ID Number"
-                  name="idNumber"
-                  value={formData.idNumber}
-                  onChange={handleChange}
-                  error={!!errors.idNumber}
-                  helperText={errors.idNumber || 'Required for verification and enrollment'}
-                  required
-                  placeholder="Enter your ID number"
-                  InputProps={{ sx: { borderRadius: 2 } }}
-                  sx={fieldSx}
-                />
-              </Grid>
+              {registrationMode === 'ocr' && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="ID Number"
+                    name="idNumber"
+                    value={formData.idNumber}
+                    onChange={handleChange}
+                    error={!!errors.idNumber}
+                    helperText={errors.idNumber || 'Required for verification and enrollment'}
+                    required
+                    placeholder="Enter your ID number"
+                    InputProps={{ sx: { borderRadius: 2 } }}
+                    sx={fieldSx}
+                  />
+                </Grid>
+              )}
 
               {/* Email */}
               <Grid item xs={12}>

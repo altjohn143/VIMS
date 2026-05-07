@@ -761,4 +761,94 @@ router.get('/archived', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// Export service requests data (CSV or PDF format)
+router.get('/export', protect, authorize('admin', 'security'), async (req, res) => {
+  try {
+    const { format = 'pdf', status, category, priority, assignedTo, startDate, endDate } = req.query;
+
+    // Build filter based on user role and query parameters
+    let filter = {};
+    if (req.user.role === 'security') {
+      filter.assignedTo = req.user.id;
+    }
+
+    if (status) filter.status = status;
+    if (category) filter.category = category;
+    if (priority) filter.priority = priority;
+    if (assignedTo && req.user.role === 'admin') filter.assignedTo = assignedTo;
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+
+    const serviceRequests = await ServiceRequest.find(filter)
+      .populate('residentId', 'firstName lastName email')
+      .populate('assignedTo', 'firstName lastName')
+      .sort({ createdAt: -1 });
+
+    if (!serviceRequests.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'No service requests found matching the criteria'
+      });
+    }
+
+    const data = serviceRequests.map(request => ({
+      ID: request._id.toString(),
+      Resident: request.residentId ? `${request.residentId.firstName} ${request.residentId.lastName}` : 'Unknown',
+      Category: request.category,
+      Title: request.title,
+      Priority: request.priority,
+      Status: request.status,
+      'Assigned To': request.assignedTo ? `${request.assignedTo.firstName} ${request.assignedTo.lastName}` : 'Unassigned',
+      Location: request.location || 'N/A',
+      Rating: request.rating || 'N/A',
+      'Created Date': request.createdAt.toLocaleDateString(),
+      'Updated Date': request.updatedAt.toLocaleDateString()
+    }));
+
+    const columns = [
+      { header: 'ID', key: 'ID', width: 25 },
+      { header: 'Resident', key: 'Resident', width: 20 },
+      { header: 'Category', key: 'Category', width: 15 },
+      { header: 'Title', key: 'Title', width: 30 },
+      { header: 'Priority', key: 'Priority', width: 10 },
+      { header: 'Status', key: 'Status', width: 12 },
+      { header: 'Assigned To', key: 'Assigned To', width: 20 },
+      { header: 'Location', key: 'Location', width: 15 },
+      { header: 'Rating', key: 'Rating', width: 8 },
+      { header: 'Created Date', key: 'Created Date', width: 12 },
+      { header: 'Updated Date', key: 'Updated Date', width: 12 }
+    ];
+
+    const title = req.user.role === 'security' ? 'Security Service Requests Report' : 'Admin Service Requests Report';
+
+    if (format === 'pdf') {
+      const pdfReportService = require('../services/pdfReportService');
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Service_Requests_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    // CSV format
+    const csvData = data.map(row => columns.map(col => `"${row[col.key] || ''}"`).join(','));
+    const csvHeader = columns.map(col => `"${col.header}"`).join(',');
+    const csvContent = [csvHeader, ...csvData].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="VIMS_Service_Requests_Export_${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Export service requests error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export service requests'
+    });
+  }
+});
+
 module.exports = router;

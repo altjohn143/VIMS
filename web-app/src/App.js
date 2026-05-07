@@ -33,6 +33,7 @@ import AdminReportSchedules from './pages/AdminReportSchedules';
 import AdminReports from './pages/AdminReports';
 import Announcements from './pages/Announcements';
 import AdminAnnouncements from './pages/AdminAnnouncements';
+import AdminLotManagement from './pages/AdminLotManagement';
 import Chatbot from './pages/Chatbot';
 
 // NEW RESERVATION PAGES
@@ -131,6 +132,7 @@ function App() {
             <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
             <Route path="/admin/report-schedules" element={<AdminRoute><AdminReportSchedules /></AdminRoute>} />
             <Route path="/admin/announcements" element={<AdminRoute><AdminAnnouncements /></AdminRoute>} />
+            <Route path="/admin/lot-management" element={<AdminRoute><AdminLotManagement /></AdminRoute>} />
 
             {/* NEW ARCHIVE ROUTES */}
             <Route path="/admin/archived-users" element={<AdminRoute><ArchivedUsers /></AdminRoute>} />

@@ -403,38 +403,36 @@ useEffect(() => {
     toast.success('Excel exported successfully');
   }, [filteredRequests, formatDate]);
 
-  const handleExportPdf = useCallback(() => {
-    if (!filteredRequests.length) {
-      toast.error('No records to export');
-      return;
+  const handleExportPdf = useCallback(async () => {
+    try {
+      const response = await fetch('/api/serviceRequests/export?format=pdf', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `VIMS_Service_Requests_Export_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('PDF exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error(error.message || 'Failed to export PDF');
     }
-
-    const doc = new jsPDF({ orientation: 'landscape' });
-    doc.setFontSize(14);
-    doc.text('Admin Service Requests Report', 14, 14);
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 20);
-
-    autoTable(doc, {
-      startY: 24,
-      head: [['ID', 'Resident', 'Category', 'Priority', 'Status', 'Assigned To', 'Created']],
-      body: filteredRequests.map((request) => [
-        request._id ? request._id.toString().slice(-6) : 'N/A',
-        `${request.residentId?.firstName || ''} ${request.residentId?.lastName || ''}`.trim() || 'N/A',
-        request.category || 'N/A',
-        request.priority || 'N/A',
-        request.status || 'N/A',
-        request.assignedTo
-          ? `${request.assignedTo.firstName || ''} ${request.assignedTo.lastName || ''}`.trim()
-          : 'Unassigned',
-        formatShortDate(request.createdAt)
-      ]),
-      styles: { fontSize: 8 }
-    });
-
-    doc.save(`admin_service_requests_${new Date().toISOString().split('T')[0]}.pdf`);
-    toast.success('PDF exported successfully');
-  }, [filteredRequests, formatShortDate]);
+  }, []);
 
   const handleMenuOpen = useCallback((event, request) => {
     setAnchorEl(event.currentTarget);

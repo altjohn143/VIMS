@@ -156,4 +156,89 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// Export reservations data (CSV or PDF format)
+router.get('/export', protect, async (req, res) => {
+  try {
+    const { format = 'pdf', resourceType, status, startDate, endDate } = req.query;
+
+    // Build filter based on query parameters
+    let filter = {};
+    if (resourceType) filter.resourceType = resourceType;
+    if (status) filter.status = status;
+
+    if (startDate || endDate) {
+      filter.startDate = {};
+      if (startDate) filter.startDate.$gte = new Date(startDate);
+      if (endDate) filter.startDate.$lte = new Date(endDate);
+    }
+
+    const reservations = await require('../models/Reservation').find(filter)
+      .populate('reservedBy', 'firstName lastName email')
+      .sort({ startDate: -1 });
+
+    if (!reservations.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'No reservations found matching the criteria'
+      });
+    }
+
+    const data = reservations.map(reservation => ({
+      ID: reservation._id.toString(),
+      'Resource Type': reservation.resourceType,
+      'Resource Name': reservation.resourceName,
+      Description: reservation.description || 'N/A',
+      'Reserved By': reservation.reservedBy ? `${reservation.reservedBy.firstName} ${reservation.reservedBy.lastName}` : 'Unknown',
+      'Start Date': reservation.startDate.toLocaleDateString(),
+      'End Date': reservation.endDate.toLocaleDateString(),
+      Quantity: reservation.quantity,
+      Status: reservation.status,
+      'Actual Checkout': reservation.actualCheckout ? reservation.actualCheckout.toLocaleDateString() : 'N/A',
+      'Actual Return': reservation.actualReturn ? reservation.actualReturn.toLocaleDateString() : 'N/A',
+      'Return Condition': reservation.returnCondition || 'N/A'
+    }));
+
+    const columns = [
+      { header: 'ID', key: 'ID', width: 25 },
+      { header: 'Resource Type', key: 'Resource Type', width: 12 },
+      { header: 'Resource Name', key: 'Resource Name', width: 20 },
+      { header: 'Description', key: 'Description', width: 25 },
+      { header: 'Reserved By', key: 'Reserved By', width: 20 },
+      { header: 'Start Date', key: 'Start Date', width: 12 },
+      { header: 'End Date', key: 'End Date', width: 12 },
+      { header: 'Quantity', key: 'Quantity', width: 8 },
+      { header: 'Status', key: 'Status', width: 10 },
+      { header: 'Actual Checkout', key: 'Actual Checkout', width: 12 },
+      { header: 'Actual Return', key: 'Actual Return', width: 12 },
+      { header: 'Return Condition', key: 'Return Condition', width: 15 }
+    ];
+
+    const title = 'Resource Reservations Report';
+
+    if (format === 'pdf') {
+      const pdfReportService = require('../services/pdfReportService');
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Reservations_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    // CSV format
+    const csvData = data.map(row => columns.map(col => `"${row[col.key] || ''}"`).join(','));
+    const csvHeader = columns.map(col => `"${col.header}"`).join(',');
+    const csvContent = [csvHeader, ...csvData].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="VIMS_Reservations_Export_${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Export reservations error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export reservations'
+    });
+  }
+});
+
 module.exports = router;

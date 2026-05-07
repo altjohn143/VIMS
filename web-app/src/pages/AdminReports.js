@@ -34,6 +34,7 @@ const reportCards = [
   { title: 'Service Requests Reports', to: '/admin/service-requests', description: 'Track and review requests raised by residents.' },
   { title: 'Visitor Reports', to: '/admin/visitor-management', description: 'View visitor trends, approvals, and gate logs.' },
   { title: 'Payments Reports', to: '/admin/payments', description: 'Monitor collections, pending balances, and receipts.' },
+  { title: 'Lot Management Reports', to: '/admin/lot-management', description: 'Monitor lot occupancy, assignments, and property inventory.' },
   { title: 'Reservations', to: '/admin/report-schedules', description: 'Manage shared venues and equipment bookings.' }
 ];
 

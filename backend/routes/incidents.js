@@ -30,7 +30,8 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
       const pdfBuffer = await pdfReportService.generateDataReport(
         'VIMS Incidents Report',
         incidents,
-        columns
+        columns,
+        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role } }
       );
 
       res.setHeader('Content-Type', 'application/pdf');

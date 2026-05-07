@@ -371,7 +371,7 @@ ${payments.slice(0, 10).map(p => `- ${p.user?.firstName} ${p.user?.lastName} (${
 
     // Return PDF or JSON based on format
     if (format === 'pdf') {
-      const pdfBuffer = await pdfReportService.generateFinancialReport(reportData);
+      const pdfBuffer = await pdfReportService.generateFinancialReport(reportData, { creator: req.user });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Financial_Report_${period}_${year}${month ? '_' + month : ''}.pdf"`);
       return res.send(pdfBuffer);
@@ -451,7 +451,7 @@ ${visitors.slice(0, 15).map(v => `- ${v.visitorName} visiting ${v.user?.firstNam
 
     // Return PDF or JSON based on format
     if (format === 'pdf') {
-      const pdfBuffer = await pdfReportService.generateVisitorReport(reportData);
+      const pdfBuffer = await pdfReportService.generateVisitorReport(reportData, { creator: req.user });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitor_Report_${period}_${date.replace(/-/g, '_')}.pdf"`);
       return res.send(pdfBuffer);
@@ -531,7 +531,7 @@ ${incidents.slice(0, 10).map(i => `- ${i.title}: ${i.description.substring(0, 10
 
     // Return PDF or JSON based on format
     if (format === 'pdf') {
-      const pdfBuffer = await pdfReportService.generateIncidentReport(reportData);
+      const pdfBuffer = await pdfReportService.generateIncidentReport(reportData, { creator: req.user });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Incident_Report_${period}_${date.replace(/-/g, '_')}.pdf"`);
       return res.send(pdfBuffer);

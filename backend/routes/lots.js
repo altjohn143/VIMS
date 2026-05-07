@@ -206,4 +206,83 @@ router.get('/check/:block/:lot', async (req, res) => {
   }
 });
 
+// Export lots data (CSV or PDF format)
+router.get('/export', protect, async (req, res) => {
+  try {
+    const { format = 'pdf', phase, block, status, type } = req.query;
+
+    // Build filter based on query parameters
+    let filter = {};
+    if (phase) filter.phase = Number(phase);
+    if (block) filter.block = Number(block);
+    if (status) filter.status = status;
+    if (type) filter.type = type;
+
+    const lots = await require('../models/Lot').find(filter)
+      .populate('occupiedBy', 'firstName lastName email')
+      .sort({ phase: 1, block: 1, lotNumber: 1 });
+
+    if (!lots.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'No lots found matching the criteria'
+      });
+    }
+
+    const data = lots.map(lot => ({
+      'Lot ID': lot.lotId,
+      Phase: lot.phase,
+      Block: lot.block,
+      'Lot Number': lot.lotNumber,
+      Status: lot.status,
+      Type: lot.type,
+      'Area (sqm)': lot.sqm,
+      'Price': lot.price ? `₱${lot.price.toLocaleString()}` : 'N/A',
+      Address: lot.address,
+      Features: lot.features ? lot.features.join(', ') : 'None',
+      'Occupied By': lot.occupiedBy ? `${lot.occupiedBy.firstName} ${lot.occupiedBy.lastName}` : 'Vacant'
+    }));
+
+    const columns = [
+      { header: 'Lot ID', key: 'Lot ID', width: 12 },
+      { header: 'Phase', key: 'Phase', width: 6 },
+      { header: 'Block', key: 'Block', width: 6 },
+      { header: 'Lot Number', key: 'Lot Number', width: 10 },
+      { header: 'Status', key: 'Status', width: 10 },
+      { header: 'Type', key: 'Type', width: 15 },
+      { header: 'Area (sqm)', key: 'Area (sqm)', width: 10 },
+      { header: 'Price', key: 'Price', width: 12 },
+      { header: 'Address', key: 'Address', width: 25 },
+      { header: 'Features', key: 'Features', width: 20 },
+      { header: 'Occupied By', key: 'Occupied By', width: 20 }
+    ];
+
+    const title = 'Lot Management Report';
+
+    if (format === 'pdf') {
+      const pdfReportService = require('../services/pdfReportService');
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Lots_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    // CSV format
+    const csvData = data.map(row => columns.map(col => `"${row[col.key] || ''}"`).join(','));
+    const csvHeader = columns.map(col => `"${col.header}"`).join(',');
+    const csvContent = [csvHeader, ...csvData].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="VIMS_Lots_Export_${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Export lots error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export lots'
+    });
+  }
+});
+
 module.exports = router;

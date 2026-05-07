@@ -1333,7 +1333,8 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
       const pdfBuffer = await pdfReportService.generateDataReport(
         'VIMS Visitors Export Report',
         visitors,
-        columns
+        columns,
+        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role } }
       );
 
       res.setHeader('Content-Type', 'application/pdf');

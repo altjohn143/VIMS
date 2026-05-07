@@ -860,4 +860,85 @@ router.get('/stats/registrations', protect, authorize('admin'), async (req, res)
   }
 });
 
+// Export users data (CSV or PDF format)
+router.get('/export', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { format = 'pdf', role, status, startDate, endDate } = req.query;
+
+    // Build filter based on query parameters
+    let filter = {};
+    if (role) filter.role = role;
+    if (status) filter.status = status;
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+
+    const users = await User.find(filter).sort({ createdAt: -1 });
+
+    if (!users.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'No users found matching the criteria'
+      });
+    }
+
+    const data = users.map(user => ({
+      ID: user._id.toString(),
+      'First Name': user.firstName,
+      'Last Name': user.lastName,
+      Email: user.email,
+      Role: user.role,
+      Status: user.status,
+      'Phone Number': user.phoneNumber || 'N/A',
+      'Lot ID': user.lotId || 'N/A',
+      'Move-in Date': user.moveInDate ? user.moveInDate.toLocaleDateString() : 'N/A',
+      'Created Date': user.createdAt.toLocaleDateString(),
+      'Last Login': user.lastLogin ? user.lastLogin.toLocaleDateString() : 'Never'
+    }));
+
+    const columns = [
+      { header: 'ID', key: 'ID', width: 25 },
+      { header: 'First Name', key: 'First Name', width: 15 },
+      { header: 'Last Name', key: 'Last Name', width: 15 },
+      { header: 'Email', key: 'Email', width: 25 },
+      { header: 'Role', key: 'Role', width: 10 },
+      { header: 'Status', key: 'Status', width: 10 },
+      { header: 'Phone Number', key: 'Phone Number', width: 15 },
+      { header: 'Lot ID', key: 'Lot ID', width: 10 },
+      { header: 'Move-in Date', key: 'Move-in Date', width: 12 },
+      { header: 'Created Date', key: 'Created Date', width: 12 },
+      { header: 'Last Login', key: 'Last Login', width: 12 }
+    ];
+
+    const title = 'User Management Report';
+
+    if (format === 'pdf') {
+      const pdfReportService = require('../services/pdfReportService');
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Users_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    // CSV format
+    const csvData = data.map(row => columns.map(col => `"${row[col.key] || ''}"`).join(','));
+    const csvHeader = columns.map(col => `"${col.header}"`).join(',');
+    const csvContent = [csvHeader, ...csvData].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="VIMS_Users_Export_${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Export users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export users'
+    });
+  }
+});
+
 module.exports = router;

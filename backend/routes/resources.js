@@ -107,4 +107,75 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// Export resources data (CSV or PDF format)
+router.get('/export', protect, async (req, res) => {
+  try {
+    const { format = 'pdf', type, isActive = 'true' } = req.query;
+
+    // Build filter based on query parameters
+    let filter = {};
+    if (type) filter.type = type;
+    if (isActive !== undefined) filter.isActive = isActive === 'true';
+
+    const resources = await Resource.find(filter)
+      .populate('createdBy', 'firstName lastName')
+      .sort({ type: 1, name: 1 });
+
+    if (!resources.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'No resources found matching the criteria'
+      });
+    }
+
+    const data = resources.map(resource => ({
+      ID: resource._id.toString(),
+      Type: resource.type,
+      Name: resource.name,
+      Description: resource.description || 'N/A',
+      'Is Active': resource.isActive ? 'Yes' : 'No',
+      'Created By': resource.createdBy ? `${resource.createdBy.firstName} ${resource.createdBy.lastName}` : 'Unknown',
+      'Created Date': resource.createdAt.toLocaleDateString(),
+      'Last Updated': resource.updatedAt.toLocaleDateString()
+    }));
+
+    const columns = [
+      { header: 'ID', key: 'ID', width: 25 },
+      { header: 'Type', key: 'Type', width: 10 },
+      { header: 'Name', key: 'Name', width: 20 },
+      { header: 'Description', key: 'Description', width: 30 },
+      { header: 'Is Active', key: 'Is Active', width: 10 },
+      { header: 'Created By', key: 'Created By', width: 20 },
+      { header: 'Created Date', key: 'Created Date', width: 12 },
+      { header: 'Last Updated', key: 'Last Updated', width: 12 }
+    ];
+
+    const title = 'Resource Management Report';
+
+    if (format === 'pdf') {
+      const pdfReportService = require('../services/pdfReportService');
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Resources_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    // CSV format
+    const csvData = data.map(row => columns.map(col => `"${row[col.key] || ''}"`).join(','));
+    const csvHeader = columns.map(col => `"${col.header}"`).join(',');
+    const csvContent = [csvHeader, ...csvData].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="VIMS_Resources_Export_${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Export resources error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export resources'
+    });
+  }
+});
+
 module.exports = router;

@@ -59,6 +59,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import ReportToolbar from '../components/ReportToolbar';
 
 const AdminUserManagement = () => {
   const themeColors = {
@@ -536,6 +537,68 @@ const AdminUserManagement = () => {
     navigate('/dashboard');
   };
 
+  const handleExportPdf = async () => {
+    try {
+      const response = await fetch('/api/users/export?format=pdf', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `VIMS_Users_Export_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('PDF exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error(error.message || 'Failed to export PDF');
+    }
+  };
+
+  const handleExportXlsx = async () => {
+    try {
+      const response = await fetch('/api/users/export?format=csv', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Export failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `VIMS_Users_Export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('CSV exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error(error.message || 'Failed to export CSV');
+    }
+  };
+
   const getRoleIcon = (role) => {
     switch(role) {
       case 'admin': return <AdminIcon sx={{ color: themeColors.primary }} />;
@@ -910,6 +973,11 @@ const AdminUserManagement = () => {
             <Tab label={`Inactive (${stats.inactive})`} />
           </Tabs>
         </Paper>
+
+        {/* Export Toolbar */}
+        <Box sx={{ mt: 2, mb: 2 }}>
+          <ReportToolbar onExportXlsx={handleExportXlsx} onExportPdf={handleExportPdf} />
+        </Box>
 
         {/* Users Table */}
         <Paper

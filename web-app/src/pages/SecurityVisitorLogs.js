@@ -557,8 +557,6 @@ const SecurityVisitorLogs = () => {
     setViewDialogOpen(true);
   };
 
-  };
-
   // Handle print visitor pass
   const handlePrintPass = (visitor) => {
     if (!visitor.qrCode || !visitor.qrCodeVisible) {

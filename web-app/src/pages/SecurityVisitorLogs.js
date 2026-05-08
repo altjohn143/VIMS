@@ -59,7 +59,6 @@ import {
   AccessTime as ActiveIcon,
   TimerOff as ExpiredIcon,
   Visibility as ViewIcon,
-  Download as DownloadIcon,
   Print as PrintIcon,
   Error as ErrorIcon,
   Settings as SettingsIcon,

@@ -205,11 +205,11 @@ const Reservations = () => {
 
     try {
       await axios.put(`/api/reservations/${reservationId}/status`, { status: 'cancelled' });
-      toast.success('Reservation cancelled successfully!');
+      setSnackbar({ open: true, message: 'Reservation cancelled successfully!', severity: 'success' });
       fetchReservations();
     } catch (error) {
       console.error('Failed to cancel reservation:', error);
-      toast.error(error.response?.data?.error || 'Failed to cancel reservation');
+      setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to cancel reservation', severity: 'error' });
     }
   };
 

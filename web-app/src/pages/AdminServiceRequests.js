@@ -610,8 +610,14 @@ useEffect(() => {
       'under-review': requests.filter(r => r.status === 'under-review').length,
       assigned: requests.filter(r => r.status === 'assigned').length,
       'in-progress': requests.filter(r => r.status === 'in-progress').length,
-          completed: requests.filter(r => r.status === 'completed').length,
-          cancelled: requests.filter(r => r.status === 'cancelled').length
+      completed: requests.filter(r => r.status === 'completed').length,
+      cancelled: requests.filter(r => r.status === 'cancelled').length
+    };
+  }, [requests]);
+
+  if (!user || user.role !== 'admin') {
+    return (
+      <Container>
         <Typography>Access Denied</Typography>
       </Container>
     );

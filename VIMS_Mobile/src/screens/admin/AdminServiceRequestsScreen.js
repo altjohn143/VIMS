@@ -279,6 +279,14 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
             <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
           </View>
           
+          {item.status === 'cancelled' && (
+            <View style={styles.cancelledMetadata}>
+              <Text style={styles.cancelledMetaText}>
+                Cancelled by {item.cancelledBy?.firstName ? `${item.cancelledBy.firstName} ${item.cancelledBy.lastName}` : 'Admin'}
+              </Text>
+            </View>
+          )}
+          
           {item.assignedTo && (
             <View style={styles.assignedInfo}>
               <Ionicons name="person" size={12} color={themeColors.textSecondary} />
@@ -418,6 +426,12 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
             onPress={() => setStatusFilter('completed')}
           >
             <Text style={[styles.filterText, statusFilter === 'completed' && styles.activeFilterText]}>Completed</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'cancelled' && styles.activeFilter]}
+            onPress={() => setStatusFilter('cancelled')}
+          >
+            <Text style={[styles.filterText, statusFilter === 'cancelled' && styles.activeFilterText]}>Cancelled</Text>
           </TouchableOpacity>
         </ScrollView>
 
@@ -636,6 +650,21 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                   <View style={[styles.detailSection, styles.adminNotes]}>
                     <Text style={styles.detailLabel}>Admin Notes</Text>
                     <Text style={styles.detailText}>{selectedRequest.adminNotes}</Text>
+                  </View>
+                )}
+
+                {selectedRequest.status === 'cancelled' && (
+                  <View style={[styles.detailSection, { borderLeftColor: themeColors.error }]}>
+                    <Text style={styles.detailLabel}>Cancellation Details</Text>
+                    <Text style={styles.detailText}>
+                      Cancelled by {selectedRequest.cancelledBy?.firstName ? `${selectedRequest.cancelledBy.firstName} ${selectedRequest.cancelledBy.lastName}` : 'Admin'}
+                    </Text>
+                    {selectedRequest.cancelledReason && (
+                      <Text style={styles.detailSubtext}>Reason: {selectedRequest.cancelledReason}</Text>
+                    )}
+                    {selectedRequest.cancelledAt && (
+                      <Text style={styles.detailSubtext}>Date: {formatDate(selectedRequest.cancelledAt)}</Text>
+                    )}
                   </View>
                 )}
 

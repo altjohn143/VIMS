@@ -610,13 +610,8 @@ useEffect(() => {
       'under-review': requests.filter(r => r.status === 'under-review').length,
       assigned: requests.filter(r => r.status === 'assigned').length,
       'in-progress': requests.filter(r => r.status === 'in-progress').length,
-      completed: requests.filter(r => r.status === 'completed').length
-    };
-  }, [requests]);
-
-  if (!user || user.role !== 'admin') {
-    return (
-      <Container>
+          completed: requests.filter(r => r.status === 'completed').length,
+          cancelled: requests.filter(r => r.status === 'cancelled').length
         <Typography>Access Denied</Typography>
       </Container>
     );
@@ -1084,6 +1079,7 @@ useEffect(() => {
               <Tab value="assigned" label={`Assigned (${tabCounts.assigned})`} />
               <Tab value="in-progress" label={`In Progress (${tabCounts['in-progress']})`} />
               <Tab value="completed" label={`Completed (${tabCounts.completed})`} />
+              <Tab value="cancelled" label={`Cancelled (${tabCounts.cancelled})`} />
             </Tabs>
           </Paper>
 
@@ -1248,6 +1244,18 @@ useEffect(() => {
                           <Typography variant="caption" color={themeColors.textSecondary} display="block">
                             📍 {request.location}
                           </Typography>
+                        )}
+                        {request.status === 'cancelled' && (
+                          <Box sx={{ mt: 0.5 }}>
+                            <Typography variant="caption" color={themeColors.error} display="block">
+                              Cancelled by {request.cancelledBy?.firstName ? `${request.cancelledBy.firstName} ${request.cancelledBy.lastName}` : 'Admin'}
+                            </Typography>
+                            {request.cancelledReason && (
+                              <Typography variant="caption" color={themeColors.textSecondary} display="block">
+                                Reason: {request.cancelledReason}
+                              </Typography>
+                            )}
+                          </Box>
                         )}
                         {request.rating && (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>

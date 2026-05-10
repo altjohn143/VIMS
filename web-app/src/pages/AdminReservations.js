@@ -333,12 +333,26 @@ const AdminReservations = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          icon={statusIcon}
-                          label={displayStatus}
-                          color={statusColor}
-                          size="small"
-                        />
+                        <Box>
+                          <Chip
+                            icon={statusIcon}
+                            label={displayStatus}
+                            color={statusColor}
+                            size="small"
+                          />
+                          {reservation.status === 'cancelled' && (
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Cancelled by {reservation.cancelledBy?.firstName ? `${reservation.cancelledBy.firstName} ${reservation.cancelledBy.lastName}` : 'Admin'}
+                              </Typography>
+                              {reservation.cancelledReason && (
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  Reason: {reservation.cancelledReason}
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Tooltip title="Edit">

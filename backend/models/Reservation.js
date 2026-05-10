@@ -47,6 +47,17 @@ const reservationSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    cancelledAt: {
+      type: Date,
+    },
+    cancelledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    cancelledReason: {
+      type: String,
+      default: ''
+    },
     issueNotes: {
       type: String,
       default: '',

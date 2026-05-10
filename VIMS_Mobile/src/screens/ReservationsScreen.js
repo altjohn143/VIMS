@@ -95,6 +95,34 @@ const ReservationsScreen = ({ navigation }) => {
     }
   };
 
+  const handleCancelReservation = async (reservationId) => {
+    Alert.alert(
+      'Cancel Reservation',
+      'Are you sure you want to cancel this reservation?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await api.put(`/reservations/${reservationId}/status`, { status: 'cancelled' });
+              if (response.data?.success) {
+                Alert.alert('Success', 'Reservation cancelled successfully');
+                fetchReservations();
+              } else {
+                Alert.alert('Error', response.data?.error || 'Failed to cancel reservation');
+              }
+            } catch (error) {
+              console.error('Error cancelling reservation:', error);
+              Alert.alert('Error', 'Failed to cancel reservation');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const resetForm = () => {
     setFormData({
       resourceType: 'venue',
@@ -274,6 +302,16 @@ const ReservationsScreen = ({ navigation }) => {
                       <Ionicons name="document-text-outline" size={16} color="#64748b" />
                       <Text style={styles.detailText}>{reservation.notes}</Text>
                     </View>
+                  )}
+
+                  {['pending', 'confirmed'].includes(reservation.status) && (
+                    <TouchableOpacity
+                      style={styles.cardCancelButton}
+                      onPress={() => handleCancelReservation(reservation._id)}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#b91c1c" />
+                      <Text style={styles.cardCancelButtonText}>Cancel Reservation</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
               </View>
@@ -817,6 +855,23 @@ const styles = StyleSheet.create({
   },
   submitButtonDisabled: {
     backgroundColor: '#9ca3af',
+  },
+  cardCancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    backgroundColor: '#fef2f2',
+  },
+  cardCancelButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#b91c1c',
   },
   submitButtonText: {
     fontSize: 16,

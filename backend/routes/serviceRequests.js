@@ -6,6 +6,26 @@ const { protect, authorize } = require('../middleware/auth');
 const { sendServiceRequestStatusNotification } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 
+const notifyAdminsOnCancellation = async (serviceRequest) => {
+  try {
+    const admins = await User.find({ role: 'admin' }).select('_id');
+    await Promise.all(admins.map(admin => createInAppNotification({
+      userId: admin._id,
+      type: 'service_request',
+      title: 'Service request cancelled by resident',
+      body: `${serviceRequest.title} was cancelled by the resident.`,
+      metadata: {
+        requestId: serviceRequest._id,
+        status: serviceRequest.status,
+        cancelledBy: serviceRequest.cancelledBy,
+        cancelledReason: serviceRequest.cancelledReason
+      }
+    })));
+  } catch (error) {
+    console.error('Failed to notify admins about request cancellation:', error.message);
+  }
+};
+
 router.post('/', protect, authorize('resident'), async (req, res) => {
   try {
     const {
@@ -59,6 +79,7 @@ router.get('/my', protect, authorize('resident'), async (req, res) => {
     
     const requests = await ServiceRequest.find(filter)
       .populate('assignedTo', 'firstName lastName role')
+      .populate('cancelledBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
     
     res.json({
@@ -99,6 +120,7 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
       .populate('assignedTo', 'firstName lastName role phone')
       .populate('reviewedBy', 'firstName lastName')
       .populate('completedBy', 'firstName lastName')
+      .populate('cancelledBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
     
     res.json({
@@ -172,7 +194,7 @@ router.put('/:id/assign', protect, authorize('admin'), async (req, res) => {
 
 router.put('/:id/status', protect, async (req, res) => {
   try {
-    const { status, adminNotes, updatedBy, completedBy, completedAt, cancelledBy, cancelledAt } = req.body;
+    const { status, adminNotes, updatedBy, completedBy, completedAt, cancelledBy, cancelledAt, cancelledReason } = req.body;
     
     const request = await ServiceRequest.findById(req.params.id);
     
@@ -194,6 +216,7 @@ router.put('/:id/status', protect, async (req, res) => {
       if (status === 'cancelled') {
         request.cancelledAt = cancelledAt || new Date();
         request.cancelledBy = cancelledBy || req.user.id;
+        request.cancelledReason = cancelledReason || request.cancelledReason || 'Cancelled by admin';
       }
       
       if (adminNotes) {
@@ -212,6 +235,7 @@ router.put('/:id/status', protect, async (req, res) => {
         request.status = status;
         request.cancelledAt = new Date();
         request.cancelledBy = req.user.id;
+        request.cancelledReason = cancelledReason || 'Cancelled by resident';
       } else {
         return res.status(400).json({
           success: false,
@@ -244,12 +268,21 @@ router.put('/:id/status', protect, async (req, res) => {
     }
     
     await request.save();
+
+    if (request.status === 'cancelled' && request.cancelledBy?.toString() === request.residentId?.toString()) {
+      await notifyAdminsOnCancellation(request);
+    }
+
     await createInAppNotification({
       userId: request.residentId,
       type: 'service_request',
       title: 'Service request status updated',
       body: `${request.title} is now ${request.status}.`,
-      metadata: { requestId: request._id, status: request.status }
+      metadata: {
+        requestId: request._id,
+        status: request.status,
+        cancelledReason: request.cancelledReason
+      }
     });
     const resident = await User.findById(request.residentId).select('email phone');
     if (resident) {

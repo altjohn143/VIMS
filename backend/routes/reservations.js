@@ -2,8 +2,30 @@ const express = require('express');
 const router = express.Router();
 const Reservation = require('../models/Reservation');
 const Resource = require('../models/Resource');
+const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { createInAppNotification } = require('../services/inAppNotificationService');
+const { sendReservationStatusNotification } = require('../services/notificationService');
+
+const notifyAdminsOnCancellation = async (reservation) => {
+  try {
+    const admins = await User.find({ role: 'admin' }).select('_id');
+    await Promise.all(admins.map(admin => createInAppNotification({
+      userId: admin._id,
+      type: 'reservation',
+      title: 'Reservation cancelled by resident',
+      body: `Reservation for ${reservation.resourceName} was cancelled by a resident.`,
+      metadata: {
+        reservationId: reservation._id,
+        status: reservation.status,
+        cancelledBy: reservation.cancelledBy,
+        cancelledReason: reservation.cancelledReason
+      }
+    })));
+  } catch (error) {
+    console.error('Failed to notify admins about reservation cancellation:', error.message);
+  }
+};
 
 // Get available resources for dropdown
 router.get('/resources', protect, async (req, res) => {
@@ -28,6 +50,7 @@ router.get('/', protect, async (req, res) => {
     const query = req.user.role === 'admin' ? {} : { reservedBy: req.user._id };
     const reservations = await Reservation.find(query)
       .populate('reservedBy', 'firstName lastName email')
+      .populate('cancelledBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
     res.json({ success: true, data: reservations });
   } catch (error) {
@@ -140,6 +163,78 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
   } catch (error) {
     console.error('Update reservation error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to update reservation' });
+  }
+});
+
+router.put('/:id/status', protect, async (req, res) => {
+  try {
+    const { status, cancelledReason } = req.body;
+    const reservation = await Reservation.findById(req.params.id);
+
+    if (!reservation) {
+      return res.status(404).json({ success: false, error: 'Reservation not found' });
+    }
+
+    if (req.user.role === 'resident') {
+      if (reservation.reservedBy.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, error: 'Not authorized to update this reservation' });
+      }
+
+      if (status !== 'cancelled') {
+        return res.status(400).json({ success: false, error: 'Residents can only cancel reservations' });
+      }
+
+      if (!['pending', 'confirmed'].includes(reservation.status)) {
+        return res.status(400).json({ success: false, error: 'Only pending or confirmed reservations can be cancelled' });
+      }
+
+      reservation.status = 'cancelled';
+      reservation.cancelledAt = new Date();
+      reservation.cancelledBy = req.user._id;
+      reservation.cancelledReason = cancelledReason || 'Cancelled by resident';
+    } else if (req.user.role === 'admin') {
+      if (!['pending', 'confirmed', 'cancelled', 'borrowed', 'returned'].includes(status)) {
+        return res.status(400).json({ success: false, error: 'Invalid reservation status' });
+      }
+      reservation.status = status;
+      if (status === 'cancelled') {
+        reservation.cancelledAt = new Date();
+        reservation.cancelledBy = req.user._id;
+        reservation.cancelledReason = cancelledReason || reservation.cancelledReason || 'Cancelled by admin';
+      }
+    } else {
+      return res.status(403).json({ success: false, error: 'Not authorized to update this reservation' });
+    }
+
+    await reservation.save();
+
+    if (status === 'cancelled') {
+      await createInAppNotification({
+        userId: reservation.reservedBy,
+        type: 'reservation',
+        title: 'Reservation cancelled',
+        body: `Your reservation for ${reservation.resourceName} has been cancelled.`,
+        metadata: {
+          reservationId: reservation._id,
+          status: reservation.status,
+          cancelledReason: reservation.cancelledReason
+        },
+      });
+
+      await notifyAdminsOnCancellation(reservation);
+
+      const resident = await User.findById(reservation.reservedBy).select('email phone');
+      if (resident) {
+        await sendReservationStatusNotification(reservation, resident, {
+          actorName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || req.user.role
+        });
+      }
+    }
+
+    res.json({ success: true, data: reservation });
+  } catch (error) {
+    console.error('Update reservation status error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to update reservation status' });
   }
 });
 

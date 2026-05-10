@@ -83,6 +83,20 @@ const serviceRequestSchema = new mongoose.Schema({
     ref: 'User'
   },
 
+  cancelledAt: {
+    type: Date
+  },
+
+  cancelledBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+
+  cancelledReason: {
+    type: String,
+    default: ''
+  },
+
   rating: {
     type: Number,
     min: 1,

@@ -362,6 +362,16 @@ const AdminReservationsScreen = ({ navigation }) => {
                       {displayStatus}
                     </Text>
                   </View>
+                  {reservation.status === 'cancelled' && (
+                    <View style={styles.cancelledInfo}>
+                      <Text style={styles.cancelledBy}>
+                        Cancelled by {reservation.cancelledBy?.firstName ? `${reservation.cancelledBy.firstName} ${reservation.cancelledBy.lastName}` : 'Admin'}
+                      </Text>
+                      {reservation.cancelledReason && (
+                        <Text style={styles.cancelledReason}>Reason: {reservation.cancelledReason}</Text>
+                      )}
+                    </View>
+                  )}
                 </View>
               </View>
             );

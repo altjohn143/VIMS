@@ -198,6 +198,21 @@ const Reservations = () => {
     }
   };
 
+  const handleCancelReservation = async (reservationId) => {
+    if (!window.confirm('Are you sure you want to cancel this reservation?')) {
+      return;
+    }
+
+    try {
+      await axios.put(`/api/reservations/${reservationId}/status`, { status: 'cancelled' });
+      toast.success('Reservation cancelled successfully!');
+      fetchReservations();
+    } catch (error) {
+      console.error('Failed to cancel reservation:', error);
+      toast.error(error.response?.data?.error || 'Failed to cancel reservation');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed': return 'success';
@@ -741,6 +756,23 @@ const Reservations = () => {
                       <React.Fragment key={reservation._id}>
                         <ListItem
                           alignItems="flex-start"
+                          secondaryAction={['pending', 'confirmed'].includes(reservation.status) ? (
+                            <Button
+                              onClick={() => handleCancelReservation(reservation._id)}
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              sx={{
+                                textTransform: 'none',
+                                fontWeight: 800,
+                                borderRadius: '12px',
+                                minWidth: 130
+                              }}
+                            >
+                              <CancelIcon sx={{ mr: 1 }} />
+                              Cancel
+                            </Button>
+                          ) : null}
                           sx={{
                             borderRadius: '16px',
                             py: 1.4,

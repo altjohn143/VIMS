@@ -76,8 +76,30 @@ async function sendServiceRequestStatusNotification(serviceRequest, resident, op
   return { emailResult, smsResult };
 }
 
+async function sendReservationStatusNotification(reservation, resident, options = {}) {
+  const { actorName = 'VIMS Team' } = options;
+  const title = `Reservation for ${reservation.resourceName}`;
+  const status = reservation.status || 'updated';
+  const body = `${title} is now ${status}. Updated by ${actorName}.`;
+
+  const [emailResult, smsResult] = await Promise.all([
+    postWebhook(process.env.EMAIL_WEBHOOK_URL, {
+      to: resident.email,
+      subject: 'VIMS Reservation Update',
+      body
+    }),
+    postWebhook(process.env.SMS_WEBHOOK_URL, {
+      to: resident.phone,
+      message: body
+    })
+  ]);
+
+  return { emailResult, smsResult };
+}
+
 module.exports = {
   sendOnboardingNotification,
   sendVisitorReminderNotification,
-  sendServiceRequestStatusNotification
+  sendServiceRequestStatusNotification,
+  sendReservationStatusNotification
 };

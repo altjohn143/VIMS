@@ -127,6 +127,8 @@ class PDFReportService {
   async generateDataReport(title, data, columns, options = {}) {
     return new Promise((resolve, reject) => {
       try {
+        console.log(`Generating PDF report: ${title}, ${data.length} rows, ${columns.length} columns`);
+
         const doc = new PDFDocument({
           size: 'A4',
           margin: 50,
@@ -141,7 +143,13 @@ class PDFReportService {
         doc.on('data', buffers.push.bind(buffers));
         doc.on('end', () => {
           const pdfBuffer = Buffer.concat(buffers);
+          console.log(`PDF generation completed, buffer size: ${pdfBuffer.length} bytes`);
           resolve(pdfBuffer);
+        });
+
+        doc.on('error', (error) => {
+          console.error('PDF generation error:', error);
+          reject(error);
         });
 
         this._addReportHeader(doc, title, 'Generated', new Date().toLocaleDateString(), null, options.creator);
@@ -150,6 +158,7 @@ class PDFReportService {
 
         doc.end();
       } catch (error) {
+        console.error('PDF generation failed:', error);
         reject(error);
       }
     });
@@ -253,15 +262,19 @@ class PDFReportService {
     }
 
     const tableTop = doc.y + 10;
-    const colWidth = 495 / columns.length;
+    const totalWidth = 495;
+    const totalColWidth = columns.reduce((sum, col) => sum + (col.width || 10), 0);
+    let xPosition = 50;
 
     // Table headers
     doc.fontSize(10).font(this.fonts.bold);
-    columns.forEach((col, i) => {
-      doc.text(col.label, 50 + (i * colWidth), tableTop, {
-        width: colWidth - 10,
+    columns.forEach((col) => {
+      const colWidth = (col.width || 10) / totalColWidth * totalWidth;
+      doc.text(col.header, xPosition, tableTop, {
+        width: colWidth - 5,
         align: 'left'
       });
+      xPosition += colWidth;
     });
 
     // Header separator
@@ -277,14 +290,17 @@ class PDFReportService {
         yPosition = 50;
       }
 
-      columns.forEach((col, colIndex) => {
+      xPosition = 50;
+      columns.forEach((col) => {
+        const colWidth = (col.width || 10) / totalColWidth * totalWidth;
         const value = this._getNestedValue(row, col.key) || '';
         const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
 
-        doc.text(displayValue.substring(0, 30), 50 + (colIndex * colWidth), yPosition, {
-          width: colWidth - 10,
+        doc.text(displayValue.substring(0, Math.floor(colWidth / 3)), xPosition, yPosition, {
+          width: colWidth - 5,
           align: 'left'
         });
+        xPosition += colWidth;
       });
 
       yPosition += 15;

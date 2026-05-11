@@ -211,6 +211,8 @@ router.get('/export', protect, async (req, res) => {
   try {
     const { format = 'pdf', phase, block, status, type } = req.query;
 
+    console.log('Export request:', { format, phase, block, status, type, user: req.user._id });
+
     // Build filter based on query parameters
     let filter = {};
     if (phase) filter.phase = Number(phase);
@@ -221,6 +223,8 @@ router.get('/export', protect, async (req, res) => {
     const lots = await require('../models/Lot').find(filter)
       .populate('occupiedBy', 'firstName lastName email')
       .sort({ phase: 1, block: 1, lotNumber: 1 });
+
+    console.log(`Found ${lots.length} lots for export`);
 
     if (!lots.length) {
       return res.status(404).json({
@@ -243,6 +247,8 @@ router.get('/export', protect, async (req, res) => {
       'Occupied By': lot.occupiedBy ? `${lot.occupiedBy.firstName} ${lot.occupiedBy.lastName}` : 'Vacant'
     }));
 
+    console.log(`Prepared ${data.length} data rows for export`);
+
     const columns = [
       { header: 'Lot ID', key: 'Lot ID', width: 12 },
       { header: 'Phase', key: 'Phase', width: 6 },
@@ -260,8 +266,12 @@ router.get('/export', protect, async (req, res) => {
     const title = 'Lot Management Report';
 
     if (format === 'pdf') {
+      console.log('Generating PDF report...');
       const pdfReportService = require('../services/pdfReportService');
       const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user });
+
+      console.log(`PDF generated, buffer size: ${pdfBuffer.length} bytes`);
+
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Lots_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
       return res.send(pdfBuffer);

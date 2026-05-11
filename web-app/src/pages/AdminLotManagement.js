@@ -147,12 +147,24 @@ const AdminLotManagement = () => {
         }
       });
 
+      console.log('PDF Export Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
+      });
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Export failed');
       }
 
       const blob = await response.blob();
+      console.log('PDF Blob:', {
+        size: blob.size,
+        type: blob.type
+      });
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

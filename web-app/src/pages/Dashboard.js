@@ -483,7 +483,10 @@ const Dashboard = () => {
           { title: 'Service Requests', icon: <BuildIcon />, link: '/dashboard/admin/service-requests' },
           { title: 'Reservation Requests', icon: <EventAvailableIcon />, link: '/dashboard/admin/reservations' }
         ],
-        finance: [{ title: 'Payment Management', icon: <ReceiptIcon />, link: '/dashboard/admin/payments' }],
+        finance: [
+          { title: 'Payment Management', icon: <ReceiptIcon />, link: '/dashboard/admin/payments' }
+        ],
+        'lot-management': [{ title: 'Lot Management', icon: <ApartmentIcon />, link: '/dashboard/admin/lot-management' }],
         announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/dashboard/admin/announcements' }],
         settings: [
           { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' }
@@ -682,7 +685,7 @@ const Dashboard = () => {
 
   const quickActions = [
     {
-      title: user.role === 'admin' ? 'Add New Resident' : 'Open Dashboard',
+      title: user.role === 'admin' ? 'Approve Resident' : 'Open Dashboard',
       subtitle: user.role === 'admin' ? 'Register a homeowner' : 'Go to main view',
       icon: <PersonAddAlt1Icon />,
       link: user.role === 'admin' ? '/dashboard/admin/users' : '/dashboard'
@@ -720,6 +723,7 @@ const Dashboard = () => {
       users: 'Users',
       services: 'Services',
       finance: 'Finance',
+      'lot-management': 'Lot Management',
       announcements: 'Announcements',
       settings: 'Settings',
       scanner: 'Scanner',

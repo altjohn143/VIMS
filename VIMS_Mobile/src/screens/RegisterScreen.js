@@ -457,12 +457,17 @@ const RegisterScreen = ({ navigation, route }) => {
         if (ocr.idNumber) {
           setOcrIdNumber(ocr.idNumber);
         }
+        // Mark OCR as completed on successful extraction
+        setOcrStepCompleted(true);
       } else {
         setOcrUnavailable(true);
         if (r.status === 409) {
           // Duplicate approved user - show message and don't disable OCR permanently
           setOcrUnavailable(false);
           Alert.alert('ID Already Registered', data?.error || 'This ID is already registered to an approved resident account. Please contact administration if you believe this is an error.');
+        } else if (r.status === 400 && data?.details?.includes('Document type mismatch')) {
+          // Document type mismatch - show error and allow retry
+          Alert.alert('Document Type Mismatch', data?.details || 'The ID you uploaded does not match the selected document type. Please verify your selection and try again.');
         } else if (!r.ok) {
           Alert.alert('OCR failed', data?.error || data?.details || 'Failed to OCR ID');
         }
@@ -936,7 +941,14 @@ const RegisterScreen = ({ navigation, route }) => {
                       styles.idTypeOption,
                       formData.documentType === option.value && styles.idTypeOptionActive,
                     ]}
-                    onPress={() => handleChange('documentType', option.value)}
+                    onPress={() => {
+                      handleChange('documentType', option.value);
+                      // Reset OCR state when document type changes
+                      setOcrStepCompleted(false);
+                      setOcrUnavailable(false);
+                      setLastOcrSignature('');
+                      setLastOcrAt(0);
+                    }}
                   >
                     <Text style={[
                       styles.idTypeOptionText,
@@ -973,9 +985,21 @@ const RegisterScreen = ({ navigation, route }) => {
                 </Text>
               )}
               {ocrUnavailable && (
-                <Text style={styles.ocrHint}>
-                  OCR unavailable. You can still proceed manually.
-                </Text>
+                <View>
+                  <Text style={styles.ocrHint}>
+                    OCR encountered an issue. You can try again or continue manually.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.mapButton, { marginTop: 12 }]}
+                    onPress={() => {
+                      setOcrUnavailable(false);
+                      setLastOcrSignature('');
+                      setLastOcrAt(0);
+                    }}
+                  >
+                    <Text style={styles.mapButtonText}>Try Again</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
 

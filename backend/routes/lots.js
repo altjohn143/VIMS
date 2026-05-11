@@ -91,26 +91,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get lot by ID
-router.get('/:lotId', async (req, res) => {
-  try {
-    const lot = await Lot.findOne({ lotId: req.params.lotId })
-      .populate('occupiedBy', 'firstName lastName email phone');
-    
-    if (!lot) {
-      return res.status(404).json({ success: false, error: 'Lot not found' });
-    }
-    
-    res.json({
-      success: true,
-      data: lot
-    });
-  } catch (error) {
-    console.error('Get lot error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 // Admin: Update lot status
 router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
   try {
@@ -292,6 +272,26 @@ router.get('/export', protect, async (req, res) => {
       success: false,
       error: 'Failed to export lots'
     });
+  }
+});
+
+// Get lot by ID
+router.get('/:lotId', async (req, res) => {
+  try {
+    const lot = await Lot.findOne({ lotId: req.params.lotId })
+      .populate('occupiedBy', 'firstName lastName email phone');
+    
+    if (!lot) {
+      return res.status(404).json({ success: false, error: 'Lot not found' });
+    }
+    
+    res.json({
+      success: true,
+      data: lot
+    });
+  } catch (error) {
+    console.error('Get lot error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

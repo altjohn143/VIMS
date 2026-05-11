@@ -210,6 +210,14 @@ export const styles = StyleSheet.create({
   selectedModeChangeButton: { marginTop: 12, alignSelf: 'flex-start' },
   selectedModeChangeText: { fontSize: 14, fontWeight: '700', color: themeColors.primary },
 
+  // Photo upload styles
+  photoSection: { marginTop: 12, marginBottom: 8 },
+  photoLabel: { fontSize: 14, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 8 },
+  photoButtons: { flexDirection: 'row', gap: 8 },
+  photoButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: themeColors.primary, borderRadius: 8, backgroundColor: themeColors.primary + '10' },
+  photoButtonText: { fontSize: 12, color: themeColors.primary, marginLeft: 6, fontWeight: '600' },
+  photoSelectedText: { fontSize: 12, color: themeColors.success, marginTop: 4, fontWeight: '600' },
+
   // ID Upload Step styles
   idUploadHeader: { alignItems: 'center', marginBottom: 20 },
   idUploadTitle: { fontSize: 20, fontWeight: '700', color: themeColors.textPrimary, marginTop: 12, marginBottom: 8, textAlign: 'center' },
@@ -229,5 +237,13 @@ export const styles = StyleSheet.create({
   successMessage: { fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
   successButton: { backgroundColor: themeColors.success, paddingVertical: 14, paddingHorizontal: 30, borderRadius: 10, width: '100%' },
   successButtonText: { color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' },
+
+  // Photo upload styles
+  photoSection: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: themeColors.border },
+  photoLabel: { fontSize: 14, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 8 },
+  photoButtons: { flexDirection: 'row', gap: 10 },
+  photoButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white' },
+  photoButtonText: { fontSize: 14, fontWeight: '600', color: themeColors.textPrimary },
+  photoSelectedText: { marginTop: 8, fontSize: 12, color: themeColors.success, fontWeight: '600', textAlign: 'center' },
 });
 

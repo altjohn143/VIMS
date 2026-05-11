@@ -71,6 +71,34 @@ const profilePhotoUpload = multer({
   }
 });
 
+const vehicleImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads/vehicle-photos');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `vehicle_${uniqueSuffix}_${file.originalname}`);
+  }
+});
+
+const vehicleImageUpload = multer({
+  storage: vehicleImageStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
 const generateToken = (user) => {
   return jwt.sign(
     {
@@ -202,7 +230,18 @@ router.post('/check-availability', async (req, res) => {
 });
 
 // Register route
-router.post('/register', profilePhotoUpload.single('profilePhoto'), async (req, res) => {
+router.post('/register', [
+  profilePhotoUpload.fields([
+    { name: 'profilePhoto', maxCount: 1 }
+  ]),
+  vehicleImageUpload.fields([
+    { name: 'vehicleImage_0', maxCount: 1 },
+    { name: 'vehicleImage_1', maxCount: 1 },
+    { name: 'vehicleImage_2', maxCount: 1 },
+    { name: 'vehicleImage_3', maxCount: 1 },
+    { name: 'vehicleImage_4', maxCount: 1 }
+  ])
+], async (req, res) => {
   try {
     console.log('\n===== REGISTRATION ATTEMPT =====');
     console.log('📝 Email:', req.body.email);
@@ -361,7 +400,19 @@ router.post('/register', profilePhotoUpload.single('profilePhoto'), async (req, 
       const validVehicles = noVehicles
         ? []
         : Array.isArray(vehicles)
-          ? vehicles.filter(v => v && (v.plateNumber || v.make || v.model || v.color))
+          ? vehicles.map((v, index) => {
+              const vehicleData = { ...v };
+              // Check for uploaded vehicle image
+              const vehicleImageKey = `vehicleImage_${index}`;
+              if (req.files && req.files[vehicleImageKey] && req.files[vehicleImageKey][0]) {
+                const imageFile = req.files[vehicleImageKey][0];
+                vehicleData.carImage = imageFile.filename;
+                if (process.env.NODE_ENV !== 'production') {
+                  console.log(`🚗 Vehicle ${index + 1} image uploaded:`, imageFile.filename);
+                }
+              }
+              return vehicleData;
+            }).filter(v => v && (v.plateNumber || v.make || v.model || v.color))
           : [];
 
       const validFamilyMembers = Array.isArray(familyMembers)

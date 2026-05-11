@@ -90,7 +90,7 @@ const RegisterScreen = ({ navigation, route }) => {
     documentType: 'national_id',
     noVehicles: false,
     soloResident: false,
-    vehicles: [{ plateNumber: '', make: '', model: '', color: '' }],
+    vehicles: [{ plateNumber: '', make: '', model: '', color: '', carImage: null }],
     familyMembers: [{ name: '', relationship: '', age: '', phone: '' }],
   });
 
@@ -210,7 +210,7 @@ const RegisterScreen = ({ navigation, route }) => {
     setFormData(prev => ({
       ...prev,
       noVehicles: false,
-      vehicles: [...(prev.vehicles || []), { plateNumber: '', make: '', model: '', color: '' }]
+      vehicles: [...(prev.vehicles || []), { plateNumber: '', make: '', model: '', color: '', carImage: null }]
     }));
   };
 
@@ -320,6 +320,61 @@ const RegisterScreen = ({ navigation, route }) => {
     } catch (e) {
       console.error('pickIdImage error:', e);
       Alert.alert('Error', e?.message || 'Failed to pick image.');
+    }
+  }, []);
+
+  const pickCarImage = useCallback(async (vehicleIndex) => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow photo access to upload your car image.');
+        return;
+      }
+      const imagesMediaTypes =
+        ImagePicker?.MediaType?.Images
+          ? [ImagePicker.MediaType.Images]
+          : ImagePicker.MediaTypeOptions.Images;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: imagesMediaTypes,
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri || null;
+      if (!uri) return;
+      setFormData(prev => {
+        const vehicles = [...prev.vehicles];
+        vehicles[vehicleIndex] = { ...vehicles[vehicleIndex], carImage: uri };
+        return { ...prev, vehicles };
+      });
+      Alert.alert('Photo Selected', 'Car photo selected successfully!');
+    } catch (e) {
+      console.error('pickCarImage error:', e);
+      Alert.alert('Error', e?.message || 'Failed to pick car image.');
+    }
+  }, []);
+
+  const takeCarPhoto = useCallback(async (vehicleIndex) => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow camera access to take your car photo.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri || null;
+      if (!uri) return;
+      setFormData(prev => {
+        const vehicles = [...prev.vehicles];
+        vehicles[vehicleIndex] = { ...vehicles[vehicleIndex], carImage: uri };
+        return { ...prev, vehicles };
+      });
+      Alert.alert('Photo Taken', 'Car photo captured successfully!');
+    } catch (e) {
+      console.error('takeCarPhoto error:', e);
+      Alert.alert('Error', e?.message || 'Failed to take car photo.');
     }
   }, []);
 
@@ -435,6 +490,7 @@ const RegisterScreen = ({ navigation, route }) => {
       
       // After OCR completes, hide the ID upload step and show the form
       setShowIdUploadStep(false);
+      setOcrStepCompleted(true);
     } catch (error) {
       Alert.alert('OCR Error', 'Failed to process ID images. Please try again.');
     } finally {
@@ -575,6 +631,15 @@ const RegisterScreen = ({ navigation, route }) => {
 
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot';
 
+    // Validate vehicle car images
+    if (!formData.noVehicles && formData.vehicles.length > 0) {
+      formData.vehicles.forEach((vehicle, index) => {
+        if (!vehicle.carImage) {
+          newErrors[`vehicle_${index}_carImage`] = `Car photo is required for Vehicle ${index + 1}`;
+        }
+      });
+    }
+
     return newErrors;
   };
 
@@ -607,7 +672,39 @@ const RegisterScreen = ({ navigation, route }) => {
       formDataToSend.append('role', 'resident');
       formDataToSend.append('selectedLot', formData.selectedLot);
       formDataToSend.append('countryCode', formData.countryCode);
-      formDataToSend.append('vehicles', JSON.stringify(formData.vehicles || []));
+      
+      // Handle vehicles with car images
+      const vehiclesWithoutImages = formData.vehicles.map(vehicle => ({
+        plateNumber: vehicle.plateNumber,
+        make: vehicle.make,
+        model: vehicle.model,
+        color: vehicle.color
+      }));
+      formDataToSend.append('vehicles', JSON.stringify(vehiclesWithoutImages));
+      
+      // Add car images separately
+      for (let index = 0; index < formData.vehicles.length; index++) {
+        const vehicle = formData.vehicles[index];
+        if (vehicle.carImage) {
+          const filename = `vehicle-${index + 1}-car.jpg`;
+          const fileType = 'image/jpeg';
+
+          if (Platform.OS === 'web') {
+            // For web, fetch the blob and append
+            const response = await fetch(vehicle.carImage);
+            const blob = await response.blob();
+            formDataToSend.append(`vehicleImage_${index}`, blob, filename);
+          } else {
+            // For mobile, use the URI directly
+            formDataToSend.append(`vehicleImage_${index}`, {
+              uri: vehicle.carImage,
+              name: filename,
+              type: fileType,
+            });
+          }
+        }
+      }
+      
       formDataToSend.append('familyMembers', JSON.stringify(formData.familyMembers || []));
       if (ocrIdNumber.trim()) {
         formDataToSend.append('idNumber', ocrIdNumber.trim());
@@ -1213,6 +1310,28 @@ const RegisterScreen = ({ navigation, route }) => {
                       value={vehicle.color}
                       onChangeText={(text) => handleArrayFieldChange('vehicles', index, 'color', text)}
                     />
+                  </View>
+
+                  <View style={styles.photoSection}>
+                    <Text style={styles.photoLabel}>Car Photo (Required)</Text>
+                    <View style={styles.photoButtons}>
+                      <TouchableOpacity style={styles.photoButton} onPress={() => pickCarImage(index)}>
+                        <Ionicons name="images" size={20} color={themeColors.primary} />
+                        <Text style={styles.photoButtonText}>
+                          {vehicle.carImage ? 'Change Photo' : 'Select Photo'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.photoButton} onPress={() => takeCarPhoto(index)}>
+                        <Ionicons name="camera" size={20} color={themeColors.primary} />
+                        <Text style={styles.photoButtonText}>Take Photo</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {vehicle.carImage && (
+                      <Text style={styles.photoSelectedText}>✓ Photo selected</Text>
+                    )}
+                    {errors[`vehicle_${index}_carImage`] && (
+                      <Text style={styles.errorText}>{errors[`vehicle_${index}_carImage`]}</Text>
+                    )}
                   </View>
                 </View>
               ))}

@@ -125,6 +125,14 @@ app.use('/uploads/profile-photos', express.static(path.join(__dirname, 'uploads/
   }
 }));
 
+// SECURITY: Serve static files securely - only allow access to vehicle photos
+app.use('/uploads/vehicle-photos', express.static(path.join(__dirname, 'uploads/vehicle-photos'), {
+  maxAge: '1d', // Cache for 1 day
+  setHeaders: (res, path) => {
+    res.set('Cache-Control', 'public, max-age=86400');
+  }
+}));
+
 app.use('/api', apiLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);

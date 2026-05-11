@@ -75,7 +75,7 @@ const COUNTRY_CODES = [
   { code: '+34', country: 'Spain', flag: '🇪🇸', prefix: '34' },
 ];
 
-const EMPTY_VEHICLE = { plateNumber: '', make: '', model: '', color: '' };
+const EMPTY_VEHICLE = { plateNumber: '', make: '', model: '', color: '', carImage: null };
 const EMPTY_FAMILY_MEMBER = { name: '', relationship: '', otherRelationship: '', age: '', phone: '' };
 const RELATIONSHIP_OPTIONS = ['Mother', 'Father', 'Brother', 'Sister', 'Spouse', 'Son', 'Daughter', 'Grandparent', 'Other'];
 const ID_DOCUMENT_TYPE_OPTIONS = [
@@ -406,6 +406,15 @@ const Register = () => {
       }
     });
     
+    // Validate vehicle car images
+    if (!formData.noVehicles && formData.vehicles.length > 0) {
+      formData.vehicles.forEach((vehicle, index) => {
+        if (!vehicle.carImage) {
+          newErrors[`vehicle_${index}_carImage`] = `Car photo is required for Vehicle ${index + 1}`;
+        }
+      });
+    }
+    
     return newErrors;
   };
 
@@ -436,6 +445,46 @@ const Register = () => {
     } finally {
       setUploadingPhoto(false);
     }
+  };
+
+  // Vehicle image upload handler
+  const handleVehicleImageUpload = async (vehicleIndex, event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image file size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setFormData(prev => {
+        const vehicles = [...prev.vehicles];
+        vehicles[vehicleIndex] = { ...vehicles[vehicleIndex], carImage: file };
+        return { ...prev, vehicles };
+      });
+      toast.success(`Car photo for Vehicle ${vehicleIndex + 1} selected successfully`);
+    } catch (error) {
+      console.error('Vehicle image selection error:', error);
+      toast.error('Failed to select vehicle image');
+    }
+  };
+
+  // Vehicle image remove handler
+  const handleVehicleImageRemove = (vehicleIndex) => {
+    setFormData(prev => {
+      const vehicles = [...prev.vehicles];
+      vehicles[vehicleIndex] = { ...vehicles[vehicleIndex], carImage: null };
+      return { ...prev, vehicles };
+    });
+    toast.success(`Car photo for Vehicle ${vehicleIndex + 1} removed`);
   };
 
   const handleSubmit = async (e) => {
@@ -477,11 +526,25 @@ const Register = () => {
     }
     formDataToSend.append('documentType', formData.documentType);
 
-    // Add vehicles
-    const validVehicles = formData.noVehicles
+    // Add vehicles (without images in JSON, images added separately)
+    const vehiclesWithoutImages = formData.noVehicles
       ? []
-      : formData.vehicles.filter(v => v.plateNumber || v.make || v.model || v.color);
-    formDataToSend.append('vehicles', JSON.stringify(validVehicles));
+      : formData.vehicles.map(vehicle => ({
+          plateNumber: vehicle.plateNumber,
+          make: vehicle.make,
+          model: vehicle.model,
+          color: vehicle.color
+        })).filter(v => v.plateNumber || v.make || v.model || v.color);
+    formDataToSend.append('vehicles', JSON.stringify(vehiclesWithoutImages));
+
+    // Add vehicle images separately
+    if (!formData.noVehicles && formData.vehicles.length > 0) {
+      formData.vehicles.forEach((vehicle, index) => {
+        if (vehicle.carImage) {
+          formDataToSend.append(`vehicleImage_${index}`, vehicle.carImage);
+        }
+      });
+    }
 
     // Add family members
     const validFamilyMembers = formData.soloResident
@@ -617,6 +680,10 @@ const Register = () => {
 
         const conf = typeof ocr.confidence === 'number' ? ocr.confidence : null;
         toast.success(`Text read from your ID${conf !== null ? ` (confidence ${(conf * 100).toFixed(0)}%)` : ''}. Please review name and date of birth.`);
+        
+        // Mark OCR step as completed and close dialog
+        setOcrStepCompleted(true);
+        setOcrDialogOpen(false);
       }
     } catch (err) {
       const status = err?.response?.status;
@@ -628,11 +695,16 @@ const Register = () => {
       if (status === 409) {
         // Duplicate approved user - show message but don't disable OCR
         toast.error(serverMessage || 'This ID is already registered to an approved resident account. Please contact administration if you believe this is an error.');
+      } else if (status === 400 && serverMessage?.includes('Document type mismatch')) {
+        // Document type mismatch - show error and allow retry
+        toast.error(serverMessage);
+        setOcrUnavailable(true);
       } else if (status === 429) {
         setOcrUnavailable(true);
         toast.error('ID scanning is temporarily unavailable. Please continue filling the form manually.');
       } else {
         toast.error(`Couldn't scan ID${status ? ` (${status})` : ''}${serverMessage ? `: ${serverMessage}` : ''}`);
+        setOcrUnavailable(true);
       }
     } finally {
       setOcrLoading(false);
@@ -1257,26 +1329,125 @@ const Register = () => {
                   label="I don't have any vehicle"
                 />
                 {!formData.noVehicles && formData.vehicles.map((vehicle, index) => (
-                  <Grid container spacing={1} key={`vehicle_${index}`} sx={{ mb: 1 }}>
-                    <Grid item xs={12} sm={3}>
-                      <TextField fullWidth label="Plate Number" value={vehicle.plateNumber} onChange={(e) => handleVehicleChange(index, 'plateNumber', e.target.value)} />
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                      <TextField fullWidth label="Make" value={vehicle.make} onChange={(e) => handleVehicleChange(index, 'make', e.target.value)} />
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                      <TextField fullWidth label="Model" value={vehicle.model} onChange={(e) => handleVehicleChange(index, 'model', e.target.value)} />
-                    </Grid>
-                    <Grid item xs={12} sm={2}>
-                      <TextField fullWidth label="Color" value={vehicle.color} onChange={(e) => handleVehicleChange(index, 'color', e.target.value)} />
-                    </Grid>
-                    <Grid item xs={12} sm={1}>
-                      <Button onClick={() => removeVehicle(index)} disabled={formData.vehicles.length === 1}>-</Button>
-                    </Grid>
-                  </Grid>
+                  <Card key={`vehicle_${index}`} sx={{ mb: 2, borderRadius: 2, border: `1px solid ${themeColors.border}` }}>
+                    <CardContent sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          Vehicle {index + 1}
+                        </Typography>
+                        {formData.vehicles.length > 1 && (
+                          <Button
+                            size="small"
+                            onClick={() => removeVehicle(index)}
+                            sx={{ minWidth: 'auto', px: 1 }}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </Box>
+
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6} md={3}>
+                          <TextField
+                            fullWidth
+                            label="Plate Number"
+                            value={vehicle.plateNumber}
+                            onChange={(e) => handleVehicleChange(index, 'plateNumber', e.target.value)}
+                            sx={fieldSx}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                          <TextField
+                            fullWidth
+                            label="Make"
+                            value={vehicle.make}
+                            onChange={(e) => handleVehicleChange(index, 'make', e.target.value)}
+                            sx={fieldSx}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                          <TextField
+                            fullWidth
+                            label="Model"
+                            value={vehicle.model}
+                            onChange={(e) => handleVehicleChange(index, 'model', e.target.value)}
+                            sx={fieldSx}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={3}>
+                          <TextField
+                            fullWidth
+                            label="Color"
+                            value={vehicle.color}
+                            onChange={(e) => handleVehicleChange(index, 'color', e.target.value)}
+                            sx={fieldSx}
+                          />
+                        </Grid>
+                      </Grid>
+
+                      {/* Car Photo Upload */}
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: themeColors.textPrimary, mb: 1 }}>
+                          Car Photo (Required)
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Button
+                            variant="outlined"
+                            component="label"
+                            startIcon={<PhotoCameraIcon />}
+                            sx={{
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              borderColor: themeColors.primary,
+                              color: themeColors.primary,
+                              '&:hover': { borderColor: themeColors.primaryDark, backgroundColor: themeColors.primary + '08' }
+                            }}
+                          >
+                            {vehicle.carImage ? 'Change Photo' : 'Upload Photo'}
+                            <input
+                              hidden
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleVehicleImageUpload(index, e)}
+                            />
+                          </Button>
+                        </Box>
+
+                        {vehicle.carImage && (
+                          <Box sx={{ mt: 1 }}>
+                            <ImagePreview
+                              file={vehicle.carImage}
+                              label={`Vehicle ${index + 1} Car Photo`}
+                              size={80}
+                              showRemove={true}
+                              onRemove={() => handleVehicleImageRemove(index)}
+                            />
+                          </Box>
+                        )}
+
+                        {errors[`vehicle_${index}_carImage`] && (
+                          <Typography variant="caption" sx={{ color: themeColors.error, mt: 0.5, display: 'block' }}>
+                            {errors[`vehicle_${index}_carImage`]}
+                          </Typography>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
                 ))}
                 {!formData.noVehicles && (
-                  <Button size="small" onClick={addVehicle}>Add Vehicle</Button>
+                  <Button
+                    size="small"
+                    onClick={addVehicle}
+                    startIcon={<PhotoCameraIcon />}
+                    sx={{
+                      mt: 1,
+                      textTransform: 'none',
+                      color: themeColors.primary,
+                      '&:hover': { backgroundColor: themeColors.primary + '08' }
+                    }}
+                  >
+                    Add Another Vehicle
+                  </Button>
                 )}
               </Grid>
 
@@ -1428,7 +1599,14 @@ const Register = () => {
                     name="documentType"
                     value={formData.documentType}
                     label="ID document type"
-                    onChange={(e) => setFormData(prev => ({ ...prev, documentType: e.target.value }))}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, documentType: e.target.value }));
+                      // Reset OCR state when document type changes
+                      setOcrStepCompleted(false);
+                      setOcrUnavailable(false);
+                      setLastOcrSignature('');
+                      setLastOcrAt(0);
+                    }}
                   >
                     {ID_DOCUMENT_TYPE_OPTIONS.map((option) => (
                       <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
@@ -1675,7 +1853,14 @@ const Register = () => {
                   name="documentType"
                   value={formData.documentType}
                   label="ID document type"
-                  onChange={(e) => setFormData(prev => ({ ...prev, documentType: e.target.value }))}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, documentType: e.target.value }));
+                    // Reset OCR state when document type changes
+                    setOcrStepCompleted(false);
+                    setOcrUnavailable(false);
+                    setLastOcrSignature('');
+                    setLastOcrAt(0);
+                  }}
                 >
                   {ID_DOCUMENT_TYPE_OPTIONS.map((option) => (
                     <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
@@ -1784,9 +1969,37 @@ const Register = () => {
             </Typography>
           )}
           {ocrUnavailable && (
-            <Typography variant="caption" sx={{ display: 'block', mt: 2, color: themeColors.warning }}>
-              ID autofill is temporarily unavailable. You can continue manually if needed, or try again later.
-            </Typography>
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="caption" sx={{ display: 'block', color: themeColors.warning, mb: 1 }}>
+                ID autofill encountered an issue. You can continue with manual entry or try scanning again.
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    setOcrUnavailable(false);
+                    setLastOcrSignature('');
+                    setLastOcrAt(0);
+                    tryOcrAutofill(idDocs.frontImage, idDocs.backImage);
+                  }}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Try Again
+                </Button>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => {
+                    setOcrStepCompleted(true);
+                    setOcrDialogOpen(false);
+                  }}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Continue Manually
+                </Button>
+              </Box>
+            </Box>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

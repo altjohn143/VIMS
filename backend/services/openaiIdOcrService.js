@@ -28,7 +28,7 @@ function normalizeDate(v) {
   return raw;
 }
 
-async function extractIdFieldsFromImagePaths(frontInput, backInput) {
+async function extractIdFieldsFromImagePaths(frontInput, backInput, expectedDocumentType = null) {
   const client = getOpenAIClient();
   const model = getOpenAIHighModel();
   const response = await client.responses.create({
@@ -52,7 +52,8 @@ async function extractIdFieldsFromImagePaths(frontInput, backInput) {
               'Extract fields from the ID front and back images.',
               'If a field is unreadable, return an empty string.',
               "Use date format YYYY-MM-DD when confidently parsed; otherwise return empty string.",
-              'Return JSON with keys: firstName,lastName,middleName,dob,idNumber,address,confidence,notes',
+              expectedDocumentType ? `IMPORTANT: Verify this is a ${expectedDocumentType}. If it's not a ${expectedDocumentType}, set documentTypeMatch to false and provide the actual document type in detectedDocumentType.` : 'Detect the document type from the ID.',
+              'Return JSON with keys: firstName,lastName,middleName,dob,idNumber,address,confidence,notes,detectedDocumentType,documentTypeMatch',
               'confidence must be a number between 0 and 1.'
             ].join('\n')
           },
@@ -76,9 +77,11 @@ async function extractIdFieldsFromImagePaths(frontInput, backInput) {
             idNumber: { type: 'string' },
             address: { type: 'string' },
             confidence: { type: 'number' },
-            notes: { type: 'string' }
+            notes: { type: 'string' },
+            detectedDocumentType: { type: 'string' },
+            documentTypeMatch: { type: 'boolean' }
           },
-          required: ['firstName', 'lastName', 'middleName', 'dob', 'idNumber', 'address', 'confidence', 'notes']
+          required: ['firstName', 'lastName', 'middleName', 'dob', 'idNumber', 'address', 'confidence', 'notes', 'detectedDocumentType', 'documentTypeMatch']
         }
       }
     }
@@ -96,7 +99,9 @@ async function extractIdFieldsFromImagePaths(frontInput, backInput) {
     address: normalizeString(parsed.address),
     confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0,
     rawText: normalizeString(parsed.notes).slice(0, 2000),
-    engine: `openai:${model}`
+    engine: `openai:${model}`,
+    detectedDocumentType: normalizeString(parsed.detectedDocumentType),
+    documentTypeMatch: parsed.documentTypeMatch === true
   };
 }
 

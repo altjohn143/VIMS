@@ -143,7 +143,15 @@ router.post(
       const back = backMeta;
       let ocr = null;
       try {
-        ocr = await extractIdFieldsFromImagePaths(front, back);
+        ocr = await extractIdFieldsFromImagePaths(front, back, req.body.documentType);
+
+        // Validate document type match
+        if (req.body.documentType && !ocr.documentTypeMatch) {
+          return res.status(400).json({
+            success: false,
+            error: `Document type mismatch. You selected "${req.body.documentType}" but the uploaded ID appears to be a "${ocr.detectedDocumentType}". Please verify and select the correct document type.`
+          });
+        }
       } catch (ocrError) {
         console.error('OCR extraction failed, saving verification for manual review:', ocrError?.response?.data || ocrError.message || ocrError);
 
@@ -321,7 +329,15 @@ router.post(
         console.warn('⚠️ Skipping local file save in production - OCR files stored in DB only');
       }
 
-      const result = await extractIdFieldsFromImagePaths(frontMeta, backMeta);
+      const result = await extractIdFieldsFromImagePaths(frontMeta, backMeta, req.body.documentType);
+
+      // Validate document type match
+      if (req.body.documentType && !result.documentTypeMatch) {
+        return res.status(400).json({
+          success: false,
+          error: `Document type mismatch. You selected "${req.body.documentType}" but the uploaded ID appears to be a "${result.detectedDocumentType}". Please verify and select the correct document type.`
+        });
+      }
 
       // Check for duplicate identity against approved users
       const duplicate = await detectDuplicateIdentity({ ocr: result, excludeUserId: null });

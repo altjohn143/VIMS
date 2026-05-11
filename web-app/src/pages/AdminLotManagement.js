@@ -74,14 +74,16 @@ const AdminLotManagement = () => {
     try {
       setLoading(true);
       const response = await axios.get('/api/lots');
-      setLots(response.data);
-      setFilteredLots(response.data);
+      const lotsData = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setLots(lotsData);
+      setFilteredLots(lotsData);
 
       // Calculate stats
-      const total = response.data.length;
-      const vacant = response.data.filter(lot => lot.status === 'vacant').length;
-      const occupied = response.data.filter(lot => lot.status === 'occupied').length;
-      const reserved = response.data.filter(lot => lot.status === 'reserved').length;
+      const total = lotsData.length;
+      const vacant = lotsData.filter(lot => lot.status === 'vacant').length;
+      const occupied = lotsData.filter(lot => lot.status === 'occupied').length;
+      const reserved = lotsData.filter(lot => lot.status === 'reserved').length;
 
       setStats({ total, vacant, occupied, reserved });
     } catch (error) {

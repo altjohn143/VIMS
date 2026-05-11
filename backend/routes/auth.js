@@ -99,6 +99,40 @@ const vehicleImageUpload = multer({
   }
 });
 
+const registerStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = file.fieldname === 'profilePhoto'
+      ? path.join(__dirname, '../uploads/profile-photos')
+      : path.join(__dirname, '../uploads/vehicle-photos');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    if (file.fieldname === 'profilePhoto') {
+      cb(null, `registration_${uniqueSuffix}_${file.originalname}`);
+    } else {
+      cb(null, `vehicle_${uniqueSuffix}_${file.originalname}`);
+    }
+  }
+});
+
+const registerUpload = multer({
+  storage: registerStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
 const generateToken = (user) => {
   return jwt.sign(
     {
@@ -230,18 +264,14 @@ router.post('/check-availability', async (req, res) => {
 });
 
 // Register route
-router.post('/register', [
-  profilePhotoUpload.fields([
-    { name: 'profilePhoto', maxCount: 1 }
-  ]),
-  vehicleImageUpload.fields([
-    { name: 'vehicleImage_0', maxCount: 1 },
-    { name: 'vehicleImage_1', maxCount: 1 },
-    { name: 'vehicleImage_2', maxCount: 1 },
-    { name: 'vehicleImage_3', maxCount: 1 },
-    { name: 'vehicleImage_4', maxCount: 1 }
-  ])
-], async (req, res) => {
+router.post('/register', uploadRegister.fields([
+  { name: 'profilePhoto', maxCount: 1 },
+  { name: 'vehicleImage_0', maxCount: 1 },
+  { name: 'vehicleImage_1', maxCount: 1 },
+  { name: 'vehicleImage_2', maxCount: 1 },
+  { name: 'vehicleImage_3', maxCount: 1 },
+  { name: 'vehicleImage_4', maxCount: 1 }
+]), async (req, res) => {
   try {
     console.log('\n===== REGISTRATION ATTEMPT =====');
     console.log('📝 Email:', req.body.email);
@@ -323,27 +353,28 @@ router.post('/register', [
     };
 
     // Debug: show received profile photo upload details
+    const profilePhotoFile = req.files?.profilePhoto?.[0] || null;
     console.log('📸 Register request file payload:', {
-      file: req.file
+      profilePhoto: profilePhotoFile
         ? {
-            originalname: req.file.originalname,
-            filename: req.file.filename,
-            mimetype: req.file.mimetype,
-            size: req.file.size,
-            destination: req.file.destination,
-            path: req.file.path
+            originalname: profilePhotoFile.originalname,
+            filename: profilePhotoFile.filename,
+            mimetype: profilePhotoFile.mimetype,
+            size: profilePhotoFile.size,
+            destination: profilePhotoFile.destination,
+            path: profilePhotoFile.path
           }
         : null
     });
 
     // Handle profile photo upload
-    if (req.file) {
+    if (profilePhotoFile) {
       if (process.env.NODE_ENV !== 'production') {
-        console.log('📸 Profile photo uploaded and stored at:', path.join(__dirname, '../uploads/profile-photos', req.file.filename));
+        console.log('📸 Profile photo uploaded and stored at:', path.join(__dirname, '../uploads/profile-photos', profilePhotoFile.filename));
       } else {
         console.warn('⚠️ Skipping local file save in production - profile photo metadata saved to DB only');
       }
-      userData.profilePhoto = req.file.filename;
+      userData.profilePhoto = profilePhotoFile.filename;
     }
 
     // Add house information for residents using selected lot

@@ -264,7 +264,7 @@ router.post('/check-availability', async (req, res) => {
 });
 
 // Register route
-router.post('/register', uploadRegister.fields([
+router.post('/register', registerUpload.fields([
   { name: 'profilePhoto', maxCount: 1 },
   { name: 'vehicleImage_0', maxCount: 1 },
   { name: 'vehicleImage_1', maxCount: 1 },

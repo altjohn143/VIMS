@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Button } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
-const ReportToolbar = ({ onExportPdf, scheduleLink = '/dashboard/admin/report-schedules' }) => {
+const ReportToolbar = ({ onExportPdf, scheduleLink }) => {
   return (
     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
       {onExportPdf && (
@@ -10,9 +10,11 @@ const ReportToolbar = ({ onExportPdf, scheduleLink = '/dashboard/admin/report-sc
           Export PDF
         </Button>
       )}
-      <Button component={RouterLink} to={scheduleLink} variant="outlined">
-        Schedule Delivery
-      </Button>
+      {scheduleLink && (
+        <Button component={RouterLink} to={scheduleLink} variant="outlined">
+          Schedule Delivery
+        </Button>
+      )}
     </Box>
   );
 };

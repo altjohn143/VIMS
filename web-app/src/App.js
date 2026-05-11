@@ -95,8 +95,7 @@ function App() {
             <Route path="/admin/users" element={<AdminRoute><Navigate to="/dashboard/admin/users" replace /></AdminRoute>} />
             <Route path="/admin/payments" element={<AdminRoute><Navigate to="/dashboard/admin/payments" replace /></AdminRoute>} />
             <Route path="/admin/verifications" element={<AdminRoute><Navigate to="/dashboard/admin/verifications" replace /></AdminRoute>} />
-            <Route path="/admin/reports" element={<AdminRoute><Navigate to="/dashboard/admin/reports" replace /></AdminRoute>} />
-            <Route path="/admin/report-schedules" element={<AdminRoute><Navigate to="/dashboard/admin/report-schedules" replace /></AdminRoute>} />
+            <Route path="/admin/report-schedules" element={<AdminRoute><Navigate to="/dashboard/admin/reservations" replace /></AdminRoute>} />
             <Route path="/admin/announcements" element={<AdminRoute><Navigate to="/dashboard/admin/announcements" replace /></AdminRoute>} />
             <Route path="/admin/lot-management" element={<AdminRoute><Navigate to="/dashboard/admin/lot-management" replace /></AdminRoute>} />
 

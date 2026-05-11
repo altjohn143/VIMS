@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -26,7 +26,10 @@ import {
   Tooltip,
   Alert,
   Snackbar,
-  CircularProgress
+  CircularProgress,
+  AppBar,
+  Toolbar,
+  Avatar
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -71,6 +74,21 @@ const AdminReservations = () => {
     name: '',
     description: '',
   });
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    return {
+      total: reservations.length,
+      pending: reservations.filter((reservation) => reservation.status === 'pending').length,
+      confirmed: reservations.filter((reservation) => reservation.status === 'confirmed').length,
+      cancelled: reservations.filter((reservation) => reservation.status === 'cancelled').length,
+      borrowed: reservations.filter((reservation) => reservation.status === 'borrowed').length,
+      returned: reservations.filter((reservation) => reservation.status === 'returned').length,
+      overdue: reservations.filter(
+        (reservation) => new Date(reservation.endDate) < now && !['returned', 'cancelled'].includes(reservation.status)
+      ).length,
+    };
+  }, [reservations]);
 
   useEffect(() => {
     fetchReservations();
@@ -268,11 +286,92 @@ const AdminReservations = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Reservation Logs
+        <AppBar
+          position="sticky"
+          elevation={0}
+          sx={{
+            bgcolor: 'rgba(255,255,255,0.96)',
+            color: 'inherit',
+            borderBottom: '1px solid rgba(0,0,0,0.08)',
+            mb: 3,
+          }}
+        >
+          <Toolbar sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Avatar sx={{ bgcolor: '#166534' }}>
+              <EventAvailableIcon />
+            </Avatar>
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700 }} noWrap>
+                Reservation Requests
+              </Typography>
+              <Typography variant="body2" color="text.secondary" noWrap>
+                Manage reservation requests, approvals, cancellations, and return tracking.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              sx={{ textTransform: 'none', borderRadius: 2.5 }}
+              onClick={fetchReservations}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{ textTransform: 'none', borderRadius: 2.5 }}
+              onClick={() => handleOpenDialog()}
+            >
+              New Request
+            </Button>
+          </Toolbar>
+        </AppBar>
+
+        <Paper
+          sx={{
+            mb: 3,
+            p: { xs: 2.5, md: 3 },
+            borderRadius: '22px',
+            color: '#0f172a',
+            background: '#f8fafc',
+            border: '1px solid rgba(22, 163, 74, 0.12)',
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
+            Reservation Requests Overview
           </Typography>
-        </Box>
+          <Typography variant="body2" sx={{ color: 'rgba(15, 23, 42, 0.75)', mb: 2 }}>
+            Review all reservation requests for venues and equipment from residents, and track their current status.
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            {[
+              { label: 'Total Requests', value: stats.total, color: '#2563eb' },
+              { label: 'Pending', value: stats.pending, color: '#f59e0b' },
+              { label: 'Confirmed', value: stats.confirmed, color: '#16a34a' },
+              { label: 'Borrowed', value: stats.borrowed, color: '#0ea5e9' },
+              { label: 'Returned', value: stats.returned, color: '#64748b' },
+              { label: 'Overdue', value: stats.overdue, color: '#dc2626' },
+            ].map((stat) => (
+              <Paper
+                key={stat.label}
+                sx={{
+                  minWidth: 150,
+                  p: 2,
+                  borderRadius: '18px',
+                  backgroundColor: '#fff',
+                  border: '1px solid rgba(15, 23, 42, 0.08)',
+                  flex: '1 1 150px',
+                }}
+              >
+                <Typography sx={{ fontWeight: 700, mb: 0.5, color: 'text.primary' }}>
+                  {stat.label}
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: stat.color }}>
+                  {stat.value}
+                </Typography>
+              </Paper>
+            ))}
+          </Box>
+        </Paper>
 
         <Paper sx={{ width: '100%', overflow: 'hidden' }}>
           <TableContainer sx={{ maxHeight: 600 }}>

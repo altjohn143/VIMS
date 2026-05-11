@@ -85,8 +85,6 @@ import AdminReservations from './AdminReservations';
 import AdminPayments from './AdminPayments';
 import AdminAnnouncements from './AdminAnnouncements';
 import AdminVisitorReports from './AdminVisitorReports';
-import AdminReports from './AdminReports';
-import AdminReportSchedules from './AdminReportSchedules';
 import AdminLotManagement from './AdminLotManagement';
 import AdminVerificationQueue from './AdminVerificationQueue';
 import ArchivedUsers from './ArchivedUsers';
@@ -483,13 +481,12 @@ const Dashboard = () => {
         ],
         services: [
           { title: 'Service Requests', icon: <BuildIcon />, link: '/dashboard/admin/service-requests' },
-          { title: 'Reservation Logs', icon: <EventAvailableIcon />, link: '/dashboard/admin/reservations' }
+          { title: 'Reservation Requests', icon: <EventAvailableIcon />, link: '/dashboard/admin/reservations' }
         ],
         finance: [{ title: 'Payment Management', icon: <ReceiptIcon />, link: '/dashboard/admin/payments' }],
         announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/dashboard/admin/announcements' }],
         settings: [
-          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' },
-          { title: 'Verification Queue', icon: <VerifiedUserIcon />, link: '/dashboard/admin/verifications' }
+          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' }
         ]
       },
       stats: [
@@ -552,13 +549,12 @@ const Dashboard = () => {
       'admin/users': 'User Management',
       'admin/approvals': 'Approval Requests',
       'admin/service-requests': 'Service Requests',
-      'admin/reservations': 'Reservation Logs',
+      'admin/reservations': 'Reservation Requests',
       'admin/payments': 'Payment Management',
       'admin/announcements': 'Announcements',
       'admin/verifications': 'Verification Queue',
       'admin/visitor-reports': 'Visitor Reports',
-      'admin/reports': 'Reports',
-      'admin/report-schedules': 'Report Schedules',
+      'admin/report-schedules': 'Reservation Requests',
       'admin/lot-management': 'Lot Management',
       'admin/archived-users': 'Archived Users',
       'admin/archived-announcements': 'Archived Announcements',
@@ -591,8 +587,7 @@ const Dashboard = () => {
     'admin/payments': <AdminPayments />,
     'admin/announcements': <AdminAnnouncements />,
     'admin/visitor-reports': <AdminVisitorReports />,
-    'admin/reports': <AdminReports />,
-    'admin/report-schedules': <AdminReportSchedules />,
+    'admin/report-schedules': <AdminReservations />,
     'admin/lot-management': <AdminLotManagement />,
     'admin/archived-users': <ArchivedUsers />,
     'admin/archived-announcements': <ArchivedAnnouncements />,

@@ -270,7 +270,8 @@ class PDFReportService {
     doc.fontSize(10).font(this.fonts.bold);
     columns.forEach((col) => {
       const colWidth = (col.width || 10) / totalColWidth * totalWidth;
-      doc.text(col.header, xPosition, tableTop, {
+      const headerText = col.header || col.label || col.key || 'Unknown';
+      doc.text(headerText, xPosition, tableTop, {
         width: colWidth - 5,
         align: 'left'
       });

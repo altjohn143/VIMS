@@ -892,10 +892,10 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
       'Last Name': user.lastName,
       Email: user.email,
       Role: user.role,
-      Status: user.status,
-      'Phone Number': user.phoneNumber || 'N/A',
-      'Lot ID': user.lotId || 'N/A',
-      'Move-in Date': user.moveInDate ? user.moveInDate.toLocaleDateString() : 'N/A',
+      Status: user.isApproved ? (user.isActive ? 'Active' : 'Inactive') : 'Pending Approval',
+      'Phone Number': user.phone || 'N/A',
+      'Lot ID': user.houseNumber || 'N/A',
+      'Approval Date': user.approvalDate ? user.approvalDate.toLocaleDateString() : 'N/A',
       'Created Date': user.createdAt.toLocaleDateString(),
       'Last Login': user.lastLogin ? user.lastLogin.toLocaleDateString() : 'Never'
     }));
@@ -906,10 +906,10 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
       { header: 'Last Name', key: 'Last Name', width: 15 },
       { header: 'Email', key: 'Email', width: 25 },
       { header: 'Role', key: 'Role', width: 10 },
-      { header: 'Status', key: 'Status', width: 10 },
+      { header: 'Status', key: 'Status', width: 15 },
       { header: 'Phone Number', key: 'Phone Number', width: 15 },
       { header: 'Lot ID', key: 'Lot ID', width: 10 },
-      { header: 'Move-in Date', key: 'Move-in Date', width: 12 },
+      { header: 'Approval Date', key: 'Approval Date', width: 12 },
       { header: 'Created Date', key: 'Created Date', width: 12 },
       { header: 'Last Login', key: 'Last Login', width: 12 }
     ];

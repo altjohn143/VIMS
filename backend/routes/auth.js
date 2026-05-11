@@ -43,7 +43,6 @@ const loginLimiter = rateLimit({
   }
 });
 
-// Configure multer for profile photo uploads
 const profilePhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, '../uploads/profile-photos');

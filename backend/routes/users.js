@@ -911,7 +911,6 @@ router.get('/stats/registrations', protect, authorize('admin'), async (req, res)
   }
 });
 
-// Export users data (CSV or PDF format)
 router.get('/export', protect, authorize('admin'), async (req, res) => {
   try {
     const { format = 'pdf', role, status, startDate, endDate } = req.query;

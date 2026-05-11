@@ -306,7 +306,7 @@ const Reservations = () => {
             <Button
               variant="outlined"
               startIcon={<ArrowOutwardIcon sx={{ transform: 'rotate(180deg)' }} />}
-              onClick={() => window.history.back()}
+              onClick={() => navigate('/dashboard')}
               sx={{
                 borderRadius: '12px',
                 textTransform: 'none',

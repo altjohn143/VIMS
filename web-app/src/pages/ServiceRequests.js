@@ -454,7 +454,7 @@ const ServiceRequests = () => {
     }
   }, [user, navigate]); 
 
-  const handleBack = () => navigate(-1);
+  const handleBack = () => navigate('/dashboard');
 
   const handleMenuOpen = useCallback((event, request) => {
     setAnchorEl(event.currentTarget);

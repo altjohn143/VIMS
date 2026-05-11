@@ -325,7 +325,7 @@ const AdminPayments = () => {
   const handleBack = () => navigate('/dashboard');
   
   const handleLogout = () => { 
-    logout(); 
+    logout();
     navigate('/login'); 
   };
   

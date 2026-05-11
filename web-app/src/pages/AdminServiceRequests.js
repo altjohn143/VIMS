@@ -340,7 +340,7 @@ useEffect(() => {
     }
   }, []);
 
-  const handleBack = useCallback(() => navigate(-1), [navigate]);
+  const handleBack = useCallback(() => navigate('/dashboard'), [navigate]);
 
   const formatDate = useCallback((dateString) => {
     if (!dateString) return 'N/A';

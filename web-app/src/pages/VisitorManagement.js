@@ -102,7 +102,7 @@ const VisitorManagement = () => {
   const user = getCurrentUser();
   const navigate = useNavigate();
 
-  const handleBack = () => navigate(-1);
+  const handleBack = () => navigate('/dashboard');
 
   // Profile menu handlers
   const handleProfileMenuOpen = (event) => {

@@ -250,7 +250,7 @@ const Payments = () => {
     printWindow.document.close();
   }, []);
 
-  const handleBack = useCallback(() => navigate(-1), [navigate]);
+  const handleBack = useCallback(() => navigate('/dashboard'), [navigate]);
   
   const handleLogout = useCallback(() => { 
     logout(); 

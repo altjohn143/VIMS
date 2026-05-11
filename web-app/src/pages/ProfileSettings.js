@@ -597,7 +597,7 @@ const ProfileSettings = () => {
   };
 
   const handleBack = () => {
-    navigate(-1);
+    navigate('/dashboard');
   };
 
   if (loading) {

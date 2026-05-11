@@ -795,35 +795,85 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// Wildcard route for debugging
-router.get('*', (req, res) => {
-  console.log('Wildcard route hit in users.js!');
-  console.log('Original URL:', req.originalUrl);
-  console.log('Path:', req.path);
-  console.log('Method:', req.method);
-  
-  res.json({
-    success: false,
-    error: 'Route not found in users.js',
-    originalUrl: req.originalUrl,
-    path: req.path,
-    method: req.method,
-    availableRoutes: [
-      'GET /api/users/test',
-      'GET /api/users/public-test',
-      'GET /api/users/profile-test',
-      'GET /api/users/profile',
-      'PUT /api/users/profile',
-      'GET /api/users/:id/profile',
-      'GET /api/users/',
-      'POST /api/users/',
-      'GET /api/users/pending-approvals',
-      'PUT /api/users/:id/approve',
-      'DELETE /api/users/:id',
-      'GET /api/users/stats/summary',
-      'PUT /api/users/:id/status'
-    ]
-  });
+// Export users data (CSV or PDF format)
+router.get('/export', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { format = 'pdf', role, status, startDate, endDate } = req.query;
+
+    // Build filter based on query parameters
+    let filter = {};
+    if (role) filter.role = role;
+    if (status) filter.status = status;
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+
+    const users = await User.find(filter).sort({ createdAt: -1 });
+
+    if (!users.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'No users found matching the criteria'
+      });
+    }
+
+    const data = users.map(user => ({
+      ID: user._id.toString(),
+      'First Name': user.firstName,
+      'Last Name': user.lastName,
+      Email: user.email,
+      Role: user.role,
+      Status: user.isApproved ? (user.isActive ? 'Active' : 'Inactive') : 'Pending Approval',
+      'Phone Number': user.phone || 'N/A',
+      'Lot ID': user.houseNumber || 'N/A',
+      'Approval Date': user.approvalDate ? user.approvalDate.toLocaleDateString() : 'N/A',
+      'Created Date': user.createdAt.toLocaleDateString(),
+      'Last Login': user.lastLogin ? user.lastLogin.toLocaleDateString() : 'Never'
+    }));
+
+    const columns = [
+      { header: 'ID', key: 'ID', width: 25 },
+      { header: 'First Name', key: 'First Name', width: 15 },
+      { header: 'Last Name', key: 'Last Name', width: 15 },
+      { header: 'Email', key: 'Email', width: 25 },
+      { header: 'Role', key: 'Role', width: 10 },
+      { header: 'Status', key: 'Status', width: 15 },
+      { header: 'Phone Number', key: 'Phone Number', width: 15 },
+      { header: 'Lot ID', key: 'Lot ID', width: 10 },
+      { header: 'Approval Date', key: 'Approval Date', width: 12 },
+      { header: 'Created Date', key: 'Created Date', width: 12 },
+      { header: 'Last Login', key: 'Last Login', width: 12 }
+    ];
+
+    const title = 'User Management Report';
+
+    if (format === 'pdf') {
+      const pdfReportService = require('../services/pdfReportService');
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Users_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    // CSV format
+    const csvData = data.map(row => columns.map(col => `"${row[col.key] || ''}"`).join(','));
+    const csvHeader = columns.map(col => `"${col.header}"`).join(',');
+    const csvContent = [csvHeader, ...csvData].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="VIMS_Users_Export_${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Export users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export users'
+    });
+  }
 });
 
 // Get user registration stats by month/year (admin only)
@@ -940,6 +990,37 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
       error: 'Failed to export users'
     });
   }
+});
+
+// Wildcard route for debugging
+router.get('*', (req, res) => {
+  console.log('Wildcard route hit in users.js!');
+  console.log('Original URL:', req.originalUrl);
+  console.log('Path:', req.path);
+  console.log('Method:', req.method);
+  
+  res.json({
+    success: false,
+    error: 'Route not found in users.js',
+    originalUrl: req.originalUrl,
+    path: req.path,
+    method: req.method,
+    availableRoutes: [
+      'GET /api/users/test',
+      'GET /api/users/public-test',
+      'GET /api/users/profile-test',
+      'GET /api/users/profile',
+      'PUT /api/users/profile',
+      'GET /api/users/:id/profile',
+      'GET /api/users/',
+      'POST /api/users/',
+      'GET /api/users/pending-approvals',
+      'PUT /api/users/:id/approve',
+      'DELETE /api/users/:id',
+      'GET /api/users/stats/summary',
+      'PUT /api/users/:id/status'
+    ]
+  });
 });
 
 module.exports = router;

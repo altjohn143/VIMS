@@ -36,6 +36,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import ReportToolbar from '../components/ReportToolbar';
+import { getBackendApiUrl } from '../utils/api';
 
 const themeColors = {
   primary: '#166534',
@@ -140,7 +141,7 @@ const AdminLotManagement = () => {
 
   const handleExportPdf = async () => {
     try {
-      const response = await fetch('/api/lots/export?format=pdf', {
+      const response = await fetch(getBackendApiUrl('/api/lots/export?format=pdf'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -155,8 +156,20 @@ const AdminLotManagement = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Export failed');
+        const text = await response.text();
+        let message = 'Export failed';
+        try {
+          const errorData = JSON.parse(text);
+          message = errorData.error || message;
+        } catch {
+          message = text || message;
+        }
+        throw new Error(message);
+      }
+
+      if (!response.headers.get('content-type')?.includes('application/pdf')) {
+        const text = await response.text();
+        throw new Error(text || 'Export failed: invalid PDF response');
       }
 
       const blob = await response.blob();

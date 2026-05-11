@@ -58,6 +58,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import ReportToolbar from '../components/ReportToolbar';
+import { getBackendApiUrl } from '../utils/api';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -375,7 +376,7 @@ useEffect(() => {
 
   const handleExportPdf = useCallback(async () => {
     try {
-      const response = await fetch('/api/serviceRequests/export?format=pdf', {
+      const response = await fetch(getBackendApiUrl('/api/service-requests/export?format=pdf'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -383,8 +384,20 @@ useEffect(() => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Export failed');
+        const text = await response.text();
+        let message = 'Export failed';
+        try {
+          const errorData = JSON.parse(text);
+          message = errorData.error || message;
+        } catch {
+          message = text || message;
+        }
+        throw new Error(message);
+      }
+
+      if (!response.headers.get('content-type')?.includes('application/pdf')) {
+        const text = await response.text();
+        throw new Error(text || 'Export failed: invalid PDF response');
       }
 
       const blob = await response.blob();

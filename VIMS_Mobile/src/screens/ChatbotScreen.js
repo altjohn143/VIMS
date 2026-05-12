@@ -9,12 +9,49 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+
+const suggestedQuestionsByRole = {
+  resident: [
+    'How do I generate a visitor pass?',
+    'How can residents pay dues?',
+    'Where can I check announcements?',
+    'How do service requests work?',
+    'Can you recommend available lots?'
+  ],
+  admin: [
+    'How do I approve a new resident?',
+    'How can I post an announcement?',
+    'Where do I manage visitor access?',
+    'How do I assign a service request?',
+    'How can I review reported incidents?'
+  ],
+  security: [
+    'How do I approve visitor passes?',
+    'Where can I see active security requests?',
+    'How do I report an incident?',
+    'How do I verify visitor credentials?',
+    'Where can I find patrol logs?'
+  ],
+  default: [
+    'How do I generate a visitor pass?',
+    'How can residents pay dues?',
+    'Where can I check announcements?',
+    'How do service requests work?',
+    'Can you recommend available lots?'
+  ]
+};
+
+const getSuggestedPrompts = (role) => suggestedQuestionsByRole[role] || suggestedQuestionsByRole.default;
 
 const ChatbotScreen = ({ navigation }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const role = user?.role || 'resident';
+  const suggestedPrompts = getSuggestedPrompts(role);
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -30,8 +67,8 @@ const ChatbotScreen = ({ navigation }) => {
     loadMessages();
   }, []);
 
-  const sendMessage = async () => {
-    const trimmed = message.trim();
+  const sendMessage = async (messageToSend) => {
+    const trimmed = (messageToSend ?? message).trim();
     if (!trimmed || loading) return;
     setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
     setMessage('');
@@ -47,6 +84,11 @@ const ChatbotScreen = ({ navigation }) => {
     }
   };
 
+  const handleSuggestedPrompt = (prompt) => {
+    setMessage(prompt);
+    sendMessage(prompt);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -55,6 +97,17 @@ const ChatbotScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>VIMS AI Assistant</Text>
         <View style={{ width: 22 }} />
+      </View>
+
+      <View style={styles.suggestionsContainer}>
+        <Text style={styles.suggestionsTitle}>Suggested questions for {role === 'admin' ? 'Administrator' : role === 'security' ? 'Security Officer' : 'Resident'}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
+          {suggestedPrompts.map((prompt) => (
+            <TouchableOpacity key={prompt} style={styles.suggestionPill} onPress={() => handleSuggestedPrompt(prompt)}>
+              <Text style={styles.suggestionText}>{prompt}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <ScrollView style={styles.messages}>
@@ -107,6 +160,36 @@ const styles = StyleSheet.create({
     borderTopColor: '#e2e8f0',
     padding: 10,
     backgroundColor: '#fff'
+  },
+  suggestionsContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0'
+  },
+  suggestionsTitle: {
+    color: '#0f172a',
+    fontWeight: '700',
+    marginBottom: 8
+  },
+  suggestionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  suggestionPill: {
+    backgroundColor: '#ecfdf5',
+    borderRadius: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#d1fae5'
+  },
+  suggestionText: {
+    color: '#166534',
+    fontSize: 13,
+    fontWeight: '700'
   },
   input: {
     flex: 1,

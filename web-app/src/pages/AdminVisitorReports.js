@@ -179,7 +179,9 @@ const AdminVisitorReports = () => {
         columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 20 } }
       });
 
-      pdf.save(`visitor_report_${new Date().toISOString().split('T')[0]}.pdf`);
+      const exportTime = new Date();
+      const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
+      pdf.save(`visitor_report_${timestamp}.pdf`);
       toast.success('Report exported successfully to PDF');
     } catch (error) {
       toast.error('Failed to export report');

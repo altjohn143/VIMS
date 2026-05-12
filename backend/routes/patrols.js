@@ -9,10 +9,20 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
   try {
     let query = {};
     
-    // Security officers can only see their own logs
+    // Filter based on security level and role
     if (req.user.role === 'security') {
-      query.officerId = req.user._id;
+      // Head officers see all patrol logs from their subordinate security personnel (excluding archived)
+      if (req.user.securityLevel === 'head-officer') {
+        const subordinateOfficers = await User.find({ headOfficerId: req.user._id, isArchived: false }).select('_id');
+        const subordinateIds = subordinateOfficers.map(o => o._id);
+        subordinateIds.push(req.user._id); // Include head officer's own logs
+        query.officerId = { $in: subordinateIds };
+      } else {
+        // Regular security personnel see only their own logs
+        query.officerId = req.user._id;
+      }
     }
+    // Admins see all logs (no query filter)
     
     // Filter by phase if specified
     if (req.query.phase) {
@@ -20,11 +30,12 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
     }
     
     const rows = await PatrolLog.find(query)
-      .populate('officerId', 'firstName lastName role assignedPhases')
+      .populate('officerId', 'firstName lastName role securityLevel assignedPhases assignedAreas')
       .sort({ loggedAt: -1, createdAt: -1 })
       .limit(200);
     res.json({ success: true, count: rows.length, data: rows });
   } catch (error) {
+    console.error('Error loading patrol logs:', error);
     res.status(500).json({ success: false, error: 'Failed to load patrol logs' });
   }
 });
@@ -38,7 +49,8 @@ router.post('/log', protect, authorize('security', 'admin'), async (req, res) =>
     }
     
     // Validate that the security officer is assigned to this phase
-    if (req.user.role === 'security') {
+    // Skip validation for head officers - they can log patrols anywhere
+    if (req.user.role === 'security' && req.user.securityLevel !== 'head-officer') {
       const user = await require('../models/User').findById(req.user._id);
       if (!user.assignedPhases.includes(phase)) {
         return res.status(403).json({ success: false, error: 'You are not assigned to patrol this phase' });
@@ -62,6 +74,7 @@ router.post('/log', protect, authorize('security', 'admin'), async (req, res) =>
     
     res.status(201).json({ success: true, data: row });
   } catch (error) {
+    console.error('Error creating patrol log:', error);
     res.status(500).json({ success: false, error: 'Failed to create patrol log' });
   }
 });
@@ -69,33 +82,49 @@ router.post('/log', protect, authorize('security', 'admin'), async (req, res) =>
 // Admin routes for managing security assignments
 router.put('/assign/:userId', protect, authorize('admin'), async (req, res) => {
   try {
-    const { assignedPhases, assignedAreas, patrolSchedule } = req.body;
+    const { securityLevel = 'personnel', assignedPhases = [], assignedAreas = [], patrolSchedule = '', headOfficerId = null } = req.body;
     
     const user = await User.findById(req.params.userId);
     if (!user || user.role !== 'security') {
       return res.status(404).json({ success: false, error: 'Security officer not found' });
     }
     
-    user.assignedPhases = assignedPhases || [];
-    user.assignedAreas = assignedAreas || [];
-    user.patrolSchedule = patrolSchedule || '';
+    // Update security level
+    user.securityLevel = securityLevel;
+    
+    // For head officers, don't require assignedPhases/assignedAreas/patrolSchedule
+    if (securityLevel === 'head-officer') {
+      user.assignedPhases = [];
+      user.assignedAreas = [];
+      user.patrolSchedule = '';
+      user.headOfficerId = null;
+    } else {
+      // For regular personnel, set their assignments and link to head officer if provided
+      user.assignedPhases = assignedPhases || [];
+      user.assignedAreas = assignedAreas || [];
+      user.patrolSchedule = patrolSchedule || '';
+      user.headOfficerId = headOfficerId || null;
+    }
     
     await user.save();
     
     res.json({ success: true, data: user });
   } catch (error) {
+    console.error('Error updating security assignment:', error);
     res.status(500).json({ success: false, error: 'Failed to update security assignment' });
   }
 });
 
 router.get('/assignments', protect, authorize('admin'), async (req, res) => {
   try {
-    const securityOfficers = await User.find({ role: 'security' })
-      .select('firstName lastName email assignedPhases assignedAreas patrolSchedule')
+    const securityOfficers = await User.find({ role: 'security', isArchived: false })
+      .select('firstName lastName email securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId')
+      .populate('headOfficerId', 'firstName lastName')
       .sort({ firstName: 1 });
     
     res.json({ success: true, data: securityOfficers });
   } catch (error) {
+    console.error('Error loading security assignments:', error);
     res.status(500).json({ success: false, error: 'Failed to load security assignments' });
   }
 });

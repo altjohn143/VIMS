@@ -20,6 +20,7 @@ class PDFReportService {
    * Generate AI Financial Report PDF
    */
   async generateFinancialReport(data, options = {}) {
+    const generatedAt = new Date();
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -39,10 +40,10 @@ class PDFReportService {
           resolve(pdfBuffer);
         });
 
-        this._addReportHeader(doc, 'VIMS Financial Report', data.period, data.year, data.month, options.creator);
+        this._addReportHeader(doc, 'VIMS Financial Report', data.period, data.year, data.month, options.creator, generatedAt);
         this._addFinancialSummary(doc, data.summary);
         this._addFinancialAnalysis(doc, data.report);
-        this._addReportFooter(doc, options.creator);
+        this._addReportFooter(doc, options.creator, generatedAt);
 
         doc.end();
       } catch (error) {
@@ -55,6 +56,7 @@ class PDFReportService {
    * Generate AI Visitor Security Report PDF
    */
   async generateVisitorReport(data, options = {}) {
+    const generatedAt = new Date();
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -74,10 +76,10 @@ class PDFReportService {
           resolve(pdfBuffer);
         });
 
-        this._addReportHeader(doc, 'VIMS Visitor Security Report', data.period, data.date, null, options.creator);
+        this._addReportHeader(doc, 'VIMS Visitor Security Report', data.period, data.date, null, options.creator, generatedAt);
         this._addVisitorSummary(doc, data.summary);
         this._addVisitorAnalysis(doc, data.report);
-        this._addReportFooter(doc, options.creator);
+        this._addReportFooter(doc, options.creator, generatedAt);
 
         doc.end();
       } catch (error) {
@@ -90,6 +92,7 @@ class PDFReportService {
    * Generate AI Incident Report PDF
    */
   async generateIncidentReport(data, options = {}) {
+    const generatedAt = new Date();
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -109,10 +112,10 @@ class PDFReportService {
           resolve(pdfBuffer);
         });
 
-        this._addReportHeader(doc, 'VIMS Incident Analysis Report', data.period, data.date, null, options.creator);
+        this._addReportHeader(doc, 'VIMS Incident Analysis Report', data.period, data.date, null, options.creator, generatedAt);
         this._addIncidentSummary(doc, data.summary);
         this._addIncidentAnalysis(doc, data.report);
-        this._addReportFooter(doc, options.creator);
+        this._addReportFooter(doc, options.creator, generatedAt);
 
         doc.end();
       } catch (error) {
@@ -125,6 +128,7 @@ class PDFReportService {
    * Generate General Data Report PDF (for non-AI reports)
    */
   async generateDataReport(title, data, columns, options = {}) {
+    const generatedAt = new Date();
     return new Promise((resolve, reject) => {
       try {
         console.log(`Generating PDF report: ${title}, ${data.length} rows, ${columns.length} columns`);
@@ -152,9 +156,9 @@ class PDFReportService {
           reject(error);
         });
 
-        this._addReportHeader(doc, title, 'Generated', new Date().toLocaleDateString(), null, options.creator);
+        this._addReportHeader(doc, title, 'Generated', generatedAt.toLocaleDateString(), null, options.creator, generatedAt);
         this._addDataTable(doc, data, columns);
-        this._addReportFooter(doc, options.creator);
+        this._addReportFooter(doc, options.creator, generatedAt);
 
         doc.end();
       } catch (error) {
@@ -164,7 +168,7 @@ class PDFReportService {
     });
   }
 
-  _addReportHeader(doc, title, period, date, month, creator) {
+  _addReportHeader(doc, title, period, date, month, creator, generatedAt = new Date()) {
     // Header with logo placeholder
     doc.fontSize(20).font(this.fonts.bold).text('VIMS - Village Integrated Management System', 0, 50, { align: 'center' });
 
@@ -178,7 +182,7 @@ class PDFReportService {
     if (period && date) {
       doc.text(`${period}: ${date}${month ? `/${month}` : ''}`, { align: 'center' });
     }
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+    doc.text(`Generated on: ${generatedAt.toLocaleString()}`, { align: 'center' });
 
     // Creator info
     if (creator) {
@@ -286,25 +290,40 @@ class PDFReportService {
     let yPosition = doc.y + 15;
 
     data.slice(0, 50).forEach((row, rowIndex) => { // Limit to 50 rows for PDF
-      if (yPosition > 700) { // New page if needed
+      const rowHeights = [];
+      const rowValues = columns.map((col) => {
+        const value = this._getNestedValue(row, col.key) || '';
+        return typeof value === 'object' ? JSON.stringify(value) : String(value);
+      });
+
+      // Calculate row height for each cell
+      columns.forEach((col, colIndex) => {
+        const colWidth = (col.width || 10) / totalColWidth * totalWidth;
+        const textHeight = doc.heightOfString(rowValues[colIndex], {
+          width: colWidth - 5,
+          align: 'left'
+        });
+        rowHeights.push(textHeight);
+      });
+
+      const rowHeight = Math.max(...rowHeights, 12) + 6;
+
+      if (yPosition + rowHeight > 750) { // New page if needed
         doc.addPage();
         yPosition = 50;
       }
 
       xPosition = 50;
-      columns.forEach((col) => {
+      columns.forEach((col, colIndex) => {
         const colWidth = (col.width || 10) / totalColWidth * totalWidth;
-        const value = this._getNestedValue(row, col.key) || '';
-        const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
-
-        doc.text(displayValue.substring(0, Math.floor(colWidth / 3)), xPosition, yPosition, {
+        doc.text(rowValues[colIndex], xPosition, yPosition, {
           width: colWidth - 5,
           align: 'left'
         });
         xPosition += colWidth;
       });
 
-      yPosition += 15;
+      yPosition += rowHeight;
     });
 
     if (data.length > 50) {
@@ -326,7 +345,7 @@ class PDFReportService {
         const width = doc.widthOfString(testLine);
 
         if (width > 495 && currentLine) {
-          doc.text(currentLine);
+          doc.text(currentLine, { width: 495, align: 'left' });
           currentLine = word;
         } else {
           currentLine = testLine;
@@ -334,12 +353,12 @@ class PDFReportService {
       });
 
       if (currentLine) {
-        doc.text(currentLine);
+        doc.text(currentLine, { width: 495, align: 'left' });
       }
     });
   }
 
-  _addReportFooter(doc, creator) {
+  _addReportFooter(doc, creator, generatedAt = new Date()) {
     const pageCount = doc.bufferedPageRange().count;
 
     for (let i = 0; i < pageCount; i++) {
@@ -352,7 +371,7 @@ class PDFReportService {
       doc.fontSize(8).font(this.fonts.normal)
          .text('VIMS - Village Integrated Management System', 50, 790, { align: 'center' })
          .text(`Page ${i + 1} of ${pageCount}`, 50, 790, { align: 'right' })
-         .text(`Generated on ${new Date().toLocaleString()}`, 50, 800, { align: 'center' });
+         .text(`Generated on ${generatedAt.toLocaleString()}`, 50, 800, { align: 'center' });
 
       // Creator info in footer
       if (creator) {

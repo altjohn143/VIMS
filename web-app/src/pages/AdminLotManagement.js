@@ -181,7 +181,9 @@ const AdminLotManagement = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `VIMS_Lots_Export_${new Date().toISOString().split('T')[0]}.pdf`;
+      const exportTime = new Date();
+      const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
+      a.download = `VIMS_Lots_Export_${timestamp}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

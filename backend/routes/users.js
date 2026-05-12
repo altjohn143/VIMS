@@ -743,6 +743,8 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       phone,
       password,
       role,
+      securityLevel = 'personnel',
+      headOfficerId = null,
       assignedPhases = [],
       assignedAreas = [],
       patrolSchedule = ''
@@ -756,18 +758,31 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'Only admin or security accounts can be created here' });
     }
 
+    if (role === 'security' && !['head-officer', 'personnel'].includes(securityLevel)) {
+      return res.status(400).json({ success: false, error: 'securityLevel must be head-officer or personnel' });
+    }
+
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({ success: false, error: 'A user with this email already exists' });
     }
 
-    const validAssignedPhases = Array.isArray(assignedPhases)
-      ? assignedPhases.map((phase) => Number(phase)).filter((phase) => Number.isInteger(phase) && phase >= 1 && phase <= 10)
+    // For head officers, don't require assignedPhases/assignedAreas/patrolSchedule
+    const validAssignedPhases = role === 'security' && securityLevel !== 'head-officer'
+      ? Array.isArray(assignedPhases)
+        ? assignedPhases.map((phase) => Number(phase)).filter((phase) => Number.isInteger(phase) && phase >= 1 && phase <= 10)
+        : []
       : [];
 
-    const validAssignedAreas = Array.isArray(assignedAreas)
-      ? assignedAreas.map((area) => String(area).trim()).filter(Boolean)
+    const validAssignedAreas = role === 'security' && securityLevel !== 'head-officer'
+      ? Array.isArray(assignedAreas)
+        ? assignedAreas.map((area) => String(area).trim()).filter(Boolean)
+        : []
       : [];
+
+    const validPatrolSchedule = role === 'security' && securityLevel !== 'head-officer'
+      ? String(patrolSchedule).trim()
+      : '';
 
     const userData = {
       firstName: String(firstName).trim(),
@@ -776,14 +791,19 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       phone: String(phone).trim(),
       password,
       role,
-      securityLevel: role === 'security' ? 'personnel' : null,
+      securityLevel: role === 'security' ? securityLevel : null,
       isApproved: true,
       isActive: true,
       profileComplete: true,
-      assignedPhases: role === 'security' ? validAssignedPhases : [],
-      assignedAreas: role === 'security' ? validAssignedAreas : [],
-      patrolSchedule: role === 'security' ? String(patrolSchedule).trim() : ''
+      assignedPhases: validAssignedPhases,
+      assignedAreas: validAssignedAreas,
+      patrolSchedule: validPatrolSchedule
     };
+
+    // If security personnel, link to head officer
+    if (role === 'security' && securityLevel === 'personnel' && headOfficerId) {
+      userData.headOfficerId = headOfficerId;
+    }
 
     const newUser = await User.create(userData);
     newUser.password = undefined;

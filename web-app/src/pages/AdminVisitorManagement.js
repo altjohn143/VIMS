@@ -257,7 +257,9 @@ const handleReject = async () => {
         body: rows.map((r) => [r.visitorName, r.resident, r.house, r.status, r.expectedArrival, r.expectedDeparture]),
         styles: { fontSize: 8 }
       });
-      pdf.save(`visitors_export_${new Date().toISOString().split('T')[0]}.pdf`);
+      const exportTime = new Date();
+      const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
+      pdf.save(`visitors_export_${timestamp}.pdf`);
 
       toast.success(`Exported ${rows.length} visitors to PDF`);
       setExportDialogOpen(false);

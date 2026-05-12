@@ -308,7 +308,9 @@ const AdminPayments = () => {
       ])),
       styles: { fontSize: 8 }
     });
-    doc.save(`payments_export_${new Date().toISOString().split('T')[0]}.pdf`);
+    const exportTime = new Date();
+    const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
+    doc.save(`payments_export_${timestamp}.pdf`);
     toast.success('PDF exported');
   };
 

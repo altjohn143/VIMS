@@ -86,6 +86,13 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+
+  // Head Officer who supervises this security personnel
+  headOfficerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   
   houseNumber: {
     type: String,

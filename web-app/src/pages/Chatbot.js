@@ -21,6 +21,7 @@ import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 import villageLogo from '../assets/village-logo.png';
 
 const themeColors = {
@@ -35,11 +36,50 @@ const themeColors = {
   border: 'rgba(15, 23, 42, 0.08)'
 };
 
+const suggestedQuestionsByRole = {
+  resident: [
+    'How do I generate a visitor pass?',
+    'How can residents pay dues?',
+    'Where can I check announcements?',
+    'How do service requests work?',
+    'Can you recommend available lots?'
+  ],
+  admin: [
+    'How do I approve a new resident?',
+    'How can I post an announcement?',
+    'Where do I manage visitor access?',
+    'How do I assign a service request?',
+    'How can I review reported incidents?'
+  ],
+  security: [
+    'How do I approve visitor passes?',
+    'Where can I see active security requests?',
+    'How do I report an incident?',
+    'How do I verify visitor credentials?',
+    'Where can I find patrol logs?' 
+  ],
+  default: [
+    'How do I generate a visitor pass?',
+    'How can residents pay dues?',
+    'Where can I check announcements?',
+    'How do service requests work?',
+    'Can you recommend available lots?'
+  ]
+};
+
+const getSuggestedPrompts = (role) => suggestedQuestionsByRole[role] || suggestedQuestionsByRole.default;
+
 const Chatbot = () => {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { getCurrentUser } = useAuth();
+
+  const currentUser = getCurrentUser();
+  const role = currentUser?.role || 'resident';
+  const roleLabel = role === 'admin' ? 'Administrator' : role === 'security' ? 'Security Officer' : 'Resident';
+  const suggestedPrompts = getSuggestedPrompts(role);
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -55,8 +95,8 @@ const Chatbot = () => {
     loadMessages();
   }, []);
 
-  const sendMessage = async () => {
-    const trimmed = message.trim();
+  const sendMessage = async (messageToSend) => {
+    const trimmed = (messageToSend ?? message).trim();
     if (!trimmed || loading) return;
 
     setLoading(true);
@@ -76,6 +116,11 @@ const Chatbot = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSuggestedPrompt = (prompt) => {
+    setMessage(prompt);
+    sendMessage(prompt);
   };
 
   return (
@@ -506,24 +551,18 @@ const Chatbot = () => {
                 Suggested Questions
               </Typography>
               <Typography sx={{ mt: 0.5, fontSize: '0.84rem', color: themeColors.textSecondary, fontWeight: 600 }}>
-                Tap one to start faster.
+                Popular prompts for {roleLabel}. Tap one to send it right away.
               </Typography>
             </Box>
 
             <Divider />
 
             <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.1 }}>
-              {[
-                'How do I generate a visitor pass?',
-                'How can residents pay dues?',
-                'Where can I check announcements?',
-                'How do service requests work?',
-                'Can you recommend available lots?'
-              ].map((prompt) => (
+              {suggestedPrompts.map((prompt) => (
                 <Paper
                   key={prompt}
                   elevation={0}
-                  onClick={() => setMessage(prompt)}
+                  onClick={() => handleSuggestedPrompt(prompt)}
                   sx={{
                     px: 1.5,
                     py: 1.35,

@@ -1,6 +1,7 @@
 const express = require('express');
 const Announcement = require('../models/Announcement');
 const { protect, authorize } = require('../middleware/auth');
+const ActivityNotificationService = require('../services/activityNotificationService');
 
 const router = express.Router();
 
@@ -101,6 +102,13 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
       row.status = status;
       if (status === 'published' && !row.publishedAt) {
         row.publishedAt = new Date();
+
+        // Notify all residents about new announcement
+        try {
+          await ActivityNotificationService.broadcastAnnouncementToRole(row, 'resident');
+        } catch (error) {
+          console.error('Failed to broadcast announcement notification:', error);
+        }
       } else if (status === 'scheduled') {
         row.scheduledAt = new Date(scheduledAt);
         row.publishedAt = null;

@@ -1,6 +1,7 @@
 const express = require('express');
 const Incident = require('../models/Incident');
 const { protect, authorize } = require('../middleware/auth');
+const ActivityNotificationService = require('../services/activityNotificationService');
 
 const router = express.Router();
 
@@ -59,6 +60,24 @@ router.post('/', protect, authorize('security', 'admin'), async (req, res) => {
       occurredAt: occurredAt ? new Date(occurredAt) : new Date(),
       reportedBy: req.user._id
     });
+
+    // Notify admins and security about new incident
+    try {
+      const reporter = await require('../models/User').findById(req.user._id).select('firstName lastName');
+      await ActivityNotificationService.notifyAdminIncidentReported(row, reporter);
+
+      // Also notify residents in the area if it's a high severity incident
+      if (severity === 'high' || severity === 'critical') {
+        // For now, notify all residents. In a real system, you'd filter by location/area
+        const residents = await require('../models/User').find({ role: 'resident' }).select('_id');
+        for (const resident of residents) {
+          await ActivityNotificationService.notifyResidentIncidentAlert(row, resident._id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send incident notifications:', error);
+    }
+
     res.status(201).json({ success: true, data: row });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to create incident' });

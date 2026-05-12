@@ -44,7 +44,8 @@ import {
   CalendarMonth as CalendarMonthIcon,
   Notes as NotesIcon,
   KeyboardArrowRight as KeyboardArrowRightIcon,
-  AccessTime as AccessTimeIcon
+  AccessTime as AccessTimeIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';

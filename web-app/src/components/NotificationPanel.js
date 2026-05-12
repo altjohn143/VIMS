@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import websocketService from '../utils/websocket';
 
 const themeColors = {
   primary: '#166534',
@@ -50,12 +51,24 @@ const NotificationPanel = ({ anchorEl, open, onClose }) => {
     }
   }, [open]);
 
+  // Listen for real-time notifications
+  useEffect(() => {
+    const unsubscribe = websocketService.onNotification((newNotification) => {
+      // Add new notification to the top of the list
+      setNotifications(prev => [newNotification, ...prev]);
+    });
+
+    return unsubscribe;
+  }, []);
+
   const markAsRead = async (id) => {
     try {
       await axios.put(`/api/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) => (n._id === id ? { ...n, readAt: new Date().toISOString() } : n))
       );
+      // Also notify via WebSocket
+      websocketService.markNotificationRead(id);
     } catch (error) {
       toast.error('Failed to mark as read');
     }

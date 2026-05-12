@@ -53,7 +53,8 @@ import {
   Group as GroupIcon,
   Lock as LockIcon,
   LockOpen as LockOpenIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  Image as ImageIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -107,6 +108,9 @@ const AdminUserManagement = () => {
   const [moveOutNotes, setMoveOutNotes] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createProcessing, setCreateProcessing] = useState(false);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageModalTitle, setImageModalTitle] = useState('');
   const [newUserForm, setNewUserForm] = useState({
     firstName: '',
     lastName: '',
@@ -608,6 +612,18 @@ const AdminUserManagement = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const buildVehicleUrl = (filename) => {
+    if (!filename) return null;
+    const baseUrl = getBackendApiUrl('').replace(/\/api$/, '');
+    return `${baseUrl}/uploads/vehicle-photos/${filename}`;
+  };
+
+  const openImageModal = (imageUrl, title) => {
+    setSelectedImage(imageUrl);
+    setImageModalTitle(title);
+    setImageModalOpen(true);
   };
 
   if (loading && users.length === 0) {
@@ -1368,17 +1384,78 @@ const AdminUserManagement = () => {
                         <Typography variant="subtitle2" sx={{ mb: 2, color: themeColors.primary, fontWeight: 600 }}>
                           Registered Vehicles ({selectedUser.vehicles.length})
                         </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           {selectedUser.vehicles.map((vehicle, index) => (
-                            <Box key={index} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                              <Chip
-                                label={vehicle.plateNumber}
-                                size="small"
-                                sx={{ bgcolor: themeColors.primary + '15', color: themeColors.primary }}
-                              />
-                              <Typography variant="body2">
-                                {vehicle.make} {vehicle.model} ({vehicle.color})
-                              </Typography>
+                            <Box key={index} sx={{ 
+                              display: 'flex', 
+                              gap: 2, 
+                              alignItems: 'center',
+                              p: 2,
+                              bgcolor: 'white',
+                              borderRadius: 2,
+                              border: `1px solid ${themeColors.border}`
+                            }}>
+                              {vehicle.carImage && (
+                                <Box 
+                                  sx={{ 
+                                    width: 80, 
+                                    height: 60, 
+                                    borderRadius: 1, 
+                                    overflow: 'hidden',
+                                    cursor: 'pointer',
+                                    border: `1px solid ${themeColors.border}`
+                                  }}
+                                  onClick={() => openImageModal(buildVehicleUrl(vehicle.carImage), `${vehicle.make} ${vehicle.model} - ${vehicle.plateNumber}`)}
+                                >
+                                  <Box
+                                    component="img"
+                                    src={buildVehicleUrl(vehicle.carImage)}
+                                    alt={`${vehicle.make} ${vehicle.model}`}
+                                    sx={{ 
+                                      width: '100%', 
+                                      height: '100%', 
+                                      objectFit: 'cover'
+                                    }}
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                  />
+                                  <Box sx={{ 
+                                    display: 'none',
+                                    width: '100%', 
+                                    height: '100%', 
+                                    bgcolor: themeColors.background,
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <ImageIcon sx={{ color: themeColors.textSecondary }} />
+                                  </Box>
+                                </Box>
+                              )}
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+                                  {vehicle.make} {vehicle.model} ({vehicle.color})
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
+                                  Plate: {vehicle.plateNumber}
+                                </Typography>
+                                {vehicle.carImage && (
+                                  <Button
+                                    size="small"
+                                    startIcon={<ImageIcon />}
+                                    onClick={() => openImageModal(buildVehicleUrl(vehicle.carImage), `${vehicle.make} ${vehicle.model} - ${vehicle.plateNumber}`)}
+                                    sx={{ 
+                                      mt: 1,
+                                      textTransform: 'none',
+                                      fontSize: '0.75rem',
+                                      color: themeColors.primary
+                                    }}
+                                  >
+                                    View Photo
+                                  </Button>
+                                )}
+                              </Box>
                             </Box>
                           ))}
                         </Box>
@@ -1667,6 +1744,62 @@ const AdminUserManagement = () => {
             sx={{ textTransform: 'none', fontWeight: 800 }}
           >
             {processing ? 'Processing…' : (moveOutAction === 'approve' ? 'Approve' : 'Deny')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Image Modal */}
+      <Dialog
+        open={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: `0 20px 60px ${themeColors.primary}20`,
+            maxHeight: '90vh'
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          bgcolor: themeColors.primary,
+          color: 'white',
+          textAlign: 'center',
+          py: 2,
+          fontWeight: 600
+        }}>
+          {imageModalTitle}
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {selectedImage && (
+            <Box
+              component="img"
+              src={selectedImage}
+              alt={imageModalTitle}
+              sx={{
+                width: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                display: 'block'
+              }}
+              onError={(e) => {
+                e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDMTMuMSAyIDE0IDIuOSAxNCA0VjE2QzE0IDE3LjEgMTMuMSAxOCA5LjkgMTlIMTQuMUMxNS4xIDE5IDE2IDE4LjEgMTYgMTdWNFoiIGZpbGw9IiM5Q0E0QUYiLz4KPHBhdGggZD0iTTEwIDZDMTAgNS41IDEwLjUgNSA5IDVINUMxMC41IDUgMTAgNS41IDEwIDZIMTBaIiBmaWxsPSIjOUNBNEFGIi8+CjxwYXRoIGQ9Ik0xMCAxMEgxMEwxMCAxMEgxMFoiIGZpbGw9IiM5Q0E0QUYiLz4KPHBhdGggZD0iTTEwIDE0SDEwTDEwIDE0SDEwWiIgZmlsbD0iIzlDQTQ5RiIvPgo8L3N2Zz4K';
+              }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${themeColors.border}`, justifyContent: 'center' }}>
+          <Button
+            onClick={() => setImageModalOpen(false)}
+            variant="outlined"
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              borderRadius: 2
+            }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>

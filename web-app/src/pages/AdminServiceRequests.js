@@ -1338,7 +1338,7 @@ useEffect(() => {
                         </Typography>
                         {request.completedAt && (
                           <Typography variant="caption" color={themeColors.success} display="block">
-                            Completed: {formatShortDate(request.completedAt)}
+                            Completed: {formatDate(request.completedAt)}
                           </Typography>
                         )}
                       </TableCell>

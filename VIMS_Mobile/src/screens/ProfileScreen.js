@@ -302,6 +302,12 @@ const ProfileScreen = ({ navigation }) => {
     return `${baseUrl}/api/verifications/my-files/${filename}`;
   };
 
+  const buildVehicleUrl = (filename) => {
+    if (!filename) return null;
+    const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || '';
+    return `${baseUrl}/uploads/vehicle-photos/${filename}`;
+  };
+
   const openDocumentModal = (title, imageUrl) => {
     setDocumentModalTitle(title);
     setDocumentModalImage(imageUrl);
@@ -583,6 +589,39 @@ const ProfileScreen = ({ navigation }) => {
           )}
         </View>
 
+        {/* Vehicles Section */}
+        {formData.vehicles && formData.vehicles.length > 0 && formData.vehicles.some(v => v.plateNumber || v.make || v.model || v.color) && (
+          <View style={[styles.section, shadows.small]}>
+            <Text style={styles.sectionTitle}>Vehicles</Text>
+            {formData.vehicles.map((vehicle, index) => (
+              (vehicle.plateNumber || vehicle.make || vehicle.model || vehicle.color) && (
+                <View key={index} style={styles.vehicleItem}>
+                  <View style={styles.vehicleInfo}>
+                    <Text style={styles.vehicleTitle}>
+                      {vehicle.make} {vehicle.model} {vehicle.color && `(${vehicle.color})`}
+                    </Text>
+                    {vehicle.plateNumber && (
+                      <Text style={styles.vehiclePlate}>Plate: {vehicle.plateNumber}</Text>
+                    )}
+                  </View>
+                  {vehicle.carImage && (
+                    <TouchableOpacity 
+                      style={styles.vehicleImageContainer}
+                      onPress={() => openDocumentModal(`Vehicle ${index + 1}`, buildVehicleUrl(vehicle.carImage))}
+                    >
+                      <Image 
+                        source={{ uri: buildVehicleUrl(vehicle.carImage) }} 
+                        style={styles.vehicleImage} 
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )
+            ))}
+          </View>
+        )}
+
         {user?.role === 'resident' && (
           <View style={[styles.section, shadows.small]}>
             <Text style={styles.sectionTitle}>Move-out</Text>
@@ -785,6 +824,12 @@ const styles = StyleSheet.create({
   noDocuments: { alignItems: 'center', padding: 32 },
   noDocumentsText: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary, marginTop: 16 },
   noDocumentsSubtext: { fontSize: 14, color: themeColors.textSecondary, marginTop: 4, textAlign: 'center' },
+  vehicleItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  vehicleInfo: { flex: 1 },
+  vehicleTitle: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary, marginBottom: 4 },
+  vehiclePlate: { fontSize: 14, color: themeColors.textSecondary },
+  vehicleImageContainer: { width: 80, height: 60, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: themeColors.border },
+  vehicleImage: { width: '100%', height: '100%' },
 });
 
 export default ProfileScreen;

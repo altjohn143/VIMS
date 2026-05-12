@@ -137,7 +137,8 @@ const userSchema = new mongoose.Schema({
     plateNumber: String,
     make: String,
     model: String,
-    color: String
+    color: String,
+    carImage: String
   }],
 
   familyMembers: [{

@@ -116,13 +116,17 @@ const Reservations = () => {
   const [resources, setResources] = useState({ venue: [], equipment: [] });
 
   const [formData, setFormData] = useState({
-    resourceType: 'venue',
-    resourceName: '',
     description: '',
     startDate: new Date(),
     endDate: new Date(),
-    quantity: 1,
     notes: '',
+    items: [],
+  });
+
+  const [currentItem, setCurrentItem] = useState({
+    resourceType: 'venue',
+    resourceName: '',
+    quantity: 1,
   });
 
   useEffect(() => {
@@ -163,22 +167,90 @@ const Reservations = () => {
 
   const handleOpenDialog = () => {
     setFormData({
-      resourceType: 'venue',
-      resourceName: '',
       description: '',
       startDate: new Date(),
       endDate: new Date(),
-      quantity: 1,
       notes: '',
+      items: [],
+    });
+    setCurrentItem({
+      resourceType: 'venue',
+      resourceName: '',
+      quantity: 1,
     });
     setOpen(true);
   };
 
   const handleCloseDialog = () => {
+    setFormData({
+      description: '',
+      startDate: new Date(),
+      endDate: new Date(),
+      notes: '',
+      items: [],
+    });
+    setCurrentItem({
+      resourceType: 'venue',
+      resourceName: '',
+      quantity: 1,
+    });
     setOpen(false);
   };
 
+  const handleAddItem = () => {
+    if (!currentItem.resourceName) {
+      setSnackbar({ open: true, message: 'Please select a resource', severity: 'warning' });
+      return;
+    }
+
+    const exists = formData.items.find(
+      (item) => item.resourceName === currentItem.resourceName && item.resourceType === currentItem.resourceType
+    );
+
+    if (exists) {
+      setSnackbar({ open: true, message: 'This item is already in your reservation. Adjust the quantity instead.', severity: 'warning' });
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      items: [...formData.items, { ...currentItem }],
+    });
+
+    setCurrentItem({
+      resourceType: 'venue',
+      resourceName: '',
+      quantity: 1,
+    });
+  };
+
+  const handleRemoveItem = (index) => {
+    setFormData({
+      ...formData,
+      items: formData.items.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleUpdateItemQuantity = (index, newQuantity) => {
+    const updatedItems = [...formData.items];
+    updatedItems[index].quantity = parseInt(newQuantity) || 1;
+    setFormData({
+      ...formData,
+      items: updatedItems,
+    });
+  };
+
   const handleSubmit = async () => {
+    if (formData.items.length === 0) {
+      setSnackbar({ open: true, message: 'Please add at least one item to your reservation', severity: 'error' });
+      return;
+    }
+
+    if (!formData.description) {
+      setSnackbar({ open: true, message: 'Please provide a description/purpose for the reservation', severity: 'error' });
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const data = {
@@ -212,6 +284,24 @@ const Reservations = () => {
     } catch (error) {
       console.error('Failed to cancel reservation:', error);
       setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to cancel reservation', severity: 'error' });
+    }
+  };
+
+  const handleInitiateReturn = async (reservationId) => {
+    if (!window.confirm('Are you ready to return this item to security?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`/api/reservations/${reservationId}/initiate-return`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSnackbar({ open: true, message: response.data.message || 'Return initiated successfully! Please bring the item to security.', severity: 'success' });
+      fetchReservations();
+    } catch (error) {
+      console.error('Failed to initiate return:', error);
+      setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to initiate return', severity: 'error' });
     }
   };
 
@@ -758,23 +848,46 @@ const Reservations = () => {
                       <React.Fragment key={reservation._id}>
                         <ListItem
                           alignItems="flex-start"
-                          secondaryAction={['pending', 'confirmed'].includes(reservation.status) ? (
-                            <Button
-                              onClick={() => handleCancelReservation(reservation._id)}
-                              variant="outlined"
-                              color="error"
-                              size="small"
-                              sx={{
-                                textTransform: 'none',
-                                fontWeight: 800,
-                                borderRadius: '12px',
-                                minWidth: 130
-                              }}
-                            >
-                              <CancelIcon sx={{ mr: 1 }} />
-                              Cancel
-                            </Button>
-                          ) : null}
+                          secondaryAction={
+                            ['pending', 'confirmed'].includes(reservation.status) ? (
+                              <Button
+                                onClick={() => handleCancelReservation(reservation._id)}
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                sx={{
+                                  textTransform: 'none',
+                                  fontWeight: 800,
+                                  borderRadius: '12px',
+                                  minWidth: 130
+                                }}
+                              >
+                                <CancelIcon sx={{ mr: 1 }} />
+                                Cancel
+                              </Button>
+                            ) : reservation.status === 'borrowed' ? (
+                              <Stack direction="row" spacing={0.8}>
+                                <Button
+                                  onClick={() => handleInitiateReturn(reservation._id)}
+                                  variant="contained"
+                                  color="primary"
+                                  size="small"
+                                  sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 800,
+                                    borderRadius: '12px',
+                                    backgroundColor: themeColors.info,
+                                    '&:hover': {
+                                      backgroundColor: '#0369a1'
+                                    }
+                                  }}
+                                >
+                                  <ArrowOutwardIcon sx={{ mr: 1, transform: 'rotate(180deg)' }} />
+                                  Return
+                                </Button>
+                              </Stack>
+                            ) : null
+                          }
                           sx={{
                             borderRadius: '16px',
                             py: 1.4,
@@ -792,14 +905,16 @@ const Reservations = () => {
                                 color: reservation.resourceType === 'venue' ? themeColors.primary : '#2563eb'
                               }}
                             >
-                              {getResourceIcon(reservation.resourceType)}
+                              {getResourceIcon(reservation.resourceType || (reservation.items?.[0]?.resourceType))}
                             </Avatar>
                           </ListItemIcon>
                           <ListItemText
                             primary={
                               <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                                 <Typography sx={{ fontSize: '0.98rem', fontWeight: 900, color: themeColors.textPrimary }}>
-                                  {reservation.resourceName}
+                                  {reservation.items && reservation.items.length > 0
+                                    ? `${reservation.items.length} item${reservation.items.length > 1 ? 's' : ''}`
+                                    : reservation.resourceName}
                                 </Typography>
                                 <Chip
                                   icon={getStatusIcon(reservation.status)}
@@ -816,6 +931,18 @@ const Reservations = () => {
                             }
                             secondary={
                               <Box sx={{ mt: 0.8 }}>
+                                {reservation.items && reservation.items.length > 0 ? (
+                                  <Box sx={{ mb: 1 }}>
+                                    <Typography sx={{ fontSize: '0.82rem', color: themeColors.textSecondary, fontWeight: 700, mb: 0.5 }}>
+                                      Items:
+                                    </Typography>
+                                    {reservation.items.map((item, idx) => (
+                                      <Typography key={idx} sx={{ fontSize: '0.82rem', color: themeColors.textSecondary, ml: 1 }}>
+                                        • {item.resourceName} (Qty: {item.quantity})
+                                      </Typography>
+                                    ))}
+                                  </Box>
+                                ) : null}
                                 <Typography sx={{ fontSize: '0.84rem', color: themeColors.textSecondary, fontWeight: 700 }}>
                                   {new Date(reservation.startDate).toLocaleDateString()} - {new Date(reservation.endDate).toLocaleDateString()}
                                 </Typography>
@@ -886,33 +1013,128 @@ const Reservations = () => {
           </DialogTitle>
           <DialogContent sx={{ p: { xs: 2.5, md: 3 }, bgcolor: '#f8fafc' }}>
             <Grid container spacing={2.25} sx={{ mt: 0 }}>
+              {/* Item Selection Section */}
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, color: themeColors.textPrimary }}>
+                  Select Items
+                </Typography>
+              </Grid>
+
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth sx={fieldSx}>
                   <InputLabel>Resource Type</InputLabel>
                   <Select
-                    value={formData.resourceType}
+                    value={currentItem.resourceType}
                     label="Resource Type"
-                    onChange={(e) => setFormData({ ...formData, resourceType: e.target.value, resourceName: '' })}
+                    onChange={(e) => setCurrentItem({ ...currentItem, resourceType: e.target.value, resourceName: '' })}
                   >
                     <MenuItem value="venue">Venue</MenuItem>
                     <MenuItem value="equipment">Equipment</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
+
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth sx={fieldSx}>
                   <InputLabel>Resource Name</InputLabel>
                   <Select
-                    value={formData.resourceName}
+                    value={currentItem.resourceName}
                     label="Resource Name"
-                    onChange={(e) => setFormData({ ...formData, resourceName: e.target.value })}
+                    onChange={(e) => setCurrentItem({ ...currentItem, resourceName: e.target.value })}
                   >
-                    {(resources[formData.resourceType] || []).map((item) => (
+                    {(resources[currentItem.resourceType] || []).map((item) => (
                       <MenuItem key={item} value={item}>{item}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
               </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Quantity"
+                  value={currentItem.quantity}
+                  onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value) || 1 })}
+                  inputProps={{ min: 1 }}
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddItem}
+                  sx={{
+                    bgcolor: themeColors.primary,
+                    color: '#fff',
+                    borderRadius: '12px',
+                    py: 1.5,
+                    fontWeight: 800,
+                    textTransform: 'none',
+                    '&:hover': { bgcolor: '#14532d' }
+                  }}
+                >
+                  Add Item
+                </Button>
+              </Grid>
+
+              {/* Selected Items */}
+              {formData.items.length > 0 && (
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, color: themeColors.textPrimary }}>
+                    Items in Reservation ({formData.items.length})
+                  </Typography>
+                  {formData.items.map((item, index) => (
+                    <Paper
+                      key={index}
+                      sx={{
+                        p: 2,
+                        mb: 1.5,
+                        bgcolor: '#f0fdf4',
+                        border: `1px solid ${themeColors.border}`,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Box>
+                        <Typography sx={{ fontWeight: 700, color: themeColors.primary }}>
+                          {item.resourceName}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
+                          {item.resourceType}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography sx={{ fontWeight: 600 }}>Qty:</Typography>
+                          <TextField
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateItemQuantity(index, e.target.value)}
+                            inputProps={{ min: 1, style: { width: '60px', textAlign: 'center' } }}
+                            sx={{ '& input': { p: 0.5 } }}
+                          />
+                        </Box>
+                        <Button
+                          color="error"
+                          size="small"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => handleRemoveItem(index)}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+                    </Paper>
+                  ))}
+                </Grid>
+              )}
+
+              {/* Description */}
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -925,6 +1147,7 @@ const Reservations = () => {
                   sx={fieldSx}
                 />
               </Grid>
+
               <Grid item xs={12} sm={6}>
                 <DatePicker
                   label="Start Date"
@@ -934,6 +1157,7 @@ const Reservations = () => {
                   minDate={new Date()}
                 />
               </Grid>
+
               <Grid item xs={12} sm={6}>
                 <TimePicker
                   label="Start Time"
@@ -946,6 +1170,7 @@ const Reservations = () => {
                   renderInput={(params) => <TextField {...params} fullWidth sx={fieldSx} />}
                 />
               </Grid>
+
               <Grid item xs={12} sm={6}>
                 <DatePicker
                   label="End Date"

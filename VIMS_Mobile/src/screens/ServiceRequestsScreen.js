@@ -27,6 +27,9 @@ const ServiceRequestsScreen = ({ navigation }) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingRequestId, setRatingRequestId] = useState(null);
+  const [ratingValue, setRatingValue] = useState(0);
   
   const [formData, setFormData] = useState({
     category: '',
@@ -167,33 +170,29 @@ const ServiceRequestsScreen = ({ navigation }) => {
   };
 
   const handleRateService = async (requestId) => {
-    Alert.prompt(
-      'Rate Service',
-      'Please rate the service (1-5):',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Submit',
-          onPress: async (rating) => {
-            const numRating = parseInt(rating);
-            if (numRating >= 1 && numRating <= 5) {
-              try {
-                const response = await api.put(`/service-requests/${requestId}/rate`, { rating: numRating });
-                if (response.data.success) {
-                  Alert.alert('Success', 'Thank you for your feedback');
-                  fetchRequests();
-                }
-              } catch (error) {
-                Alert.alert('Error', 'Failed to submit rating');
-              }
-            } else {
-              Alert.alert('Error', 'Please enter a number between 1 and 5');
-            }
-          },
-        },
-      ],
-      'plain-text'
-    );
+    setRatingRequestId(requestId);
+    setRatingValue(0);
+    setShowRatingModal(true);
+  };
+
+  const handleSubmitRating = async () => {
+    if (ratingValue < 1 || ratingValue > 5) {
+      Alert.alert('Error', 'Please select a rating between 1 and 5');
+      return;
+    }
+    
+    try {
+      const response = await api.put(`/service-requests/${ratingRequestId}/rate`, { rating: ratingValue });
+      if (response.data.success) {
+        Alert.alert('Success', 'Thank you for your feedback');
+        setShowRatingModal(false);
+        setRatingRequestId(null);
+        setRatingValue(0);
+        fetchRequests();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to submit rating');
+    }
   };
 
   const getStatusChip = (status) => {
@@ -609,6 +608,70 @@ const ServiceRequestsScreen = ({ navigation }) => {
               </View>
             )}
           </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Rating Modal */}
+      <Modal
+        visible={showRatingModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowRatingModal(false)}
+      >
+        <View style={styles.ratingModalOverlay}>
+          <View style={styles.ratingModalContainer}>
+            <View style={styles.ratingModalHeader}>
+              <Text style={styles.ratingModalTitle}>Rate Service</Text>
+              <TouchableOpacity onPress={() => setShowRatingModal(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.ratingModalContent}>
+              <Text style={styles.ratingModalText}>
+                How would you rate the quality of service provided?
+              </Text>
+              
+              <View style={styles.starsContainer}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => setRatingValue(star)}
+                    style={styles.starButton}
+                  >
+                    <Ionicons
+                      name={star <= ratingValue ? "star" : "star-outline"}
+                      size={40}
+                      color={star <= ratingValue ? themeColors.warning : themeColors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {ratingValue > 0 && (
+                <Text style={styles.ratingValueText}>
+                  {ratingValue} star{ratingValue > 1 ? 's' : ''}
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.ratingModalActions}>
+              <TouchableOpacity
+                style={styles.ratingCancelButton}
+                onPress={() => setShowRatingModal(false)}
+              >
+                <Text style={styles.ratingCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.ratingSubmitButton, ratingValue === 0 && styles.ratingSubmitDisabled]}
+                onPress={handleSubmitRating}
+                disabled={ratingValue === 0}
+              >
+                <Text style={styles.ratingSubmitText}>Submit Rating</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
     </View>
@@ -1094,6 +1157,93 @@ const styles = StyleSheet.create({
     color: themeColors.textPrimary,
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  ratingModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ratingModalContainer: {
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: 16,
+    margin: 20,
+    maxWidth: 400,
+    width: '90%',
+    ...shadows.medium,
+  },
+  ratingModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
+  },
+  ratingModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: themeColors.textPrimary,
+  },
+  ratingModalContent: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  ratingModalText: {
+    fontSize: 16,
+    color: themeColors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  starButton: {
+    padding: 8,
+  },
+  ratingValueText: {
+    fontSize: 16,
+    color: themeColors.textPrimary,
+    fontWeight: '600',
+  },
+  ratingModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: themeColors.border,
+  },
+  ratingCancelButton: {
+    flex: 1,
+    padding: 12,
+    marginRight: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    alignItems: 'center',
+  },
+  ratingCancelText: {
+    fontSize: 16,
+    color: themeColors.textSecondary,
+    fontWeight: '600',
+  },
+  ratingSubmitButton: {
+    flex: 1,
+    padding: 12,
+    marginLeft: 8,
+    borderRadius: 8,
+    backgroundColor: themeColors.primary,
+    alignItems: 'center',
+  },
+  ratingSubmitDisabled: {
+    backgroundColor: themeColors.textSecondary,
+  },
+  ratingSubmitText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: '600',
   },
 });
 

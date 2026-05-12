@@ -24,13 +24,17 @@ const ReservationsScreen = ({ navigation }) => {
   const [resources, setResources] = useState({ venue: [], equipment: [] });
 
   const [formData, setFormData] = useState({
-    resourceType: 'venue',
-    resourceName: '',
     description: '',
     startDate: new Date(),
     endDate: new Date(),
-    quantity: 1,
     notes: '',
+    items: [], // Array of { resourceType, resourceName, quantity }
+  });
+
+  const [currentItem, setCurrentItem] = useState({
+    resourceType: 'venue',
+    resourceName: '',
+    quantity: 1,
   });
 
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -68,9 +72,58 @@ const ReservationsScreen = ({ navigation }) => {
     }
   };
 
+  const handleAddItem = () => {
+    if (!currentItem.resourceName) {
+      Alert.alert('Error', 'Please select a resource');
+      return;
+    }
+
+    // Check if item already exists
+    const exists = formData.items.find(
+      (item) => item.resourceName === currentItem.resourceName && item.resourceType === currentItem.resourceType
+    );
+
+    if (exists) {
+      Alert.alert('Error', 'This item is already in your reservation. Adjust the quantity instead.');
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      items: [...formData.items, { ...currentItem }],
+    });
+
+    setCurrentItem({
+      resourceType: 'venue',
+      resourceName: '',
+      quantity: 1,
+    });
+  };
+
+  const handleRemoveItem = (index) => {
+    setFormData({
+      ...formData,
+      items: formData.items.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleUpdateItemQuantity = (index, newQuantity) => {
+    const updatedItems = [...formData.items];
+    updatedItems[index].quantity = parseInt(newQuantity) || 1;
+    setFormData({
+      ...formData,
+      items: updatedItems,
+    });
+  };
+
   const handleSubmit = async () => {
-    if (!formData.resourceName || !formData.description) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (formData.items.length === 0) {
+      Alert.alert('Error', 'Please add at least one item to your reservation');
+      return;
+    }
+
+    if (!formData.description) {
+      Alert.alert('Error', 'Please provide a description/purpose for the reservation');
       return;
     }
 
@@ -123,15 +176,46 @@ const ReservationsScreen = ({ navigation }) => {
     );
   };
 
+  const handleInitiateReturn = async (reservationId) => {
+    Alert.alert(
+      'Return Item',
+      'Are you ready to return this item to security?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          style: 'default',
+          onPress: async () => {
+            try {
+              const response = await api.put(`/reservations/${reservationId}/initiate-return`);
+              if (response.data?.success) {
+                Alert.alert('Success', response.data.message || 'Return initiated successfully. Please bring the item to security.');
+                fetchReservations();
+              } else {
+                Alert.alert('Error', response.data?.error || 'Failed to initiate return');
+              }
+            } catch (error) {
+              console.error('Error initiating return:', error);
+              Alert.alert('Error', error.response?.data?.error || 'Failed to initiate return');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const resetForm = () => {
     setFormData({
-      resourceType: 'venue',
-      resourceName: '',
       description: '',
       startDate: new Date(),
       endDate: new Date(),
-      quantity: 1,
       notes: '',
+      items: [],
+    });
+    setCurrentItem({
+      resourceType: 'venue',
+      resourceName: '',
+      quantity: 1,
     });
   };
 
@@ -266,11 +350,15 @@ const ReservationsScreen = ({ navigation }) => {
                 <View style={styles.reservationHeader}>
                   <View style={styles.resourceInfo}>
                     <Ionicons
-                      name={reservation.resourceType === 'venue' ? 'business' : 'build'}
+                      name={reservation.items?.length > 0 ? 'layers' : (reservation.resourceType === 'venue' ? 'business' : 'build')}
                       size={20}
                       color="#166534"
                     />
-                    <Text style={styles.resourceName}>{reservation.resourceName}</Text>
+                    <Text style={styles.resourceName}>
+                      {reservation.items && reservation.items.length > 0 
+                        ? `${reservation.items.length} item${reservation.items.length > 1 ? 's' : ''}`
+                        : reservation.resourceName}
+                    </Text>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(reservation.status) }]}>
                     <Ionicons name={getStatusIcon(reservation.status)} size={12} color="#fff" />
@@ -279,6 +367,18 @@ const ReservationsScreen = ({ navigation }) => {
                     </Text>
                   </View>
                 </View>
+
+                {reservation.items && reservation.items.length > 0 && (
+                  <View style={styles.itemsList}>
+                    {reservation.items.map((item, idx) => (
+                      <View key={idx} style={styles.itemListItem}>
+                        <Text style={styles.itemListText}>
+                          • {item.resourceName} (Qty: {item.quantity})
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
 
                 <Text style={styles.reservationDescription}>{reservation.description}</Text>
 
@@ -290,7 +390,7 @@ const ReservationsScreen = ({ navigation }) => {
                     </Text>
                   </View>
 
-                  {reservation.quantity > 1 && (
+                  {!reservation.items && reservation.quantity > 1 && (
                     <View style={styles.detailRow}>
                       <Ionicons name="layers-outline" size={16} color="#64748b" />
                       <Text style={styles.detailText}>Quantity: {reservation.quantity}</Text>
@@ -304,15 +404,27 @@ const ReservationsScreen = ({ navigation }) => {
                     </View>
                   )}
 
-                  {['pending', 'confirmed'].includes(reservation.status) && (
-                    <TouchableOpacity
-                      style={styles.cardCancelButton}
-                      onPress={() => handleCancelReservation(reservation._id)}
-                    >
-                      <Ionicons name="close-circle" size={16} color="#b91c1c" />
-                      <Text style={styles.cardCancelButtonText}>Cancel Reservation</Text>
-                    </TouchableOpacity>
-                  )}
+                  <View style={styles.buttonContainer}>
+                    {['pending', 'confirmed'].includes(reservation.status) && (
+                      <TouchableOpacity
+                        style={styles.cardCancelButton}
+                        onPress={() => handleCancelReservation(reservation._id)}
+                      >
+                        <Ionicons name="close-circle" size={16} color="#b91c1c" />
+                        <Text style={styles.cardCancelButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {reservation.status === 'borrowed' && (
+                      <TouchableOpacity
+                        style={styles.cardReturnButton}
+                        onPress={() => handleInitiateReturn(reservation._id)}
+                      >
+                        <Ionicons name="return-up-back" size={16} color="#fff" />
+                        <Text style={styles.cardReturnButtonText}>Return Item</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               </View>
             ))
@@ -337,12 +449,14 @@ const ReservationsScreen = ({ navigation }) => {
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* Resource Type */}
+              {/* Item Selection */}
+              <Text style={styles.sectionTitle}>Select Items</Text>
+              
               <Text style={styles.label}>Resource Type</Text>
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={formData.resourceType}
-                  onValueChange={(value) => setFormData({ ...formData, resourceType: value, resourceName: '' })}
+                  selectedValue={currentItem.resourceType}
+                  onValueChange={(value) => setCurrentItem({ ...currentItem, resourceType: value, resourceName: '' })}
                   style={styles.picker}
                 >
                   <Picker.Item label="Venue" value="venue" />
@@ -350,20 +464,69 @@ const ReservationsScreen = ({ navigation }) => {
                 </Picker>
               </View>
 
-              {/* Resource Name */}
               <Text style={styles.label}>Resource Name</Text>
               <View style={styles.pickerContainer}>
                 <Picker
-                  selectedValue={formData.resourceName}
-                  onValueChange={(value) => setFormData({ ...formData, resourceName: value })}
+                  selectedValue={currentItem.resourceName}
+                  onValueChange={(value) => setCurrentItem({ ...currentItem, resourceName: value })}
                   style={styles.picker}
                 >
                   <Picker.Item label="Select resource..." value="" />
-                  {(resources[formData.resourceType] || []).map((item) => (
+                  {(resources[currentItem.resourceType] || []).map((item) => (
                     <Picker.Item key={item} label={item} value={item} />
                   ))}
                 </Picker>
               </View>
+
+              <Text style={styles.label}>Quantity</Text>
+              <TextInput
+                style={styles.numberInput}
+                placeholder="1"
+                value={currentItem.quantity.toString()}
+                onChangeText={(text) => setCurrentItem({ ...currentItem, quantity: parseInt(text) || 1 })}
+                keyboardType="number-pad"
+              />
+
+              <TouchableOpacity
+                style={styles.addItemButton}
+                onPress={handleAddItem}
+              >
+                <Ionicons name="add-circle" size={20} color="#fff" />
+                <Text style={styles.addItemButtonText}>Add Item to Reservation</Text>
+              </TouchableOpacity>
+
+              {/* Selected Items */}
+              {formData.items.length > 0 && (
+                <>
+                  <Text style={styles.sectionTitle}>Items in Reservation ({formData.items.length})</Text>
+                  {formData.items.map((item, index) => (
+                    <View key={index} style={styles.itemCard}>
+                      <View style={styles.itemHeader}>
+                        <View style={styles.itemInfo}>
+                          <Text style={styles.itemName}>{item.resourceName}</Text>
+                          <Text style={styles.itemType}>{item.resourceType}</Text>
+                        </View>
+                        <View style={styles.itemQuantitySection}>
+                          <Text style={styles.label}>Qty:</Text>
+                          <TextInput
+                            style={styles.quantityInput}
+                            value={item.quantity.toString()}
+                            onChangeText={(text) => handleUpdateItemQuantity(index, text)}
+                            keyboardType="number-pad"
+                          />
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.removeItemButton}
+                        onPress={() => handleRemoveItem(index)}
+                      >
+                        <Ionicons name="trash" size={18} color="#ef4444" />
+                        <Text style={styles.removeItemButtonText}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </>
+              )}
 
               {/* Description */}
               <Text style={styles.label}>Purpose/Description *</Text>
@@ -856,12 +1019,18 @@ const styles = StyleSheet.create({
   submitButtonDisabled: {
     backgroundColor: '#9ca3af',
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+    justifyContent: 'space-between',
+  },
   cardCancelButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginTop: 12,
+    gap: 6,
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
@@ -869,9 +1038,111 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
   },
   cardCancelButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#b91c1c',
+  },
+  cardReturnButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#0ea5e9',
+  },
+  cardReturnButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  addItemButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#166534',
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginVertical: 12,
+  },
+  addItemButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  itemsList: {
+    backgroundColor: '#f0fdf4',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#166534',
+    padding: 10,
+    marginBottom: 10,
+  },
+  itemListItem: {
+    paddingVertical: 4,
+  },
+  itemListText: {
+    fontSize: 13,
+    color: '#166534',
+    fontWeight: '500',
+  },
+  itemCard: {
+    backgroundColor: '#f0fdf4',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dcfce7',
+    padding: 12,
+    marginBottom: 10,
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#166534',
+    marginBottom: 4,
+  },
+  itemType: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  itemQuantitySection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  quantityInput: {
+    width: 50,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 6,
+    padding: 6,
+    fontSize: 14,
+    textAlign: 'center',
+    backgroundColor: '#fff',
+  },
+  removeItemButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#dcfce7',
+    paddingTop: 10,
+  },
+  removeItemButtonText: {
+    fontSize: 13,
+    color: '#ef4444',
+    fontWeight: '600',
   },
   submitButtonText: {
     fontSize: 16,

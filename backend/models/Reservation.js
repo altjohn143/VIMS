@@ -1,16 +1,36 @@
 const mongoose = require('mongoose');
 
+const reservationItemSchema = new mongoose.Schema({
+  resourceType: {
+    type: String,
+    enum: ['venue', 'equipment'],
+    required: true,
+  },
+  resourceName: {
+    type: String,
+    required: true,
+  },
+  quantity: {
+    type: Number,
+    default: 1,
+    min: 1,
+  }
+}, { _id: false });
+
 const reservationSchema = new mongoose.Schema(
   {
+    // Support both single item (legacy) and multiple items (new)
     resourceType: {
       type: String,
       enum: ['venue', 'equipment'],
-      required: true,
     },
     resourceName: {
       type: String,
-      required: true,
     },
+    
+    // New: array of items for multiple item reservations
+    items: [reservationItemSchema],
+    
     description: {
       type: String,
       default: '',
@@ -34,7 +54,7 @@ const reservationSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'cancelled', 'borrowed', 'returned'],
+      enum: ['pending', 'confirmed', 'cancelled', 'borrowed', 'return_initiated', 'returned'],
       default: 'pending',
     },
     actualCheckout: {
@@ -46,6 +66,16 @@ const reservationSchema = new mongoose.Schema(
     returnCondition: {
       type: String,
       default: '',
+    },
+    returnInitiatedAt: {
+      type: Date,
+    },
+    itemReceivedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    itemReceivedAt: {
+      type: Date,
     },
     cancelledAt: {
       type: Date,

@@ -108,6 +108,9 @@ const ServiceRequests = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [useDifferentLocation, setUseDifferentLocation] = useState(false);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [ratingRequestId, setRatingRequestId] = useState(null);
+  const [ratingValue, setRatingValue] = useState(0);
 
   const { getCurrentUser, logout: contextLogout } = useAuth();
   const user = getCurrentUser();
@@ -478,15 +481,26 @@ const ServiceRequests = () => {
       return;
     }
     
-    const rating = prompt('Please rate the service (1-5):');
-    if (rating && rating >= 1 && rating <= 5) {
-      try {
-        await axios.put(`/api/service-requests/${requestId}/rate`, { rating: parseInt(rating) });
-        toast.success('Service rated successfully!');
-        fetchAllRequests();
-      } catch {
-        toast.error('Failed to rate service');
-      }
+    setRatingRequestId(requestId);
+    setRatingValue(0);
+    setRatingModalOpen(true);
+  };
+
+  const handleSubmitRating = async () => {
+    if (ratingValue < 1 || ratingValue > 5) {
+      toast.error('Please select a rating between 1 and 5');
+      return;
+    }
+    
+    try {
+      await axios.put(`/api/service-requests/${ratingRequestId}/rate`, { rating: ratingValue });
+      toast.success('Service rated successfully!');
+      setRatingModalOpen(false);
+      setRatingRequestId(null);
+      setRatingValue(0);
+      fetchAllRequests();
+    } catch {
+      toast.error('Failed to rate service');
     }
   };
 
@@ -1286,7 +1300,7 @@ const ServiceRequests = () => {
                         </Typography>
                         {request.completedAt && (
                           <Typography variant="caption" color={themeColors.success} display="block">
-                            Completed: {formatShortDate(request.completedAt)}
+                            Completed: {formatDate(request.completedAt)}
                           </Typography>
                         )}
                       </TableCell>
@@ -1842,6 +1856,97 @@ const ServiceRequests = () => {
                 Rate Service
               </Button>
             )}
+          </DialogActions>
+        </Dialog>
+
+        {/* Rating Modal */}
+        <Dialog 
+          open={ratingModalOpen} 
+          onClose={() => setRatingModalOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              boxShadow: `0 20px 60px ${themeColors.primary}20`
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            bgcolor: themeColors.primary,
+            color: 'white',
+            textAlign: 'center',
+            py: 3,
+            fontWeight: 700,
+            fontSize: '1.5rem'
+          }}>
+            Rate Service
+          </DialogTitle>
+          <DialogContent sx={{ p: 4 }}>
+            <Typography variant="body1" sx={{ mb: 3, textAlign: 'center', color: themeColors.textSecondary }}>
+              How would you rate the quality of service provided?
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <IconButton
+                  key={star}
+                  onClick={() => setRatingValue(star)}
+                  sx={{
+                    color: star <= ratingValue ? themeColors.warning : themeColors.textSecondary,
+                    '&:hover': {
+                      color: themeColors.warning,
+                      transform: 'scale(1.1)'
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <StarIcon fontSize="large" />
+                </IconButton>
+              ))}
+            </Box>
+            {ratingValue > 0 && (
+              <Typography variant="body2" sx={{ mt: 2, textAlign: 'center', color: themeColors.textPrimary }}>
+                {ratingValue} star{ratingValue > 1 ? 's' : ''}
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}`, justifyContent: 'center' }}>
+            <Button 
+              onClick={() => setRatingModalOpen(false)}
+              sx={{
+                color: themeColors.textSecondary,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={handleSubmitRating}
+              disabled={ratingValue === 0}
+              sx={{ 
+                bgcolor: themeColors.primary,
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 4,
+                '&:hover': {
+                  bgcolor: themeColors.primaryDark,
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 8px 25px ${themeColors.primary}40`
+                },
+                '&:disabled': {
+                  bgcolor: themeColors.textSecondary,
+                  color: 'white'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Submit Rating
+            </Button>
           </DialogActions>
         </Dialog>
       </Container>

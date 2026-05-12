@@ -212,11 +212,36 @@ const AdminReservationsScreen = ({ navigation }) => {
     }
   };
 
+  const handleConfirmReceipt = async (id) => {
+    Alert.alert(
+      'Confirm Item Receipt',
+      'Mark this item as received from the resident?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await api.put(`/reservations/${id}/confirm-receipt`);
+              Alert.alert('Success', 'Item receipt confirmed successfully. Admin has been notified.');
+              fetchReservations();
+            } catch (error) {
+              console.error('Error confirming receipt:', error);
+              Alert.alert('Error', error.response?.data?.error || 'Failed to confirm item receipt');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed': return '#22c55e';
       case 'cancelled': return '#ef4444';
       case 'borrowed': return '#f59e0b';
+      case 'return_initiated': return '#a855f7'; // Purple for return ready
       case 'returned': return '#0ea5e9';
       default: return '#6b7280';
     }
@@ -227,6 +252,7 @@ const AdminReservationsScreen = ({ navigation }) => {
       case 'confirmed': return 'checkmark-circle';
       case 'cancelled': return 'close-circle';
       case 'borrowed': return 'build';
+      case 'return_initiated': return 'arrow-undo';
       case 'returned': return 'return-up-back';
       default: return 'time';
     }
@@ -373,6 +399,36 @@ const AdminReservationsScreen = ({ navigation }) => {
                     </View>
                   )}
                 </View>
+
+                {reservation.status === 'pending' && (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.approveButton]}
+                      onPress={() => handleUpdateStatus(reservation._id, 'confirmed')}
+                    >
+                      <Text style={styles.actionButtonText}>Approve</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.denyButton]}
+                      onPress={() => handleUpdateStatus(reservation._id, 'cancelled')}
+                    >
+                      <Text style={styles.actionButtonText}>Deny</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {['return_initiated', 'borrowed'].includes(reservation.status) && (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.approveButton]}
+                      onPress={() => handleConfirmReceipt(reservation._id)}
+                    >
+                      <Text style={styles.actionButtonText}>
+                        {reservation.status === 'return_initiated' ? 'Confirm Return Receipt' : 'Confirm Receipt'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             );
           })

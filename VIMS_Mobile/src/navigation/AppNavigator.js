@@ -45,6 +45,7 @@ import SecurityQrScannerScreen from '../screens/security/SecurityQrScannerScreen
 import SecurityServiceRequestsScreen from '../screens/security/SecurityServiceRequestsScreen';
 import SecurityPatrolScheduleScreen from '../screens/security/SecurityPatrolScheduleScreen';
 import SecurityIncidentsScreen from '../screens/security/SecurityIncidentsScreen';
+import SecurityReturnsScreen from '../screens/security/SecurityReturnsScreen';
 
 import PaymentsScreen from '../screens/PaymentsScreen';
 import AdminPaymentsScreen from '../screens/admin/AdminPaymentsScreen';
@@ -164,6 +165,8 @@ const SecurityTabs = () => {
             iconName = focused ? 'time' : 'time-outline';
           } else if (route.name === 'ScannerTab') {
             iconName = focused ? 'qr-code' : 'qr-code-outline';
+          } else if (route.name === 'ReturnsTab') {
+            iconName = focused ? 'archive' : 'archive-outline';
           } else if (route.name === 'ProfileTab') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -185,6 +188,7 @@ const SecurityTabs = () => {
       <Tab.Screen name="DashboardTab" component={DashboardScreen} options={{ title: 'Dashboard' }} />
       <Tab.Screen name="ApprovalsTab" component={SecurityVisitorApprovalScreen} options={{ title: 'Approvals' }} />
       <Tab.Screen name="ScannerTab" component={SecurityQrScannerScreen} options={{ title: 'Scanner' }} />
+      <Tab.Screen name="ReturnsTab" component={SecurityReturnsScreen} options={{ title: 'Returns' }} />
       <Tab.Screen name="LogsTab" component={SecurityVisitorLogsScreen} options={{ title: 'Logs' }} />
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>

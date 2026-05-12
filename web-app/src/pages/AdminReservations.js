@@ -40,7 +40,8 @@ import {
   EventAvailable as EventAvailableIcon,
   Build as BuildIcon,
   MeetingRoom as MeetingRoomIcon,
-  ReportProblemOutlined as ReportProblemOutlinedIcon
+  ReportProblemOutlined as ReportProblemOutlinedIcon,
+  Undo as UndoIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -220,6 +221,50 @@ const AdminReservations = () => {
     }
   };
 
+  const handleConfirmReceipt = async (reservationId) => {
+    if (!window.confirm('Confirm receipt of this returned item?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`/api/reservations/${reservationId}/confirm-receipt`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSnackbar({ open: true, message: response.data.message || 'Item receipt confirmed successfully', severity: 'success' });
+      fetchReservations();
+    } catch (error) {
+      console.error('Error confirming receipt:', error);
+      setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to confirm item receipt', severity: 'error' });
+    }
+  };
+
+  const getResourceIcon = (type) => {
+    return type === 'venue' ? <MeetingRoomIcon /> : <BuildIcon />;
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'confirmed': return 'success';
+      case 'cancelled': return 'error';
+      case 'borrowed': return 'warning';
+      case 'return_initiated': return 'secondary';
+      case 'returned': return 'info';
+      default: return 'default';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'confirmed': return <CheckCircleIcon />;
+      case 'cancelled': return <CancelIcon />;
+      case 'borrowed': return <BuildIcon />;
+      case 'return_initiated': return <UndoIcon />;
+      case 'returned': return <EventAvailableIcon />;
+      default: return <ScheduleIcon />;
+    }
+  };
+
   const handleResourceDialogOpen = () => {
     setResourceFormData({
       type: 'venue',
@@ -247,30 +292,6 @@ const AdminReservations = () => {
       const errorMessage = error.response?.data?.error || 'Failed to add resource';
       setSnackbar({ open: true, message: errorMessage, severity: 'error' });
     }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'confirmed': return 'success';
-      case 'cancelled': return 'error';
-      case 'borrowed': return 'warning';
-      case 'returned': return 'info';
-      default: return 'default';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'confirmed': return <CheckCircleIcon />;
-      case 'cancelled': return <CancelIcon />;
-      case 'borrowed': return <BuildIcon />;
-      case 'returned': return <EventAvailableIcon />;
-      default: return <ScheduleIcon />;
-    }
-  };
-
-  const getResourceIcon = (type) => {
-    return type === 'venue' ? <MeetingRoomIcon /> : <BuildIcon />;
   };
 
   if (loading) {
@@ -319,9 +340,9 @@ const AdminReservations = () => {
             <Button
               variant="outlined"
               sx={{ textTransform: 'none', borderRadius: 2.5 }}
-              onClick={() => handleOpenDialog()}
+              onClick={handleResourceDialogOpen}
             >
-              New Request
+              Add Resources
             </Button>
           </Toolbar>
         </AppBar>
@@ -480,6 +501,17 @@ const AdminReservations = () => {
                               Deny
                             </Button>
                           </>
+                        )}
+                        {['return_initiated', 'borrowed'].includes(reservation.status) && (
+                          <Button
+                            size="small"
+                            color="success"
+                            onClick={() => handleConfirmReceipt(reservation._id)}
+                            startIcon={<CheckCircleIcon />}
+                            sx={{ textTransform: 'none', mr: 1 }}
+                          >
+                            {reservation.status === 'return_initiated' ? 'Confirm Return' : 'Confirm Receipt'}
+                          </Button>
                         )}
                         <Tooltip title="Delete">
                           <IconButton onClick={() => handleDelete(reservation._id)} size="small" color="error">

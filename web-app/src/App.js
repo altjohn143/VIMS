@@ -110,6 +110,7 @@ function App() {
             <Route path="/security/service-requests" element={<SecurityRoute><Navigate to="/dashboard/security/service-requests" replace /></SecurityRoute>} />
             <Route path="/security/schedule" element={<SecurityRoute><Navigate to="/dashboard/security/schedule" replace /></SecurityRoute>} />
             <Route path="/security/incidents" element={<SecurityRoute><Navigate to="/dashboard/security/incidents" replace /></SecurityRoute>} />
+            <Route path="/security/returns" element={<SecurityRoute><Navigate to="/dashboard/security/returns" replace /></SecurityRoute>} />
 
             {/* Resident-only routes */}
             <Route path="/reservations" element={<ResidentRoute><Navigate to="/dashboard/reservations" replace /></ResidentRoute>} />

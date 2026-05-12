@@ -7,14 +7,26 @@ const { protect, authorize } = require('../middleware/auth');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { sendReservationStatusNotification } = require('../services/notificationService');
 
+// Helper function to get reservation item summary
+const getReservationItemSummary = (reservation) => {
+  if (reservation.items && reservation.items.length > 0) {
+    if (reservation.items.length === 1) {
+      return reservation.items[0].resourceName;
+    }
+    return reservation.items.map(item => `${item.resourceName} (${item.quantity})`).join(', ');
+  }
+  return reservation.resourceName;
+};
+
 const notifyAdminsOnCancellation = async (reservation) => {
   try {
     const admins = await User.find({ role: 'admin' }).select('_id');
+    const itemSummary = getReservationItemSummary(reservation);
     await Promise.all(admins.map(admin => createInAppNotification({
       userId: admin._id,
       type: 'reservation',
       title: 'Reservation cancelled by resident',
-      body: `Reservation for ${reservation.resourceName} was cancelled by a resident.`,
+      body: `Reservation for ${itemSummary} was cancelled by a resident.`,
       metadata: {
         reservationId: reservation._id,
         status: reservation.status,
@@ -47,7 +59,15 @@ router.get('/resources', protect, async (req, res) => {
 
 router.get('/', protect, async (req, res) => {
   try {
-    const query = req.user.role === 'admin' ? {} : { reservedBy: req.user._id };
+    let query;
+    if (req.user.role === 'admin') {
+      query = {};
+    } else if (req.user.role === 'security') {
+      query = { status: { $in: ['borrowed', 'return_initiated'] } };
+    } else {
+      query = { reservedBy: req.user._id };
+    }
+
     const reservations = await Reservation.find(query)
       .populate('reservedBy', 'firstName lastName email')
       .populate('cancelledBy', 'firstName lastName role')
@@ -70,40 +90,81 @@ router.post('/', protect, async (req, res) => {
       quantity,
       status,
       notes,
+      items, // New: array of items for multiple item reservations
     } = req.body;
 
-    if (!resourceType || !resourceName || !startDate || !endDate) {
-      return res.status(400).json({ success: false, error: 'Resource type, name, start, and end times are required' });
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, error: 'Start and end times are required' });
     }
 
-    // Validate that the resource exists
-    const resource = await Resource.findOne({ name: resourceName, type: resourceType, isActive: true });
-    if (!resource) {
-      return res.status(400).json({ success: false, error: 'Invalid resource selected' });
+    // Support both single item (legacy) and multiple items (new format)
+    let reservationItems = [];
+
+    if (items && Array.isArray(items) && items.length > 0) {
+      // New format: multiple items
+      if (items.length === 0) {
+        return res.status(400).json({ success: false, error: 'At least one item must be selected' });
+      }
+
+      // Validate each item
+      for (const item of items) {
+        if (!item.resourceName || !item.resourceType) {
+          return res.status(400).json({ success: false, error: 'Each item must have resourceType and resourceName' });
+        }
+
+        const resource = await Resource.findOne({ name: item.resourceName, type: item.resourceType, isActive: true });
+        if (!resource) {
+          return res.status(400).json({ success: false, error: `Invalid resource: ${item.resourceName}` });
+        }
+      }
+
+      reservationItems = items;
+    } else if (resourceType && resourceName) {
+      // Legacy format: single item
+      if (!resourceType || !resourceName) {
+        return res.status(400).json({ success: false, error: 'Resource type and name are required' });
+      }
+
+      const resource = await Resource.findOne({ name: resourceName, type: resourceType, isActive: true });
+      if (!resource) {
+        return res.status(400).json({ success: false, error: 'Invalid resource selected' });
+      }
+
+      reservationItems = [{ resourceType, resourceName, quantity: quantity || 1 }];
+    } else {
+      return res.status(400).json({ success: false, error: 'Resource type and name are required' });
     }
 
     const now = new Date();
-    const existingActive = await Reservation.findOne({
-      reservedBy: req.user._id,
-      resourceName,
-      status: { $in: ['pending', 'confirmed', 'borrowed'] },
-      endDate: { $gte: now }
-    });
-
-    if (existingActive) {
-      return res.status(409).json({
-        success: false,
-        error: `You already have an active or pending reservation for ${resourceName}. Please wait until that reservation is completed or expired before requesting it again.`
+    
+    // Check for conflicting reservations
+    for (const item of reservationItems) {
+      const existingActive = await Reservation.findOne({
+        reservedBy: req.user._id,
+        $or: [
+          { 'items.resourceName': item.resourceName },
+          { resourceName: item.resourceName }
+        ],
+        status: { $in: ['pending', 'confirmed', 'borrowed'] },
+        endDate: { $gte: now }
       });
+
+      if (existingActive) {
+        return res.status(409).json({
+          success: false,
+          error: `You already have an active or pending reservation for ${item.resourceName}. Please wait until that reservation is completed or expired before requesting it again.`
+        });
+      }
     }
 
     const reservation = await Reservation.create({
-      resourceType,
-      resourceName,
+      resourceType: items ? undefined : resourceType,
+      resourceName: items ? undefined : resourceName,
+      items: reservationItems,
       description: description || '',
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      quantity: quantity || 1,
+      quantity: items ? undefined : (quantity || 1),
       reservedBy: req.user._id,
       status: status || 'pending',
       notes: notes || '',
@@ -193,7 +254,7 @@ router.put('/:id/status', protect, async (req, res) => {
       reservation.cancelledBy = req.user._id;
       reservation.cancelledReason = cancelledReason || 'Cancelled by resident';
     } else if (req.user.role === 'admin') {
-      if (!['pending', 'confirmed', 'cancelled', 'borrowed', 'returned'].includes(status)) {
+      if (!['pending', 'confirmed', 'cancelled', 'borrowed', 'return_initiated', 'returned'].includes(status)) {
         return res.status(400).json({ success: false, error: 'Invalid reservation status' });
       }
       reservation.status = status;
@@ -333,6 +394,146 @@ router.get('/export', protect, async (req, res) => {
       success: false,
       error: 'Failed to export reservations'
     });
+  }
+});
+
+// Notify admins that security received the returned item
+const notifyAdminsOnItemReceipt = async (reservation, securityOfficer) => {
+  try {
+    const admins = await User.find({ role: 'admin' }).select('_id');
+    const resident = await Reservation.findById(reservation._id).populate('reservedBy', 'firstName lastName');
+    const itemSummary = getReservationItemSummary(reservation);
+    
+    await Promise.all(admins.map(admin => createInAppNotification({
+      userId: admin._id,
+      type: 'reservation',
+      title: 'Item received from resident',
+      body: `${securityOfficer.firstName} ${securityOfficer.lastName} confirmed receipt of ${itemSummary} from ${resident.reservedBy.firstName} ${resident.reservedBy.lastName}.`,
+      metadata: {
+        reservationId: reservation._id,
+        status: reservation.status,
+        receivedBy: securityOfficer._id,
+        receivedAt: new Date()
+      }
+    })));
+  } catch (error) {
+    console.error('Failed to notify admins about item receipt:', error.message);
+  }
+};
+
+// Resident initiates return - marks item as ready for return
+router.put('/:id/initiate-return', protect, async (req, res) => {
+  try {
+    const reservation = await Reservation.findById(req.params.id);
+
+    if (!reservation) {
+      return res.status(404).json({ success: false, error: 'Reservation not found' });
+    }
+
+    // Only the resident who made the reservation can initiate return
+    if (req.user.role !== 'resident') {
+      return res.status(403).json({ success: false, error: 'Only residents can initiate returns' });
+    }
+
+    if (reservation.reservedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: 'Not authorized to initiate return for this reservation' });
+    }
+
+    // Can only initiate return if status is 'borrowed'
+    if (reservation.status !== 'borrowed') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Only borrowed items can be returned. Current status: ' + reservation.status 
+      });
+    }
+
+    // Mark return as initiated
+    reservation.status = 'return_initiated';
+    reservation.returnInitiatedAt = new Date();
+    await reservation.save();
+
+    // Notify admins that resident is ready to return the item
+    const admins = await User.find({ role: 'admin' }).select('_id');
+    const resident = await User.findById(reservation.reservedBy).select('firstName lastName');
+    const itemSummary = getReservationItemSummary(reservation);
+    
+    await Promise.all(admins.map(admin => createInAppNotification({
+      userId: admin._id,
+      type: 'reservation',
+      title: 'Return initiated by resident - Security Action Required',
+      body: `${resident.firstName} ${resident.lastName} is ready to return ${itemSummary}. Please confirm receipt at security desk.`,
+      metadata: {
+        reservationId: reservation._id,
+        status: reservation.status,
+        returnInitiatedAt: reservation.returnInitiatedAt
+      }
+    })));
+
+    res.json({ 
+      success: true, 
+      message: 'Return initiated. Please bring the item to security for verification.',
+      data: reservation 
+    });
+  } catch (error) {
+    console.error('Initiate return error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to initiate return' });
+  }
+});
+
+// Security confirms receipt of returned item
+router.put('/:id/confirm-receipt', protect, async (req, res) => {
+  try {
+    const reservation = await Reservation.findById(req.params.id);
+
+    if (!reservation) {
+      return res.status(404).json({ success: false, error: 'Reservation not found' });
+    }
+
+    // Only security staff can confirm receipt
+    if (req.user.role !== 'security') {
+      return res.status(403).json({ success: false, error: 'Only security staff can confirm item receipt' });
+    }
+
+    // Can only confirm receipt if return was initiated or status is borrowed
+    if (!['borrowed', 'return_initiated'].includes(reservation.status)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Item must be in borrowed or return_initiated status for receipt confirmation' 
+      });
+    }
+
+    // Mark item as received
+    reservation.status = 'returned';
+    reservation.itemReceivedBy = req.user._id;
+    reservation.itemReceivedAt = new Date();
+    reservation.actualReturn = new Date();
+    await reservation.save();
+
+    // Notify admins that security received the item
+    await notifyAdminsOnItemReceipt(reservation, req.user);
+
+    // Notify resident that their item was successfully received
+    const itemSummary = getReservationItemSummary(reservation);
+    await createInAppNotification({
+      userId: reservation.reservedBy,
+      type: 'reservation',
+      title: 'Item received confirmation',
+      body: `Your ${itemSummary} has been received and confirmed by security.`,
+      metadata: {
+        reservationId: reservation._id,
+        status: reservation.status,
+        receivedAt: reservation.itemReceivedAt
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Item receipt confirmed successfully.',
+      data: reservation 
+    });
+  } catch (error) {
+    console.error('Confirm receipt error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to confirm item receipt' });
   }
 });
 

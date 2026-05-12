@@ -17,6 +17,19 @@ class PDFReportService {
   }
 
   /**
+   * Adjust timestamp for user's timezone
+   * @param {Date} utcDate - Date in UTC
+   * @param {number} timezoneOffsetMinutes - Client's timezone offset in minutes (e.g., -480 for UTC+8)
+   * @returns {Date} - Date adjusted for client timezone
+   */
+  _adjustTimestampForTimezone(utcDate, timezoneOffsetMinutes) {
+    if (!timezoneOffsetMinutes) return utcDate;
+    // timezoneOffsetMinutes is the client-side offset from UTC, as returned by Date.getTimezoneOffset()
+    // Local time = UTC time - offset
+    return new Date(utcDate.getTime() - timezoneOffsetMinutes * 60000);
+  }
+
+  /**
    * Generate AI Financial Report PDF
    */
   async generateFinancialReport(data, options = {}) {
@@ -40,10 +53,10 @@ class PDFReportService {
           resolve(pdfBuffer);
         });
 
-        this._addReportHeader(doc, 'VIMS Financial Report', data.period, data.year, data.month, options.creator, generatedAt);
+        this._addReportHeader(doc, 'VIMS Financial Report', data.period, data.year, data.month, options.creator, generatedAt, options.timezoneOffsetMinutes);
         this._addFinancialSummary(doc, data.summary);
         this._addFinancialAnalysis(doc, data.report);
-        this._addReportFooter(doc, options.creator, generatedAt);
+        this._addReportFooter(doc, options.creator, generatedAt, options.timezoneOffsetMinutes);
 
         doc.end();
       } catch (error) {
@@ -76,10 +89,10 @@ class PDFReportService {
           resolve(pdfBuffer);
         });
 
-        this._addReportHeader(doc, 'VIMS Visitor Security Report', data.period, data.date, null, options.creator, generatedAt);
+        this._addReportHeader(doc, 'VIMS Visitor Security Report', data.period, data.date, null, options.creator, generatedAt, options.timezoneOffsetMinutes);
         this._addVisitorSummary(doc, data.summary);
         this._addVisitorAnalysis(doc, data.report);
-        this._addReportFooter(doc, options.creator, generatedAt);
+        this._addReportFooter(doc, options.creator, generatedAt, options.timezoneOffsetMinutes);
 
         doc.end();
       } catch (error) {
@@ -112,10 +125,10 @@ class PDFReportService {
           resolve(pdfBuffer);
         });
 
-        this._addReportHeader(doc, 'VIMS Incident Analysis Report', data.period, data.date, null, options.creator, generatedAt);
+        this._addReportHeader(doc, 'VIMS Incident Analysis Report', data.period, data.date, null, options.creator, generatedAt, options.timezoneOffsetMinutes);
         this._addIncidentSummary(doc, data.summary);
         this._addIncidentAnalysis(doc, data.report);
-        this._addReportFooter(doc, options.creator, generatedAt);
+        this._addReportFooter(doc, options.creator, generatedAt, options.timezoneOffsetMinutes);
 
         doc.end();
       } catch (error) {
@@ -156,9 +169,9 @@ class PDFReportService {
           reject(error);
         });
 
-        this._addReportHeader(doc, title, 'Generated', generatedAt.toLocaleDateString(), null, options.creator, generatedAt);
+        this._addReportHeader(doc, title, 'Generated', generatedAt.toLocaleDateString(), null, options.creator, generatedAt, options.timezoneOffsetMinutes);
         this._addDataTable(doc, data, columns);
-        this._addReportFooter(doc, options.creator, generatedAt);
+        this._addReportFooter(doc, options.creator, generatedAt, options.timezoneOffsetMinutes);
 
         doc.end();
       } catch (error) {
@@ -168,7 +181,10 @@ class PDFReportService {
     });
   }
 
-  _addReportHeader(doc, title, period, date, month, creator, generatedAt = new Date()) {
+  _addReportHeader(doc, title, period, date, month, creator, generatedAt = new Date(), timezoneOffsetMinutes = 0) {
+    // Adjust timestamp for timezone
+    const displayTime = this._adjustTimestampForTimezone(generatedAt, timezoneOffsetMinutes);
+    
     // Header with logo placeholder
     doc.fontSize(20).font(this.fonts.bold).text('VIMS - Village Integrated Management System', 0, 50, { align: 'center' });
 
@@ -182,7 +198,7 @@ class PDFReportService {
     if (period && date) {
       doc.text(`${period}: ${date}${month ? `/${month}` : ''}`, { align: 'center' });
     }
-    doc.text(`Generated on: ${generatedAt.toLocaleString()}`, { align: 'center' });
+    doc.text(`Generated on: ${displayTime.toLocaleString()}`, { align: 'center' });
 
     // Creator info
     if (creator) {
@@ -358,7 +374,10 @@ class PDFReportService {
     });
   }
 
-  _addReportFooter(doc, creator, generatedAt = new Date()) {
+  _addReportFooter(doc, creator, generatedAt = new Date(), timezoneOffsetMinutes = 0) {
+    // Adjust timestamp for timezone
+    const displayTime = this._adjustTimestampForTimezone(generatedAt, timezoneOffsetMinutes);
+    
     const pageCount = doc.bufferedPageRange().count;
 
     for (let i = 0; i < pageCount; i++) {
@@ -371,7 +390,7 @@ class PDFReportService {
       doc.fontSize(8).font(this.fonts.normal)
          .text('VIMS - Village Integrated Management System', 50, 790, { align: 'center' })
          .text(`Page ${i + 1} of ${pageCount}`, 50, 790, { align: 'right' })
-         .text(`Generated on ${generatedAt.toLocaleString()}`, 50, 800, { align: 'center' });
+         .text(`Generated on ${displayTime.toLocaleString()}`, 50, 800, { align: 'center' });
 
       // Creator info in footer
       if (creator) {

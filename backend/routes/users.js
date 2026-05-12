@@ -818,7 +818,8 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
 // Export users data (CSV or PDF format)
 router.get('/export', protect, authorize('admin'), async (req, res) => {
   try {
-    const { format = 'pdf', role, status, startDate, endDate } = req.query;
+    const { format = 'pdf', role, status, startDate, endDate, timezoneOffset = 0 } = req.query;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     // Build filter based on query parameters
     let filter = {};
@@ -872,7 +873,7 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
 
     if (format === 'pdf') {
       const pdfReportService = require('../services/pdfReportService');
-      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user });
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user, timezoneOffsetMinutes });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Users_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
       return res.send(pdfBuffer);

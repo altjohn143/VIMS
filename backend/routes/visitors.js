@@ -1334,7 +1334,7 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
         'VIMS Visitors Export Report',
         visitors,
         columns,
-        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role } }
+        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role }, timezoneOffsetMinutes }
       );
 
       res.setHeader('Content-Type', 'application/pdf');

@@ -189,7 +189,8 @@ router.get('/check/:block/:lot', async (req, res) => {
 // Export lots data (CSV or PDF format)
 router.get('/export', protect, async (req, res) => {
   try {
-    const { format = 'pdf', phase, block, status, type } = req.query;
+    const { format = 'pdf', phase, block, status, type, timezoneOffset = 0 } = req.query;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     console.log('Export request:', { format, phase, block, status, type, user: req.user._id });
 
@@ -248,7 +249,7 @@ router.get('/export', protect, async (req, res) => {
     if (format === 'pdf') {
       console.log('Generating PDF report...');
       const pdfReportService = require('../services/pdfReportService');
-      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user });
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user, timezoneOffsetMinutes });
 
       console.log(`PDF generated, buffer size: ${pdfBuffer.length} bytes`);
 

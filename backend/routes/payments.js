@@ -380,7 +380,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
         'VIMS Payments Report',
         payments,
         columns,
-        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role } }
+        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role }, timezoneOffsetMinutes }
       );
 
       res.setHeader('Content-Type', 'application/pdf');

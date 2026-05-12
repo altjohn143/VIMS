@@ -308,7 +308,8 @@ router.post('/reports/admin/financial', protect, reportLimiter, async (req, res)
       return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
-    const { period = 'monthly', year = new Date().getFullYear(), month = new Date().getMonth() + 1, format = 'json' } = req.body;
+    const { period = 'monthly', year = new Date().getFullYear(), month = new Date().getMonth() + 1, format = 'json', timezoneOffset = 0 } = req.body;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     // Get financial data
     const startDate = period === 'monthly' 
@@ -371,7 +372,7 @@ ${payments.slice(0, 10).map(p => `- ${p.user?.firstName} ${p.user?.lastName} (${
 
     // Return PDF or JSON based on format
     if (format === 'pdf') {
-      const pdfBuffer = await pdfReportService.generateFinancialReport(reportData, { creator: req.user });
+      const pdfBuffer = await pdfReportService.generateFinancialReport(reportData, { creator: req.user, timezoneOffsetMinutes });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Financial_Report_${period}_${year}${month ? '_' + month : ''}.pdf"`);
       return res.send(pdfBuffer);
@@ -397,7 +398,8 @@ router.post('/reports/security/visitors', protect, reportLimiter, async (req, re
       return res.status(403).json({ success: false, error: 'Security access required' });
     }
 
-    const { period = 'daily', date = new Date().toISOString().split('T')[0], format = 'json' } = req.body;
+    const { period = 'daily', date = new Date().toISOString().split('T')[0], format = 'json', timezoneOffset = 0 } = req.body;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     const startDate = period === 'daily' 
       ? new Date(date)
@@ -451,7 +453,7 @@ ${visitors.slice(0, 15).map(v => `- ${v.visitorName} visiting ${v.user?.firstNam
 
     // Return PDF or JSON based on format
     if (format === 'pdf') {
-      const pdfBuffer = await pdfReportService.generateVisitorReport(reportData, { creator: req.user });
+      const pdfBuffer = await pdfReportService.generateVisitorReport(reportData, { creator: req.user, timezoneOffsetMinutes });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitor_Report_${period}_${date.replace(/-/g, '_')}.pdf"`);
       return res.send(pdfBuffer);
@@ -477,7 +479,8 @@ router.post('/reports/security/incidents', protect, reportLimiter, async (req, r
       return res.status(403).json({ success: false, error: 'Security access required' });
     }
 
-    const { period = 'weekly', date = new Date().toISOString().split('T')[0], format = 'json' } = req.body;
+    const { period = 'weekly', date = new Date().toISOString().split('T')[0], format = 'json', timezoneOffset = 0 } = req.body;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     const startDate = period === 'weekly' 
       ? new Date(new Date(date).getTime() - 6 * 24 * 60 * 60 * 1000)
@@ -531,7 +534,7 @@ ${incidents.slice(0, 10).map(i => `- ${i.title}: ${i.description.substring(0, 10
 
     // Return PDF or JSON based on format
     if (format === 'pdf') {
-      const pdfBuffer = await pdfReportService.generateIncidentReport(reportData, { creator: req.user });
+      const pdfBuffer = await pdfReportService.generateIncidentReport(reportData, { creator: req.user, timezoneOffsetMinutes });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Incident_Report_${period}_${date.replace(/-/g, '_')}.pdf"`);
       return res.send(pdfBuffer);

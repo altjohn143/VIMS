@@ -544,7 +544,8 @@ const AdminUserManagement = () => {
 
   const handleExportPdf = async () => {
     try {
-      const response = await fetch(getBackendApiUrl('/api/users/export?format=pdf'), {
+      const timezoneOffset = new Date().getTimezoneOffset();
+      const response = await fetch(getBackendApiUrl(`/api/users/export?format=pdf&timezoneOffset=${timezoneOffset}`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

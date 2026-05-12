@@ -7,7 +7,8 @@ const router = express.Router();
 
 router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
   try {
-    const { format = 'json' } = req.query;
+    const { format = 'json', timezoneOffset = 0 } = req.query;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     const incidents = await Incident.find()
       .populate('reportedBy', 'firstName lastName role')
@@ -32,7 +33,7 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
         'VIMS Incidents Report',
         incidents,
         columns,
-        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role } }
+        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role }, timezoneOffsetMinutes }
       );
 
       res.setHeader('Content-Type', 'application/pdf');

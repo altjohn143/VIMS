@@ -100,7 +100,7 @@ const AdminDashboardGraphs = () => {
             .then(res => ({
               month: date.toLocaleString('default', { month: 'short' }),
               year,
-              count: res.data?.count || 0
+              count: res.data?.data?.count || 0
             }))
             .catch(() => ({
               month: date.toLocaleString('default', { month: 'short' }),

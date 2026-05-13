@@ -522,9 +522,9 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
     }
 
     const [totalCollected, monthlyCollected, paymentCount] = await Promise.all([
-      Payment.aggregate([{ $match: { status: 'completed' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Payment.aggregate([{ $match: { status: 'completed', createdAt: { $gte: startDate, $lte: endDate } } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
-      Payment.countDocuments({ status: 'completed', createdAt: { $gte: startDate, $lte: endDate } })
+      Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Payment.aggregate([{ $match: { status: 'paid', createdAt: { $gte: startDate, $lte: endDate } } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
+      Payment.countDocuments({ status: 'paid', createdAt: { $gte: startDate, $lte: endDate } })
     ]);
 
     res.json({
@@ -543,7 +543,7 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
 router.get('/admin/methods', protect, authorize('admin'), async (req, res) => {
   try {
     const { year, month } = req.query;
-    const match = { status: 'completed' };
+    const match = {};
 
     if (year && month) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -552,7 +552,7 @@ router.get('/admin/methods', protect, authorize('admin'), async (req, res) => {
     }
 
     const methods = await Payment.aggregate([
-      { $match: match },
+      { $match: { ...match, status: 'paid' } },
       { $group: { _id: '$paymentMethod', count: { $sum: 1 }, total: { $sum: '$amount' } } },
       { $sort: { count: -1 } }
     ]);

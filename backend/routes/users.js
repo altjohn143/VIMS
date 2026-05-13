@@ -443,6 +443,37 @@ router.get('/stats/summary', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// Get user registration stats for admin dashboards
+router.get('/stats/registrations', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { year, month } = req.query;
+    let startDate;
+    let endDate;
+
+    if (year && month) {
+      startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
+    } else if (year) {
+      startDate = new Date(parseInt(year), 0, 1);
+      endDate = new Date(parseInt(year), 11, 31, 23, 59, 59, 999);
+    } else {
+      const now = new Date();
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    }
+
+    const registrationCount = await User.countDocuments({
+      createdAt: { $gte: startDate, $lte: endDate },
+      isArchived: false
+    });
+
+    res.json({ success: true, data: { count: registrationCount } });
+  } catch (error) {
+    console.error('Get registration stats error:', error);
+    res.status(500).json({ success: false, error: 'Failed to get registration stats' });
+  }
+});
+
 console.log('🔧 Loading users route file');
 const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
 if (!fs.existsSync(profilePhotoDir)) {

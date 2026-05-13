@@ -309,8 +309,9 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
 // Serve uploaded receipt images (Admin only)
 router.get('/receipt-image/:filename', protect, authorize('admin'), async (req, res) => {
   try {
-    const { filename } = req.params;
-    
+    let { filename } = req.params;
+    filename = decodeURIComponent(filename);
+
     // Security: Prevent directory traversal
     const safeFilename = path.basename(filename);
     const imagePath = path.join(__dirname, '../uploads/receipts', safeFilename);

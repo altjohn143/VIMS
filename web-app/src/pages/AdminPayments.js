@@ -338,7 +338,8 @@ const AdminPayments = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const imageResponse = await axios.get(`/api/payments/receipt-image/${payment.receiptImage}`, {
+      const encodedFilename = encodeURIComponent(payment.receiptImage);
+      const imageResponse = await axios.get(`/api/payments/receipt-image/${encodedFilename}`, {
         responseType: 'blob',
         headers: {
           Authorization: `Bearer ${token}`

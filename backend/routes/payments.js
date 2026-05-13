@@ -600,4 +600,35 @@ router.get('/admin/methods', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+// Public: live current monthly collection summary
+router.get('/public/monthly-collection', async (req, res) => {
+  try {
+    const { year, month } = req.query;
+    const now = new Date();
+    const targetYear = year ? parseInt(year, 10) : now.getFullYear();
+    const targetMonth = month ? parseInt(month, 10) : now.getMonth() + 1;
+    const startDate = new Date(targetYear, targetMonth - 1, 1);
+    const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+
+    const result = await Payment.aggregate([
+      { $match: { status: 'paid', createdAt: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        monthlyCollected: result[0]?.total || 0,
+        paymentCount: result[0]?.count || 0,
+        month: targetMonth,
+        year: targetYear,
+        updatedAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Get public monthly collection error:', error);
+    res.status(500).json({ success: false, error: 'Failed to get public monthly collection' });
+  }
+});
+
 module.exports = router;

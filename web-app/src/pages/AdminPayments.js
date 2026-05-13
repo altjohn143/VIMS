@@ -337,13 +337,8 @@ const AdminPayments = () => {
     setImageViewerOpen(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const encodedFilename = encodeURIComponent(payment.receiptImage);
-      const imageResponse = await axios.get(`/api/payments/receipt-image/${encodedFilename}`, {
-        responseType: 'blob',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const imageResponse = await axios.get(`/api/payments/receipt-image/payment/${payment._id}`, {
+        responseType: 'blob'
       });
 
       const imageBlob = new Blob([imageResponse.data], { type: imageResponse.headers['content-type'] || 'image/jpeg' });

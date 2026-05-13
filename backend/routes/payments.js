@@ -306,6 +306,35 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
   }
 });
 
+// Serve uploaded receipt images by payment ID (Admin only)
+router.get('/receipt-image/payment/:paymentId', protect, authorize('admin'), async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.paymentId).select('receiptImage');
+    if (!payment || !payment.receiptImage) {
+      return res.status(404).json({ success: false, error: 'Receipt not found' });
+    }
+
+    const safeFilename = path.basename(payment.receiptImage);
+    const imagePath = path.join(__dirname, '../uploads/receipts', safeFilename);
+
+    if (!fs.existsSync(imagePath)) {
+      return res.status(404).json({ success: false, error: 'Receipt not found' });
+    }
+
+    const ext = path.extname(imagePath).toLowerCase();
+    let contentType = 'image/jpeg';
+    if (ext === '.png') contentType = 'image/png';
+    if (ext === '.gif') contentType = 'image/gif';
+    if (ext === '.pdf') contentType = 'application/pdf';
+
+    res.setHeader('Content-Type', contentType);
+    res.sendFile(imagePath);
+  } catch (error) {
+    console.error('Error serving receipt image by payment ID:', error);
+    res.status(500).json({ success: false, error: 'Failed to serve image' });
+  }
+});
+
 // Serve uploaded receipt images (Admin only)
 router.get('/receipt-image/:filename', protect, authorize('admin'), async (req, res) => {
   try {

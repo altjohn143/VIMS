@@ -1080,13 +1080,13 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                 <Card sx={{ borderRadius: 3, bgcolor: '#f8fffa', border: '1px solid rgba(34,197,94,0.15)', boxShadow: '0 12px 32px rgba(15,23,42,0.08)' }}>
                   <CardContent sx={{ p: 3, minHeight: 228, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography sx={{ color: '#166534', fontWeight: 900, fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 1 }}>
+                      <Typography sx={{ color: '#166534', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 1 }}>
                         Live Monthly Collection
                       </Typography>
-                      <Typography sx={{ fontSize: '1.75rem', fontWeight: 900, color: T.dark, lineHeight: 1.05 }}>
+                      <Typography sx={{ fontSize: '2.5rem', fontWeight: 900, color: T.dark, lineHeight: 1.05 }}>
                         {collectionLoading ? 'Loading…' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '₱0'}
                       </Typography>
-                      <Typography sx={{ mt: 1.2, color: '#475569', fontSize: '0.9rem', fontWeight: 600 }}>
+                      <Typography sx={{ mt: 1.2, color: '#475569', fontSize: '1.1rem', fontWeight: 600 }}>
                         {collectionLoading ? 'Fetching latest totals' : collectionError ? collectionError : 'Updated automatically for the current month'}
                       </Typography>
                     </Box>

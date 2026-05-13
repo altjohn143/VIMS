@@ -93,10 +93,10 @@ const SecurityReservationReturns = () => {
 
   return (
     <Container sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h3" gutterBottom>
         Return Verification
       </Typography>
-      <Typography variant="body1" color="textSecondary" gutterBottom>
+      <Typography variant="h5" color="textSecondary" gutterBottom>
         Review return-ready reservations and confirm receipt when the resident brings the items to security.
       </Typography>
 
@@ -110,7 +110,7 @@ const SecurityReservationReturns = () => {
         </Paper>
       ) : (
         <TableContainer component={Paper} sx={{ mt: 3 }}>
-          <Table>
+          <Table sx={{ '& .MuiTableCell-root': { fontSize: '1.1rem', padding: '16px' } }}>
             <TableHead>
               <TableRow>
                 <TableCell>Resident</TableCell>
@@ -131,10 +131,11 @@ const SecurityReservationReturns = () => {
                   <TableCell>{reservation.returnInitiatedAt ? formatDate(reservation.returnInitiatedAt) : '—'}</TableCell>
                   <TableCell align="right">
                     <Button
-                      size="small"
+                      size="large"
                       variant="contained"
                       color="success"
                       onClick={() => handleConfirmReceipt(reservation._id)}
+                      sx={{ fontSize: '1.1rem', padding: '12px 24px' }}
                     >
                       {reservation.status === 'return_initiated' ? 'Confirm Return' : 'Confirm Receipt'}
                     </Button>

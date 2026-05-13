@@ -171,13 +171,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f5f7'
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: themeColors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: themeColors.textSecondary,
     marginBottom: 16,
   },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: themeColors.textPrimary,
   },
@@ -217,42 +217,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 999,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
   statusIcon: {
     marginRight: 6,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   detailText: {
     marginLeft: 8,
     color: themeColors.textSecondary,
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
   },
   actionRow: {
-    marginTop: 16,
+    marginTop: 20,
     flexDirection: 'row',
     justifyContent: 'flex-end',
   },
   actionButton: {
     backgroundColor: themeColors.primary,
     borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   actionButtonText: {
     color: '#ffffff',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 16,
   },
 });
 

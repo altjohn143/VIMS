@@ -170,6 +170,9 @@ class PDFReportService {
         });
 
         this._addReportHeader(doc, title, 'Generated', generatedAt.toLocaleDateString(), null, options.creator, generatedAt, options.timezoneOffsetMinutes);
+        if (options.summary) {
+          this._addLotStatusSummary(doc, options.summary);
+        }
         this._addDataTable(doc, data, columns);
         this._addReportFooter(doc, options.creator, generatedAt, options.timezoneOffsetMinutes);
 
@@ -348,6 +351,26 @@ class PDFReportService {
     }
   }
 
+  _addLotStatusSummary(doc, summary) {
+    doc.fontSize(14).font(this.fonts.bold).text('Lot Status Summary', { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(11).font(this.fonts.normal);
+    doc.text(`Total lots included: ${summary.total}`);
+    if (typeof summary.occupied === 'number') {
+      doc.text(`Occupied lots: ${summary.occupied}`);
+    }
+    if (typeof summary.vacant === 'number') {
+      doc.text(`Vacant lots: ${summary.vacant}`);
+    }
+    if (typeof summary.reserved === 'number') {
+      doc.text(`Reserved lots: ${summary.reserved}`);
+    }
+    if (typeof summary.other === 'number') {
+      doc.text(`Other status lots: ${summary.other}`);
+    }
+    doc.moveDown(1);
+  }
+
   _addWrappedText(doc, text, fontSize = 11) {
     doc.fontSize(fontSize).font(this.fonts.normal);
 
@@ -377,11 +400,14 @@ class PDFReportService {
   _addReportFooter(doc, creator, generatedAt = new Date(), timezoneOffsetMinutes = 0) {
     // Adjust timestamp for timezone
     const displayTime = this._adjustTimestampForTimezone(generatedAt, timezoneOffsetMinutes);
-    
-    const pageCount = doc.bufferedPageRange().count;
+
+    const pageRange = doc.bufferedPageRange();
+    const pageCount = pageRange.count;
+    const startPage = pageRange.start || 0;
 
     for (let i = 0; i < pageCount; i++) {
-      doc.switchToPage(i);
+      const pageIndex = startPage + i;
+      doc.switchToPage(pageIndex);
 
       // Footer line
       doc.moveTo(50, 780).lineTo(545, 780).stroke();

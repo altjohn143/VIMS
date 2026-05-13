@@ -7,9 +7,62 @@ const User = require('../models/User');
 const Lot = require('../models/Lot');
 const OccupancyHistory = require('../models/OccupancyHistory');
 const IdentityVerification = require('../models/IdentityVerification');
+const Payment = require('../models/Payment');
+const Setting = require('../models/Setting');
 const { protect, authorize } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
+
+async function getMonthlyDuesAmount() {
+  const setting = await Setting.findOne({ key: 'monthly_dues_amount' });
+  return typeof setting?.value === 'number' ? setting.value : 500;
+}
+
+async function createMonthlyDuesForResident(resident) {
+  const dueDay = 10;
+  const defaultInclusions = ['Maintenance', 'Security', 'Garbage', 'Common Area Upkeep', 'Administrative fees'];
+  const now = new Date();
+  let targetMonth = now.getMonth() + 1;
+  let targetYear = now.getFullYear();
+  const createdAt = resident.createdAt ? new Date(resident.createdAt) : null;
+
+  if (
+    createdAt &&
+    createdAt.getFullYear() === targetYear &&
+    createdAt.getMonth() === targetMonth - 1 &&
+    createdAt.getDate() > dueDay
+  ) {
+    targetMonth += 1;
+    if (targetMonth > 12) {
+      targetMonth = 1;
+      targetYear += 1;
+    }
+  }
+
+  const existing = await Payment.findOne({
+    residentId: resident._id,
+    paymentType: 'monthly_dues',
+    'billingPeriod.month': targetMonth,
+    'billingPeriod.year': targetYear
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  const monthlyDuesAmount = await getMonthlyDuesAmount();
+  return await Payment.create({
+    residentId: resident._id,
+    amount: monthlyDuesAmount,
+    paymentType: 'monthly_dues',
+    status: 'pending',
+    dueDate: new Date(targetYear, targetMonth - 1, dueDay),
+    billingPeriod: { month: targetMonth, year: targetYear },
+    description: `Monthly Association Dues - ${new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })} ${targetYear}`,
+    notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
+    inclusions: defaultInclusions
+  });
+}
 
 // ===== TEST ROUTE - REMOVE AFTER DEBUGGING =====
 router.get('/test', (req, res) => {
@@ -188,6 +241,14 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
     user.approvalDate = new Date();
     user.isApproved = true;
     await user.save();
+
+    try {
+      await createMonthlyDuesForResident(user);
+      console.log(`Monthly dues created automatically for resident ${user._id}`);
+    } catch (duesError) {
+      console.error('Error creating monthly dues on approval:', duesError);
+    }
+
     await sendOnboardingNotification(user, {
       includeCredentials: false,
       message: 'Your account has been approved by admin. Please log in using your registered credentials.'

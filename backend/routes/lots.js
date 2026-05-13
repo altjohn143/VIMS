@@ -245,11 +245,18 @@ router.get('/export', protect, async (req, res) => {
     ];
 
     const title = 'Lot Management Report';
+    const lotSummary = {
+      total: lots.length,
+      occupied: lots.filter(l => l.status === 'occupied').length,
+      vacant: lots.filter(l => l.status === 'vacant').length,
+      reserved: lots.filter(l => l.status === 'reserved').length,
+      other: lots.filter(l => !['occupied', 'vacant', 'reserved'].includes(l.status)).length
+    };
 
     if (format === 'pdf') {
       console.log('Generating PDF report...');
       const pdfReportService = require('../services/pdfReportService');
-      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user, timezoneOffsetMinutes });
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user, timezoneOffsetMinutes, summary: lotSummary });
 
       console.log(`PDF generated, buffer size: ${pdfBuffer.length} bytes`);
 

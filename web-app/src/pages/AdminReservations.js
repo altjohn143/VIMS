@@ -240,7 +240,36 @@ const AdminReservations = () => {
   };
 
   const getResourceIcon = (type) => {
-    return type === 'venue' ? <MeetingRoomIcon /> : <BuildIcon />;
+    if (type === 'venue') return <MeetingRoomIcon />;
+    if (type === 'equipment') return <BuildIcon />;
+    return <MeetingRoomIcon />;
+  };
+
+  const getReservationType = (reservation) => {
+    const items = reservation.items || [];
+    if (items.length === 0) {
+      return reservation.resourceType || 'unknown';
+    }
+    const uniqueTypes = [...new Set(items.map((item) => item.resourceType))];
+    return uniqueTypes.length === 1 ? uniqueTypes[0] : 'mixed';
+  };
+
+  const getReservationTitle = (reservation) => {
+    if (!reservation.items || reservation.items.length === 0) {
+      return reservation.resourceName || 'Unknown resource';
+    }
+    return `${reservation.items.length} item${reservation.items.length > 1 ? 's' : ''}`;
+  };
+
+  const renderReservationItems = (reservation) => {
+    if (!reservation.items || reservation.items.length === 0) {
+      return null;
+    }
+    return reservation.items.map((item, idx) => (
+      <Typography key={idx} variant="caption" color="text.secondary" display="block" sx={{ ml: 0.5 }}>
+        • {item.resourceName} (Qty: {item.quantity})
+      </Typography>
+    ));
   };
 
   const getStatusColor = (status) => {
@@ -419,21 +448,23 @@ const AdminReservations = () => {
                     <TableRow key={reservation._id} hover>
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
-                          {getResourceIcon(reservation.resourceType)}
+                          {getResourceIcon(getReservationType(reservation))}
                           <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                            {reservation.resourceType}
+                            {getReservationType(reservation)}
                           </Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" fontWeight="medium">
-                          {reservation.resourceName}
+                          {getReservationTitle(reservation)}
                         </Typography>
-                        {reservation.description && (
+                        {reservation.items && reservation.items.length > 0 ? (
+                          renderReservationItems(reservation)
+                        ) : reservation.description ? (
                           <Typography variant="caption" color="text.secondary">
                             {reservation.description}
                           </Typography>
-                        )}
+                        ) : null}
                       </TableCell>
                       <TableCell>
                         {reservation.reservedBy?.firstName} {reservation.reservedBy?.lastName}

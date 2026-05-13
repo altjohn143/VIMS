@@ -587,16 +587,6 @@ const ReservationsScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              {/* Quantity */}
-              <Text style={styles.label}>Quantity</Text>
-              <TextInput
-                style={styles.numberInput}
-                placeholder="1"
-                value={formData.quantity.toString()}
-                onChangeText={(text) => setFormData({ ...formData, quantity: parseInt(text) || 1 })}
-                keyboardType="numeric"
-              />
-
               {/* Notes */}
               <Text style={styles.label}>Additional Notes</Text>
               <TextInput

@@ -259,7 +259,25 @@ const AdminReservationsScreen = ({ navigation }) => {
   };
 
   const getResourceIcon = (type) => {
-    return type === 'venue' ? 'business' : 'build';
+    if (type === 'venue') return 'business';
+    if (type === 'equipment') return 'build';
+    return 'layers';
+  };
+
+  const getReservationTitle = (reservation) => {
+    if (!reservation.items || reservation.items.length === 0) {
+      return reservation.resourceName || 'Reservation';
+    }
+    return `${reservation.items.length} item${reservation.items.length > 1 ? 's' : ''}`;
+  };
+
+  const getReservationType = (reservation) => {
+    const items = reservation.items || [];
+    if (items.length === 0) {
+      return reservation.resourceType || 'unknown';
+    }
+    const uniqueTypes = [...new Set(items.map((item) => item.resourceType))];
+    return uniqueTypes.length === 1 ? uniqueTypes[0] : 'mixed';
   };
 
   const formatDate = (date) => {
@@ -315,11 +333,11 @@ const AdminReservationsScreen = ({ navigation }) => {
                 <View style={styles.reservationHeader}>
                   <View style={styles.resourceInfo}>
                     <Ionicons
-                      name={getResourceIcon(reservation.resourceType)}
+                      name={getResourceIcon(reservation.resourceType || reservation.items?.[0]?.resourceType)}
                       size={20}
                       color="#166534"
                     />
-                    <Text style={styles.resourceName}>{reservation.resourceName}</Text>
+                    <Text style={styles.resourceName}>{getReservationTitle(reservation)}</Text>
                   </View>
                   <View style={styles.cardActions}>
                     <TouchableOpacity
@@ -359,7 +377,14 @@ const AdminReservationsScreen = ({ navigation }) => {
                     </Text>
                   </View>
 
-                  {reservation.quantity > 1 && (
+                  {reservation.items && reservation.items.length > 0 && reservation.items.map((item, idx) => (
+                    <View style={styles.detailRow} key={idx}>
+                      <Ionicons name="layers-outline" size={16} color="#64748b" />
+                      <Text style={styles.detailText}>{item.resourceName} (Qty: {item.quantity})</Text>
+                    </View>
+                  ))}
+
+                  {(!reservation.items || reservation.items.length === 0) && reservation.quantity > 1 && (
                     <View style={styles.detailRow}>
                       <Ionicons name="layers-outline" size={16} color="#64748b" />
                       <Text style={styles.detailText}>Quantity: {reservation.quantity}</Text>

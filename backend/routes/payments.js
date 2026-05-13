@@ -23,6 +23,36 @@ async function setMonthlyDuesAmount(amount) {
   );
 }
 
+async function createMonthlyDuesForResident(resident, targetMonth, targetYear) {
+  const dueDay = 10;
+  const defaultInclusions = ['Maintenance', 'Security', 'Garbage', 'Common Area Upkeep', 'Administrative fees'];
+
+  const existingDues = await Payment.findOne({
+    residentId: resident._id,
+    paymentType: 'monthly_dues',
+    'billingPeriod.month': targetMonth,
+    'billingPeriod.year': targetYear
+  });
+
+  if (existingDues) {
+    return existingDues;
+  }
+
+  const monthlyDuesAmount = await getMonthlyDuesAmount();
+
+  return await Payment.create({
+    residentId: resident._id,
+    amount: monthlyDuesAmount,
+    paymentType: 'monthly_dues',
+    status: 'pending',
+    dueDate: new Date(targetYear, targetMonth - 1, dueDay),
+    billingPeriod: { month: targetMonth, year: targetYear },
+    description: `Monthly Association Dues - ${new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })} ${targetYear}`,
+    notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
+    inclusions: defaultInclusions
+  });
+}
+
 // ========== PAYMENT ROUTES ==========
 
 // Test route to verify payments API is working
@@ -62,7 +92,6 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
     const dueDay = 10;
-    const defaultInclusions = ['Maintenance', 'Security', 'Garbage', 'Common Area Upkeep', 'Administrative fees'];
 
     // Users created after the 10th of the current month should be billed next month.
     let targetMonth = currentMonth;
@@ -70,27 +99,10 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
 
     console.log(`Fetching current dues for user ${req.user.id}, month: ${targetMonth}, year: ${targetYear}`);
 
-    // Check if user was created/approved in the target month - if so, exempt them
+    // Check if resident was created after the 10th of the current month and bill next month if needed.
     const user = await User.findById(req.user.id);
     const createdAt = user.createdAt ? new Date(user.createdAt) : null;
-    const approvalDate = user.approvalDate ? new Date(user.approvalDate) : createdAt;
-    
-    if (createdAt || approvalDate) {
-      const joinDate = approvalDate || createdAt;
-      if (
-        joinDate.getFullYear() === targetYear &&
-        joinDate.getMonth() === targetMonth - 1
-      ) {
-        // User was created/approved in this month - exempt them
-        return res.status(400).json({
-          success: false,
-          error: 'You are exempted from payments for your first month',
-          exempted: true
-        });
-      }
-    }
 
-    // Check if user was created after the 10th - bill them next month
     if (
       createdAt &&
       createdAt.getFullYear() === currentYear &&
@@ -104,34 +116,7 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
       }
     }
 
-    let existingDues = await Payment.findOne({
-      residentId: req.user.id,
-      paymentType: 'monthly_dues',
-      'billingPeriod.month': targetMonth,
-      'billingPeriod.year': targetYear
-    });
-
-    if (existingDues) {
-      return res.json({ success: true, data: existingDues });
-    }
-
-    const monthlyDuesAmount = await getMonthlyDuesAmount();
-
-    // Create new dues if none exists
-    const dues = await Payment.create({
-      residentId: req.user.id,
-      amount: monthlyDuesAmount,
-      paymentType: 'monthly_dues',
-      status: 'pending',
-      dueDate: new Date(targetYear, targetMonth - 1, dueDay),
-      billingPeriod: { month: targetMonth, year: targetYear },
-      description: `Monthly Association Dues - ${new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })} ${targetYear}`,
-      notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
-      inclusions: defaultInclusions,
-      invoiceNumber: `INV-${targetYear}${String(targetMonth).padStart(2, '0')}-${Math.floor(Math.random() * 10000)}`
-    });
-
-    console.log(`Created new dues for user ${req.user.id}: ${dues.invoiceNumber}`);
+    const dues = await createMonthlyDuesForResident(user, targetMonth, targetYear);
 
     res.json({ success: true, data: dues });
   } catch (error) {
@@ -418,23 +403,8 @@ router.post('/generate-monthly', protect, authorize('admin'), async (req, res) =
     const residents = await User.find({ role: 'resident', isActive: true, isApproved: true });
     
     let created = 0;
-    const dueDay = 10;
-    const defaultInclusions = ['Maintenance', 'Security', 'Garbage', 'Common Area Upkeep', 'Administrative fees'];
 
     for (const resident of residents) {
-      const residentCreatedAt = resident.createdAt ? new Date(resident.createdAt) : null;
-      const approvalDate = resident.approvalDate ? new Date(resident.approvalDate) : residentCreatedAt;
-      
-      // Exempt residents who were created/approved in the billing month
-      const isExemptedThisMonth = approvalDate &&
-        approvalDate.getFullYear() === targetYear &&
-        approvalDate.getMonth() === targetMonth - 1;
-
-      if (isExemptedThisMonth) {
-        console.log(`Skipping invoice for resident ${resident._id} - exempted (created/approved in ${targetMonth}/${targetYear})`);
-        continue;
-      }
-
       const existing = await Payment.findOne({
         residentId: resident._id,
         paymentType: 'monthly_dues',
@@ -443,22 +413,11 @@ router.post('/generate-monthly', protect, authorize('admin'), async (req, res) =
       });
 
       if (!existing) {
-        const monthlyDuesAmount = await getMonthlyDuesAmount();
-        await Payment.create({
-          residentId: resident._id,
-          amount: monthlyDuesAmount,
-          paymentType: 'monthly_dues',
-          status: 'pending',
-          dueDate: new Date(targetYear, targetMonth - 1, dueDay),
-          billingPeriod: { month: targetMonth, year: targetYear },
-          description: `Monthly Association Dues - ${new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })} ${targetYear}`,
-          notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
-          inclusions: defaultInclusions,
-          invoiceNumber: `INV-${targetYear}${String(targetMonth).padStart(2, '0')}-${String(created + 1).padStart(4, '0')}`
-        });
+        await createMonthlyDuesForResident(resident, targetMonth, targetYear);
         created++;
       }
     }
+
     res.json({ success: true, message: `Generated ${created} invoices` });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to generate invoices' });

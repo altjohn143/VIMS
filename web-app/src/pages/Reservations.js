@@ -1193,17 +1193,6 @@ const Reservations = () => {
                   renderInput={(params) => <TextField {...params} fullWidth sx={fieldSx} />}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Quantity"
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
-                  inputProps={{ min: 1 }}
-                  sx={fieldSx}
-                />
-              </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth

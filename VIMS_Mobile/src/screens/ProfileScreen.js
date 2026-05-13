@@ -304,7 +304,8 @@ const ProfileScreen = ({ navigation }) => {
 
   const buildVehicleUrl = (filename) => {
     if (!filename) return null;
-    const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || '';
+    const apiBaseUrl = api.defaults.baseURL || '';
+    const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '');
     return `${baseUrl}/uploads/vehicle-photos/${filename}`;
   };
 

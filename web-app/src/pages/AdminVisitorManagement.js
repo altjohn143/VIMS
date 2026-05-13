@@ -48,7 +48,6 @@ import {
   Download as DownloadIcon,
   Refresh as RefreshIcon,
   BarChart as ChartIcon,
-  History as HistoryIcon,
   ArrowBack as ArrowBackIcon,
   Logout as LogoutIcon,
   Security as SecurityIcon
@@ -1128,13 +1127,6 @@ const handleReject = async () => {
               <RejectIcon fontSize="small" sx={{ color: themeColors.error }} />
             </ListItemIcon>
             Reject (Override)
-          </MenuItem>
-          
-          <MenuItem onClick={() => navigate(`/dashboard/security/visitor-logs?visitorId=${selectedVisitor?._id}`)}>
-            <ListItemIcon>
-              <HistoryIcon fontSize="small" />
-            </ListItemIcon>
-            View Logs
           </MenuItem>
         </Menu>
       </Container>

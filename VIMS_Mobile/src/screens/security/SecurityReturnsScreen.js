@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
+import UserDropdownMenu from '../../components/UserDropdownMenu';
 
 const SecurityReturnsScreen = () => {
   const [reservations, setReservations] = useState([]);
@@ -103,22 +104,46 @@ const SecurityReturnsScreen = () => {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-    >
-      <Text style={styles.title}>Return Requests</Text>
-      <Text style={styles.subtitle}>Security can confirm item receipt when residents bring returns to the desk.</Text>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Return Verification</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={handleRefresh} style={styles.refreshButton}>
+            <Ionicons name="refresh" size={24} color="white" />
+          </TouchableOpacity>
+          <UserDropdownMenu navigation={navigation} />
+        </View>
+      </View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={themeColors.primary} />
+      <View style={styles.statsCard}>
+        <Ionicons name="cube" size={24} color={themeColors.primary} />
+        <View>
+          <Text style={styles.statsLabel}>Pending Returns</Text>
+          <Text style={styles.statsValue}>{reservations.filter(r => r.status === 'return_initiated').length}</Text>
         </View>
-      ) : reservations.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No return requests found.</Text>
-        </View>
-      ) : (
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
+        <Text style={styles.pageTitle}>Return Requests</Text>
+        <Text style={styles.pageSubtitle}>Security can confirm item receipt when residents bring returns to the desk.</Text>
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={themeColors.primary} />
+          </View>
+        ) : reservations.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="checkmark-done-circle" size={64} color={themeColors.textSecondary} />
+            <Text style={styles.emptyTitle}>No Return Requests</Text>
+            <Text style={styles.emptyText}>All items have been returned</Text>
+          </View>
+        ) : (
         reservations.map((reservation) => {
           const statusInfo = getStatusInfo(reservation.status);
           const isProcessing = processingId === reservation._id;
@@ -166,18 +191,66 @@ const SecurityReturnsScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    paddingBottom: 32,
+    flex: 1,
     backgroundColor: '#f3f5f7'
   },
-  title: {
-    fontSize: 28,
+  header: {
+    backgroundColor: themeColors.primary,
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'white',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  refreshButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  statsCard: {
+    backgroundColor: 'white',
+    margin: 16,
+    marginBottom: 8,
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...shadows.small,
+  },
+  statsLabel: {
+    fontSize: 14,
+    color: themeColors.textSecondary,
+    fontWeight: '600',
+  },
+  statsValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: themeColors.primary,
+  },
+  scrollContainer: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  pageTitle: {
+    fontSize: 24,
     fontWeight: '700',
     color: themeColors.textPrimary,
     marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 16,
+  pageSubtitle: {
+    fontSize: 14,
     color: themeColors.textSecondary,
     marginBottom: 16,
   },
@@ -192,9 +265,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 200,
   },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: themeColors.textSecondary,
+    textAlign: 'center',
   },
   card: {
     backgroundColor: '#ffffff',

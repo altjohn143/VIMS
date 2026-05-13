@@ -14,7 +14,16 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Grid,
+  Card,
+  CardContent,
 } from '@mui/material';
+import {
+  EventAvailable as EventAvailableIcon,
+  CheckCircle as CheckCircleIcon,
+  Pending as PendingIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
 import axios from 'axios';
 
 const SecurityReservationReturns = () => {
@@ -91,11 +100,74 @@ const SecurityReservationReturns = () => {
     }
   };
 
+  const pendingReturns = reservations.filter(r => r.status === 'return_initiated').length;
+  const totalReturns = reservations.length;
+  const completedReturns = reservations.filter(r => r.status === 'returned').length;
+
   return (
     <Container sx={{ py: 4 }}>
-      <Typography variant="h3" gutterBottom>
-        Return Verification
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <Button
+          startIcon={<EventAvailableIcon />}
+          onClick={() => window.history.back()}
+          sx={{ mr: 2 }}
+        >
+          Back
+        </Button>
+        <Typography variant="h3" gutterBottom sx={{ mb: 0, mr: 2 }}>
+          Return Verification
+        </Typography>
+        <Button
+          startIcon={<RefreshIcon />}
+          onClick={fetchReservations}
+          variant="outlined"
+        >
+          Refresh
+        </Button>
+      </Box>
+
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <PendingIcon sx={{ fontSize: 48, color: 'warning.main', mb: 1 }} />
+              <Typography variant="h4" color="warning.main">
+                {pendingReturns}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Pending Returns
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <EventAvailableIcon sx={{ fontSize: 48, color: 'info.main', mb: 1 }} />
+              <Typography variant="h4" color="info.main">
+                {totalReturns}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Returns
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main', mb: 1 }} />
+              <Typography variant="h4" color="success.main">
+                {completedReturns}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Completed Returns
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
       <Typography variant="h5" color="textSecondary" gutterBottom>
         Review return-ready reservations and confirm receipt when the resident brings the items to security.
       </Typography>

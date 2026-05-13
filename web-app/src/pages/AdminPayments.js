@@ -108,6 +108,16 @@ const AdminPayments = () => {
   const [selectedImageUrl, setSelectedImageUrl] = useState(null);
   const [selectedImagePayment, setSelectedImagePayment] = useState(null);
 
+  const closeReceiptViewer = () => {
+    setImageViewerOpen(false);
+    if (selectedImageUrl) {
+      URL.revokeObjectURL(selectedImageUrl);
+    }
+    setSelectedImage(null);
+    setSelectedImageUrl(null);
+    setSelectedImagePayment(null);
+  };
+
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
   const user = getCurrentUser();

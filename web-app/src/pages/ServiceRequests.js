@@ -50,7 +50,6 @@ import {
   Pending as PendingIcon,
   Work as WorkIcon,
   Star as StarIcon,
-  Chat as ChatIcon,
   ArrowBack as ArrowBackIcon,
   Logout as LogoutIcon,
   Cancel as CancelIcon,
@@ -515,8 +514,6 @@ const ServiceRequests = () => {
       }
     }
   };
-
-  const handleAddComment = () => toast.success('Comment added! (Feature in development)');
 
   const formatDate = useCallback((dateString) => {
     if (!dateString) return 'N/A';
@@ -1357,10 +1354,6 @@ const ServiceRequests = () => {
               Cancel Request
             </MenuItem>
           )}
-          <MenuItem onClick={handleAddComment} sx={{ py: 1.5 }}>
-            <ChatIcon sx={{ mr: 1, color: themeColors.info }} /> 
-            Add Comment
-          </MenuItem>
         </Menu>
 
         {/* New Request Dialog */}

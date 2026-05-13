@@ -105,6 +105,7 @@ const AdminPayments = () => {
   // Image viewer state
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState(null);
   const [selectedImagePayment, setSelectedImagePayment] = useState(null);
 
   const { getCurrentUser, logout } = useAuth();
@@ -314,13 +315,33 @@ const AdminPayments = () => {
     toast.success('PDF exported');
   };
 
-  const handleViewReceiptImage = (payment) => {
-    if (payment.receiptImage) {
-      setSelectedImage(payment.receiptImage);
-      setSelectedImagePayment(payment);
-      setImageViewerOpen(true);
-    } else {
+  const handleViewReceiptImage = async (payment) => {
+    if (!payment?.receiptImage) {
       toast.error('No receipt image available for this payment');
+      return;
+    }
+
+    setSelectedImage(payment.receiptImage);
+    setSelectedImagePayment(payment);
+    setSelectedImageUrl(null);
+    setImageViewerOpen(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const imageResponse = await axios.get(`/api/payments/receipt-image/${payment.receiptImage}`, {
+        responseType: 'blob',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const imageBlob = new Blob([imageResponse.data], { type: imageResponse.headers['content-type'] || 'image/jpeg' });
+      const objectUrl = URL.createObjectURL(imageBlob);
+      setSelectedImageUrl(objectUrl);
+    } catch (error) {
+      console.error('Failed to load receipt image:', error);
+      toast.error('Failed to load receipt image');
+      setSelectedImageUrl(null);
     }
   };
 
@@ -1131,7 +1152,7 @@ const AdminPayments = () => {
         {/* Receipt Image Viewer Dialog */}
         <Dialog 
           open={imageViewerOpen} 
-          onClose={() => setImageViewerOpen(false)} 
+          onClose={closeReceiptViewer} 
           maxWidth="md" 
           fullWidth
           PaperProps={{
@@ -1155,7 +1176,7 @@ const AdminPayments = () => {
               <ImageIcon sx={{ color: themeColors.info }} />
               Payment Receipt
             </Box>
-            <IconButton onClick={() => setImageViewerOpen(false)} size="small">
+            <IconButton onClick={closeReceiptViewer} size="small">
               <CloseIcon />
             </IconButton>
           </DialogTitle>
@@ -1212,7 +1233,7 @@ const AdminPayments = () => {
                   textAlign: 'center'
                 }}>
                   <img
-                    src={`/api/payments/receipt-image/${selectedImage}`}
+                    src={selectedImageUrl || ''}
                     alt="Payment Receipt"
                     style={{
                       maxWidth: '100%',
@@ -1234,7 +1255,12 @@ const AdminPayments = () => {
                     variant="outlined"
                     size="small"
                     startIcon={<ZoomInIcon />}
-                    onClick={() => window.open(`/api/payments/receipt-image/${selectedImage}`, '_blank')}
+                    onClick={() => {
+                      if (selectedImageUrl) {
+                        window.open(selectedImageUrl, '_blank');
+                      }
+                    }}
+                    disabled={!selectedImageUrl}
                     sx={{ borderRadius: 2 }}
                   >
                     Open Full Size
@@ -1244,14 +1270,16 @@ const AdminPayments = () => {
                     size="small"
                     startIcon={<DownloadIcon />}
                     onClick={() => {
+                      if (!selectedImageUrl) return;
                       const link = document.createElement('a');
-                      link.href = `/api/payments/receipt-image/${selectedImage}`;
-                      link.download = selectedImage;
+                      link.href = selectedImageUrl;
+                      link.download = selectedImage || 'receipt-image';
                       document.body.appendChild(link);
                       link.click();
                       document.body.removeChild(link);
                       toast.success('Download started');
                     }}
+                    disabled={!selectedImageUrl}
                     sx={{ borderRadius: 2 }}
                   >
                     Download Image
@@ -1261,7 +1289,7 @@ const AdminPayments = () => {
             )}
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            <Button onClick={() => setImageViewerOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Close</Button>
+            <Button onClick={closeReceiptViewer} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Close</Button>
           </DialogActions>
         </Dialog>
 

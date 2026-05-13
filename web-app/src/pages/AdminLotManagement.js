@@ -142,7 +142,25 @@ const AdminLotManagement = () => {
   const handleExportPdf = async () => {
     try {
       const timezoneOffset = new Date().getTimezoneOffset();
-      const response = await fetch(getBackendApiUrl(`/api/lots/export?format=pdf&timezoneOffset=${timezoneOffset}`), {
+      const params = new URLSearchParams({
+        format: 'pdf',
+        timezoneOffset: String(timezoneOffset)
+      });
+
+      if (phaseFilter !== 'all') {
+        params.set('phase', String(phaseFilter));
+      }
+      if (blockFilter !== 'all') {
+        params.set('block', String(blockFilter));
+      }
+      if (statusFilter !== 'all') {
+        params.set('status', statusFilter);
+      }
+      if (typeFilter !== 'all') {
+        params.set('type', typeFilter);
+      }
+
+      const response = await fetch(getBackendApiUrl(`/api/lots/export?${params.toString()}`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

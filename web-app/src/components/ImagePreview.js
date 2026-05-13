@@ -26,10 +26,25 @@ const ImagePreview = ({
   sx = {}
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState(() => {
+    if (file instanceof File) return URL.createObjectURL(file);
+    return typeof file === 'string' ? file : null;
+  });
 
-  if (!file) return null;
+  React.useEffect(() => {
+    if (file instanceof File) {
+      const objectUrl = URL.createObjectURL(file);
+      setImageUrl(objectUrl);
+      return () => {
+        URL.revokeObjectURL(objectUrl);
+      };
+    }
 
-  const imageUrl = file instanceof File ? URL.createObjectURL(file) : file;
+    setImageUrl(typeof file === 'string' ? file : null);
+    return undefined;
+  }, [file]);
+
+  if (!imageUrl) return null;
 
   return (
     <>

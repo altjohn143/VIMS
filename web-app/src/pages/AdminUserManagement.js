@@ -619,9 +619,7 @@ const AdminUserManagement = () => {
 
   const buildVehicleUrl = (filename) => {
     if (!filename) return null;
-    const apiBaseUrl = axios.defaults.baseURL || getBackendApiUrl('/api');
-    const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '');
-    return `${baseUrl}/uploads/vehicle-photos/${filename}`;
+    return getBackendApiUrl(`/uploads/vehicle-photos/${filename}`);
   };
 
   const openImageModal = (imageUrl, title) => {

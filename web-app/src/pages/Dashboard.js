@@ -61,9 +61,6 @@ import {
   ExpandMore as ExpandMoreIcon,
   Close as CloseIcon,
   QrCodeScanner as QrCodeScannerIcon,
-  KeyboardArrowRight as KeyboardArrowRightIcon,
-  PersonAddAlt1 as PersonAddAlt1Icon,
-  Campaign as CampaignIcon,
   ReportProblemOutlined as ReportProblemOutlinedIcon,
   ArrowOutward as ArrowOutwardIcon,
   Apartment as ApartmentIcon,
@@ -769,39 +766,6 @@ const Dashboard = () => {
     })()
   );
 
-  const quickActions = [
-    {
-      title: user.role === 'admin' ? 'Approve Resident' : 'Open Dashboard',
-      subtitle: user.role === 'admin' ? 'Register a homeowner' : 'Go to main view',
-      icon: <PersonAddAlt1Icon />,
-      link: user.role === 'admin' ? '/dashboard/admin/users' : '/dashboard'
-    },
-    {
-      title: user.role === 'admin' ? 'Post Announcement' : 'View Announcements',
-      subtitle: user.role === 'admin' ? 'Notify all residents' : 'Community updates',
-      icon: <CampaignIcon />,
-      link: user.role === 'admin' ? '/dashboard/admin/announcements' : '/dashboard/announcements'
-    },
-    {
-      title: user.role === 'admin' ? 'Issue Visitor Access' : 'Visitor Pass',
-      subtitle: user.role === 'admin' ? 'Grant temporary access' : 'Generate a visitor pass',
-      icon: <QrCodeIcon />,
-      link: user.role === 'admin' ? '/dashboard/admin/visitor-management' : '/dashboard/visitors'
-    },
-    {
-      title: user.role === 'admin' ? 'Report an Issue' : 'Submit Request',
-      subtitle: user.role === 'admin' ? 'Track active concerns' : 'Create a service request',
-      icon: <BuildIcon />,
-      link: user.role === 'admin' ? '/dashboard/admin/service-requests' : '/dashboard/service-requests'
-    },
-    {
-      title: 'AI Assistant',
-      subtitle: 'Ask VIMS workflow questions',
-      icon: <QrCodeScannerIcon />,
-      link: '/ai-assistant'
-    }
-  ];
-
   function getSectionLabel(section) {
     const customLabels = {
       dashboard: 'Dashboard',
@@ -1180,12 +1144,6 @@ const Dashboard = () => {
           </>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <IconButton
-              onClick={handleLogout}
-              sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}
-            >
-              <LogoutIcon />
-            </IconButton>
           </Box>
         )}
       </Box>
@@ -1421,7 +1379,7 @@ const Dashboard = () => {
       </AppBar>
 
       <Drawer
-        variant={isMobile ? 'temporary' : 'persistent'}
+        variant={isMobile ? 'temporary' : 'permanent'}
         open={sidebarOpen}
         onClose={handleCloseSidebar}
         ModalProps={{ keepMounted: true }}
@@ -1450,7 +1408,7 @@ const Dashboard = () => {
           ...screenFade,
           flexGrow: 1,
           minHeight: '100vh',
-          ml: { xs: 0, md: sidebarOpen ? `${SIDEBAR_WIDTH}px` : `${MINI_SIDEBAR_WIDTH}px` },
+          ml: sidebarOpen ? `${SIDEBAR_WIDTH}px` : `${MINI_SIDEBAR_WIDTH}px`,
           transition: theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen
@@ -1498,9 +1456,6 @@ const Dashboard = () => {
 
                     <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, mb: 0.75 }}>
                       {activePageLabel}
-                    </Typography>
-                    <Typography sx={{ color: themeColors.textSecondary, fontWeight: 500 }}>
-                      Find the tools and data you need faster with a clearer page layout.
                     </Typography>
                   </Box>
 
@@ -1990,87 +1945,6 @@ const Dashboard = () => {
                 </Paper>
               </Grid>
 
-              <Grid item xs={12} md={3.5}>
-                <Paper
-                  sx={{
-                    borderRadius: '20px',
-                    border: `1px solid ${themeColors.border}`,
-                    boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
-                    overflow: 'hidden',
-                    animation: 'slideUpSoft 0.75s ease'
-                  }}
-                >
-                  <Box
-                    sx={{
-                      px: 2.25,
-                      py: 2,
-                      bgcolor: 'white'
-                    }}
-                  >
-                    <Typography sx={{ fontSize: '1.06rem', fontWeight: 900, color: themeColors.textPrimary }}>
-                      Quick Actions
-                    </Typography>
-                  </Box>
-
-                  <Divider />
-
-                  <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.15 }}>
-                    {quickActions.map((action, index) => (
-                      <Paper
-                        key={index}
-                        component={RouterLink}
-                        to={action.link}
-                        elevation={0}
-                        sx={{
-                          textDecoration: 'none',
-                          px: 1.5,
-                          py: 1.4,
-                          borderRadius: '16px',
-                          border: '1px solid rgba(15,23,42,0.06)',
-                          bgcolor: '#f8fafc',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.25,
-                          transition: 'all 0.2s ease',
-                          '&:hover': {
-                            transform: 'translateY(-2px)',
-                            bgcolor: '#f0fdf4',
-                            borderColor: 'rgba(34,197,94,0.18)',
-                            boxShadow: '0 10px 20px rgba(15,23,42,0.05)'
-                          }
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '12px',
-                            bgcolor: '#ecfdf5',
-                            color: themeColors.primary,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}
-                        >
-                          {action.icon}
-                        </Box>
-
-                        <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                          <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: themeColors.textPrimary }}>
-                            {action.title}
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.8rem', color: themeColors.textSecondary, fontWeight: 500 }}>
-                            {action.subtitle}
-                          </Typography>
-                        </Box>
-
-                        <KeyboardArrowRightIcon sx={{ color: '#cbd5e1' }} />
-                      </Paper>
-                    ))}
-                  </Box>
-                </Paper>
-              </Grid>
 
               <Grid item xs={12} md={6}>
                 <Paper

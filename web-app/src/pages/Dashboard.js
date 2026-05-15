@@ -453,7 +453,7 @@ const Dashboard = () => {
     };
 
     loadRoleStats();
-  }, [user?.role, unreadCount]);
+  }, [user?.role, user?.securityLevel, unreadCount]);
 
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);

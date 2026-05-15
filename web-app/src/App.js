@@ -69,6 +69,35 @@ function App() {
     return () => { observer.disconnect(); clearInterval(interval); };
   }, []);
 
+  // Ensure images are lazy-loaded by default to reduce initial bundle impact
+  useEffect(() => {
+    const setLazy = (img) => {
+      try {
+        if (img && img.tagName === 'IMG' && !img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
+      } catch (e) {}
+    };
+
+    // Set existing images
+    document.querySelectorAll('img').forEach(setLazy);
+
+    // Observe new images added to the DOM
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((m) => {
+        if (m.type === 'childList') {
+          m.addedNodes.forEach((node) => {
+            if (node.nodeType === 1) {
+              if (node.tagName === 'IMG') setLazy(node);
+              node.querySelectorAll && node.querySelectorAll('img').forEach(setLazy);
+            }
+          });
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <AuthProvider>

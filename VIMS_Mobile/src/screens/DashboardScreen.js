@@ -84,6 +84,7 @@ const DashboardScreen = ({ navigation }) => {
 
   const fetchDashboardData = async (userData) => {
     const role = userData?.role;
+    const securityLevel = userData?.securityLevel;
     try {
       if (role === 'resident') {
         const response = await api.get('/visitors/resident/dashboard');
@@ -118,6 +119,26 @@ const DashboardScreen = ({ navigation }) => {
       }
 
       if (role === 'security') {
+        // Check if head officer (supervisor)
+        if (securityLevel === 'head-officer') {
+          try {
+            const response = await api.get('/patrols/head-officer/stats');
+            if (response.data.success) {
+              setStats({
+                personnelCount: response.data.data?.personnelCount || 0,
+                activePatrols: response.data.data?.activePatrols || 0,
+                pendingReports: response.data.data?.pendingReports || 0,
+                completedToday: response.data.data?.completedToday || 0,
+              });
+              return;
+            }
+          } catch (error) {
+            console.error('Error fetching head officer stats:', error);
+            // Fallback to default security dashboard
+          }
+        }
+        
+        // Regular security officer
         const response = await api.get('/visitors/security/dashboard');
         if (response.data.success) setStats(response.data.data || {});
         return;
@@ -246,9 +267,31 @@ const DashboardScreen = ({ navigation }) => {
         { title: 'AI Assistant', subtitle: 'Ask VIMS questions',         icon: 'sparkles-outline',         screen: 'Chatbot',      color: '#16a34a', bg: '#f0fdf4' },
       ],
     },
+    headOfficer: {
+      title: 'Team Dashboard',
+      icon: 'people-outline',
+      stats: [
+        { label: 'Personnel Count',  value: stats.personnelCount  || 0, icon: 'people-outline',          bg: '#8b5cf6' },
+        { label: 'Active Patrols',   value: stats.activePatrols   || 0, icon: 'checkmark-circle-outline', bg: '#06b6d4' },
+        { label: 'Pending Reports',  value: stats.pendingReports  || 0, icon: 'alert-circle-outline',     bg: '#f97316' },
+        { label: 'Completed Today',  value: stats.completedToday  || 0, icon: 'checkmark-done-outline',  bg: '#10b981' },
+      ],
+      hints: ['assigned team members', 'in progress', 'awaiting review', 'today\'s total'],
+      quickActions: [
+        { title: 'Team Performance', subtitle: 'View team metrics',       icon: 'stats-chart-outline',      screen: 'TeamPerformanceTab', color: '#8b5cf6', bg: '#faf5ff' },
+        { title: 'Personnel Mgmt',   subtitle: 'Manage team members',     icon: 'people-outline',           screen: 'PersonnelTab',      color: '#06b6d4', bg: '#f0f9fa' },
+        { title: 'Patrol Analytics', subtitle: 'Review patrol data',      icon: 'document-text-outline',    screen: 'AnalyticsTab',      color: '#f97316', bg: '#fff7ed' },
+        { title: 'AI Assistant',     subtitle: 'Ask VIMS questions',      icon: 'sparkles-outline',         screen: 'Chatbot',           color: '#2563eb', bg: '#eff6ff' },
+      ],
+    },
   };
 
-  const config = roleConfig[userToShow?.role] || roleConfig.resident;
+  // Determine config based on role and securityLevel
+  let configKey = userToShow?.role;
+  if (userToShow?.role === 'security' && userToShow?.securityLevel === 'head-officer') {
+    configKey = 'headOfficer';
+  }
+  const config = roleConfig[configKey] || roleConfig.resident;
 
   const formattedDate = new Date().toLocaleDateString(undefined, {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -262,7 +305,10 @@ const DashboardScreen = ({ navigation }) => {
   };
 
   const roleDisplay = userToShow?.role
-    ? userToShow.role === 'admin' ? 'Administrator' : userToShow.role === 'security' ? 'Security' : 'Approved'
+    ? userToShow.role === 'admin' ? 'Administrator' 
+    : userToShow.role === 'security' 
+      ? (userToShow?.securityLevel === 'head-officer' ? 'Head Officer' : 'Security Officer')
+    : 'Approved'
     : 'Approved';
 
   const initials = [userToShow?.firstName?.[0], userToShow?.lastName?.[0]]

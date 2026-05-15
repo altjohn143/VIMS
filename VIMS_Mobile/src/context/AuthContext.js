@@ -53,6 +53,11 @@ export const AuthProvider = ({ children }) => {
       if (response.data.success) {
         const { token, user } = response.data;
         
+        // Ensure securityLevel is included in user data for security staff
+        if (user.role === 'security' && !user.securityLevel) {
+          user.securityLevel = 'personnel';
+        }
+        
         await AsyncStorage.setItem('token', token);
         await AsyncStorage.setItem('user', JSON.stringify(user));
         

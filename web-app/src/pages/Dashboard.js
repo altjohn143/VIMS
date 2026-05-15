@@ -65,7 +65,9 @@ import {
   ReportProblemOutlined as ReportProblemOutlinedIcon,
   ArrowOutward as ArrowOutwardIcon,
   Apartment as ApartmentIcon,
-  EventAvailable as EventAvailableIcon
+  EventAvailable as EventAvailableIcon,
+  AnalyticsCookie as AnalyticsIcon,
+  SupervisorAccount as SupervisorAccountIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import AdminDashboardGraphs from '../components/AdminDashboardGraphs';
@@ -161,6 +163,12 @@ const statCardStyles = [
     light: 'rgba(255,255,255,0.14)',
     icon: <ReportProblemOutlinedIcon sx={{ fontSize: 56 }} />,
     accent: '#fee2e2'
+  },
+  {
+    bg: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+    light: 'rgba(255,255,255,0.16)',
+    icon: <GroupIcon sx={{ fontSize: 56 }} />,
+    accent: '#e9d5ff'
   }
 ];
 const Dashboard = () => {
@@ -405,6 +413,26 @@ const Dashboard = () => {
         }
 
         if (user.role === 'security') {
+          // Check if head officer (supervisor)
+          if (user?.securityLevel === 'head-officer') {
+            try {
+              const response = await axios.get('/api/patrols/head-officer/stats');
+              if (response.data?.success) {
+                const data = response.data.data || {};
+                setLiveStats({
+                  personnelCount: data.personnelCount || 0,
+                  activePatrols: data.activePatrols || 0,
+                  pendingReports: data.pendingReports || 0,
+                  completedToday: data.completedToday || 0
+                });
+                return;
+              }
+            } catch (error) {
+              console.error('Error fetching head officer stats:', error);
+            }
+          }
+          
+          // Regular security officer stats
           const [visitorStatsRes, serviceStatsRes] = await Promise.all([
             axios.get('/api/visitors/stats/summary'),
             axios.get('/api/service-requests/stats/summary')
@@ -445,6 +473,8 @@ const Dashboard = () => {
       </Container>
     );
   }
+
+  const isHeadOfficer = user?.role === 'security' && user?.securityLevel === 'head-officer';
 
   const roleConfig = {
     resident: {
@@ -526,10 +556,45 @@ const Dashboard = () => {
         { label: 'Pending Checkouts', value: liveStats.pendingCheckouts?.toString() || '0', helper: 'for review' },
         { label: 'Alerts Today', value: liveStats.alertsToday?.toString() || '0', helper: 'needs attention' }
       ]
+    },
+    headOfficer: {
+      title: 'Team Dashboard',
+      subtitle: 'Manage security personnel and patrol operations',
+      icon: <SupervisorAccountIcon />,
+      color: '#7c3aed',
+      features: {
+        dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
+        team: [
+          { title: 'Team Performance', icon: <AnalyticsIcon />, link: '/dashboard/security/team-performance' },
+          { title: 'Personnel Management', icon: <PeopleIcon />, link: '/dashboard/security/personnel' }
+        ],
+        patrol: [
+          { title: 'Patrol Schedule', icon: <AssignmentIcon />, link: '/dashboard/security/schedule' },
+          { title: 'Patrol Analytics', icon: <HistoryIcon />, link: '/dashboard/security/patrol-analytics' }
+        ],
+        supervision: [
+          { title: 'Pending Approvals', icon: <CheckCircleIcon />, link: '/dashboard/security/pending-approvals' },
+          { title: 'Incident Reports', icon: <AssignmentIcon />, link: '/dashboard/security/incidents' }
+        ],
+        visitors: [
+          { title: 'Visitor Logs', icon: <HistoryIcon />, link: '/dashboard/security/visitor-logs' }
+        ],
+        settings: [
+          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' },
+          { title: 'Notifications', icon: <NotificationsIcon />, link: '/dashboard/notifications' }
+        ]
+      },
+      stats: [
+        { label: 'Personnel Count', value: liveStats.personnelCount?.toString() || '0', helper: 'assigned team' },
+        { label: 'Active Patrols', value: liveStats.activePatrols?.toString() || '0', helper: 'in progress' },
+        { label: 'Pending Reports', value: liveStats.pendingReports?.toString() || '0', helper: 'awaiting review' },
+        { label: 'Completed Today', value: liveStats.completedToday?.toString() || '0', helper: 'today\'s total' }
+      ]
     }
   };
 
-  const config = roleConfig[user.role] || roleConfig.resident;
+  const configRole = isHeadOfficer ? 'headOfficer' : user.role;
+  const config = roleConfig[configRole] || roleConfig.resident;
 
   const getActivePageKey = () => {
     const base = '/dashboard/';

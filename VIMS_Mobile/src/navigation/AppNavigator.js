@@ -78,17 +78,24 @@ const ResidentTabs = () => {
           } else if (route.name === 'ProfileTab') {
             iconName = focused ? 'person' : 'person-outline';
           }
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={24} color={color} />;
         },
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.textSecondary,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+        },
+        tabBarItemStyle: {
+          paddingVertical: 6,
+        },
         tabBarStyle: {
           backgroundColor: themeColors.cardBackground,
           borderTopWidth: 1,
           borderTopColor: themeColors.border,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          paddingBottom: 10,
+          paddingTop: 10,
+          height: 72,
         },
         headerShown: false,
       })}
@@ -124,17 +131,24 @@ const AdminTabs = () => {
           } else if (route.name === 'LogsTab') {
             iconName = focused ? 'time' : 'time-outline';
           }
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={24} color={color} />;
         },
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.textSecondary,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+        },
+        tabBarItemStyle: {
+          paddingVertical: 6,
+        },
         tabBarStyle: {
           backgroundColor: themeColors.cardBackground,
           borderTopWidth: 1,
           borderTopColor: themeColors.border,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          paddingBottom: 10,
+          paddingTop: 10,
+          height: 72,
         },
         headerShown: false,
       })}
@@ -170,17 +184,24 @@ const SecurityTabs = () => {
           } else if (route.name === 'ProfileTab') {
             iconName = focused ? 'person' : 'person-outline';
           }
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={24} color={color} />;
         },
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.textSecondary,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+        },
+        tabBarItemStyle: {
+          paddingVertical: 6,
+        },
         tabBarStyle: {
           backgroundColor: themeColors.cardBackground,
           borderTopWidth: 1,
           borderTopColor: themeColors.border,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          paddingBottom: 10,
+          paddingTop: 10,
+          height: 72,
         },
         headerShown: false,
       })}

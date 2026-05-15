@@ -34,6 +34,10 @@ const DashboardScreen = ({ navigation }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
+  const [collapsedSections, setCollapsedSections] = useState({
+    quickActions: false,
+    recentActivity: false,
+  });
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { logout, user: authUser } = useAuth();
 
@@ -187,6 +191,13 @@ const DashboardScreen = ({ navigation }) => {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const toggleSection = (key) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
   };
 
   const openDropdown = () => {
@@ -469,7 +480,7 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.heroCard}>
           <Image source={require('../../assets/roof.png')} style={styles.heroBg} resizeMode="cover" />
           <View style={styles.heroOverlay} />
-          <View style={styles.heroInner}>
+          <View style={[styles.heroInner, isNarrow && styles.heroInnerNarrow]}>
             <View style={styles.heroLeft}>
               <Text style={styles.heroEyebrow}>Casimiro Westville Homes · Cavite</Text>
               <Text style={[styles.heroTitle, isNarrow && { fontSize: 19, lineHeight: 24 }]}>
@@ -481,7 +492,7 @@ const DashboardScreen = ({ navigation }) => {
                 <Text style={styles.heroPillText}>Community running smoothly</Text>
               </View>
             </View>
-            <View style={styles.heroRight}>
+            <View style={[styles.heroRight, isNarrow && styles.heroRightNarrow]}>
               {config.stats.map((stat, i) => (
                 <View key={i} style={[styles.heroStatCell, i === config.stats.length - 1 && { borderBottomWidth: 0 }]}>
                   <Text style={styles.heroStatValue}>{stat.prefix || ''}{stat.value}</Text>
@@ -496,9 +507,9 @@ const DashboardScreen = ({ navigation }) => {
         </View>
 
         {/* ── Colored Stat Cards ── */}
-        <View style={styles.statGrid}>
+        <View style={[styles.statGrid, isNarrow && styles.statGridNarrow]}>
           {config.stats.map((stat, i) => (
-            <View key={i} style={[styles.statCard, { backgroundColor: stat.bg }]}>
+            <View key={i} style={[styles.statCard, isNarrow && styles.statCardNarrow, { backgroundColor: stat.bg }]}>
               <View style={styles.statCardBgIcon}>
                 <Ionicons name={stat.icon} size={56} color="rgba(255,255,255,0.15)" />
               </View>
@@ -514,10 +525,14 @@ const DashboardScreen = ({ navigation }) => {
 
         {/* ── Quick Actions ── */}
         <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
+          <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('quickActions')} activeOpacity={0.8}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
-          </View>
-          {config.quickActions.map((action, i) => (
+            <View style={styles.sectionToggleWrap}>
+              <Text style={styles.sectionToggleText}>{collapsedSections.quickActions ? 'Show' : 'Hide'}</Text>
+              <Ionicons name={collapsedSections.quickActions ? 'chevron-down' : 'chevron-up'} size={16} color="#6b7280" />
+            </View>
+          </TouchableOpacity>
+          {!collapsedSections.quickActions && config.quickActions.map((action, i) => (
             <TouchableOpacity
               key={i}
               style={[styles.actionRow, i < config.quickActions.length - 1 && styles.actionRowDivider]}
@@ -538,48 +553,48 @@ const DashboardScreen = ({ navigation }) => {
 
         {/* ── Recent Activity (notifications from API) ── */}
         <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
+          <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('recentActivity')} activeOpacity={0.8}>
             <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveBadgeText}>Live</Text>
+            <View style={styles.sectionToggleWrap}>
+              <Text style={styles.sectionToggleText}>{collapsedSections.recentActivity ? 'Show' : 'Hide'}</Text>
+              <Ionicons name={collapsedSections.recentActivity ? 'chevron-down' : 'chevron-up'} size={16} color="#6b7280" />
             </View>
-          </View>
-          {recentActivity.length === 0 ? (
-            <View style={[styles.actionRow, { borderBottomWidth: 0 }]}>
-              <View style={[styles.actionIconWrap, { backgroundColor: '#f1f5f9' }]}>
-                <Ionicons name="notifications-off-outline" size={16} color="#94a3b8" />
-              </View>
-              <View style={styles.actionBody}>
-                <Text style={styles.actionTitle}>No recent notifications</Text>
-                <Text style={styles.actionSub}>Pull to refresh</Text>
-              </View>
-            </View>
-          ) : (
-            recentActivity.map((n, i) => (
-              <View
-                key={n._id || String(i)}
-                style={[styles.actionRow, i < recentActivity.length - 1 && styles.actionRowDivider]}
-              >
-                <View style={[styles.actionIconWrap, { backgroundColor: '#eff6ff' }]}>
-                  <Ionicons name="notifications-outline" size={16} color="#2563eb" />
-                </View>
-                <View style={styles.actionBody}>
-                  <Text style={styles.actionTitle} numberOfLines={1}>{n.title || 'Notification'}</Text>
-                  <Text style={styles.actionSub} numberOfLines={2}>{n.body || ''}</Text>
+          </TouchableOpacity>
+          {!collapsedSections.recentActivity && (
+            <>
+              <View style={styles.sectionHeaderSecondary}>
+                <View style={styles.liveBadge}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveBadgeText}>Live</Text>
                 </View>
               </View>
-            ))
-          )}
-        </View>
-
-        {/* ── Footer ── */}
-        <View style={styles.footer}>
-          <Ionicons name="business-outline" size={12} color="#94a3b8" />
-          <Text style={styles.footerText}>VIMS · {roleName} Access</Text>
-        </View>
-
-      </ScrollView>
+              {recentActivity.length === 0 ? (
+                <View style={[styles.actionRow, { borderBottomWidth: 0 }]}>
+                  <View style={[styles.actionIconWrap, { backgroundColor: '#f1f5f9' }]}>
+                    <Ionicons name="notifications-off-outline" size={16} color="#94a3b8" />
+                  </View>
+                  <View style={styles.actionBody}>
+                    <Text style={styles.actionTitle}>No recent notifications</Text>
+                    <Text style={styles.actionSub}>Pull to refresh</Text>
+                  </View>
+                </View>
+              ) : (
+                recentActivity.map((n, i) => (
+                  <View
+                    key={n._id || String(i)}
+                    style={[styles.actionRow, i < recentActivity.length - 1 && styles.actionRowDivider]}
+                  >
+                    <View style={[styles.actionIconWrap, { backgroundColor: '#eff6ff' }]}> 
+                      <Ionicons name="notifications-outline" size={16} color="#2563eb" />
+                    </View>
+                    <View style={styles.actionBody}>
+                      <Text style={styles.actionTitle} numberOfLines={1}>{n.title || 'Notification'}</Text>
+                      <Text style={styles.actionSub} numberOfLines={2}>{n.body || ''}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+            </>
 
       {/* Notification Modal */}
       <NotificationModal 
@@ -715,6 +730,7 @@ const styles = StyleSheet.create({
   heroBg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#111827' },
   heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   heroInner: { flexDirection: 'row' },
+  heroInnerNarrow: { flexDirection: 'column' },
   heroLeft: { flex: 1, padding: 16 },
   heroEyebrow: {
     color: '#4ade80', fontSize: 9, fontWeight: '800',
@@ -730,6 +746,7 @@ const styles = StyleSheet.create({
   heroPillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4ade80' },
   heroPillText: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '600' },
   heroRight: { width: 120, borderLeftWidth: 0.5, borderLeftColor: 'rgba(255,255,255,0.1)' },
+  heroRightNarrow: { width: '100%', borderLeftWidth: 0, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.1)', marginTop: 16 },
   heroStatCell: {
     paddingVertical: 11, paddingHorizontal: 10,
     borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.08)',
@@ -740,10 +757,12 @@ const styles = StyleSheet.create({
 
   /* Stat Cards */
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statGridNarrow: { flexDirection: 'column', gap: 10 },
   statCard: {
     width: '47.5%', borderRadius: 16, padding: 12, minHeight: 115,
     overflow: 'hidden', justifyContent: 'flex-end',
   },
+  statCardNarrow: { width: '100%' },
   statCardBgIcon: { position: 'absolute', right: -8, bottom: -8 },
   statCardTop: { marginBottom: 6 },
   statCardValue: { color: '#fff', fontSize: 28, fontWeight: '900', lineHeight: 30 },
@@ -760,19 +779,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9',
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
+  sectionHeaderSecondary: {
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
   sectionTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
+  sectionToggleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionToggleText: { fontSize: 12, fontWeight: '700', color: '#6b7280' },
+  actionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 14,
+    minHeight: 72,
+  },
+  actionRowDivider: { borderBottomWidth: 0.5, borderBottomColor: '#f8fafc' },
+  actionIconWrap: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#16a34a' },
   liveBadgeText: { fontSize: 10, fontWeight: '700', color: '#15803d' },
-  actionRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-  },
-  actionRowDivider: { borderBottomWidth: 0.5, borderBottomColor: '#f8fafc' },
-  actionIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  actionBody: { flex: 1, minWidth: 0 },
+  actionTitle: { color: '#0f172a', fontSize: 13, fontWeight: '800' },
+  actionSub: { color: '#94a3b8', fontSize: 11, marginTop: 1 },
   actionBody: { flex: 1, minWidth: 0 },
   actionTitle: { color: '#0f172a', fontSize: 13, fontWeight: '800' },
   actionSub: { color: '#94a3b8', fontSize: 11, marginTop: 1 },

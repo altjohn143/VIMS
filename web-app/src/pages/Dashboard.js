@@ -30,7 +30,9 @@ import {
   useMediaQuery,
   Collapse,
   ListItemButton,
-  CircularProgress
+  CircularProgress,
+  Breadcrumbs,
+  Link as MuiLink
 } from '@mui/material';
 
 import {
@@ -675,6 +677,21 @@ const Dashboard = () => {
   };
 
   const activePageContent = contentComponentMap[activePageKey] || null;
+
+  const breadcrumbItems = [
+    { label: 'Dashboard', link: '/dashboard' },
+    ...(activePageContent ? [{ label: activePageLabel, link: location.pathname }] : [])
+  ];
+
+  const dashboardShortcutCards = Object.entries(config.features)
+    .filter(([section]) => section !== 'dashboard')
+    .slice(0, 6)
+    .map(([section, items]) => ({
+      title: items[0]?.title || getSectionLabel(section),
+      subtitle: items.length > 1 ? `Go to ${getSectionLabel(section)}` : `Open ${getSectionLabel(section)}`,
+      icon: items[0]?.icon || <ChevronRightIcon />,
+      link: items[0]?.link
+    }));
 
   const accountInfo = [
     { label: 'Name', value: `${user.firstName} ${user.lastName}` },
@@ -1456,6 +1473,48 @@ const Dashboard = () => {
           >
             {activePageContent ? (
               <Box sx={{ minHeight: '72vh', p: 2, background: themeColors.cardBackground, borderRadius: '24px', boxShadow: '0 14px 32px rgba(15,23,42,0.08)' }}>
+                <Box sx={{ mb: 3, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', gap: 2 }}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Breadcrumbs separator="›" aria-label="breadcrumb" sx={{ mb: 1, color: themeColors.textSecondary }}>
+                      {breadcrumbItems.map((item, index) => (
+                        index < breadcrumbItems.length - 1 ? (
+                          <MuiLink
+                            key={item.label}
+                            component={RouterLink}
+                            to={item.link}
+                            underline="hover"
+                            color="inherit"
+                            sx={{ fontWeight: 700 }}
+                          >
+                            {item.label}
+                          </MuiLink>
+                        ) : (
+                          <Typography key={item.label} color="textPrimary" sx={{ fontWeight: 700 }}>
+                            {item.label}
+                          </Typography>
+                        )
+                      ))}
+                    </Breadcrumbs>
+
+                    <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, mb: 0.75 }}>
+                      {activePageLabel}
+                    </Typography>
+                    <Typography sx={{ color: themeColors.textSecondary, fontWeight: 500 }}>
+                      Find the tools and data you need faster with a clearer page layout.
+                    </Typography>
+                  </Box>
+
+                  <Button
+                    component={RouterLink}
+                    to="/dashboard"
+                    variant="outlined"
+                    startIcon={<HomeIcon />}
+                    sx={{ textTransform: 'none', borderRadius: '14px', alignSelf: { xs: 'flex-start', md: 'center' } }}
+                  >
+                    Back to overview
+                  </Button>
+                </Box>
+
                 {activePageContent}
               </Box>
             ) : (
@@ -1580,6 +1639,81 @@ const Dashboard = () => {
                         ))}
                       </Grid>
                     </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Paper
+                  sx={{
+                    borderRadius: '22px',
+                    border: `1px solid ${themeColors.border}`,
+                    boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+                    overflow: 'hidden',
+                    animation: 'slideUpSoft 0.7s ease'
+                  }}
+                >
+                  <Box sx={{ px: 3, py: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+                    <Box>
+                      <Typography sx={{ fontSize: '1.05rem', fontWeight: 900, color: themeColors.textPrimary }}>
+                        Quick navigation
+                      </Typography>
+                      <Typography sx={{ color: themeColors.textSecondary, fontWeight: 500, mt: 0.5 }}>
+                        Jump straight to the sections you use most.
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Divider />
+
+                  <Grid container spacing={2} sx={{ p: 2.5 }}>
+                    {dashboardShortcutCards.map((card, index) => (
+                      <Grid item xs={12} sm={6} md={4} key={index}>
+                        <Paper
+                          component={RouterLink}
+                          to={card.link}
+                          elevation={0}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            p: 2,
+                            borderRadius: '18px',
+                            border: '1px solid rgba(15,23,42,0.06)',
+                            textDecoration: 'none',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 14px 24px rgba(15,23,42,0.08)'
+                            }
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: '14px',
+                              bgcolor: '#f0fdf4',
+                              color: themeColors.primary,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}
+                          >
+                            {card.icon}
+                          </Box>
+                          <Box>
+                            <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+                              {card.title}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.88rem', color: themeColors.textSecondary }}>
+                              {card.subtitle}
+                            </Typography>
+                          </Box>
+                        </Paper>
+                      </Grid>
+                    ))}
                   </Grid>
                 </Paper>
               </Grid>

@@ -66,7 +66,7 @@ import {
   ArrowOutward as ArrowOutwardIcon,
   Apartment as ApartmentIcon,
   EventAvailable as EventAvailableIcon,
-  AnalyticsCookie as AnalyticsIcon,
+  Analytics as AnalyticsIcon,
   SupervisorAccount as SupervisorAccountIcon
 } from '@mui/icons-material';
 import axios from 'axios';

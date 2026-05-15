@@ -802,7 +802,7 @@ const Dashboard = () => {
     }
   ];
 
-  const getSectionLabel = (section) => {
+  function getSectionLabel(section) {
     const customLabels = {
       dashboard: 'Dashboard',
       visitors: 'Visitors',
@@ -819,7 +819,7 @@ const Dashboard = () => {
       community: 'Community'
     };
     return customLabels[section] || section.charAt(0).toUpperCase() + section.slice(1);
-  };
+  }
 
   const getSectionIcon = (section, items) => {
     if (section === 'dashboard') return <DashboardIcon />;

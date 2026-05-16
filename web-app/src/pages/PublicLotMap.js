@@ -662,8 +662,8 @@ const PublicLotMap = () => {
       lots.forEach((lot, index) => {
         const row = Math.floor(index / columns);
         const col = index % columns;
-        const latOffset = -(row * 0.00008);
-        const lngOffset = (col - 2) * 0.00008;
+        const latOffset = -(row * 0.0003);
+        const lngOffset = (col - 2) * 0.0003;
         coords[lot.id] = [base[0] + latOffset, base[1] + lngOffset];
       });
     });
@@ -723,7 +723,7 @@ const PublicLotMap = () => {
 
   // Get phases and filter lots by selected phase
   const phases = Object.keys(lotsByPhaseAndBlock).map(Number).sort((a, b) => a - b);
-  const markerRadius = 10;
+  const markerRadius = 18;
 
   return (
     <Box sx={{

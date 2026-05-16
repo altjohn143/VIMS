@@ -20,6 +20,7 @@ import {
   Pause as PauseIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
+import WestvilleMapImage from '../assets/Westville.png';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
 const OUTSIDE_PHOTOS = [
@@ -61,7 +62,7 @@ const STATUS_CONFIG = {
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
 };
 
-const LOCAL_PUBLIC_MAP_IMAGE = `${process.env.PUBLIC_URL}/images/public-lot-map.png`;
+const LOCAL_PUBLIC_MAP_IMAGE = WestvilleMapImage;
 const DEFAULT_PUBLIC_MAP_IMAGE_URL = 'https://staticmap.openstreetmap.de/staticmap.php?center=14.4435299,120.9667736&zoom=17&size=1200x800&maptype=mapnik';
 const BLOCK_MAP_POSITIONS = {
   1: { top: '16%', left: '11%' },

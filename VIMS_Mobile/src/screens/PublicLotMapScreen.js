@@ -117,7 +117,7 @@ const PublicLotMapScreen = ({ navigation }) => {
     reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', icon: 'time' },
   };
 
-  const PUBLIC_MAP_IMAGE_URI = 'https://staticmap.openstreetmap.de/staticmap.php?center=14.611,120.973&zoom=17&size=1000x700&maptype=mapnik';
+  const PUBLIC_MAP_IMAGE_URI = 'https://staticmap.openstreetmap.de/staticmap.php?center=14.4435299,120.9667736&zoom=17&size=1000x700&maptype=mapnik';
   const MOBILE_BLOCK_POSITIONS = {
     1: { top: '14%', left: '10%' },
     2: { top: '12%', left: '60%' },

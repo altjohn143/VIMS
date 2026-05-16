@@ -62,7 +62,7 @@ const STATUS_CONFIG = {
 };
 
 const LOCAL_PUBLIC_MAP_IMAGE = `${process.env.PUBLIC_URL}/images/public-lot-map.png`;
-const DEFAULT_PUBLIC_MAP_IMAGE_URL = 'https://staticmap.openstreetmap.de/staticmap.php?center=14.611,120.973&zoom=17&size=1200x800&maptype=mapnik';
+const DEFAULT_PUBLIC_MAP_IMAGE_URL = 'https://staticmap.openstreetmap.de/staticmap.php?center=14.4435299,120.9667736&zoom=17&size=1200x800&maptype=mapnik';
 const BLOCK_MAP_POSITIONS = {
   1: { top: '16%', left: '11%' },
   2: { top: '16%', left: '58%' },
@@ -928,7 +928,7 @@ const PublicLotMap = () => {
             <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.14), rgba(0,0,0,0.32))' }} />
             <Box sx={{ position: 'absolute', top: 16, left: 16, px: 2, py: 1, borderRadius: 2, backgroundColor: 'rgba(15,23,42,0.78)' }}>
               <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.12em' }}>
-                Actual Map View
+                Casimiro Westville Homes Map
               </Typography>
             </Box>
 

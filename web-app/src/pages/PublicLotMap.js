@@ -72,6 +72,14 @@ const BLOCK_CENTER_COORDS = {
   5: [14.4415, 120.9672],
 };
 
+const BLOCK_LAYOUTS = {
+  1: { center: BLOCK_CENTER_COORDS[1], rows: 4, cols: 5, orientation: 'horizontal', latStep: 0.000225, lngStep: 0.00028 },
+  2: { center: BLOCK_CENTER_COORDS[2], rows: 5, cols: 4, orientation: 'vertical', latStep: 0.00020, lngStep: 0.00030 },
+  3: { center: BLOCK_CENTER_COORDS[3], rows: 4, cols: 5, orientation: 'horizontal', latStep: 0.000240, lngStep: 0.00023 },
+  4: { center: BLOCK_CENTER_COORDS[4], rows: 4, cols: 5, orientation: 'horizontal', latStep: 0.000210, lngStep: 0.00026 },
+  5: { center: BLOCK_CENTER_COORDS[5], rows: 5, cols: 4, orientation: 'vertical', latStep: 0.000210, lngStep: 0.00029 },
+};
+
 const generateLotsFromAPI = (apiLots) => {
   if (!apiLots || apiLots.length === 0) return [];
   
@@ -656,15 +664,26 @@ const PublicLotMap = () => {
 
     Object.entries(blockLots).forEach(([block, lots]) => {
       lots.sort((a, b) => a.lotNumber - b.lotNumber);
-      const base = BLOCK_CENTER_COORDS[block] || MAP_CENTER;
-      const columns = 5;
+      const layout = BLOCK_LAYOUTS[block] || {
+        center: BLOCK_CENTER_COORDS[block] || MAP_CENTER,
+        rows: 4,
+        cols: 5,
+        orientation: 'horizontal',
+        latStep: 0.00024,
+        lngStep: 0.00028,
+      };
+
+      const startLat = -((layout.rows - 1) / 2) * layout.latStep;
+      const startLng = -((layout.cols - 1) / 2) * layout.lngStep;
 
       lots.forEach((lot, index) => {
-        const row = Math.floor(index / columns);
-        const col = index % columns;
-        const latOffset = -(row * 0.0003);
-        const lngOffset = (col - 2) * 0.0003;
-        coords[lot.id] = [base[0] + latOffset, base[1] + lngOffset];
+        const row = Math.floor(index / layout.cols);
+        const col = index % layout.cols;
+
+        const lat = layout.center[0] + startLat + (layout.orientation === 'horizontal' ? row * layout.latStep : col * layout.latStep);
+        const lng = layout.center[1] + startLng + (layout.orientation === 'horizontal' ? col * layout.lngStep : row * layout.lngStep);
+
+        coords[lot.id] = [lat, lng];
       });
     });
 

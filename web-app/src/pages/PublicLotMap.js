@@ -20,7 +20,7 @@ import {
   Pause as PauseIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, Rectangle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
@@ -673,21 +673,64 @@ const PublicLotMap = () => {
         lngStep: 0.00028,
       };
 
-      const startLat = -((layout.rows - 1) / 2) * layout.latStep;
-      const startLng = -((layout.cols - 1) / 2) * layout.lngStep;
+      const startLat = -(layout.orientation === 'horizontal' ? ((layout.rows - 1) / 2) * layout.latStep : ((layout.cols - 1) / 2) * layout.latStep);
+      const startLng = -(layout.orientation === 'horizontal' ? ((layout.cols - 1) / 2) * layout.lngStep : ((layout.rows - 1) / 2) * layout.lngStep);
 
       lots.forEach((lot, index) => {
         const row = Math.floor(index / layout.cols);
         const col = index % layout.cols;
-
         const lat = layout.center[0] + startLat + (layout.orientation === 'horizontal' ? row * layout.latStep : col * layout.latStep);
         const lng = layout.center[1] + startLng + (layout.orientation === 'horizontal' ? col * layout.lngStep : row * layout.lngStep);
-
         coords[lot.id] = [lat, lng];
       });
     });
 
     return coords;
+  }, [phaseFilteredLots]);
+
+  const lotBoxes = useMemo(() => {
+    const boxes = [];
+    const blockLots = {};
+
+    phaseFilteredLots.forEach((lot) => {
+      if (!blockLots[lot.block]) blockLots[lot.block] = [];
+      blockLots[lot.block].push(lot);
+    });
+
+    Object.entries(blockLots).forEach(([block, lots]) => {
+      lots.sort((a, b) => a.lotNumber - b.lotNumber);
+      const layout = BLOCK_LAYOUTS[block] || {
+        center: BLOCK_CENTER_COORDS[block] || MAP_CENTER,
+        rows: 4,
+        cols: 5,
+        orientation: 'horizontal',
+        latStep: 0.00024,
+        lngStep: 0.00028,
+      };
+
+      const topLeftLat = layout.center[0] + (layout.orientation === 'horizontal'
+        ? ((layout.rows - 1) / 2) * layout.latStep
+        : ((layout.cols - 1) / 2) * layout.latStep);
+      const topLeftLng = layout.center[1] - (layout.orientation === 'horizontal'
+        ? ((layout.cols - 1) / 2) * layout.lngStep
+        : ((layout.rows - 1) / 2) * layout.lngStep);
+
+      lots.forEach((lot, index) => {
+        const row = Math.floor(index / layout.cols);
+        const col = index % layout.cols;
+
+        const lotLat = topLeftLat - (layout.orientation === 'horizontal' ? row * layout.latStep : col * layout.latStep);
+        const lotLng = topLeftLng + (layout.orientation === 'horizontal' ? col * layout.lngStep : row * layout.lngStep);
+
+        const north = lotLat;
+        const south = lotLat - layout.latStep;
+        const west = lotLng;
+        const east = lotLng + layout.lngStep;
+        boxes.push({ lot, bounds: [[north, west], [south, east]] });
+      });
+    });
+
+    return boxes;
   }, [phaseFilteredLots]);
 
   const handleRegister = (lot) => {
@@ -742,7 +785,7 @@ const PublicLotMap = () => {
 
   // Get phases and filter lots by selected phase
   const phases = Object.keys(lotsByPhaseAndBlock).map(Number).sort((a, b) => a - b);
-  const markerRadius = 18;
+  const markerRadius = 14;
 
   return (
     <Box sx={{
@@ -965,6 +1008,19 @@ const PublicLotMap = () => {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
+
+              {lotBoxes.map((box) => (
+                <Rectangle
+                  key={`box-${box.lot.id}`}
+                  bounds={box.bounds}
+                  pathOptions={{
+                    color: 'rgba(255,255,255,0.25)',
+                    weight: 1,
+                    dashArray: '3,5',
+                    fillOpacity: 0,
+                  }}
+                />
+              ))}
 
               {phaseFilteredLots.map((lot) => {
                 const coord = lotCoordinates[lot.id] || MAP_CENTER;

@@ -73,11 +73,11 @@ const BLOCK_CENTER_COORDS = {
 };
 
 const BLOCK_LAYOUTS = {
-  1: { center: BLOCK_CENTER_COORDS[1], rows: 4, cols: 5, orientation: 'horizontal', latStep: 0.000225, lngStep: 0.00028 },
-  2: { center: BLOCK_CENTER_COORDS[2], rows: 5, cols: 4, orientation: 'vertical', latStep: 0.00020, lngStep: 0.00030 },
-  3: { center: BLOCK_CENTER_COORDS[3], rows: 4, cols: 5, orientation: 'horizontal', latStep: 0.000240, lngStep: 0.00023 },
-  4: { center: BLOCK_CENTER_COORDS[4], rows: 4, cols: 5, orientation: 'horizontal', latStep: 0.000210, lngStep: 0.00026 },
-  5: { center: BLOCK_CENTER_COORDS[5], rows: 5, cols: 4, orientation: 'vertical', latStep: 0.000210, lngStep: 0.00029 },
+  1: { topLeft: [14.4417265, 120.970273], rows: 4, cols: 5, latStep: 0.000225, lngStep: 0.00028 },
+  2: { topLeft: [14.443178, 120.967328], rows: 5, cols: 4, latStep: 0.00020, lngStep: 0.00030 },
+  3: { topLeft: [14.440798, 120.968067], rows: 4, cols: 5, latStep: 0.000240, lngStep: 0.00023 },
+  4: { topLeft: [14.443420, 120.967020], rows: 4, cols: 5, latStep: 0.000210, lngStep: 0.00026 },
+  5: { topLeft: [14.442320, 120.966550], rows: 5, cols: 4, latStep: 0.000210, lngStep: 0.00029 },
 };
 
 const generateLotsFromAPI = (apiLots) => {
@@ -665,23 +665,22 @@ const PublicLotMap = () => {
     Object.entries(blockLots).forEach(([block, lots]) => {
       lots.sort((a, b) => a.lotNumber - b.lotNumber);
       const layout = BLOCK_LAYOUTS[block] || {
-        center: BLOCK_CENTER_COORDS[block] || MAP_CENTER,
+        topLeft: [
+          BLOCK_CENTER_COORDS[block]?.[0] + 0.00034,
+          BLOCK_CENTER_COORDS[block]?.[1] - 0.00056,
+        ] || MAP_CENTER,
         rows: 4,
         cols: 5,
-        orientation: 'horizontal',
         latStep: 0.00024,
         lngStep: 0.00028,
       };
 
-      const startLat = -(layout.orientation === 'horizontal' ? ((layout.rows - 1) / 2) * layout.latStep : ((layout.cols - 1) / 2) * layout.latStep);
-      const startLng = -(layout.orientation === 'horizontal' ? ((layout.cols - 1) / 2) * layout.lngStep : ((layout.rows - 1) / 2) * layout.lngStep);
-
       lots.forEach((lot, index) => {
         const row = Math.floor(index / layout.cols);
         const col = index % layout.cols;
-        const lat = layout.center[0] + startLat + (layout.orientation === 'horizontal' ? row * layout.latStep : col * layout.latStep);
-        const lng = layout.center[1] + startLng + (layout.orientation === 'horizontal' ? col * layout.lngStep : row * layout.lngStep);
-        coords[lot.id] = [lat, lng];
+        const lotLat = layout.topLeft[0] - row * layout.latStep;
+        const lotLng = layout.topLeft[1] + col * layout.lngStep;
+        coords[lot.id] = [lotLat - layout.latStep / 2, lotLng + layout.lngStep / 2];
       });
     });
 
@@ -700,32 +699,25 @@ const PublicLotMap = () => {
     Object.entries(blockLots).forEach(([block, lots]) => {
       lots.sort((a, b) => a.lotNumber - b.lotNumber);
       const layout = BLOCK_LAYOUTS[block] || {
-        center: BLOCK_CENTER_COORDS[block] || MAP_CENTER,
+        topLeft: [
+          BLOCK_CENTER_COORDS[block]?.[0] + 0.00034,
+          BLOCK_CENTER_COORDS[block]?.[1] - 0.00056,
+        ] || MAP_CENTER,
         rows: 4,
         cols: 5,
-        orientation: 'horizontal',
         latStep: 0.00024,
         lngStep: 0.00028,
       };
-
-      const topLeftLat = layout.center[0] + (layout.orientation === 'horizontal'
-        ? ((layout.rows - 1) / 2) * layout.latStep
-        : ((layout.cols - 1) / 2) * layout.latStep);
-      const topLeftLng = layout.center[1] - (layout.orientation === 'horizontal'
-        ? ((layout.cols - 1) / 2) * layout.lngStep
-        : ((layout.rows - 1) / 2) * layout.lngStep);
 
       lots.forEach((lot, index) => {
         const row = Math.floor(index / layout.cols);
         const col = index % layout.cols;
 
-        const lotLat = topLeftLat - (layout.orientation === 'horizontal' ? row * layout.latStep : col * layout.latStep);
-        const lotLng = topLeftLng + (layout.orientation === 'horizontal' ? col * layout.lngStep : row * layout.lngStep);
+        const north = layout.topLeft[0] - row * layout.latStep;
+        const west = layout.topLeft[1] + col * layout.lngStep;
+        const south = north - layout.latStep;
+        const east = west + layout.lngStep;
 
-        const north = lotLat;
-        const south = lotLat - layout.latStep;
-        const west = lotLng;
-        const east = lotLng + layout.lngStep;
         boxes.push({ lot, bounds: [[north, west], [south, east]] });
       });
     });

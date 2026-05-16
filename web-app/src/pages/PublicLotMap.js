@@ -785,7 +785,7 @@ const PublicLotMap = () => {
 
   // Get phases and filter lots by selected phase
   const phases = Object.keys(lotsByPhaseAndBlock).map(Number).sort((a, b) => a - b);
-  const markerRadius = 14;
+  const markerRadius = 12;
 
   return (
     <Box sx={{
@@ -1014,11 +1014,13 @@ const PublicLotMap = () => {
                   key={`box-${box.lot.id}`}
                   bounds={box.bounds}
                   pathOptions={{
-                    color: 'rgba(255,255,255,0.25)',
-                    weight: 1,
-                    dashArray: '3,5',
-                    fillOpacity: 0,
+                    color: '#22c55e80',
+                    weight: 1.5,
+                    dashArray: '4,4',
+                    fillColor: '#22c55e30',
+                    fillOpacity: 0.18,
                   }}
+                  interactive={false}
                 />
               ))}
 

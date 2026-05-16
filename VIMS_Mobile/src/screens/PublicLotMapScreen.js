@@ -10,6 +10,7 @@ import {
   FlatList,
   Dimensions,
   Image,
+  ImageBackground,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -114,6 +115,15 @@ const PublicLotMapScreen = ({ navigation }) => {
     vacant: { color: '#22c55e', bg: '#dcfce7', label: 'Vacant', icon: 'checkmark-circle' },
     occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', icon: 'close-circle' },
     reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', icon: 'time' },
+  };
+
+  const PUBLIC_MAP_IMAGE_URI = 'https://staticmap.openstreetmap.de/staticmap.php?center=14.611,120.973&zoom=17&size=1000x700&maptype=mapnik';
+  const MOBILE_BLOCK_POSITIONS = {
+    1: { top: '14%', left: '10%' },
+    2: { top: '12%', left: '60%' },
+    3: { top: '36%', left: '20%' },
+    4: { top: '48%', left: '62%' },
+    5: { top: '70%', left: '28%' },
   };
 
   // VIRTUAL TOUR PHOTO CATEGORIES
@@ -335,30 +345,45 @@ const PublicLotMapScreen = ({ navigation }) => {
           ))}
         </View>
 
-        <View style={styles.mapContainer}>
-          {visibleBlocks.map(block => {
-            const blockLots = phaseFilteredLots.filter(l => l.block === block);
-            if (blockLots.length === 0) return null;
-            
-            return (
-              <View key={block} style={styles.blockContainer}>
-                <View style={styles.blockHeader}>
-                  <Text style={styles.blockTitle}>Block {block}</Text>
-                  <Text style={styles.blockCount}>
-                    {blockLots.filter(l => l.status === 'vacant').length} available
-                  </Text>
+        <View style={styles.mapBackgroundContainer}>
+          <ImageBackground
+            source={{ uri: PUBLIC_MAP_IMAGE_URI }}
+            style={styles.mapImageBackground}
+            imageStyle={styles.mapImageStyle}
+          >
+            <View style={styles.mapOverlayHeader}>
+              <Text style={styles.mapOverlayTitle}>Actual Lot Map</Text>
+            </View>
+            {visibleBlocks.map(block => {
+              const blockLots = phaseFilteredLots.filter(l => l.block === block);
+              if (blockLots.length === 0) return null;
+              const position = MOBILE_BLOCK_POSITIONS[block] || { top: '16%', left: '12%' };
+              return (
+                <View key={block} style={[styles.blockOverlay, position]}>
+                  <Text style={styles.blockOverlayTitle}>Block {block}</Text>
+                  <View style={styles.blockLotGrid}>
+                    {blockLots.map((lot) => {
+                      const cfg = statusConfig[lot.status] || statusConfig.vacant;
+                      return (
+                        <TouchableOpacity
+                          key={lot.lotId || lot._id || `${lot.block}-${lot.lotNumber}`}
+                          style={[
+                            styles.mapLotMarker,
+                            { backgroundColor: cfg.bg, borderColor: cfg.color },
+                            lot.status === 'vacant' && styles.mapLotMarkerActive,
+                            selectedLot?.lotId === lot.lotId && styles.activeMapLotMarker,
+                          ]}
+                          onPress={() => handleLotPress(lot)}
+                        >
+                          <Text style={[styles.mapLotLabel, { color: cfg.color }]}>{lot.lotNumber}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-                <FlatList
-                  data={blockLots}
-                  renderItem={renderLotBox}
-                  keyExtractor={(item) => String(item?._id || item?.lotId || `${item?.block || 'X'}-${item?.lotNumber || '0'}`)}
-                  numColumns={4}
-                  columnWrapperStyle={styles.lotRow}
-                  scrollEnabled={false}
-                />
-              </View>
-            );
-          })}
+              );
+            })}
+          </ImageBackground>
         </View>
 
         <View style={styles.legendContainer}>
@@ -762,6 +787,154 @@ const styles = StyleSheet.create({
   },
   activePhaseText: {
     color: 'white',
+  },
+  mapBackgroundContainer: {
+    marginBottom: 24,
+    borderRadius: 20,
+    overflow: 'hidden',
+    height: 420,
+    backgroundColor: '#e2e8f0',
+  },
+  mapImageBackground: {
+    flex: 1,
+  },
+  mapImageStyle: {
+    resizeMode: 'cover',
+  },
+  mapOverlayHeader: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    zIndex: 2,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  mapOverlayTitle: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.35,
+  },
+  blockOverlay: {
+    position: 'absolute',
+    width: 140,
+    padding: 10,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  blockOverlayTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: themeColors.textPrimary,
+    marginBottom: 8,
+  },
+  blockLotGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  mapLotMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  mapLotMarkerActive: {
+    backgroundColor: '#d1fae5',
+  },
+  activeMapLotMarker: {
+    borderColor: themeColors.primary,
+    borderWidth: 2,
+  },
+  mapLotLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  mapBackgroundContainer: {
+    marginBottom: 24,
+    borderRadius: 20,
+    overflow: 'hidden',
+    height: 420,
+    backgroundColor: '#e2e8f0',
+  },
+  mapImageBackground: {
+    flex: 1,
+  },
+  mapImageStyle: {
+    resizeMode: 'cover',
+  },
+  mapOverlayHeader: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    zIndex: 2,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  mapOverlayTitle: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.35,
+  },
+  blockOverlay: {
+    position: 'absolute',
+    width: 140,
+    padding: 10,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  blockOverlayTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: themeColors.textPrimary,
+    marginBottom: 8,
+  },
+  blockLotGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  mapLotMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  mapLotMarkerActive: {
+    backgroundColor: '#d1fae5',
+  },
+  activeMapLotMarker: {
+    borderColor: themeColors.primary,
+    borderWidth: 2,
+  },
+  mapLotLabel: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   mapContainer: {
     marginBottom: 24,

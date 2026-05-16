@@ -20,8 +20,7 @@ import {
   Pause as PauseIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
-import WestvilleMapImage from '../assets/Westville.png';
-import { MapContainer, TileLayer, CircleMarker, Popup, ImageOverlay } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
@@ -65,7 +64,6 @@ const STATUS_CONFIG = {
 };
 
 const MAP_CENTER = [14.4435299, 120.9667736];
-const IMAGE_BOUNDS = [[14.4410, 120.9652], [14.4470, 120.9690]];
 const BLOCK_CENTER_COORDS = {
   1: [14.4462, 120.9659],
   2: [14.4460, 120.9682],
@@ -947,11 +945,6 @@ const PublicLotMap = () => {
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <ImageOverlay
-                url={WestvilleMapImage}
-                bounds={IMAGE_BOUNDS}
-                opacity={0.22}
               />
 
               {phaseFilteredLots.map((lot) => {

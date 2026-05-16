@@ -61,7 +61,8 @@ const STATUS_CONFIG = {
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
 };
 
-const PUBLIC_MAP_IMAGE_URL = 'https://staticmap.openstreetmap.de/staticmap.php?center=14.611,120.973&zoom=17&size=1200x800&maptype=mapnik';
+const LOCAL_PUBLIC_MAP_IMAGE = `${process.env.PUBLIC_URL}/images/public-lot-map.png`;
+const DEFAULT_PUBLIC_MAP_IMAGE_URL = 'https://staticmap.openstreetmap.de/staticmap.php?center=14.611,120.973&zoom=17&size=1200x800&maptype=mapnik';
 const BLOCK_MAP_POSITIONS = {
   1: { top: '16%', left: '11%' },
   2: { top: '16%', left: '58%' },
@@ -598,9 +599,16 @@ const PublicLotMap = () => {
   const [selectedLot, setSelectedLot] = useState(null);
   const [tourLot, setTourLot] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [publicMapImageUrl, setPublicMapImageUrl] = useState(LOCAL_PUBLIC_MAP_IMAGE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPhase, setSelectedPhase] = useState(1);
+
+  const handleMapImageError = () => {
+    if (publicMapImageUrl !== DEFAULT_PUBLIC_MAP_IMAGE_URL) {
+      setPublicMapImageUrl(DEFAULT_PUBLIC_MAP_IMAGE_URL);
+    }
+  };
 
   // Fetch lots from API
   useEffect(() => {
@@ -911,7 +919,12 @@ const PublicLotMap = () => {
           </Box>
 
           {/* Blocks */}
-          <Box sx={{ position: 'relative', minHeight: 740, borderRadius: 3, overflow: 'hidden', backgroundImage: `url(${PUBLIC_MAP_IMAGE_URL})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid rgba(255,255,255,0.12)' }}>
+          <Box sx={{ position: 'relative', minHeight: 740, borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <Box component="img"
+              src={publicMapImageUrl}
+              onError={handleMapImageError}
+              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
             <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.14), rgba(0,0,0,0.32))' }} />
             <Box sx={{ position: 'absolute', top: 16, left: 16, px: 2, py: 1, borderRadius: 2, backgroundColor: 'rgba(15,23,42,0.78)' }}>
               <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.12em' }}>

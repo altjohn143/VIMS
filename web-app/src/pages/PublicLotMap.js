@@ -935,7 +935,7 @@ const PublicLotMap = () => {
           </Box>
 
           {/* Blocks */}
-          <Box sx={{ position: 'relative', minHeight: 740, borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)' }}>
+          <Box sx={{ position: 'relative', height: 740, borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)' }}>
             <MapContainer
               center={MAP_CENTER}
               zoom={mapZoom}

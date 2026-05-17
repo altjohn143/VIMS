@@ -99,6 +99,9 @@ const IMAGE_BLOCK_FRAMES = {
   25: { left: 67.40, top: 71.35, width: 15.20, height: 2.95, rotate: -5 },
 };
 
+// Toggle visual debug overlays for block frames and labels
+const SHOW_BLOCK_DEBUG = true;
+
 const BLOCK_LAYOUTS = {
   1: { rows: 2, cols: 10 },
   2: { rows: 2, cols: 10 },
@@ -1029,6 +1032,30 @@ const PublicLotMap = () => {
                       transformOrigin: 'top left',
                     }}
                   >
+                    {SHOW_BLOCK_DEBUG && (
+                      <>
+                        {/* non-rotated reference frame (where the percentages map before rotation) */}
+                        <Box sx={{
+                          position: 'absolute',
+                          left: `${frame.left}%`,
+                          top: `${frame.top}%`,
+                          width: `${frame.width}%`,
+                          height: `${frame.height}%`,
+                          pointerEvents: 'none',
+                          border: '2px dashed rgba(255,200,0,0.9)',
+                          zIndex: 1200,
+                          transform: 'none',
+                        }} />
+
+                        {/* rotated frame label inside the rotated container */}
+                        <Box sx={{
+                          position: 'absolute', top: 0, left: 0, zIndex: 1300,
+                          backgroundColor: 'rgba(255,255,255,0.85)', color: '#111',
+                          px: 0.5, py: 0.25, fontSize: '0.62rem', fontWeight: 800,
+                          borderRadius: '3px', pointerEvents: 'none'
+                        }}>B{blockNo}</Box>
+                      </>
+                    )}
                     {lotsInBlock.map((lot, index) => {
                       const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
                       const isSelected = selectedLot?.id === lot.id;

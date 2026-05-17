@@ -64,39 +64,39 @@ const STATUS_CONFIG = {
 
 const IMAGE_BLOCK_FRAMES = {
   // PHASE 1
-  1: { left: 10.10, top: 16.70, width: 18.90, height: 2.95, rotate: -2 },
-  2: { left: 10.30, top: 24.10, width: 18.90, height: 2.95, rotate: -2 },
-  3: { left: 10.50, top: 31.45, width: 18.90, height: 2.95, rotate: -2 },
-  4: { left: 10.75, top: 38.80, width: 18.90, height: 2.95, rotate: -2 },
-  5: { left: 11.00, top: 46.15, width: 18.90, height: 2.95, rotate: -2 },
+  1: { left: 13.00, top: 19.40, width: 22.00, height: 2.45, rotate: -2 },
+  2: { left: 13.20, top: 26.85, width: 22.00, height: 2.45, rotate: -2 },
+  3: { left: 13.40, top: 34.20, width: 22.00, height: 2.45, rotate: -2 },
+  4: { left: 13.60, top: 41.55, width: 22.00, height: 2.45, rotate: -2 },
+  5: { left: 13.80, top: 48.90, width: 22.00, height: 2.45, rotate: -2 },
 
   // PHASE 2
-  6:  { left: 38.50, top: 16.80, width: 23.20, height: 2.95, rotate: -1 },
-  7:  { left: 38.70, top: 24.10, width: 23.20, height: 2.95, rotate: -1 },
-  8:  { left: 38.90, top: 31.40, width: 23.20, height: 2.95, rotate: -1 },
-  9:  { left: 39.10, top: 38.70, width: 23.20, height: 2.95, rotate: -1 },
-  10: { left: 39.30, top: 46.00, width: 23.20, height: 2.95, rotate: -1 },
+  6:  { left: 43.10, top: 19.40, width: 23.70, height: 2.45, rotate: -1 },
+  7:  { left: 43.30, top: 26.80, width: 23.70, height: 2.45, rotate: -1 },
+  8:  { left: 43.50, top: 34.15, width: 23.70, height: 2.45, rotate: -1 },
+  9:  { left: 43.70, top: 41.50, width: 23.70, height: 2.45, rotate: -1 },
+  10: { left: 43.90, top: 48.85, width: 23.70, height: 2.45, rotate: -1 },
 
   // PHASE 3
-  11: { left: 65.80, top: 6.10, width: 21.20, height: 2.95, rotate: 0 },
-  12: { left: 65.80, top: 13.55, width: 21.20, height: 2.95, rotate: 0 },
-  13: { left: 65.80, top: 20.95, width: 21.20, height: 2.95, rotate: 0 },
-  14: { left: 65.80, top: 28.40, width: 21.20, height: 2.95, rotate: 0 },
-  15: { left: 65.80, top: 35.80, width: 21.20, height: 2.95, rotate: 0 },
+  11: { left: 68.10, top: 9.10, width: 21.70, height: 2.45, rotate: 0 },
+  12: { left: 68.10, top: 16.60, width: 21.70, height: 2.45, rotate: 0 },
+  13: { left: 68.10, top: 24.05, width: 21.70, height: 2.45, rotate: 0 },
+  14: { left: 68.10, top: 31.50, width: 21.70, height: 2.45, rotate: 0 },
+  15: { left: 68.10, top: 38.95, width: 21.70, height: 2.45, rotate: 0 },
 
   // PHASE 4
-  16: { left: 14.00, top: 57.80, width: 30.00, height: 3.05, rotate: 0 },
-  17: { left: 14.00, top: 64.75, width: 30.00, height: 3.05, rotate: 0 },
-  18: { left: 14.00, top: 71.60, width: 30.00, height: 3.05, rotate: 0 },
-  19: { left: 14.00, top: 78.50, width: 30.00, height: 3.05, rotate: 0 },
-  20: { left: 14.00, top: 85.35, width: 30.00, height: 3.05, rotate: 0 },
+  16: { left: 18.40, top: 61.70, width: 30.70, height: 2.55, rotate: 0 },
+  17: { left: 18.40, top: 68.55, width: 30.70, height: 2.55, rotate: 0 },
+  18: { left: 18.40, top: 75.40, width: 30.70, height: 2.55, rotate: 0 },
+  19: { left: 18.40, top: 82.25, width: 30.70, height: 2.55, rotate: 0 },
+  20: { left: 18.40, top: 89.10, width: 30.70, height: 2.55, rotate: 0 },
 
   // PHASE 5
-  21: { left: 54.20, top: 54.70, width: 32.00, height: 3.05, rotate: 0 },
-  22: { left: 54.20, top: 61.55, width: 32.00, height: 3.05, rotate: 0 },
-  23: { left: 54.20, top: 68.40, width: 32.00, height: 3.05, rotate: 0 },
-  24: { left: 54.20, top: 75.25, width: 32.00, height: 3.05, rotate: 0 },
-  25: { left: 54.20, top: 82.10, width: 32.00, height: 3.05, rotate: 0 },
+  21: { left: 58.30, top: 58.20, width: 29.80, height: 2.55, rotate: 0 },
+  22: { left: 58.30, top: 65.05, width: 29.80, height: 2.55, rotate: 0 },
+  23: { left: 58.30, top: 71.90, width: 29.80, height: 2.55, rotate: 0 },
+  24: { left: 58.30, top: 78.75, width: 29.80, height: 2.55, rotate: 0 },
+  25: { left: 58.30, top: 85.60, width: 29.80, height: 2.55, rotate: 0 },
 };
 
 // Toggle visual debug overlays for block frames and labels

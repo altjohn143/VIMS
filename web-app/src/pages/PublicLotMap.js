@@ -64,11 +64,11 @@ const STATUS_CONFIG = {
 
 const IMAGE_BLOCK_FRAMES = {
   // PHASE 1
-  1: { left: 13.00, top: 19.40, width: 22.00, height: 2.45, rotate: -2 },
-  2: { left: 13.20, top: 26.85, width: 22.00, height: 2.45, rotate: -2 },
-  3: { left: 13.40, top: 34.20, width: 22.00, height: 2.45, rotate: -2 },
-  4: { left: 13.60, top: 41.55, width: 22.00, height: 2.45, rotate: -2 },
-  5: { left: 13.80, top: 48.90, width: 22.00, height: 2.45, rotate: -2 },
+  1: { left: 14.00, top: 19.40, width: 22.00, height: 2.45, rotate: -2 },
+  2: { left: 14.20, top: 26.85, width: 22.00, height: 2.45, rotate: -2 },
+  3: { left: 14.40, top: 34.20, width: 22.00, height: 2.45, rotate: -2 },
+  4: { left: 14.60, top: 41.55, width: 22.00, height: 2.45, rotate: -2 },
+  5: { left: 14.80, top: 48.90, width: 22.00, height: 2.45, rotate: -2 },
 
   // PHASE 2
   6:  { left: 43.10, top: 19.40, width: 23.70, height: 2.45, rotate: -1 },

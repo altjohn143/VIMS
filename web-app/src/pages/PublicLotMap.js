@@ -100,11 +100,11 @@ const BLOCK_LAYOUTS = {
 };
 
 const IMAGE_BLOCK_FRAMES = {
-  1: { left: 15.64, top: 16.58, width: 17.48, height: 3.94, rotate: -16 },
-  2: { left: 16.13, top: 21.14, width: 17.48, height: 3.94, rotate: -16 },
-  3: { left: 16.56, top: 25.70, width: 17.48, height: 3.94, rotate: -16 },
-  4: { left: 17.06, top: 30.36, width: 17.48, height: 3.94, rotate: -16 },
-  5: { left: 17.55, top: 34.92, width: 17.48, height: 3.94, rotate: -16 },
+  1: { left: 16.10, top: 17.90, width: 15.90, height: 3.20, rotate: -16 },
+  2: { left: 16.35, top: 22.10, width: 15.90, height: 3.20, rotate: -16 },
+  3: { left: 16.65, top: 26.25, width: 15.90, height: 3.20, rotate: -16 },
+  4: { left: 16.95, top: 30.40, width: 15.90, height: 3.20, rotate: -16 },
+  5: { left: 17.25, top: 34.55, width: 15.90, height: 3.20, rotate: -16 },
 
   6: { left: 43.25, top: 14.40, width: 14.11, height: 3.94, rotate: -5 },
   7: { left: 43.31, top: 18.76, width: 14.11, height: 3.94, rotate: -5 },
@@ -1040,8 +1040,8 @@ const PublicLotMap = () => {
                             position: 'absolute',
                             left: `${col * cellWidth}%`,
                             top: `${row * cellHeight}%`,
-                            width: `${cellWidth * 0.92}%`,
-                            height: `${cellHeight * 0.82}%`,
+                            width: `${cellWidth * 0.88}%`,
+                            height: `${cellHeight * 0.92}%`,
                             cursor: 'pointer',
                             borderRadius: '3px',
                             border: `1px solid ${isSelected ? '#60a5fa' : cfg.border}`,

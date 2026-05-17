@@ -99,14 +99,36 @@ const IMAGE_BLOCK_FRAMES = {
   25: { left: 67.40, top: 71.35, width: 15.20, height: 2.95, rotate: -5 },
 };
 
-// Minimal block layouts. Specific rows/cols can be expanded later per block.
 const BLOCK_LAYOUTS = {
-  // sensible defaults used by layout logic; can be overridden
-  1: { rows: 4, cols: 5 }, 2: { rows: 5, cols: 4 }, 3: { rows: 4, cols: 5 }, 4: { rows: 4, cols: 5 }, 5: { rows: 4, cols: 5 },
-  6: { rows: 4, cols: 4 }, 7: { rows: 4, cols: 4 }, 8: { rows: 4, cols: 4 }, 9: { rows: 4, cols: 4 }, 10: { rows: 4, cols: 4 },
-  11: { rows: 4, cols: 4 }, 12: { rows: 4, cols: 4 }, 13: { rows: 4, cols: 4 }, 14: { rows: 4, cols: 4 }, 15: { rows: 4, cols: 4 },
-  16: { rows: 4, cols: 4 }, 17: { rows: 4, cols: 4 }, 18: { rows: 4, cols: 4 }, 19: { rows: 4, cols: 4 }, 20: { rows: 4, cols: 4 },
-  21: { rows: 4, cols: 4 }, 22: { rows: 4, cols: 4 }, 23: { rows: 4, cols: 4 }, 24: { rows: 4, cols: 4 }, 25: { rows: 4, cols: 4 },
+  1: { rows: 2, cols: 10 },
+  2: { rows: 2, cols: 10 },
+  3: { rows: 2, cols: 10 },
+  4: { rows: 2, cols: 10 },
+  5: { rows: 2, cols: 10 },
+
+  6: { rows: 2, cols: 10 },
+  7: { rows: 2, cols: 10 },
+  8: { rows: 2, cols: 10 },
+  9: { rows: 2, cols: 10 },
+  10: { rows: 2, cols: 10 },
+
+  11: { rows: 2, cols: 10 },
+  12: { rows: 2, cols: 10 },
+  13: { rows: 2, cols: 10 },
+  14: { rows: 2, cols: 10 },
+  15: { rows: 2, cols: 10 },
+
+  16: { rows: 2, cols: 10 },
+  17: { rows: 2, cols: 10 },
+  18: { rows: 2, cols: 10 },
+  19: { rows: 2, cols: 10 },
+  20: { rows: 2, cols: 10 },
+
+  21: { rows: 2, cols: 10 },
+  22: { rows: 2, cols: 10 },
+  23: { rows: 2, cols: 10 },
+  24: { rows: 2, cols: 10 },
+  25: { rows: 2, cols: 10 },
 };
 
 
@@ -1010,8 +1032,8 @@ const PublicLotMap = () => {
                     {lotsInBlock.map((lot, index) => {
                       const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
                       const isSelected = selectedLot?.id === lot.id;
-                      const row = Math.floor(index / layout.cols);
-                      const col = index % layout.cols;
+                      const row = index < 10 ? 0 : 1;
+                      const col = index < 10 ? index : index - 10;
 
                       return (
                         <Box

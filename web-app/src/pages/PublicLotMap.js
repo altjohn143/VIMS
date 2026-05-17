@@ -100,40 +100,35 @@ const BLOCK_LAYOUTS = {
 };
 
 const IMAGE_BLOCK_FRAMES = {
-  // PHASE 1
-  1: { left: 7.36, top: 4.15, width: 26.93, height: 7.77 },
-  2: { left: 7.36, top: 12.02, width: 26.93, height: 7.77 },
-  3: { left: 8.28, top: 19.90, width: 26.01, height: 7.77 },
-  4: { left: 7.67, top: 27.77, width: 26.63, height: 7.77 },
-  5: { left: 7.61, top: 35.65, width: 26.69, height: 7.77 },
+  1: { left: 15.64, top: 16.58, width: 17.48, height: 3.94, rotate: -16 },
+  2: { left: 16.13, top: 21.14, width: 17.48, height: 3.94, rotate: -16 },
+  3: { left: 16.56, top: 25.70, width: 17.48, height: 3.94, rotate: -16 },
+  4: { left: 17.06, top: 30.36, width: 17.48, height: 3.94, rotate: -16 },
+  5: { left: 17.55, top: 34.92, width: 17.48, height: 3.94, rotate: -16 },
 
-  // PHASE 2
-  6: { left: 34.36, top: 4.15, width: 28.16, height: 7.77 },
-  7: { left: 34.36, top: 12.02, width: 28.16, height: 7.77 },
-  8: { left: 34.36, top: 19.90, width: 28.16, height: 7.77 },
-  9: { left: 34.36, top: 27.77, width: 28.16, height: 7.77 },
-  10: { left: 34.36, top: 35.65, width: 28.16, height: 7.77 },
+  6: { left: 43.25, top: 14.40, width: 14.11, height: 3.94, rotate: -5 },
+  7: { left: 43.31, top: 18.76, width: 14.11, height: 3.94, rotate: -5 },
+  8: { left: 43.44, top: 23.32, width: 14.11, height: 3.94, rotate: -5 },
+  9: { left: 43.56, top: 27.77, width: 14.11, height: 3.94, rotate: -5 },
+  10: { left: 43.62, top: 32.44, width: 14.11, height: 3.94, rotate: -5 },
 
-  // PHASE 3
-  11: { left: 7.36, top: 43.52, width: 26.93, height: 8.19 },
-  12: { left: 7.36, top: 51.81, width: 26.93, height: 8.19 },
-  13: { left: 7.36, top: 60.10, width: 26.93, height: 8.19 },
-  14: { left: 7.36, top: 68.39, width: 26.93, height: 8.19 },
-  15: { left: 7.36, top: 76.68, width: 26.93, height: 8.19 },
+  11: { left: 22.39, top: 56.68, width: 15.95, height: 3.94, rotate: -5 },
+  12: { left: 22.64, top: 61.24, width: 15.95, height: 3.94, rotate: -5 },
+  13: { left: 22.94, top: 65.70, width: 15.95, height: 3.94, rotate: -5 },
+  14: { left: 23.25, top: 70.26, width: 15.95, height: 3.94, rotate: -5 },
+  15: { left: 23.56, top: 74.82, width: 15.95, height: 3.94, rotate: -5 },
 
-  // PHASE 4
-  16: { left: 34.36, top: 43.52, width: 28.16, height: 8.19 },
-  17: { left: 34.36, top: 51.81, width: 28.16, height: 8.19 },
-  18: { left: 34.36, top: 60.10, width: 28.16, height: 8.19 },
-  19: { left: 34.36, top: 68.39, width: 28.16, height: 8.19 },
-  20: { left: 34.36, top: 76.68, width: 28.16, height: 8.19 },
+  16: { left: 41.96, top: 52.54, width: 15.95, height: 3.94, rotate: -5 },
+  17: { left: 42.33, top: 57.10, width: 15.95, height: 3.94, rotate: -5 },
+  18: { left: 42.58, top: 61.55, width: 15.95, height: 3.94, rotate: -5 },
+  19: { left: 42.88, top: 66.11, width: 15.95, height: 3.94, rotate: -5 },
+  20: { left: 43.19, top: 70.67, width: 15.95, height: 3.94, rotate: -5 },
 
-  // PHASE 5
-  21: { left: 62.58, top: 43.52, width: 36.75, height: 8.19 },
-  22: { left: 62.58, top: 51.81, width: 36.75, height: 8.19 },
-  23: { left: 62.58, top: 60.10, width: 36.75, height: 8.19 },
-  24: { left: 62.58, top: 68.39, width: 36.75, height: 8.19 },
-  25: { left: 62.58, top: 76.68, width: 36.75, height: 8.19 },
+  21: { left: 63.19, top: 44.04, width: 15.95, height: 3.94, rotate: -7 },
+  22: { left: 63.56, top: 48.60, width: 15.95, height: 3.94, rotate: -7 },
+  23: { left: 63.93, top: 53.06, width: 15.95, height: 3.94, rotate: -7 },
+  24: { left: 64.29, top: 57.72, width: 15.95, height: 3.94, rotate: -7 },
+  25: { left: 66.38, top: 70.67, width: 15.95, height: 3.94, rotate: -5 },
 };
 
 const getLotImageHotspots = (lots) => {
@@ -162,12 +157,15 @@ const getLotImageHotspots = (lots) => {
 
       frames.push({
         lot,
+        rotate: frame.rotate || 0,
         style: {
           position: 'absolute',
           left: `${left}%`,
           top: `${top}%`,
           width: `${width}%`,
           height: `${height}%`,
+          transform: `rotate(${frame.rotate || 0}deg)`,
+          transformOrigin: 'top left',
         },
       });
     });
@@ -1029,7 +1027,7 @@ const PublicLotMap = () => {
                 sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
 
-              {imageHotspots.map(({ lot, style }) => {
+              {imageHotspots.map(({ lot, style, rotate }) => {
                 const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
                 const isSelected = selectedLot?.id === lot.id;
                 return (
@@ -1046,7 +1044,7 @@ const PublicLotMap = () => {
                       transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease',
                       boxShadow: isSelected ? `0 0 0 3px ${cfg.color}44` : 'none',
                       '&:hover': {
-                        transform: 'scale(1.03)',
+                        transform: `rotate(${rotate || 0}deg) scale(1.03)`,
                         boxShadow: `0 0 0 3px ${cfg.color}44`,
                         backgroundColor: `${cfg.color}22`,
                       },

@@ -20,7 +20,7 @@ import {
   Pause as PauseIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
-import mapImage from '../assets/lotmap.png';
+import mapImage from '../assets/lotbettermap.png';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
 const OUTSIDE_PHOTOS = [
@@ -63,76 +63,49 @@ const STATUS_CONFIG = {
 };
 
 const IMAGE_BLOCK_FRAMES = {
-  // PHASE 1
-  1: { left: 18.10, top: 20.70, width: 14.60, height: 2.75, rotate: -16 },
-  2: { left: 18.35, top: 24.50, width: 14.60, height: 2.75, rotate: -16 },
-  3: { left: 18.65, top: 28.35, width: 14.60, height: 2.75, rotate: -16 },
-  4: { left: 18.95, top: 32.20, width: 14.60, height: 2.75, rotate: -16 },
-  5: { left: 19.25, top: 36.05, width: 14.60, height: 2.75, rotate: -16 },
+  // PHASE 1 = Blocks 1–5
+  1: { left: 13.30, top: 21.00, width: 23.40, height: 2.65, rotate: -2 },
+  2: { left: 13.55, top: 26.65, width: 23.40, height: 2.65, rotate: -2 },
+  3: { left: 13.80, top: 32.35, width: 23.40, height: 2.65, rotate: -2 },
+  4: { left: 14.05, top: 38.10, width: 23.40, height: 2.65, rotate: -2 },
+  5: { left: 14.30, top: 43.80, width: 23.40, height: 2.65, rotate: -2 },
 
-  // PHASE 2
-  6:  { left: 44.00, top: 17.50, width: 13.30, height: 2.95, rotate: -5 },
-  7:  { left: 44.10, top: 21.85, width: 13.30, height: 2.95, rotate: -5 },
-  8:  { left: 44.20, top: 26.20, width: 13.30, height: 2.95, rotate: -5 },
-  9:  { left: 44.30, top: 30.55, width: 13.30, height: 2.95, rotate: -5 },
-  10: { left: 44.40, top: 34.90, width: 13.30, height: 2.95, rotate: -5 },
+  // PHASE 2 = Blocks 6–10
+  6:  { left: 39.15, top: 20.70, width: 20.70, height: 2.65, rotate: -1 },
+  7:  { left: 39.35, top: 26.30, width: 20.70, height: 2.65, rotate: -1 },
+  8:  { left: 39.55, top: 31.95, width: 20.70, height: 2.65, rotate: -1 },
+  9:  { left: 39.75, top: 37.55, width: 20.70, height: 2.65, rotate: -1 },
+  10: { left: 39.95, top: 43.10, width: 20.70, height: 2.65, rotate: -1 },
 
-  // PHASE 3
-  11: { left: 21.20, top: 59.65, width: 16.00, height: 2.95, rotate: -5 },
-  12: { left: 21.45, top: 63.95, width: 16.00, height: 2.95, rotate: -5 },
-  13: { left: 21.70, top: 68.20, width: 16.00, height: 2.95, rotate: -5 },
-  14: { left: 21.95, top: 72.45, width: 16.00, height: 2.95, rotate: -5 },
-  15: { left: 22.20, top: 76.70, width: 16.00, height: 2.95, rotate: -5 },
+  // PHASE 3 = Blocks 11–15
+  11: { left: 61.85, top: 15.80, width: 18.25, height: 2.65, rotate: 0 },
+  12: { left: 61.95, top: 21.35, width: 18.25, height: 2.65, rotate: 0 },
+  13: { left: 62.05, top: 26.95, width: 18.25, height: 2.65, rotate: 0 },
+  14: { left: 62.15, top: 32.55, width: 18.25, height: 2.65, rotate: 0 },
+  15: { left: 62.25, top: 38.15, width: 18.25, height: 2.65, rotate: 0 },
 
-  // PHASE 4
-  16: { left: 42.25, top: 54.95, width: 16.00, height: 2.95, rotate: -5 },
-  17: { left: 42.50, top: 59.20, width: 16.00, height: 2.95, rotate: -5 },
-  18: { left: 42.75, top: 63.45, width: 16.00, height: 2.95, rotate: -5 },
-  19: { left: 43.00, top: 67.70, width: 16.00, height: 2.95, rotate: -5 },
-  20: { left: 43.25, top: 71.95, width: 16.00, height: 2.95, rotate: -5 },
+  // PHASE 4 = Blocks 16–20
+  16: { left: 16.75, top: 61.60, width: 29.10, height: 2.75, rotate: 0 },
+  17: { left: 16.75, top: 66.95, width: 29.10, height: 2.75, rotate: 0 },
+  18: { left: 16.75, top: 72.25, width: 29.10, height: 2.75, rotate: 0 },
+  19: { left: 16.75, top: 77.55, width: 29.10, height: 2.75, rotate: 0 },
+  20: { left: 16.75, top: 82.85, width: 29.10, height: 2.75, rotate: 0 },
 
-  // PHASE 5
-  21: { left: 65.15, top: 45.65, width: 16.00, height: 2.95, rotate: -7 },
-  22: { left: 65.40, top: 49.95, width: 16.00, height: 2.95, rotate: -7 },
-  23: { left: 65.65, top: 54.25, width: 16.00, height: 2.95, rotate: -7 },
-  24: { left: 65.90, top: 58.55, width: 16.00, height: 2.95, rotate: -7 },
-  25: { left: 67.40, top: 71.35, width: 15.20, height: 2.95, rotate: -5 },
+  // PHASE 5 = Blocks 21–25
+  21: { left: 52.65, top: 58.70, width: 26.55, height: 2.75, rotate: 0 },
+  22: { left: 52.65, top: 64.05, width: 26.55, height: 2.75, rotate: 0 },
+  23: { left: 52.65, top: 69.45, width: 26.55, height: 2.75, rotate: 0 },
+  24: { left: 52.65, top: 74.80, width: 26.55, height: 2.75, rotate: 0 },
+  25: { left: 52.65, top: 80.15, width: 26.55, height: 2.75, rotate: 0 },
 };
 
 // Toggle visual debug overlays for block frames and labels
-const SHOW_BLOCK_DEBUG = true;
+const SHOW_BLOCK_DEBUG = false;
 
-const BLOCK_LAYOUTS = {
-  1: { rows: 2, cols: 10 },
-  2: { rows: 2, cols: 10 },
-  3: { rows: 2, cols: 10 },
-  4: { rows: 2, cols: 10 },
-  5: { rows: 2, cols: 10 },
+const BLOCK_LAYOUTS = Object.fromEntries(
+  Array.from({ length: 25 }, (_, i) => [i + 1, { rows: 1, cols: 20 }])
+);
 
-  6: { rows: 2, cols: 10 },
-  7: { rows: 2, cols: 10 },
-  8: { rows: 2, cols: 10 },
-  9: { rows: 2, cols: 10 },
-  10: { rows: 2, cols: 10 },
-
-  11: { rows: 2, cols: 10 },
-  12: { rows: 2, cols: 10 },
-  13: { rows: 2, cols: 10 },
-  14: { rows: 2, cols: 10 },
-  15: { rows: 2, cols: 10 },
-
-  16: { rows: 2, cols: 10 },
-  17: { rows: 2, cols: 10 },
-  18: { rows: 2, cols: 10 },
-  19: { rows: 2, cols: 10 },
-  20: { rows: 2, cols: 10 },
-
-  21: { rows: 2, cols: 10 },
-  22: { rows: 2, cols: 10 },
-  23: { rows: 2, cols: 10 },
-  24: { rows: 2, cols: 10 },
-  25: { rows: 2, cols: 10 },
-};
 
 
 
@@ -1058,9 +1031,8 @@ const PublicLotMap = () => {
                     )}
                     {lotsInBlock.map((lot, index) => {
                       const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
-                      const isSelected = selectedLot?.id === lot.id;
-                      const row = index < 10 ? 0 : 1;
-                      const col = index < 10 ? index : index - 10;
+                      const row = 0;
+                      const col = index;
 
                       return (
                         <Box
@@ -1075,15 +1047,15 @@ const PublicLotMap = () => {
                             height: `${cellHeight * 0.82}%`,
                             cursor: 'pointer',
                             borderRadius: '3px',
-                            border: `1px solid ${isSelected ? '#60a5fa' : cfg.border}`,
-                            backgroundColor: isSelected ? `${cfg.color}33` : `${cfg.bg}cc`,
+                            border: '1px solid transparent',
+                            backgroundColor: 'transparent',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             transition: '0.15s ease',
                             '&:hover': {
-                              boxShadow: `0 0 0 2px ${cfg.color}66`,
-                              backgroundColor: `${cfg.color}33`,
+                              boxShadow: `0 0 0 2px ${cfg.color}44`,
+                              backgroundColor: `${cfg.color}11`,
                             },
                           }}
                         >

@@ -71,11 +71,11 @@ const BLOCK_LAYOUTS = {
 };
 
 const IMAGE_BLOCK_FRAMES = {
-  1: { left: 4, top: 8, width: 22, height: 28 },
-  2: { left: 28, top: 6, width: 20, height: 34 },
-  3: { left: 52, top: 6, width: 20, height: 34 },
-  4: { left: 76, top: 8, width: 20, height: 28 },
-  5: { left: 36, top: 50, width: 28, height: 26 },
+  1: { left: 5.92, top: 9.99, width: 15.98, height: 24.00 },
+  2: { left: 26.00, top: 7.84, width: 15.90, height: 28.03 },
+  3: { left: 49.91, top: 7.84, width: 17.99, height: 28.03 },
+  4: { left: 73.93, top: 9.99, width: 14.05, height: 20.00 },
+  5: { left: 11.95, top: 44.89, width: 19.96, height: 15.10 },
 };
 
 const getLotImageHotspots = (lots) => {
@@ -97,10 +97,10 @@ const getLotImageHotspots = (lots) => {
     blockLotList.forEach((lot, index) => {
       const row = Math.floor(index / layout.cols);
       const col = index % layout.cols;
-      const left = frame.left + col * cellWidth + 0.5;
-      const top = frame.top + row * cellHeight + 0.5;
+      const left = frame.left + col * cellWidth + cellWidth * 0.04;
+      const top = frame.top + row * cellHeight + cellHeight * 0.04;
       const width = Math.max(3.4, cellWidth * 0.92);
-      const height = Math.max(4.0, cellHeight * 0.88);
+      const height = Math.max(3.8, cellHeight * 0.92);
 
       frames.push({
         lot,
@@ -960,14 +960,14 @@ const PublicLotMap = () => {
             <Box sx={{
               position: 'relative',
               width: '100%',
-              height: '100%',
+              aspectRatio: '1630 / 965',
               overflow: 'hidden',
               transform: `scale(${0.78 + (mapZoom - 14) * 0.12})`,
               transformOrigin: 'top center',
             }}>
               <Box component="img"
                 src={mapImage}
-                alt="Casimiro Westville Homes lot map"
+                alt="Casimiro Westville Homes map"
                 sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
 
@@ -983,13 +983,14 @@ const PublicLotMap = () => {
                       ...style,
                       cursor: 'pointer',
                       borderRadius: 1,
-                      border: `1.5px solid ${isSelected ? '#60a5fa' : cfg.border}`,
-                      backgroundColor: isSelected ? `${cfg.color}33` : `${cfg.bg}cc`,
+                      border: `1.2px solid ${isSelected ? '#60a5fa' : cfg.border}`,
+                      backgroundColor: isSelected ? `${cfg.color}22` : 'transparent',
                       transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
                       boxShadow: isSelected ? '0 0 0 3px rgba(96,165,250,0.18)' : 'none',
                       '&:hover': {
                         transform: 'scale(1.03)',
-                        boxShadow: `0 0 0 4px ${cfg.color}22`,
+                        boxShadow: `0 0 0 3px ${cfg.color}22`,
+                        backgroundColor: `${cfg.color}11`,
                       },
                       display: 'flex',
                       alignItems: 'center',

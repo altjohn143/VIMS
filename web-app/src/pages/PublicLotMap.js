@@ -64,17 +64,11 @@ const STATUS_CONFIG = {
 
 const IMAGE_BLOCK_FRAMES = {
 // PHASE 1
-1: { left: 14.00, top: 19.40, width: 22.00, height: 2.45, rotate: -2.50 },
-
-// slightly more tilt left
-2: { left: 14.20, top: 26.25, width: 22.00, height: 2.45, rotate: -3.40 },
-
-// slightly tilt left
-3: { left: 14.40, top: 32.20, width: 22.00, height: 2.45, rotate: -3.15 },
-
-4: { left: 14.40, top: 37.60, width: 22.00, height: 2.45, rotate: -3.40 },
-
-5: { left: 14.50, top: 43.90, width: 22.00, height: 2.45, rotate: -3.10 },
+1: { left: 18.02, top: 39.19, width: 21.18, height: 2.48, rotate: 0 },
+2: { left: 18.31, top: 43.49, width: 21.18, height: 2.48, rotate: 0 },
+3: { left: 18.31, top: 48.03, width: 21.18, height: 2.48, rotate: 0 },
+4: { left: 18.50, top: 52.27, width: 21.18, height: 2.48, rotate: 0 },
+5: { left: 18.57, top: 57.10, width: 21.18, height: 2.48, rotate: 0 },
 
 // PHASE 2
 // Block 1 more left + more tilt left

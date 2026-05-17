@@ -63,40 +63,40 @@ const STATUS_CONFIG = {
 };
 
 const IMAGE_BLOCK_FRAMES = {
-  // PHASE 1 = Blocks 1–5
-  1: { left: 13.30, top: 21.00, width: 23.40, height: 2.65, rotate: -2 },
-  2: { left: 13.55, top: 26.65, width: 23.40, height: 2.65, rotate: -2 },
-  3: { left: 13.80, top: 32.35, width: 23.40, height: 2.65, rotate: -2 },
-  4: { left: 14.05, top: 38.10, width: 23.40, height: 2.65, rotate: -2 },
-  5: { left: 14.30, top: 43.80, width: 23.40, height: 2.65, rotate: -2 },
+  // PHASE 1
+  1: { left: 2.70, top: 11.30, width: 28.40, height: 3.10, rotate: -2 },
+  2: { left: 2.95, top: 18.60, width: 28.40, height: 3.10, rotate: -2 },
+  3: { left: 3.20, top: 26.05, width: 28.40, height: 3.10, rotate: -2 },
+  4: { left: 3.45, top: 33.50, width: 28.40, height: 3.10, rotate: -2 },
+  5: { left: 3.70, top: 41.00, width: 28.40, height: 3.10, rotate: -2 },
 
-  // PHASE 2 = Blocks 6–10
-  6:  { left: 39.15, top: 20.70, width: 20.70, height: 2.65, rotate: -1 },
-  7:  { left: 39.35, top: 26.30, width: 20.70, height: 2.65, rotate: -1 },
-  8:  { left: 39.55, top: 31.95, width: 20.70, height: 2.65, rotate: -1 },
-  9:  { left: 39.75, top: 37.55, width: 20.70, height: 2.65, rotate: -1 },
-  10: { left: 39.95, top: 43.10, width: 20.70, height: 2.65, rotate: -1 },
+  // PHASE 2
+  6:  { left: 34.50, top: 11.60, width: 27.60, height: 3.10, rotate: -1 },
+  7:  { left: 34.70, top: 19.00, width: 27.60, height: 3.10, rotate: -1 },
+  8:  { left: 34.90, top: 26.40, width: 27.60, height: 3.10, rotate: -1 },
+  9:  { left: 35.10, top: 33.85, width: 27.60, height: 3.10, rotate: -1 },
+  10: { left: 35.30, top: 41.30, width: 27.60, height: 3.10, rotate: -1 },
 
-  // PHASE 3 = Blocks 11–15
-  11: { left: 61.85, top: 15.80, width: 18.25, height: 2.65, rotate: 0 },
-  12: { left: 61.95, top: 21.35, width: 18.25, height: 2.65, rotate: 0 },
-  13: { left: 62.05, top: 26.95, width: 18.25, height: 2.65, rotate: 0 },
-  14: { left: 62.15, top: 32.55, width: 18.25, height: 2.65, rotate: 0 },
-  15: { left: 62.25, top: 38.15, width: 18.25, height: 2.65, rotate: 0 },
+  // PHASE 3
+  11: { left: 62.70, top: 5.70, width: 24.90, height: 3.10, rotate: 0 },
+  12: { left: 62.80, top: 13.10, width: 24.90, height: 3.10, rotate: 0 },
+  13: { left: 62.90, top: 20.55, width: 24.90, height: 3.10, rotate: 0 },
+  14: { left: 63.00, top: 28.00, width: 24.90, height: 3.10, rotate: 0 },
+  15: { left: 63.10, top: 35.45, width: 24.90, height: 3.10, rotate: 0 },
 
-  // PHASE 4 = Blocks 16–20
-  16: { left: 16.75, top: 61.60, width: 29.10, height: 2.75, rotate: 0 },
-  17: { left: 16.75, top: 66.95, width: 29.10, height: 2.75, rotate: 0 },
-  18: { left: 16.75, top: 72.25, width: 29.10, height: 2.75, rotate: 0 },
-  19: { left: 16.75, top: 77.55, width: 29.10, height: 2.75, rotate: 0 },
-  20: { left: 16.75, top: 82.85, width: 29.10, height: 2.75, rotate: 0 },
+  // PHASE 4
+  16: { left: 7.00, top: 57.80, width: 36.90, height: 3.20, rotate: 0 },
+  17: { left: 7.00, top: 64.55, width: 36.90, height: 3.20, rotate: 0 },
+  18: { left: 7.00, top: 71.25, width: 36.90, height: 3.20, rotate: 0 },
+  19: { left: 7.00, top: 77.95, width: 36.90, height: 3.20, rotate: 0 },
+  20: { left: 7.00, top: 84.65, width: 36.90, height: 3.20, rotate: 0 },
 
-  // PHASE 5 = Blocks 21–25
-  21: { left: 52.65, top: 58.70, width: 26.55, height: 2.75, rotate: 0 },
-  22: { left: 52.65, top: 64.05, width: 26.55, height: 2.75, rotate: 0 },
-  23: { left: 52.65, top: 69.45, width: 26.55, height: 2.75, rotate: 0 },
-  24: { left: 52.65, top: 74.80, width: 26.55, height: 2.75, rotate: 0 },
-  25: { left: 52.65, top: 80.15, width: 26.55, height: 2.75, rotate: 0 },
+  // PHASE 5
+  21: { left: 51.20, top: 54.70, width: 34.30, height: 3.20, rotate: 0 },
+  22: { left: 51.20, top: 61.55, width: 34.30, height: 3.20, rotate: 0 },
+  23: { left: 51.20, top: 68.40, width: 34.30, height: 3.20, rotate: 0 },
+  24: { left: 51.20, top: 75.25, width: 34.30, height: 3.20, rotate: 0 },
+  25: { left: 51.20, top: 82.10, width: 34.30, height: 3.20, rotate: 0 },
 };
 
 // Toggle visual debug overlays for block frames and labels
@@ -1060,11 +1060,7 @@ const PublicLotMap = () => {
                               backgroundColor: `${cfg.color}11`,
                             },
                           }}
-                        >
-                          <Typography sx={{ fontSize: '0.5rem', fontWeight: 800, color: cfg.color }}>
-                            {lot.lotNumber}
-                          </Typography>
-                        </Box>
+                        />
                       );
                     })}
                   </Box>

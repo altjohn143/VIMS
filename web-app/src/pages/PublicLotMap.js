@@ -63,12 +63,20 @@ const STATUS_CONFIG = {
 };
 
 const IMAGE_BLOCK_FRAMES = {
-  // PHASE 1
-  1: { left: 14.00, top: 19.40, width: 22.00, height: 2.45, rotate: -2.30 },
-  2: { left: 15.20, top: 26.85, width: 22.00, height: 2.45, rotate: -2.70 },
-  3: { left: 16.40, top: 32.20, width: 22.00, height: 2.45, rotate: -2.90 },
-  4: { left: 17.60, top: 39.55, width: 22.00, height: 2.45, rotate: -3 },
-  5: { left: 18.80, top: 42.90, width: 22.00, height: 2.45, rotate: -3.50 },
+ // PHASE 1
+1: { left: 14.00, top: 19.40, width: 22.00, height: 2.45, rotate: -2.30 },
+
+// slightly top + slightly left
+2: { left: 14.90, top: 26.55, width: 22.00, height: 2.45, rotate: -2.70 },
+
+// more left
+3: { left: 15.80, top: 32.20, width: 22.00, height: 2.45, rotate: -2.90 },
+
+// more top + more left
+4: { left: 16.70, top: 37.00, width: 22.00, height: 2.45, rotate: -3 },
+
+// more left
+5: { left: 17.70, top: 42.90, width: 22.00, height: 2.45, rotate: -3.50 },
 
   // PHASE 2
   6:  { left: 43.10, top: 19.40, width: 23.70, height: 2.45, rotate: -1 },

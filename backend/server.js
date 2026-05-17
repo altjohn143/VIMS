@@ -164,7 +164,8 @@ async function initializeLots() {
       
       // 5 Phases × 5 Blocks × 20 Lots = 500 total lots
       for (let phase = 1; phase <= 5; phase++) {
-        for (let block = 1; block <= 5; block++) {
+        for (let blockNum = 1; blockNum <= 5; blockNum++) {
+          const block = (phase - 1) * 5 + blockNum; // Maps to blocks 1-25
           for (let lotNum = 1; lotNum <= 20; lotNum++) {
             const s = seed(phase, block, lotNum);
             const lotId = `P${phase}-B${block}-L${lotNum}`;

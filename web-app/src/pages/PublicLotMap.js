@@ -63,19 +63,77 @@ const STATUS_CONFIG = {
 };
 
 const BLOCK_LAYOUTS = {
-  1: { topLeft: [14.4417265, 120.970273], rows: 4, cols: 5, latStep: 0.000225, lngStep: 0.00028 },
-  2: { topLeft: [14.443178, 120.967328], rows: 5, cols: 4, latStep: 0.00020, lngStep: 0.00030 },
-  3: { topLeft: [14.440798, 120.968067], rows: 4, cols: 5, latStep: 0.000240, lngStep: 0.00023 },
-  4: { topLeft: [14.443420, 120.967020], rows: 4, cols: 5, latStep: 0.000210, lngStep: 0.00026 },
-  5: { topLeft: [14.442320, 120.966550], rows: 5, cols: 4, latStep: 0.000210, lngStep: 0.00029 },
+  // PHASE 1
+  1: { rows: 2, cols: 10 },
+  2: { rows: 2, cols: 10 },
+  3: { rows: 2, cols: 10 },
+  4: { rows: 2, cols: 10 },
+  5: { rows: 2, cols: 10 },
+
+  // PHASE 2
+  6: { rows: 2, cols: 10 },
+  7: { rows: 2, cols: 10 },
+  8: { rows: 2, cols: 10 },
+  9: { rows: 2, cols: 10 },
+  10: { rows: 2, cols: 10 },
+
+  // PHASE 3
+  11: { rows: 2, cols: 10 },
+  12: { rows: 2, cols: 10 },
+  13: { rows: 2, cols: 10 },
+  14: { rows: 2, cols: 10 },
+  15: { rows: 2, cols: 10 },
+
+  // PHASE 4
+  16: { rows: 2, cols: 10 },
+  17: { rows: 2, cols: 10 },
+  18: { rows: 2, cols: 10 },
+  19: { rows: 2, cols: 10 },
+  20: { rows: 2, cols: 10 },
+
+  // PHASE 5
+  21: { rows: 2, cols: 10 },
+  22: { rows: 2, cols: 10 },
+  23: { rows: 2, cols: 10 },
+  24: { rows: 2, cols: 10 },
+  25: { rows: 2, cols: 10 },
 };
 
 const IMAGE_BLOCK_FRAMES = {
-  1: { left: 5.92, top: 9.99, width: 15.98, height: 24.00 },
-  2: { left: 26.00, top: 7.84, width: 15.90, height: 28.03 },
-  3: { left: 49.91, top: 7.84, width: 17.99, height: 28.03 },
-  4: { left: 73.93, top: 9.99, width: 14.05, height: 20.00 },
-  5: { left: 11.95, top: 44.89, width: 19.96, height: 15.10 },
+  // PHASE 1
+  1: { left: 15.5, top: 10.8, width: 11.8, height: 3.6 },
+  2: { left: 15.2, top: 14.7, width: 12.2, height: 3.8 },
+  3: { left: 15.0, top: 18.8, width: 12.3, height: 3.8 },
+  4: { left: 15.0, top: 22.9, width: 12.3, height: 3.8 },
+  5: { left: 15.0, top: 27.0, width: 12.3, height: 3.8 },
+
+  // PHASE 2
+  6: { left: 43.0, top: 10.2, width: 12.5, height: 3.8 },
+  7: { left: 43.0, top: 14.5, width: 12.5, height: 3.8 },
+  8: { left: 43.0, top: 18.8, width: 12.5, height: 3.8 },
+  9: { left: 43.0, top: 23.1, width: 12.5, height: 3.8 },
+  10: { left: 43.0, top: 27.3, width: 12.5, height: 3.8 },
+
+  // PHASE 3
+  11: { left: 16.2, top: 49.8, width: 12.0, height: 3.9 },
+  12: { left: 16.2, top: 54.0, width: 12.0, height: 3.9 },
+  13: { left: 16.2, top: 58.3, width: 12.0, height: 3.9 },
+  14: { left: 16.2, top: 62.5, width: 12.0, height: 3.9 },
+  15: { left: 16.2, top: 66.8, width: 12.0, height: 3.9 },
+
+  // PHASE 4
+  16: { left: 39.5, top: 47.2, width: 12.7, height: 3.9 },
+  17: { left: 39.5, top: 51.5, width: 12.7, height: 3.9 },
+  18: { left: 39.5, top: 55.8, width: 12.7, height: 3.9 },
+  19: { left: 39.5, top: 60.0, width: 12.7, height: 3.9 },
+  20: { left: 39.5, top: 64.3, width: 12.7, height: 3.9 },
+
+  // PHASE 5
+  21: { left: 67.0, top: 46.0, width: 12.5, height: 3.9 },
+  22: { left: 67.0, top: 50.3, width: 12.5, height: 3.9 },
+  23: { left: 67.0, top: 54.6, width: 12.5, height: 3.9 },
+  24: { left: 67.0, top: 58.9, width: 12.5, height: 3.9 },
+  25: { left: 67.0, top: 69.0, width: 12.5, height: 3.9 },
 };
 
 const getLotImageHotspots = (lots) => {

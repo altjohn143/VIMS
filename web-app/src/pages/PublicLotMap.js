@@ -62,74 +62,54 @@ const STATUS_CONFIG = {
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
 };
 
-const BLOCK_LAYOUTS = {
+const IMAGE_BLOCK_FRAMES = {
   // PHASE 1
-  1: { rows: 2, cols: 10 },
-  2: { rows: 2, cols: 10 },
-  3: { rows: 2, cols: 10 },
-  4: { rows: 2, cols: 10 },
-  5: { rows: 2, cols: 10 },
+  1: { left: 18.10, top: 20.70, width: 14.60, height: 2.75, rotate: -16 },
+  2: { left: 18.35, top: 24.50, width: 14.60, height: 2.75, rotate: -16 },
+  3: { left: 18.65, top: 28.35, width: 14.60, height: 2.75, rotate: -16 },
+  4: { left: 18.95, top: 32.20, width: 14.60, height: 2.75, rotate: -16 },
+  5: { left: 19.25, top: 36.05, width: 14.60, height: 2.75, rotate: -16 },
 
   // PHASE 2
-  6: { rows: 2, cols: 10 },
-  7: { rows: 2, cols: 10 },
-  8: { rows: 2, cols: 10 },
-  9: { rows: 2, cols: 10 },
-  10: { rows: 2, cols: 10 },
+  6:  { left: 44.00, top: 17.50, width: 13.30, height: 2.95, rotate: -5 },
+  7:  { left: 44.10, top: 21.85, width: 13.30, height: 2.95, rotate: -5 },
+  8:  { left: 44.20, top: 26.20, width: 13.30, height: 2.95, rotate: -5 },
+  9:  { left: 44.30, top: 30.55, width: 13.30, height: 2.95, rotate: -5 },
+  10: { left: 44.40, top: 34.90, width: 13.30, height: 2.95, rotate: -5 },
 
   // PHASE 3
-  11: { rows: 2, cols: 10 },
-  12: { rows: 2, cols: 10 },
-  13: { rows: 2, cols: 10 },
-  14: { rows: 2, cols: 10 },
-  15: { rows: 2, cols: 10 },
+  11: { left: 21.20, top: 59.65, width: 16.00, height: 2.95, rotate: -5 },
+  12: { left: 21.45, top: 63.95, width: 16.00, height: 2.95, rotate: -5 },
+  13: { left: 21.70, top: 68.20, width: 16.00, height: 2.95, rotate: -5 },
+  14: { left: 21.95, top: 72.45, width: 16.00, height: 2.95, rotate: -5 },
+  15: { left: 22.20, top: 76.70, width: 16.00, height: 2.95, rotate: -5 },
 
   // PHASE 4
-  16: { rows: 2, cols: 10 },
-  17: { rows: 2, cols: 10 },
-  18: { rows: 2, cols: 10 },
-  19: { rows: 2, cols: 10 },
-  20: { rows: 2, cols: 10 },
+  16: { left: 42.25, top: 54.95, width: 16.00, height: 2.95, rotate: -5 },
+  17: { left: 42.50, top: 59.20, width: 16.00, height: 2.95, rotate: -5 },
+  18: { left: 42.75, top: 63.45, width: 16.00, height: 2.95, rotate: -5 },
+  19: { left: 43.00, top: 67.70, width: 16.00, height: 2.95, rotate: -5 },
+  20: { left: 43.25, top: 71.95, width: 16.00, height: 2.95, rotate: -5 },
 
   // PHASE 5
-  21: { rows: 2, cols: 10 },
-  22: { rows: 2, cols: 10 },
-  23: { rows: 2, cols: 10 },
-  24: { rows: 2, cols: 10 },
-  25: { rows: 2, cols: 10 },
+  21: { left: 65.15, top: 45.65, width: 16.00, height: 2.95, rotate: -7 },
+  22: { left: 65.40, top: 49.95, width: 16.00, height: 2.95, rotate: -7 },
+  23: { left: 65.65, top: 54.25, width: 16.00, height: 2.95, rotate: -7 },
+  24: { left: 65.90, top: 58.55, width: 16.00, height: 2.95, rotate: -7 },
+  25: { left: 67.40, top: 71.35, width: 15.20, height: 2.95, rotate: -5 },
 };
 
-const IMAGE_BLOCK_FRAMES = {
-  1: { left: 16.10, top: 17.90, width: 15.90, height: 3.20, rotate: -16 },
-  2: { left: 16.35, top: 22.10, width: 15.90, height: 3.20, rotate: -16 },
-  3: { left: 16.65, top: 26.25, width: 15.90, height: 3.20, rotate: -16 },
-  4: { left: 16.95, top: 30.40, width: 15.90, height: 3.20, rotate: -16 },
-  5: { left: 17.25, top: 34.55, width: 15.90, height: 3.20, rotate: -16 },
-
-  6: { left: 43.25, top: 14.40, width: 14.11, height: 3.94, rotate: -5 },
-  7: { left: 43.31, top: 18.76, width: 14.11, height: 3.94, rotate: -5 },
-  8: { left: 43.44, top: 23.32, width: 14.11, height: 3.94, rotate: -5 },
-  9: { left: 43.56, top: 27.77, width: 14.11, height: 3.94, rotate: -5 },
-  10: { left: 43.62, top: 32.44, width: 14.11, height: 3.94, rotate: -5 },
-
-  11: { left: 22.39, top: 56.68, width: 15.95, height: 3.94, rotate: -5 },
-  12: { left: 22.64, top: 61.24, width: 15.95, height: 3.94, rotate: -5 },
-  13: { left: 22.94, top: 65.70, width: 15.95, height: 3.94, rotate: -5 },
-  14: { left: 23.25, top: 70.26, width: 15.95, height: 3.94, rotate: -5 },
-  15: { left: 23.56, top: 74.82, width: 15.95, height: 3.94, rotate: -5 },
-
-  16: { left: 41.96, top: 52.54, width: 15.95, height: 3.94, rotate: -5 },
-  17: { left: 42.33, top: 57.10, width: 15.95, height: 3.94, rotate: -5 },
-  18: { left: 42.58, top: 61.55, width: 15.95, height: 3.94, rotate: -5 },
-  19: { left: 42.88, top: 66.11, width: 15.95, height: 3.94, rotate: -5 },
-  20: { left: 43.19, top: 70.67, width: 15.95, height: 3.94, rotate: -5 },
-
-  21: { left: 63.19, top: 44.04, width: 15.95, height: 3.94, rotate: -7 },
-  22: { left: 63.56, top: 48.60, width: 15.95, height: 3.94, rotate: -7 },
-  23: { left: 63.93, top: 53.06, width: 15.95, height: 3.94, rotate: -7 },
-  24: { left: 64.29, top: 57.72, width: 15.95, height: 3.94, rotate: -7 },
-  25: { left: 66.38, top: 70.67, width: 15.95, height: 3.94, rotate: -5 },
+// Minimal block layouts. Specific rows/cols can be expanded later per block.
+const BLOCK_LAYOUTS = {
+  // sensible defaults used by layout logic; can be overridden
+  1: { rows: 4, cols: 5 }, 2: { rows: 5, cols: 4 }, 3: { rows: 4, cols: 5 }, 4: { rows: 4, cols: 5 }, 5: { rows: 4, cols: 5 },
+  6: { rows: 4, cols: 4 }, 7: { rows: 4, cols: 4 }, 8: { rows: 4, cols: 4 }, 9: { rows: 4, cols: 4 }, 10: { rows: 4, cols: 4 },
+  11: { rows: 4, cols: 4 }, 12: { rows: 4, cols: 4 }, 13: { rows: 4, cols: 4 }, 14: { rows: 4, cols: 4 }, 15: { rows: 4, cols: 4 },
+  16: { rows: 4, cols: 4 }, 17: { rows: 4, cols: 4 }, 18: { rows: 4, cols: 4 }, 19: { rows: 4, cols: 4 }, 20: { rows: 4, cols: 4 },
+  21: { rows: 4, cols: 4 }, 22: { rows: 4, cols: 4 }, 23: { rows: 4, cols: 4 }, 24: { rows: 4, cols: 4 }, 25: { rows: 4, cols: 4 },
 };
+
+
 
 const getLotImageHotspots = (lots) => {
   const blocks = {};
@@ -1005,9 +985,11 @@ const PublicLotMap = () => {
 
               {Object.entries(imageHotspots).map(([blockNo, lotsInBlock]) => {
                 const frame = IMAGE_BLOCK_FRAMES[Number(blockNo)];
-                const layout = BLOCK_LAYOUTS[Number(blockNo)];
+                const layout = (typeof BLOCK_LAYOUTS !== 'undefined' && BLOCK_LAYOUTS[Number(blockNo)])
+                  ? BLOCK_LAYOUTS[Number(blockNo)]
+                  : { rows: 4, cols: 5 };
 
-                if (!frame || !layout) return null;
+                if (!frame) return null;
 
                 const cellWidth = 100 / layout.cols;
                 const cellHeight = 100 / layout.rows;
@@ -1040,8 +1022,8 @@ const PublicLotMap = () => {
                             position: 'absolute',
                             left: `${col * cellWidth}%`,
                             top: `${row * cellHeight}%`,
-                            width: `${cellWidth * 0.88}%`,
-                            height: `${cellHeight * 0.92}%`,
+                            width: `${cellWidth * 0.82}%`,
+                            height: `${cellHeight * 0.82}%`,
                             cursor: 'pointer',
                             borderRadius: '3px',
                             border: `1px solid ${isSelected ? '#60a5fa' : cfg.border}`,

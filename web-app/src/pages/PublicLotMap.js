@@ -64,39 +64,39 @@ const STATUS_CONFIG = {
 
 const IMAGE_BLOCK_FRAMES = {
   // PHASE 1
-  1: { left: 2.70, top: 11.30, width: 28.40, height: 3.10, rotate: -2 },
-  2: { left: 2.95, top: 18.60, width: 28.40, height: 3.10, rotate: -2 },
-  3: { left: 3.20, top: 26.05, width: 28.40, height: 3.10, rotate: -2 },
-  4: { left: 3.45, top: 33.50, width: 28.40, height: 3.10, rotate: -2 },
-  5: { left: 3.70, top: 41.00, width: 28.40, height: 3.10, rotate: -2 },
+  1: { left: 10.10, top: 16.70, width: 18.90, height: 2.95, rotate: -2 },
+  2: { left: 10.30, top: 24.10, width: 18.90, height: 2.95, rotate: -2 },
+  3: { left: 10.50, top: 31.45, width: 18.90, height: 2.95, rotate: -2 },
+  4: { left: 10.75, top: 38.80, width: 18.90, height: 2.95, rotate: -2 },
+  5: { left: 11.00, top: 46.15, width: 18.90, height: 2.95, rotate: -2 },
 
   // PHASE 2
-  6:  { left: 34.50, top: 11.60, width: 27.60, height: 3.10, rotate: -1 },
-  7:  { left: 34.70, top: 19.00, width: 27.60, height: 3.10, rotate: -1 },
-  8:  { left: 34.90, top: 26.40, width: 27.60, height: 3.10, rotate: -1 },
-  9:  { left: 35.10, top: 33.85, width: 27.60, height: 3.10, rotate: -1 },
-  10: { left: 35.30, top: 41.30, width: 27.60, height: 3.10, rotate: -1 },
+  6:  { left: 38.50, top: 16.80, width: 23.20, height: 2.95, rotate: -1 },
+  7:  { left: 38.70, top: 24.10, width: 23.20, height: 2.95, rotate: -1 },
+  8:  { left: 38.90, top: 31.40, width: 23.20, height: 2.95, rotate: -1 },
+  9:  { left: 39.10, top: 38.70, width: 23.20, height: 2.95, rotate: -1 },
+  10: { left: 39.30, top: 46.00, width: 23.20, height: 2.95, rotate: -1 },
 
   // PHASE 3
-  11: { left: 62.70, top: 5.70, width: 24.90, height: 3.10, rotate: 0 },
-  12: { left: 62.80, top: 13.10, width: 24.90, height: 3.10, rotate: 0 },
-  13: { left: 62.90, top: 20.55, width: 24.90, height: 3.10, rotate: 0 },
-  14: { left: 63.00, top: 28.00, width: 24.90, height: 3.10, rotate: 0 },
-  15: { left: 63.10, top: 35.45, width: 24.90, height: 3.10, rotate: 0 },
+  11: { left: 65.80, top: 6.10, width: 21.20, height: 2.95, rotate: 0 },
+  12: { left: 65.80, top: 13.55, width: 21.20, height: 2.95, rotate: 0 },
+  13: { left: 65.80, top: 20.95, width: 21.20, height: 2.95, rotate: 0 },
+  14: { left: 65.80, top: 28.40, width: 21.20, height: 2.95, rotate: 0 },
+  15: { left: 65.80, top: 35.80, width: 21.20, height: 2.95, rotate: 0 },
 
   // PHASE 4
-  16: { left: 7.00, top: 57.80, width: 36.90, height: 3.20, rotate: 0 },
-  17: { left: 7.00, top: 64.55, width: 36.90, height: 3.20, rotate: 0 },
-  18: { left: 7.00, top: 71.25, width: 36.90, height: 3.20, rotate: 0 },
-  19: { left: 7.00, top: 77.95, width: 36.90, height: 3.20, rotate: 0 },
-  20: { left: 7.00, top: 84.65, width: 36.90, height: 3.20, rotate: 0 },
+  16: { left: 14.00, top: 57.80, width: 30.00, height: 3.05, rotate: 0 },
+  17: { left: 14.00, top: 64.75, width: 30.00, height: 3.05, rotate: 0 },
+  18: { left: 14.00, top: 71.60, width: 30.00, height: 3.05, rotate: 0 },
+  19: { left: 14.00, top: 78.50, width: 30.00, height: 3.05, rotate: 0 },
+  20: { left: 14.00, top: 85.35, width: 30.00, height: 3.05, rotate: 0 },
 
   // PHASE 5
-  21: { left: 51.20, top: 54.70, width: 34.30, height: 3.20, rotate: 0 },
-  22: { left: 51.20, top: 61.55, width: 34.30, height: 3.20, rotate: 0 },
-  23: { left: 51.20, top: 68.40, width: 34.30, height: 3.20, rotate: 0 },
-  24: { left: 51.20, top: 75.25, width: 34.30, height: 3.20, rotate: 0 },
-  25: { left: 51.20, top: 82.10, width: 34.30, height: 3.20, rotate: 0 },
+  21: { left: 54.20, top: 54.70, width: 32.00, height: 3.05, rotate: 0 },
+  22: { left: 54.20, top: 61.55, width: 32.00, height: 3.05, rotate: 0 },
+  23: { left: 54.20, top: 68.40, width: 32.00, height: 3.05, rotate: 0 },
+  24: { left: 54.20, top: 75.25, width: 32.00, height: 3.05, rotate: 0 },
+  25: { left: 54.20, top: 82.10, width: 32.00, height: 3.05, rotate: 0 },
 };
 
 // Toggle visual debug overlays for block frames and labels
@@ -1045,8 +1045,8 @@ const PublicLotMap = () => {
                             position: 'absolute',
                             left: `${col * cellWidth}%`,
                             top: `${row * cellHeight}%`,
-                            width: `${cellWidth}%`,
-                            height: `${cellHeight}%`,
+                            width: `${cellWidth * 0.96}%`,
+                            height: `${cellHeight * 0.82}%`,
                             cursor: 'pointer',
                             borderRadius: '3px',
                             border: `1px solid ${cfg.border}`,

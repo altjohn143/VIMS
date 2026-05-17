@@ -152,8 +152,6 @@ const BLOCK_LAYOUTS = Object.fromEntries(
 );
 
 
-
-
 const getLotImageHotspots = (lots) => {
   const blocks = {};
 

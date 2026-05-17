@@ -64,7 +64,7 @@ const STATUS_CONFIG = {
 
 const IMAGE_BLOCK_FRAMES = {
 // PHASE 1
-1: { left: 14.00, top: 19.40, width: 22.00, height: 2.45, rotate: -2.30 },
+1: { left: 14.00, top: 19.40, width: 22.00, height: 2.45, rotate: -2.50 },
 
 // slightly more tilt left
 2: { left: 14.20, top: 26.25, width: 22.00, height: 2.45, rotate: -3.40 },

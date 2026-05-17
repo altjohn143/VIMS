@@ -76,33 +76,73 @@ const IMAGE_BLOCK_FRAMES = {
 
 5: { left: 14.50, top: 43.90, width: 22.00, height: 2.45, rotate: -3.10 },
 
-  // PHASE 2
-  6:  { left: 43.10, top: 19.40, width: 23.70, height: 2.45, rotate: -1 },
-  7:  { left: 43.30, top: 26.80, width: 23.70, height: 2.45, rotate: -1 },
-  8:  { left: 43.50, top: 34.15, width: 23.70, height: 2.45, rotate: -1 },
-  9:  { left: 43.70, top: 41.50, width: 23.70, height: 2.45, rotate: -1 },
-  10: { left: 43.90, top: 48.85, width: 23.70, height: 2.45, rotate: -1 },
+// PHASE 2
 
-  // PHASE 3
-  11: { left: 68.10, top: 9.10, width: 21.70, height: 2.45, rotate: 0 },
-  12: { left: 68.10, top: 16.60, width: 21.70, height: 2.45, rotate: 0 },
-  13: { left: 68.10, top: 24.05, width: 21.70, height: 2.45, rotate: 0 },
-  14: { left: 68.10, top: 31.50, width: 21.70, height: 2.45, rotate: 0 },
-  15: { left: 68.10, top: 38.95, width: 21.70, height: 2.45, rotate: 0 },
+// Block 1 slightly left + slightly up
+6:  { left: 41.80, top: 18.60, width: 23.70, height: 2.45, rotate: -1.20 },
 
-  // PHASE 4
-  16: { left: 18.40, top: 61.70, width: 30.70, height: 2.55, rotate: 0 },
-  17: { left: 18.40, top: 68.55, width: 30.70, height: 2.55, rotate: 0 },
-  18: { left: 18.40, top: 75.40, width: 30.70, height: 2.55, rotate: 0 },
-  19: { left: 18.40, top: 82.25, width: 30.70, height: 2.55, rotate: 0 },
-  20: { left: 18.40, top: 89.10, width: 30.70, height: 2.55, rotate: 0 },
+// Block 2 slightly left
+7:  { left: 42.10, top: 26.10, width: 23.70, height: 2.45, rotate: -1.20 },
 
-  // PHASE 5
-  21: { left: 58.30, top: 58.20, width: 29.80, height: 2.55, rotate: 0 },
-  22: { left: 58.30, top: 65.05, width: 29.80, height: 2.55, rotate: 0 },
-  23: { left: 58.30, top: 71.90, width: 29.80, height: 2.55, rotate: 0 },
-  24: { left: 58.30, top: 78.75, width: 29.80, height: 2.55, rotate: 0 },
-  25: { left: 58.30, top: 85.60, width: 29.80, height: 2.55, rotate: 0 },
+// Block 3 more left
+8:  { left: 42.30, top: 33.40, width: 23.70, height: 2.45, rotate: -1.30 },
+
+// Block 4 more left + slightly down
+9:  { left: 42.50, top: 41.10, width: 23.70, height: 2.45, rotate: -1.40 },
+
+// Block 5 more left + more down
+10: { left: 42.70, top: 49.10, width: 23.70, height: 2.45, rotate: -1.50 },
+
+// PHASE 3
+
+// Block 1 slightly left + slightly up
+11: { left: 66.80, top: 8.30, width: 21.70, height: 2.45, rotate: -0.20 },
+
+// Block 2 slightly left
+12: { left: 66.90, top: 15.90, width: 21.70, height: 2.45, rotate: -0.20 },
+
+// Block 3 more left
+13: { left: 67.00, top: 23.30, width: 21.70, height: 2.45, rotate: -0.30 },
+
+// Block 4 more left + slightly down
+14: { left: 67.10, top: 31.00, width: 21.70, height: 2.45, rotate: -0.40 },
+
+// Block 5 more left + more down
+15: { left: 67.20, top: 38.80, width: 21.70, height: 2.45, rotate: -0.50 },
+
+// PHASE 4
+
+// Block 1 slightly left + slightly up
+16: { left: 16.90, top: 60.80, width: 30.70, height: 2.55, rotate: -0.20 },
+
+// Block 2 slightly left
+17: { left: 17.10, top: 67.70, width: 30.70, height: 2.55, rotate: -0.20 },
+
+// Block 3 more left
+18: { left: 17.30, top: 74.55, width: 30.70, height: 2.55, rotate: -0.30 },
+
+// Block 4 more left + slightly down
+19: { left: 17.50, top: 81.65, width: 30.70, height: 2.55, rotate: -0.40 },
+
+// Block 5 more left + more down
+20: { left: 17.70, top: 88.85, width: 30.70, height: 2.55, rotate: -0.50 },
+
+// PHASE 5
+
+// Block 1 slightly left + slightly up
+21: { left: 56.80, top: 57.30, width: 29.80, height: 2.55, rotate: -0.20 },
+
+// Block 2 slightly left
+22: { left: 57.00, top: 64.20, width: 29.80, height: 2.55, rotate: -0.20 },
+
+// Block 3 more left
+23: { left: 57.20, top: 71.05, width: 29.80, height: 2.55, rotate: -0.30 },
+
+// Block 4 more left + slightly down
+24: { left: 57.40, top: 78.15, width: 29.80, height: 2.55, rotate: -0.40 },
+
+// Block 5 more left + more down
+25: { left: 57.60, top: 85.35, width: 29.80, height: 2.55, rotate: -0.50 },
 };
 
 // Toggle visual debug overlays for block frames and labels

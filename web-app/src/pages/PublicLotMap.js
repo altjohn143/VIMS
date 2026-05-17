@@ -690,16 +690,18 @@ const PublicLotMap = () => {
 
   const phaseFilteredLots = useMemo(() => {
     const s = search.toLowerCase();
+
     return allLots.filter((lot) => {
-      const matchesPhase = (lot.phase || 1) === selectedPhase;
       const matchesStatus = filterStatus === 'all' || lot.status === filterStatus;
       const matchesSearch =
         !s ||
         String(lot.id).toLowerCase().includes(s) ||
-        String(lot.block).toLowerCase().includes(s);
-      return matchesPhase && matchesStatus && matchesSearch;
+        String(lot.block).toLowerCase().includes(s) ||
+        String(lot.lotNumber).toLowerCase().includes(s);
+
+      return matchesStatus && matchesSearch;
     });
-  }, [allLots, filterStatus, search, selectedPhase]);
+  }, [allLots, filterStatus, search]);
 
   const imageHotspots = useMemo(() => getLotImageHotspots(phaseFilteredLots), [phaseFilteredLots]);
 
@@ -1043,12 +1045,12 @@ const PublicLotMap = () => {
                             position: 'absolute',
                             left: `${col * cellWidth}%`,
                             top: `${row * cellHeight}%`,
-                            width: `${cellWidth * 0.82}%`,
-                            height: `${cellHeight * 0.82}%`,
+                            width: `${cellWidth}%`,
+                            height: `${cellHeight}%`,
                             cursor: 'pointer',
                             borderRadius: '3px',
-                            border: '1px solid transparent',
-                            backgroundColor: 'transparent',
+                            border: `1px solid ${cfg.border}`,
+                            backgroundColor: `${cfg.color}18`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',

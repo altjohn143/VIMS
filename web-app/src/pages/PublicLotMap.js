@@ -66,17 +66,17 @@ const IMAGE_BLOCK_FRAMES = {
  // PHASE 1
 1: { left: 14.00, top: 19.40, width: 22.00, height: 2.45, rotate: -2.30 },
 
-// slightly top + slightly left
-2: { left: 14.90, top: 26.55, width: 22.00, height: 2.45, rotate: -2.70 },
+// slight left again
+2: { left: 14.50, top: 26.55, width: 22.00, height: 2.45, rotate: -2.70 },
 
-// more left
-3: { left: 15.80, top: 32.20, width: 22.00, height: 2.45, rotate: -2.90 },
+// move more left
+3: { left: 15.10, top: 32.20, width: 22.00, height: 2.45, rotate: -2.90 },
 
-// more top + more left
-4: { left: 16.70, top: 37.00, width: 22.00, height: 2.45, rotate: -3 },
+// more left + more tilt left
+4: { left: 15.80, top: 37.00, width: 22.00, height: 2.45, rotate: -3.40 },
 
-// more left
-5: { left: 17.70, top: 42.90, width: 22.00, height: 2.45, rotate: -3.50 },
+// move left more
+5: { left: 16.40, top: 42.90, width: 22.00, height: 2.45, rotate: -3.50 },
 
   // PHASE 2
   6:  { left: 43.10, top: 19.40, width: 23.70, height: 2.45, rotate: -1 },

@@ -1042,22 +1042,21 @@ const PublicLotMap = () => {
                       cursor: 'pointer',
                       borderRadius: 1,
                       border: `1.2px solid ${isSelected ? '#60a5fa' : cfg.border}`,
-                      backgroundColor: isSelected ? `${cfg.color}22` : 'transparent',
-                      transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
-                      boxShadow: isSelected ? '0 0 0 3px rgba(96,165,250,0.18)' : 'none',
+                      backgroundColor: isSelected ? `${cfg.color}33` : `${cfg.bg}`,
+                      transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease',
+                      boxShadow: isSelected ? `0 0 0 3px ${cfg.color}44` : 'none',
                       '&:hover': {
                         transform: 'scale(1.03)',
-                        boxShadow: `0 0 0 3px ${cfg.color}22`,
-                        backgroundColor: `${cfg.color}11`,
+                        boxShadow: `0 0 0 3px ${cfg.color}44`,
+                        backgroundColor: `${cfg.color}22`,
                       },
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#111',
                     }}
                   >
-                    <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#111' }}>
-                      {lot.block}-{lot.lotNumber}
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: cfg.color, textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                      {lot.lotNumber}
                     </Typography>
                   </Box>
                 );

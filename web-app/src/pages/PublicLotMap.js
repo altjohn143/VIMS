@@ -81,13 +81,13 @@ const IMAGE_BLOCK_FRAMES = {
 6:  { left: 38.50, top: 18.60, width: 22.00, height: 2.45, rotate: -2.60 },
 
 // Block 2 more left + more tilt left + more up
-7:  { left: 37.80, top: 25.30, width: 22.00, height: 2.45, rotate: -2.95 },
+7:  { left: 38.80, top: 25.30, width: 22.00, height: 2.45, rotate: -2.95 },
 
 // Block 3 more up + more left + more tilt left
 8:  { left: 38.40, top: 30.10, width: 22.00, height: 2.45, rotate: -3.00 },
 
 // Block 4 more more up + more left + more tilt left
-9:  { left: 39.00, top: 35.00, width: 22.00, height: 2.45, rotate: -1.40 },
+9:  { left: 39.00, top: 35.00, width: 22.00, height: 2.45, rotate: 1.00 },
 
 // Block 5 more more more up + more left + more tilt left
 10: { left: 40.00, top: 42.00, width: 22.00, height: 2.45, rotate: -2.90 },

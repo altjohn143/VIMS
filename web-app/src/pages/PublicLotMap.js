@@ -1001,20 +1001,27 @@ const PublicLotMap = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
-              {lotBoxes.map((box) => (
-                <Rectangle
-                  key={`box-${box.lot.id}`}
-                  bounds={box.bounds}
-                  pathOptions={{
-                    color: '#22c55e80',
-                    weight: 1.5,
-                    dashArray: '4,4',
-                    fillColor: '#22c55e30',
-                    fillOpacity: 0.18,
-                  }}
-                  interactive={false}
-                />
-              ))}
+              {lotBoxes.map((box) => {
+                const cfg = STATUS_CONFIG[box.lot.status] || STATUS_CONFIG.vacant;
+                return (
+                  <Rectangle
+                    key={`box-${box.lot.id}`}
+                    bounds={box.bounds}
+                    pathOptions={{
+                      color: cfg.border,
+                      weight: selectedLot?.id === box.lot.id ? 3 : 1.5,
+                      dashArray: '4,4',
+                      fillColor: cfg.bg,
+                      fillOpacity: selectedLot?.id === box.lot.id ? 0.28 : 0.18,
+                      className: 'leaflet-interactive',
+                    }}
+                    interactive={true}
+                    eventHandlers={{
+                      click: () => setSelectedLot(box.lot),
+                    }}
+                  />
+                );
+              })}
 
               {phaseFilteredLots.map((lot) => {
                 const coord = lotCoordinates[lot.id] || MAP_CENTER;

@@ -20,8 +20,7 @@ import {
   Pause as PauseIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
-import { MapContainer, TileLayer, CircleMarker, Popup, Rectangle } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import mapImage from '../assets/Westville.png';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
 const OUTSIDE_PHOTOS = [
@@ -63,21 +62,60 @@ const STATUS_CONFIG = {
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
 };
 
-const MAP_CENTER = [14.4435299, 120.9667736];
-const BLOCK_CENTER_COORDS = {
-  1: [14.441389, 120.970833],
-  2: [14.442778, 120.967778],
-  3: [14.440278, 120.969167],
-  4: [14.443, 120.9683],
-  5: [14.4415, 120.9672],
-};
-
 const BLOCK_LAYOUTS = {
   1: { topLeft: [14.4417265, 120.970273], rows: 4, cols: 5, latStep: 0.000225, lngStep: 0.00028 },
   2: { topLeft: [14.443178, 120.967328], rows: 5, cols: 4, latStep: 0.00020, lngStep: 0.00030 },
   3: { topLeft: [14.440798, 120.968067], rows: 4, cols: 5, latStep: 0.000240, lngStep: 0.00023 },
   4: { topLeft: [14.443420, 120.967020], rows: 4, cols: 5, latStep: 0.000210, lngStep: 0.00026 },
   5: { topLeft: [14.442320, 120.966550], rows: 5, cols: 4, latStep: 0.000210, lngStep: 0.00029 },
+};
+
+const IMAGE_BLOCK_FRAMES = {
+  1: { left: 4, top: 8, width: 22, height: 28 },
+  2: { left: 28, top: 6, width: 20, height: 34 },
+  3: { left: 52, top: 6, width: 20, height: 34 },
+  4: { left: 76, top: 8, width: 20, height: 28 },
+  5: { left: 36, top: 50, width: 28, height: 26 },
+};
+
+const getLotImageHotspots = (lots) => {
+  const frames = [];
+  const blockLots = {};
+
+  lots.forEach((lot) => {
+    if (!blockLots[lot.block]) blockLots[lot.block] = [];
+    blockLots[lot.block].push(lot);
+  });
+
+  Object.entries(blockLots).forEach(([block, blockLotList]) => {
+    blockLotList.sort((a, b) => a.lotNumber - b.lotNumber);
+    const frame = IMAGE_BLOCK_FRAMES[block] || { left: 8, top: 10, width: 26, height: 30 };
+    const layout = BLOCK_LAYOUTS[block] || { rows: 4, cols: 5 };
+    const cellWidth = frame.width / layout.cols;
+    const cellHeight = frame.height / layout.rows;
+
+    blockLotList.forEach((lot, index) => {
+      const row = Math.floor(index / layout.cols);
+      const col = index % layout.cols;
+      const left = frame.left + col * cellWidth + 0.5;
+      const top = frame.top + row * cellHeight + 0.5;
+      const width = Math.max(3.4, cellWidth * 0.92);
+      const height = Math.max(4.0, cellHeight * 0.88);
+
+      frames.push({
+        lot,
+        style: {
+          position: 'absolute',
+          left: `${left}%`,
+          top: `${top}%`,
+          width: `${width}%`,
+          height: `${height}%`,
+        },
+      });
+    });
+  });
+
+  return frames;
 };
 
 const generateLotsFromAPI = (apiLots) => {
@@ -653,77 +691,7 @@ const PublicLotMap = () => {
     });
   }, [allLots, filterStatus, search, selectedPhase]);
 
-  const lotCoordinates = useMemo(() => {
-    const coords = {};
-    const blockLots = {};
-
-    phaseFilteredLots.forEach((lot) => {
-      if (!blockLots[lot.block]) blockLots[lot.block] = [];
-      blockLots[lot.block].push(lot);
-    });
-
-    Object.entries(blockLots).forEach(([block, lots]) => {
-      lots.sort((a, b) => a.lotNumber - b.lotNumber);
-      const layout = BLOCK_LAYOUTS[block] || {
-        topLeft: [
-          BLOCK_CENTER_COORDS[block]?.[0] + 0.00034,
-          BLOCK_CENTER_COORDS[block]?.[1] - 0.00056,
-        ] || MAP_CENTER,
-        rows: 4,
-        cols: 5,
-        latStep: 0.00024,
-        lngStep: 0.00028,
-      };
-
-      lots.forEach((lot, index) => {
-        const row = Math.floor(index / layout.cols);
-        const col = index % layout.cols;
-        const lotLat = layout.topLeft[0] - row * layout.latStep;
-        const lotLng = layout.topLeft[1] + col * layout.lngStep;
-        coords[lot.id] = [lotLat - layout.latStep / 2, lotLng + layout.lngStep / 2];
-      });
-    });
-
-    return coords;
-  }, [phaseFilteredLots]);
-
-  const lotBoxes = useMemo(() => {
-    const boxes = [];
-    const blockLots = {};
-
-    phaseFilteredLots.forEach((lot) => {
-      if (!blockLots[lot.block]) blockLots[lot.block] = [];
-      blockLots[lot.block].push(lot);
-    });
-
-    Object.entries(blockLots).forEach(([block, lots]) => {
-      lots.sort((a, b) => a.lotNumber - b.lotNumber);
-      const layout = BLOCK_LAYOUTS[block] || {
-        topLeft: [
-          BLOCK_CENTER_COORDS[block]?.[0] + 0.00034,
-          BLOCK_CENTER_COORDS[block]?.[1] - 0.00056,
-        ] || MAP_CENTER,
-        rows: 4,
-        cols: 5,
-        latStep: 0.00024,
-        lngStep: 0.00028,
-      };
-
-      lots.forEach((lot, index) => {
-        const row = Math.floor(index / layout.cols);
-        const col = index % layout.cols;
-
-        const north = layout.topLeft[0] - row * layout.latStep;
-        const west = layout.topLeft[1] + col * layout.lngStep;
-        const south = north - layout.latStep;
-        const east = west + layout.lngStep;
-
-        boxes.push({ lot, bounds: [[north, west], [south, east]] });
-      });
-    });
-
-    return boxes;
-  }, [phaseFilteredLots]);
+  const imageHotspots = useMemo(() => getLotImageHotspots(phaseFilteredLots), [phaseFilteredLots]);
 
   const handleRegister = (lot) => {
     const l = lot || selectedLot;
@@ -777,7 +745,6 @@ const PublicLotMap = () => {
 
   // Get phases and filter lots by selected phase
   const phases = Object.keys(lotsByPhaseAndBlock).map(Number).sort((a, b) => a - b);
-  const markerRadius = 12;
 
   return (
     <Box sx={{
@@ -990,74 +957,54 @@ const PublicLotMap = () => {
 
           {/* Blocks */}
           <Box sx={{ position: 'relative', height: 740, borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <MapContainer
-              center={MAP_CENTER}
-              zoom={mapZoom}
-              scrollWheelZoom={true}
-              style={{ width: '100%', height: '100%' }}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            <Box sx={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden',
+              transform: `scale(${0.78 + (mapZoom - 14) * 0.12})`,
+              transformOrigin: 'top center',
+            }}>
+              <Box component="img"
+                src={mapImage}
+                alt="Casimiro Westville Homes map"
+                sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
 
-              {lotBoxes.map((box) => {
-                const cfg = STATUS_CONFIG[box.lot.status] || STATUS_CONFIG.vacant;
-                return (
-                  <Rectangle
-                    key={`box-${box.lot.id}`}
-                    bounds={box.bounds}
-                    pathOptions={{
-                      color: cfg.border,
-                      weight: selectedLot?.id === box.lot.id ? 3 : 1.5,
-                      dashArray: '4,4',
-                      fillColor: cfg.bg,
-                      fillOpacity: selectedLot?.id === box.lot.id ? 0.28 : 0.18,
-                      className: 'leaflet-interactive',
-                    }}
-                    interactive={true}
-                    eventHandlers={{
-                      click: () => setSelectedLot(box.lot),
-                    }}
-                  />
-                );
-              })}
-
-              {phaseFilteredLots.map((lot) => {
-                const coord = lotCoordinates[lot.id] || MAP_CENTER;
+              {imageHotspots.map(({ lot, style }) => {
                 const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
+                const isSelected = selectedLot?.id === lot.id;
                 return (
-                  <CircleMarker
+                  <Box
                     key={lot.id}
-                    center={coord}
-                    radius={markerRadius}
-                    pathOptions={{
-                      color: cfg.border,
-                      fillColor: cfg.color,
-                      fillOpacity: 0.85,
-                      weight: 2,
-                    }}
-                    eventHandlers={{
-                      click: () => setSelectedLot(lot),
+                    onClick={() => setSelectedLot(lot)}
+                    title={`Block ${lot.block} · Lot ${lot.lotNumber} · ${cfg.label}`}
+                    sx={{
+                      ...style,
+                      cursor: 'pointer',
+                      borderRadius: 1,
+                      border: `1.5px solid ${isSelected ? '#60a5fa' : cfg.border}`,
+                      backgroundColor: isSelected ? `${cfg.color}33` : `${cfg.bg}cc`,
+                      transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
+                      boxShadow: isSelected ? '0 0 0 3px rgba(96,165,250,0.18)' : 'none',
+                      '&:hover': {
+                        transform: 'scale(1.03)',
+                        boxShadow: `0 0 0 4px ${cfg.color}22`,
+                      },
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#111',
                     }}
                   >
-                    <Popup>
-                      <Box sx={{ color: '#111' }}>
-                        <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
-                          Block {lot.block} • Lot {lot.lotNumber}
-                        </Typography>
-                        <Typography sx={{ fontSize: '0.8rem', color: '#333' }}>
-                          {lot.type} • {lot.sqm} sqm
-                        </Typography>
-                        <Typography sx={{ fontSize: '0.78rem', color: '#555' }}>
-                          Status: {cfg.label}
-                        </Typography>
-                      </Box>
-                    </Popup>
-                  </CircleMarker>
+                    <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#111' }}>
+                      {lot.block}-{lot.lotNumber}
+                    </Typography>
+                  </Box>
                 );
               })}
-            </MapContainer>
+            </Box>
+
             <Box sx={{ position: 'absolute', top: 16, left: 16, px: 2, py: 1, borderRadius: 2, backgroundColor: 'rgba(15,23,42,0.78)' }}>
               <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.12em' }}>
                 Casimiro Westville Homes Map

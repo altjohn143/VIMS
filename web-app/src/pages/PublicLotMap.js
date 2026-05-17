@@ -132,46 +132,19 @@ const IMAGE_BLOCK_FRAMES = {
 };
 
 const getLotImageHotspots = (lots) => {
-  const frames = [];
-  const blockLots = {};
+  const blocks = {};
 
   lots.forEach((lot) => {
-    if (!blockLots[lot.block]) blockLots[lot.block] = [];
-    blockLots[lot.block].push(lot);
+    const blockNo = Number(lot.block);
+    if (!blocks[blockNo]) blocks[blockNo] = [];
+    blocks[blockNo].push(lot);
   });
 
-  Object.entries(blockLots).forEach(([block, blockLotList]) => {
-    blockLotList.sort((a, b) => a.lotNumber - b.lotNumber);
-    const frame = IMAGE_BLOCK_FRAMES[block] || { left: 8, top: 10, width: 26, height: 30 };
-    const layout = BLOCK_LAYOUTS[block] || { rows: 4, cols: 5 };
-    const cellWidth = frame.width / layout.cols;
-    const cellHeight = frame.height / layout.rows;
-
-    blockLotList.forEach((lot, index) => {
-      const row = Math.floor(index / layout.cols);
-      const col = index % layout.cols;
-      const left = frame.left + col * cellWidth + cellWidth * 0.04;
-      const top = frame.top + row * cellHeight + cellHeight * 0.04;
-      const width = Math.max(3.4, cellWidth * 0.92);
-      const height = Math.max(3.8, cellHeight * 0.92);
-
-      frames.push({
-        lot,
-        rotate: frame.rotate || 0,
-        style: {
-          position: 'absolute',
-          left: `${left}%`,
-          top: `${top}%`,
-          width: `${width}%`,
-          height: `${height}%`,
-          transform: `rotate(${frame.rotate || 0}deg)`,
-          transformOrigin: 'top left',
-        },
-      });
-    });
+  Object.keys(blocks).forEach((blockNo) => {
+    blocks[blockNo].sort((a, b) => Number(a.lotNumber) - Number(b.lotNumber));
   });
 
-  return frames;
+  return blocks;
 };
 
 const generateLotsFromAPI = (apiLots) => {
@@ -742,7 +715,10 @@ const PublicLotMap = () => {
     return allLots.filter((lot) => {
       const matchesPhase = (lot.phase || 1) === selectedPhase;
       const matchesStatus = filterStatus === 'all' || lot.status === filterStatus;
-      const matchesSearch = !s || lot.id.toLowerCase().includes(s) || lot.block.toLowerCase().includes(s);
+      const matchesSearch =
+        !s ||
+        String(lot.id).toLowerCase().includes(s) ||
+        String(lot.block).toLowerCase().includes(s);
       return matchesPhase && matchesStatus && matchesSearch;
     });
   }, [allLots, filterStatus, search, selectedPhase]);
@@ -1027,35 +1003,65 @@ const PublicLotMap = () => {
                 sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
 
-              {imageHotspots.map(({ lot, style, rotate }) => {
-                const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
-                const isSelected = selectedLot?.id === lot.id;
+              {Object.entries(imageHotspots).map(([blockNo, lotsInBlock]) => {
+                const frame = IMAGE_BLOCK_FRAMES[Number(blockNo)];
+                const layout = BLOCK_LAYOUTS[Number(blockNo)];
+
+                if (!frame || !layout) return null;
+
+                const cellWidth = 100 / layout.cols;
+                const cellHeight = 100 / layout.rows;
+
                 return (
                   <Box
-                    key={lot.id}
-                    onClick={() => setSelectedLot(lot)}
-                    title={`Block ${lot.block} · Lot ${lot.lotNumber} · ${cfg.label}`}
+                    key={blockNo}
                     sx={{
-                      ...style,
-                      cursor: 'pointer',
-                      borderRadius: 1,
-                      border: `1.2px solid ${isSelected ? '#60a5fa' : cfg.border}`,
-                      backgroundColor: isSelected ? `${cfg.color}33` : `${cfg.bg}`,
-                      transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease',
-                      boxShadow: isSelected ? `0 0 0 3px ${cfg.color}44` : 'none',
-                      '&:hover': {
-                        transform: `rotate(${rotate || 0}deg) scale(1.03)`,
-                        boxShadow: `0 0 0 3px ${cfg.color}44`,
-                        backgroundColor: `${cfg.color}22`,
-                      },
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      position: 'absolute',
+                      left: `${frame.left}%`,
+                      top: `${frame.top}%`,
+                      width: `${frame.width}%`,
+                      height: `${frame.height}%`,
+                      transform: `rotate(${frame.rotate || 0}deg)`,
+                      transformOrigin: 'top left',
                     }}
                   >
-                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: cfg.color, textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                      {lot.lotNumber}
-                    </Typography>
+                    {lotsInBlock.map((lot, index) => {
+                      const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
+                      const isSelected = selectedLot?.id === lot.id;
+                      const row = Math.floor(index / layout.cols);
+                      const col = index % layout.cols;
+
+                      return (
+                        <Box
+                          key={lot.id}
+                          onClick={() => setSelectedLot(lot)}
+                          title={`Block ${lot.block} · Lot ${lot.lotNumber} · ${cfg.label}`}
+                          sx={{
+                            position: 'absolute',
+                            left: `${col * cellWidth}%`,
+                            top: `${row * cellHeight}%`,
+                            width: `${cellWidth * 0.92}%`,
+                            height: `${cellHeight * 0.82}%`,
+                            cursor: 'pointer',
+                            borderRadius: '3px',
+                            border: `1px solid ${isSelected ? '#60a5fa' : cfg.border}`,
+                            backgroundColor: isSelected ? `${cfg.color}33` : `${cfg.bg}cc`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: '0.15s ease',
+                            '&:hover': {
+                              boxShadow: `0 0 0 2px ${cfg.color}66`,
+                              backgroundColor: `${cfg.color}33`,
+                            },
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '0.5rem', fontWeight: 800, color: cfg.color }}>
+                            {lot.lotNumber}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
                   </Box>
                 );
               })}

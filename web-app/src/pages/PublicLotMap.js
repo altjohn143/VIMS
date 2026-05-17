@@ -20,7 +20,7 @@ import {
   Pause as PauseIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
-import mapImage from '../assets/Westville.png';
+import mapImage from '../assets/lotmap.png';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
 const OUTSIDE_PHOTOS = [
@@ -967,7 +967,7 @@ const PublicLotMap = () => {
             }}>
               <Box component="img"
                 src={mapImage}
-                alt="Casimiro Westville Homes map"
+                alt="Casimiro Westville Homes lot map"
                 sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
 

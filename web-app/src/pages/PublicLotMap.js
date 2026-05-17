@@ -77,21 +77,20 @@ const IMAGE_BLOCK_FRAMES = {
 5: { left: 14.50, top: 43.90, width: 22.00, height: 2.45, rotate: -3.10 },
 
 // PHASE 2
+// Block 1 more left + more tilt left
+6:  { left: 40.90, top: 18.60, width: 23.70, height: 2.45, rotate: -1.60 },
 
-// Block 1 slightly left + slightly up
-6:  { left: 41.80, top: 18.60, width: 23.70, height: 2.45, rotate: -1.20 },
+// Block 2 more left + more tilt left + more up
+7:  { left: 40.80, top: 25.30, width: 23.70, height: 2.45, rotate: -1.90 },
 
-// Block 2 slightly left
-7:  { left: 42.10, top: 26.10, width: 23.70, height: 2.45, rotate: -1.20 },
+// Block 3 more up + more left + more tilt left
+8:  { left: 40.70, top: 32.10, width: 23.70, height: 2.45, rotate: -2.20 },
 
-// Block 3 more left
-8:  { left: 42.30, top: 33.40, width: 23.70, height: 2.45, rotate: -1.30 },
+// Block 4 more more up + more left + more tilt left
+9:  { left: 40.60, top: 39.00, width: 23.70, height: 2.45, rotate: -2.50 },
 
-// Block 4 more left + slightly down
-9:  { left: 42.50, top: 41.10, width: 23.70, height: 2.45, rotate: -1.40 },
-
-// Block 5 more left + more down
-10: { left: 42.70, top: 49.10, width: 23.70, height: 2.45, rotate: -1.50 },
+// Block 5 more more more up + more left + more tilt left
+10: { left: 40.50, top: 46.00, width: 23.70, height: 2.45, rotate: -2.80 },
 
 // PHASE 3
 

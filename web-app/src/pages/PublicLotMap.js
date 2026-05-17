@@ -64,27 +64,18 @@ const STATUS_CONFIG = {
 
 const IMAGE_BLOCK_FRAMES = {
 // PHASE 1
-1: { left: 18.02, top: 39.19, width: 21.18, height: 2.48, rotate: 0 },
-2: { left: 18.31, top: 43.49, width: 21.18, height: 2.48, rotate: 0 },
-3: { left: 18.31, top: 48.03, width: 21.18, height: 2.48, rotate: 0 },
-4: { left: 18.50, top: 52.27, width: 21.18, height: 2.48, rotate: 0 },
-5: { left: 18.57, top: 57.10, width: 21.18, height: 2.48, rotate: 0 },
+1: { left: 17.60, top: 25.25, width: 21.18, height: 2.48, rotate: 0 },
+2: { left: 17.60, top: 29.88, width: 21.18, height: 2.48, rotate: 0 },
+3: { left: 17.67, top: 34.52, width: 21.18, height: 2.48, rotate: 0 },
+4: { left: 18.05, top: 39.15, width: 21.18, height: 2.48, rotate: 0 },
+5: { left: 18.05, top: 43.79, width: 21.18, height: 2.48, rotate: 0 },
 
 // PHASE 2
-// Block 1 more left + more tilt left
-6:  { left: 38.50, top: 18.60, width: 22.00, height: 2.45, rotate: -2.60 },
-
-// Block 2 more left + more tilt left + more up
-7:  { left: 38.80, top: 25.30, width: 22.00, height: 2.45, rotate: -2.95 },
-
-// Block 3 more up + more left + more tilt left
-8:  { left: 38.40, top: 30.10, width: 22.00, height: 2.45, rotate: -3.00 },
-
-// Block 4 more more up + more left + more tilt left
-9:  { left: 39.00, top: 35.00, width: 22.00, height: 2.45, rotate: -0.60 },
-
-// Block 5 more more more up + more left + more tilt left
-10: { left: 40.00, top: 42.00, width: 22.00, height: 2.45, rotate: -2.90 },
+6:  { left: 42.30, top: 22.78, width: 21.18, height: 2.48, rotate: 0 },
+7:  { left: 42.49, top: 27.71, width: 21.18, height: 2.48, rotate: 0 },
+8:  { left: 42.42, top: 32.35, width: 21.18, height: 2.48, rotate: 0 },
+9:  { left: 42.81, top: 36.79, width: 21.18, height: 2.48, rotate: 0 },
+10: { left: 43.00, top: 41.22, width: 21.18, height: 2.48, rotate: 0 },
 
 // PHASE 3
 

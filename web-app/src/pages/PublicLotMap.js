@@ -379,14 +379,6 @@ rotate: 0,
   mapHeight: 3.34,
   rotate: 0,
 },
-'1-1-6': {
-  absolute: true,
-  mapLeft: 1.48,
-  mapTop: 2.04,
-  mapWidth: 1.48,
-  mapHeight: 2.04,
-  rotate: 0,
-},
 '1-1-7': {
   absolute: true,
   mapLeft: 60.03,
@@ -531,15 +523,22 @@ rotate: 0,
   mapHeight: 2.69,
   rotate: 0,
 },
-'2-7-4': {
+'2-8-1': {
   absolute: true,
-  mapLeft: 16.86,
-  mapTop: 40.53,
+  mapLeft: 24.48,
+  mapTop: 42.09,
   mapWidth: 1.61,
-  mapHeight: 2.22,
+  mapHeight: 3.35,
   rotate: 0,
 },
-
+'2-8-2': {
+  absolute: true,
+  mapLeft: 25.98,
+  mapTop: 40.62,
+  mapWidth: 1.61,
+  mapHeight: 3.35,
+  rotate: 0,
+},
 '2-3-2': {
   absolute: true,
   mapLeft: 14.19,
@@ -629,14 +628,6 @@ rotate: 0,
   absolute: true,
   mapLeft: 47.98,
   mapTop: 27.73,
-  mapWidth: 1.32,
-  mapHeight: 3.34,
-  rotate: 0,
-},
-'4-2-1': {
-  absolute: true,
-  mapLeft: 43.29,
-  mapTop: 38.35,
   mapWidth: 1.32,
   mapHeight: 3.34,
   rotate: 0,
@@ -785,56 +776,6 @@ rotate: 0,
   mapHeight: 1.96,
   rotate: 0,
 },
-'4-6-2': {
-  absolute: true,
-  mapLeft: 45.05,
-  mapTop: 42.77,
-  mapWidth: 1.32,
-  mapHeight: 1.96,
-  rotate: 0,
-},
-'4-6-3': {
-  absolute: true,
-  mapLeft: 42.90,
-  mapTop: 41.60,
-  mapWidth: 1.32,
-  mapHeight: 1.96,
-  rotate: 0,
-},
-'4-6-4': {
-  absolute: true,
-  mapLeft: 41.53,
-  mapTop: 42.66,
-  mapWidth: 1.32,
-  mapHeight: 1.96,
-  rotate: 0,
-},
-'4-6-5': {
-  absolute: true,
-  mapLeft: 42.45,
-  mapTop: 44.53,
-  mapWidth: 1.32,
-  mapHeight: 1.96,
-  rotate: 0,
-},
-'4-6-6': {
-  absolute: true,
-  mapLeft: 43.29,
-  mapTop: 46.78,
-  mapWidth: 1.32,
-  mapHeight: 1.96,
-  rotate: 0,
-},
-'4-6-7': {
-  absolute: true,
-  mapLeft: 44.21,
-  mapTop: 49.12,
-  mapWidth: 1.32,
-  mapHeight: 1.96,
-  rotate: 0,
-  viewBox: '0 0 28 28',
-  path: 'M-1.51722e-06 9.76624L17.7232 1.1572e-05L27.4207 17.5985L9.69752 27.3647L-1.51722e-06 9.76624Z',
-},
 '3-5-2': {
   absolute: true,
   mapLeft: 32.88,
@@ -932,113 +873,7 @@ rotate: 0,
   mapWidth: 1.32,
   mapHeight: 1.96,
   rotate: 0,
-},
-'2-10-1': { 
-  absolute: true, 
-  mapLeft: 16.99, 
-  mapTop: 34.38, 
-  mapWidth: 1.61, 
-  mapHeight: 34.38, 
-  rotate: 0, 
 }, 
-'2-10-2': { 
-  absolute: true, 
-  mapLeft: 18.82, 
-  mapTop: 33.11, 
-  mapWidth: 1.61, 
-  mapHeight: 3.26, 
-  rotate: 0, 
-}, 
-'2-10-3': { 
-  absolute: true, 
-  mapLeft: 20.64, 
-  mapTop: 31.74, 
-  mapWidth: 1.61, 
-  mapHeight: 3.26, 
-  rotate: 0, 
-}, 
-'2-10-4': { 
-  absolute: true, 
-  mapLeft: 22.53, 
-  mapTop: 30.47, 
-  mapWidth: 1.61, 
-  mapHeight: 3.26, 
-  rotate: 0, 
-}, 
-'2-10-5': { 
-  absolute: true, 
-  mapLeft: 24.28, 
-  mapTop: 29.10, 
-  mapWidth: 1.61, 
-  mapHeight: 3.26, 
-  rotate: 0, 
-}, 
-'2-10-6': { 
-  absolute: true, 
-  mapLeft: 26.11, 
-  mapTop: 27.64, 
-  mapWidth: 1.61, 
-  mapHeight: 3.26, 
-  rotate: 0, 
-}, 
-'2-10-7': { 
-  absolute: true, 
-  mapLeft: 28.23, 
-  mapTop: 25.56, 
-  mapWidth: 1.61, 
-  mapHeight: 3.26, 
-  rotate: 0, 
-}, 
-'2-10-8': { 
-  absolute: true, 
-  mapLeft: 29.10, 
-  mapTop: 23.34, 
-  mapWidth: 1.61, 
-  mapHeight: 3.26, 
-  rotate: 0, 
-}, 
-
-'2-9-1': {
-  absolute: true,
-  mapLeft: 19.86,
-  mapTop: 38.83,
-  mapWidth: 1.61,
-  mapHeight: 3.30,
-  rotate: 0,
-},
-'2-9-2': {
-  absolute: true,
-  mapLeft: 21.65,
-  mapTop: 37.50,
-  mapWidth: 1.61,
-  mapHeight: 3.35,
-  rotate: 0,
-},
-'2-9-3': {
-  absolute: true,
-  mapLeft: 23.41,
-  mapTop: 36.13,
-  mapWidth: 1.61,
-  mapHeight: 3.26,
-  rotate: 0,
-},
-'2-9-4': {
-  absolute: true,
-  mapLeft: 25.30,
-  mapTop: 34.57,
-  mapWidth: 1.61,
-  mapHeight: 3.26,
-  rotate: 0,
-},
-'2-9-5': {
-  absolute: true,
-  mapLeft: 27.06,
-  mapTop: 33.11,
-  mapWidth: 1.61,
-  mapHeight: 3.26,
-  rotate: 0,
-},
-
 };
 
 const LOT_SVG_SHAPES = {
@@ -1191,10 +1026,6 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
   viewBox: '0 0 42 44',
   path: 'M-2.14895e-06 14.1821L23.7429 2.53637e-05L41.2727 29.3476L17.5298 43.5296L-2.14895e-06 14.1821Z',
 },
-'1-1-6': {
-  viewBox: '0 0 31 30',
-  path: 'M0 11.6802L19.5544 -3.04158e-05L30.2942 17.98L10.7398 29.6602L0 11.6802Z',
-},
 '1-1-7': {
   viewBox: '0 0 31 30',
   path: 'M-1.67502e-06 11.6802L19.5544 -2.98988e-05L30.2942 17.98L10.7398 29.6602L-1.67502e-06 11.6802Z',
@@ -1267,9 +1098,13 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
   viewBox: '0 0 30 34',
   path: 'M-1.5857e-06 8.26196L18.0382 -2.20007e-05L29.5265 25.0821L11.4883 33.3441L-1.5857e-06 8.26196Z',
 },
-'2-7-4': {
-  viewBox: '0 0 33 32',
-  path: 'M-1.8412e-06 11.0088L22.0905 -1.19631e-05L32.2323 20.3506L10.1418 31.3594L-1.8412e-06 11.0088Z',
+'2-8-1': {
+  viewBox: '0 0 37 40',
+  path: 'M0 11.0175L16.6384 0L36.0949 28.1072L19.4565 39.6247L0 11.0175Z',
+},
+'2-8-2': {
+  viewBox: '0 0 37 40',
+  path: 'M0 11.0175L16.6384 0L36.0949 28.1072L19.4565 39.6247L0 11.0175Z',
 },
 '2-3-2': {
   viewBox: '0 0 30 32',
@@ -1468,66 +1303,6 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
 '3-9-7': {
   viewBox: '0 0 28 28',
   path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
-},
-'2-10-1': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-
-'2-10-2': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-
-'2-10-3': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-
-'2-10-4': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-
-
-'2-10-5': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-
-'2-10-6': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-
-'2-10-7': {
-  viewBox: '0 0 40 42',
-  path: 'M0 14.7131L19.8169 0L39.7444 26.8401L19.9275 41.5532L0 14.7131Z',
-},
-
-'2-10-8': {
-  viewBox: '0 0 40 42',
-  path: 'M0 14.7131L19.8169 0L39.7444 26.8401L19.9275 41.5532L0 14.7131Z',
-},
-'2-9-1': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-'2-9-2': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-'2-9-3': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-'2-9-4': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
-},
-'2-9-5': {
-  viewBox: '0 0 37 41',
-  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z',
 },
 };
 

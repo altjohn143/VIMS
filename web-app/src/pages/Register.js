@@ -157,7 +157,7 @@ const Register = () => {
   const [availability, setAvailability] = useState({ email: null, phone: null });
   const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
   const [mapDrawerOpen, setMapDrawerOpen] = useState(false);
-  const [mapViewMode, setMapViewMode] = useState('available');
+  const [mapViewMode, setMapViewMode] = useState('all');
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -185,15 +185,21 @@ const Register = () => {
           
           // Check if there's a pre-selected lot from URL
           const params = new URLSearchParams(location.search);
+          const lotIdParam = params.get('lotId');
           const lot = params.get('lot');
           const block = params.get('block');
-          if (lot && block) {
+
+          let preSelectedLot = null;
+          if (lotIdParam) {
+            preSelectedLot = response.data.data.find(l => l.lotId.toLowerCase() === lotIdParam.trim().toLowerCase());
+          } else if (lot && block) {
             const lotId = `${block}-${lot}`;
-            const preSelectedLot = response.data.data.find(l => l.lotId === lotId);
-            if (preSelectedLot) {
-              setFormData(prev => ({ ...prev, selectedLot: lotId, address: preSelectedLot.address }));
-              setSelectedLotDetails(preSelectedLot);
-            }
+            preSelectedLot = response.data.data.find(l => l.lotId === lotId);
+          }
+
+          if (preSelectedLot) {
+            setFormData(prev => ({ ...prev, selectedLot: preSelectedLot.lotId, address: preSelectedLot.address }));
+            setSelectedLotDetails(preSelectedLot);
           }
         }
       } catch (error) {
@@ -318,15 +324,18 @@ const Register = () => {
 
   // Handle lot selection from the map
   const handleLotSelectFromMap = (lot) => {
-    if (lot.status === 'vacant') {
-      setFormData(prev => ({ ...prev, selectedLot: lot.lotId, address: lot.address }));
-      setSelectedLotDetails(lot);
-      setMapDrawerOpen(false);
-      toast.success(`Lot ${lot.lotId} selected!`);
-    } else {
+    if (lot.status !== 'vacant') {
       toast.error(`Lot ${lot.lotId} is not available for registration.`);
+      return;
     }
+
+    setFormData(prev => ({ ...prev, selectedLot: lot.lotId, address: lot.address }));
+    setSelectedLotDetails(lot);
+    setMapDrawerOpen(false);
+    toast.success(`Lot ${lot.lotId} selected!`);
   };
+
+  const mapLots = mapViewMode === 'available' ? availableLots : allLots;
 
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -844,7 +853,7 @@ const Register = () => {
                   >
                     <Typography sx={{ fontWeight: 700, mb: 1 }}>Manual entry</Typography>
                     <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 2 }}>
-                      Enter your details manually and upload your ID. The ID upload will be used for verification only and will not trigger OCR automatically.
+                      Enter your details manually and upload your ID. The ID upload is used for verification and will not trigger the automatic scan.
                     </Typography>
                     <Button
                       variant="contained"
@@ -868,9 +877,9 @@ const Register = () => {
                       backgroundColor: '#ffffff'
                     }}
                   >
-                    <Typography sx={{ fontWeight: 700, mb: 1 }}>ID upload + OCR autofill</Typography>
+                    <Typography sx={{ fontWeight: 700, mb: 1 }}>ID upload + automatic fill</Typography>
                     <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 2 }}>
-                      Upload your ID and let the OCR attempt to populate your name, date of birth, and ID number automatically.
+                      Upload your ID and we will try to read your name, date of birth, and ID number so the form fills itself.
                     </Typography>
                     <Button
                       variant="contained"
@@ -882,7 +891,7 @@ const Register = () => {
                       }}
                       sx={{ textTransform: 'none', borderRadius: 2 }}
                     >
-                      Use OCR autofill
+                      Scan my ID
                     </Button>
                   </Paper>
                 </Grid>
@@ -894,13 +903,13 @@ const Register = () => {
           ) : (
             <Box sx={{ mb: 3, p: 2, border: `1px solid ${themeColors.border}`, borderRadius: 3, backgroundColor: '#f8faf5' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                You selected: {registrationMode === 'manual' ? 'Manual entry' : 'OCR autofill'}
+                You selected: {registrationMode === 'manual' ? 'Manual entry' : 'ID scan'}
               </Typography>
-              <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 1 }}>
-                {registrationMode === 'manual'
-                  ? 'Please fill in your fields manually. Your ID upload will still extract the ID number automatically.'
-                  : 'Upload your ID images to automatically populate your name, date of birth, and ID number where possible.'}
-              </Typography>
+               <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 1 }}>
+                 {registrationMode === 'manual'
+                   ? 'Please fill in your fields manually. Your ID upload will still capture your ID number for verification.'
+                   : 'Upload both sides of your ID and we will scan them to fill your name, date of birth, and ID number. Once the scan finishes, the registration form appears automatically.'}
+               </Typography>
               <Button
                 variant="text"
                 onClick={() => setRegistrationMode(null)}
@@ -1841,7 +1850,7 @@ const Register = () => {
         </DialogTitle>
         <DialogContent dividers>
           <Typography sx={{ mb: 2, color: themeColors.textSecondary }}>
-            To use OCR autofill, please upload both the front and back images of your valid ID first. We will scan it and prefill your name, date of birth, and ID number before showing the full registration form.
+            Upload the front and back of your valid ID. We will scan both sides, prefill your name, date of birth, and ID number, and then show the registration form automatically.
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12}>
@@ -1968,6 +1977,11 @@ const Register = () => {
               Scanning ID to autofill details…
             </Typography>
           )}
+          {ocrLoading && (
+            <Typography variant="caption" sx={{ display: 'block', color: themeColors.textSecondary }}>
+              The registration form will open automatically once the scan succeeds.
+            </Typography>
+          )}
           {ocrUnavailable && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="caption" sx={{ display: 'block', color: themeColors.warning, mb: 1 }}>
@@ -2011,20 +2025,6 @@ const Register = () => {
             sx={{ textTransform: 'none' }}
           >
             Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (!idDocs.frontImage || !idDocs.backImage) {
-                toast.error('Please upload both the front and back of your ID before continuing.');
-                return;
-              }
-              setOcrStepCompleted(true);
-              setOcrDialogOpen(false);
-            }}
-            sx={{ textTransform: 'none' }}
-          >
-            Continue to registration
           </Button>
         </DialogActions>
       </Dialog>
@@ -2083,7 +2083,7 @@ const Register = () => {
           {/* Lot Selection Map Component */}
           <Box sx={{ flex: 1, overflow: 'auto' }}>
             <LotSelectionMap
-              lots={mapViewMode === 'available' ? availableLots : allLots}
+              lots={mapLots}
               selectedLotId={formData.selectedLot}
               onSelectLot={handleLotSelectFromMap}
               themeColors={themeColors}
@@ -2098,8 +2098,10 @@ const Register = () => {
             textAlign: 'center'
           }}>
             <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
-              Click on any <span style={{ color: themeColors.success, fontWeight: 'bold' }}>green (vacant)</span> lot to select it for registration.
-              {mapViewMode === 'available' && ' Only available lots are shown.'}
+            Click on any <span style={{ color: themeColors.success, fontWeight: 'bold' }}>green (vacant)</span> lot to select it for registration.
+            {mapViewMode === 'available'
+              ? ' Only available lots are shown.'
+              : ' Non-vacant lots are visible but disabled for selection.'}
             </Typography>
           </Box>
         </Box>

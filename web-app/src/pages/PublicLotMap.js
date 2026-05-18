@@ -241,64 +241,64 @@ const LOT_POSITION_OVERRIDES = {
 },
   '2-6-1': {
     absolute: true,
-    mapLeft: 17.95,
-    mapTop: 42.86,
+    mapLeft: 26.43,
+    mapTop: 46.97,
     mapWidth: 1.32,
     mapHeight: 1.96,
     rotate: 0,
   },
   '2-6-2': {
     absolute: true,
-    mapLeft: 19.39,
-    mapTop: 41.78,
+    mapLeft: 27.86,
+    mapTop: 46.00,
     mapWidth: 1.32,
     mapHeight: 1.96,
     rotate: 0,
   },
   '2-6-3': {
     absolute: true,
-    mapLeft: 21.08,
-    mapTop: 40.51,
+    mapLeft: 29.56,
+    mapTop: 44.63,
     mapWidth: 1.32,
     mapHeight: 1.96,
     rotate: 0,
   },
   '2-6-4': {
     absolute: true,
-    mapLeft: 22.52,
-    mapTop: 39.44,
+    mapLeft: 31.02,
+    mapTop: 43.55,
     mapWidth: 1.32,
     mapHeight: 1.96,
     rotate: 0,
   },
   '2-6-5': {
     absolute: true,
-    mapLeft: 23.95,
-    mapTop: 38.27,
+    mapLeft: 27.34,
+    mapTop: 49.22,
     mapWidth: 1.32,
     mapHeight: 1.96,
     rotate: 0,
   },
   '2-6-6': {
     absolute: true,
-    mapLeft: 25.64,
-    mapTop: 37.00,
+    mapLeft: 28.78,
+    mapTop: 48.05,
     mapWidth: 1.32,
     mapHeight: 1.96,
     rotate: 0,
   },
   '2-6-7': {
     absolute: true,
-    mapLeft: 27.08,
-    mapTop: 35.92,
+    mapLeft: 30.21,
+    mapTop: 46.97,
     mapWidth: 1.32,
     mapHeight: 1.96,
     rotate: 0,
   },
   '2-6-8': {
     absolute: true,
-    mapLeft: 28.51,
-    mapTop: 34.75,
+    mapLeft: 31.64,
+    mapTop: 46.00,
     mapWidth: 1.32,
     mapHeight: 1.96,
     rotate: 0,
@@ -1396,8 +1396,8 @@ const LOT_SVG_SHAPES = {
   },
 
   '5-2-2': {
-    viewBox: '0 0 28 28',
-    path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
+    viewBox: '0 0 27 27',
+    path: 'M-1.5276e-06 8.879L18.1839 8.04959e-06L27.0004 18.056L8.81653 26.935L-1.5276e-06 8.879Z',
   },
 
   '5-2-3': {
@@ -2502,7 +2502,12 @@ const PublicLotMap = () => {
   const handleRegister = (lot) => {
     const l = lot || selectedLot;
     if (l && l.status === 'vacant') {
-      navigate(`/register?lot=${l.lotNumber}&block=${l.block}`);
+      const params = new URLSearchParams({
+        lotId: l.lotId,
+        block: l.block,
+        lot: l.lotNumber
+      });
+      navigate(`/register?${params.toString()}`);
     } else if (l && l.status !== 'vacant') {
       alert('This lot is not available for registration.');
     }

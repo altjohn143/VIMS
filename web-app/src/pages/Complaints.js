@@ -21,7 +21,10 @@ import {
 } from '@mui/material';
 import {
   AddComment as AddCommentIcon,
+  Archive as ArchiveIcon,
   Assignment as AssignmentIcon,
+  Cancel as CancelIcon,
+  Edit as EditIcon,
   ErrorOutline as ErrorOutlineIcon,
   LocationOn as LocationIcon,
   Send as SendIcon
@@ -74,8 +77,10 @@ const Complaints = () => {
   const defaultLocation = user?.houseNumber || `${user?.firstName || 'Resident'} ${user?.lastName || ''}`.trim();
 
   const [complaints, setComplaints] = useState([]);
+  const [archivedComplaints, setArchivedComplaints] = useState([]);
   const [fetching, setFetching] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [editingComplaintId, setEditingComplaintId] = useState(null);
   const [formData, setFormData] = useState({
     issueType: '',
     title: '',
@@ -87,12 +92,17 @@ const Complaints = () => {
   const fetchComplaints = useCallback(async () => {
     try {
       setFetching(true);
-      const response = await axios.get('/api/service-requests/my');
-      const rows = response.data?.data || [];
+      const [activeResponse, archivedResponse] = await Promise.all([
+        axios.get('/api/service-requests/my'),
+        axios.get('/api/service-requests/my/archived', { params: { category: 'complaint' } })
+      ]);
+      const rows = activeResponse.data?.data || [];
       setComplaints(rows.filter((request) => request.category === 'complaint'));
+      setArchivedComplaints(archivedResponse.data?.data || []);
     } catch (error) {
       toast.error('Failed to load complaints');
       setComplaints([]);
+      setArchivedComplaints([]);
     } finally {
       setFetching(false);
     }
@@ -112,12 +122,31 @@ const Complaints = () => {
   const complaintStats = useMemo(() => {
     const active = complaints.filter((item) => !['completed', 'cancelled', 'rejected'].includes(item.status)).length;
     const resolved = complaints.filter((item) => item.status === 'completed').length;
-    return { total: complaints.length, active, resolved };
-  }, [complaints]);
+    return { total: complaints.length + archivedComplaints.length, active, resolved, archived: archivedComplaints.length };
+  }, [complaints, archivedComplaints]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = useCallback(() => {
+    setEditingComplaintId(null);
+    setFormData({
+      issueType: '',
+      title: '',
+      description: '',
+      priority: 'medium',
+      location: defaultLocation
+    });
+  }, [defaultLocation]);
+
+  const buildComplaintDescription = (issueType, description) => `Type: ${issueType}\n\n${description}`;
+
+  const parseComplaintDescription = (description = '') => {
+    const match = description.match(/^Type:\s*(.+?)\n\n([\s\S]*)$/);
+    if (!match) return { issueType: 'Other complaint', details: description };
+    return { issueType: match[1], details: match[2] };
   };
 
   const handleSubmit = async (event) => {
@@ -132,27 +161,66 @@ const Complaints = () => {
       const payload = {
         category: 'complaint',
         title: formData.title,
-        description: `Type: ${formData.issueType}\n\n${formData.description}`,
+        description: buildComplaintDescription(formData.issueType, formData.description),
         priority: formData.priority,
         location: formData.location || defaultLocation
       };
 
-      const response = await axios.post('/api/service-requests', payload);
+      const response = editingComplaintId
+        ? await axios.put(`/api/service-requests/${editingComplaintId}`, payload)
+        : await axios.post('/api/service-requests', payload);
       if (response.data?.success || response.status === 201) {
-        toast.success('Complaint submitted successfully');
-        setFormData({
-          issueType: '',
-          title: '',
-          description: '',
-          priority: 'medium',
-          location: defaultLocation
-        });
+        toast.success(editingComplaintId ? 'Complaint updated successfully' : 'Complaint submitted successfully');
+        resetForm();
         fetchComplaints();
       }
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to submit complaint');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEditComplaint = (complaint) => {
+    const parsed = parseComplaintDescription(complaint.description);
+    setEditingComplaintId(complaint._id);
+    setFormData({
+      issueType: issueTypes.includes(parsed.issueType) ? parsed.issueType : 'Other complaint',
+      title: complaint.title || '',
+      description: parsed.details || '',
+      priority: complaint.priority || 'medium',
+      location: complaint.location || defaultLocation
+    });
+  };
+
+  const handleCancelComplaint = async (complaintId) => {
+    if (!window.confirm('Are you sure you want to cancel this complaint?')) return;
+
+    try {
+      await axios.put(`/api/service-requests/${complaintId}/status`, {
+        status: 'cancelled',
+        cancelledReason: 'Cancelled by resident'
+      });
+      toast.success('Complaint cancelled successfully');
+      if (editingComplaintId === complaintId) resetForm();
+      fetchComplaints();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to cancel complaint');
+    }
+  };
+
+  const handleArchiveComplaint = async (complaintId) => {
+    if (!window.confirm('Archive this complaint? It will move to Archived Complaints.')) return;
+
+    try {
+      await axios.put(`/api/service-requests/${complaintId}/archive`, {
+        reason: 'Archived by resident'
+      });
+      toast.success('Complaint archived');
+      if (editingComplaintId === complaintId) resetForm();
+      fetchComplaints();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to archive complaint');
     }
   };
 
@@ -192,9 +260,10 @@ const Complaints = () => {
         {[
           { label: 'Total Complaints', value: complaintStats.total, icon: <AssignmentIcon /> },
           { label: 'Active Complaints', value: complaintStats.active, icon: <ErrorOutlineIcon /> },
-          { label: 'Resolved Complaints', value: complaintStats.resolved, icon: <AddCommentIcon /> }
+          { label: 'Resolved Complaints', value: complaintStats.resolved, icon: <AddCommentIcon /> },
+          { label: 'Archived Complaints', value: complaintStats.archived, icon: <ArchiveIcon /> }
         ].map((stat) => (
-          <Grid item xs={12} sm={4} key={stat.label}>
+          <Grid item xs={12} sm={6} md={3} key={stat.label}>
             <Paper
               elevation={0}
               sx={{
@@ -234,7 +303,7 @@ const Complaints = () => {
             <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 2 }}>
               <AddCommentIcon sx={{ color: themeColors.primary }} />
               <Typography variant="h6" sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
-                New Complaint
+                {editingComplaintId ? 'Edit Complaint' : 'New Complaint'}
               </Typography>
             </Stack>
 
@@ -310,8 +379,24 @@ const Complaints = () => {
                   '&:hover': { bgcolor: themeColors.primaryDark }
                 }}
               >
-                {submitting ? 'Submitting...' : 'Submit Complaint'}
+                {submitting ? 'Saving...' : editingComplaintId ? 'Update Complaint' : 'Submit Complaint'}
               </Button>
+
+              {editingComplaintId && (
+                <Button
+                  onClick={resetForm}
+                  fullWidth
+                  sx={{
+                    mt: 1,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 800,
+                    color: themeColors.textSecondary
+                  }}
+                >
+                  Cancel Edit
+                </Button>
+              )}
             </Box>
           </Paper>
         </Grid>
@@ -366,6 +451,48 @@ const Complaints = () => {
                       <Typography variant="body2" sx={{ color: themeColors.textSecondary, whiteSpace: 'pre-line' }}>
                         {complaint.description}
                       </Typography>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 2 }}>
+                        {complaint.status === 'pending' && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<EditIcon />}
+                            onClick={() => handleEditComplaint(complaint)}
+                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 800 }}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                        {['pending', 'under-review', 'assigned', 'in-progress'].includes(complaint.status) && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<CancelIcon />}
+                            onClick={() => handleCancelComplaint(complaint._id)}
+                            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 800 }}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                        {['completed', 'cancelled', 'rejected'].includes(complaint.status) && (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<ArchiveIcon />}
+                            onClick={() => handleArchiveComplaint(complaint._id)}
+                            sx={{
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: 800,
+                              bgcolor: themeColors.primary,
+                              '&:hover': { bgcolor: themeColors.primaryDark }
+                            }}
+                          >
+                            Archive
+                          </Button>
+                        )}
+                      </Stack>
                     </CardContent>
                   </Card>
                 ))}
@@ -374,6 +501,60 @@ const Complaints = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          mt: 3,
+          borderRadius: 2,
+          border: `1px solid ${themeColors.border}`,
+          bgcolor: themeColors.cardBackground
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 2 }}>
+          <ArchiveIcon sx={{ color: themeColors.primary }} />
+          <Typography variant="h6" sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+            Archived Complaints
+          </Typography>
+        </Stack>
+
+        {fetching ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress sx={{ color: themeColors.primary }} />
+          </Box>
+        ) : archivedComplaints.length === 0 ? (
+          <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
+            Archived complaints will be stored here.
+          </Typography>
+        ) : (
+          <Grid container spacing={1.5}>
+            {archivedComplaints.map((complaint) => (
+              <Grid item xs={12} md={6} key={complaint._id}>
+                <Card elevation={0} sx={{ border: `1px solid ${themeColors.border}`, borderRadius: 2 }}>
+                  <CardContent>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
+                      <Box>
+                        <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+                          {complaint.title}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: themeColors.textSecondary, mt: 0.5 }}>
+                          Archived {formatDate(complaint.archivedAt)} - Submitted {formatDate(complaint.createdAt)}
+                        </Typography>
+                      </Box>
+                      {getStatusChip(complaint.status)}
+                    </Stack>
+                    <Divider sx={{ my: 1.5 }} />
+                    <Typography variant="body2" sx={{ color: themeColors.textSecondary, whiteSpace: 'pre-line' }}>
+                      {complaint.description}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Paper>
     </Container>
   );
 };

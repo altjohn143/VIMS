@@ -190,6 +190,7 @@ const Dashboard = () => {
   const [residentAnnouncements, setResidentAnnouncements] = useState([]);
   const [liveStats, setLiveStats] = useState({});
   const [notificationAnchor, setNotificationAnchor] = useState(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const { logout, getCurrentUser } = useAuth();
 
   useEffect(() => {
@@ -2173,10 +2174,28 @@ const Dashboard = () => {
         onClose={() => setNotificationAnchor(null)}
       />
 
+      <Drawer
+        anchor="right"
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: 430, md: 460 },
+            maxWidth: '100vw',
+            height: '100vh',
+            overflow: 'hidden',
+            borderTopLeftRadius: { xs: 0, sm: 18 },
+            borderBottomLeftRadius: { xs: 0, sm: 18 },
+            boxShadow: '-18px 0 40px rgba(15,23,42,0.18)'
+          }
+        }}
+      >
+        <Chatbot embedded onClose={() => setAssistantOpen(false)} />
+      </Drawer>
+
       <Tooltip title="Open VIMS Assistant" placement="left">
         <Button
-          component={RouterLink}
-          to="/dashboard/ai-assistant"
+          onClick={() => setAssistantOpen(true)}
           variant="contained"
           aria-label="Open VIMS Assistant"
           sx={{
@@ -2189,7 +2208,7 @@ const Dashboard = () => {
             height: 56,
             px: { xs: 0, sm: 2.2 },
             borderRadius: '999px',
-            bgcolor: activePageKey === 'ai-assistant' ? themeColors.primaryDark : themeColors.primary,
+            bgcolor: assistantOpen || activePageKey === 'ai-assistant' ? themeColors.primaryDark : themeColors.primary,
             color: 'white',
             boxShadow: '0 16px 34px rgba(22, 101, 52, 0.34)',
             textTransform: 'none',

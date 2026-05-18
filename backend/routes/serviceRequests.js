@@ -97,6 +97,32 @@ router.get('/my', protect, authorize('resident'), async (req, res) => {
   }
 });
 
+router.get('/my/archived', protect, authorize('resident'), async (req, res) => {
+  try {
+    const { category } = req.query;
+
+    const filter = { residentId: req.user.id, isArchived: true };
+    if (category) filter.category = category;
+
+    const requests = await ServiceRequest.find(filter)
+      .populate('assignedTo', 'firstName lastName role')
+      .populate('cancelledBy', 'firstName lastName role')
+      .sort({ archivedAt: -1, updatedAt: -1 });
+
+    res.json({
+      success: true,
+      count: requests.length,
+      data: requests
+    });
+  } catch (error) {
+    console.error('Get my archived requests error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get archived service requests'
+    });
+  }
+});
+
 router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
   try {
     const { status, category, priority, residentId } = req.query;
@@ -231,7 +257,7 @@ router.put('/:id/status', protect, async (req, res) => {
         });
       }
 
-      if (status === 'cancelled' && request.status === 'pending') {
+      if (status === 'cancelled' && ['pending', 'under-review', 'assigned', 'in-progress'].includes(request.status)) {
         request.status = status;
         request.cancelledAt = new Date();
         request.cancelledBy = req.user.id;
@@ -239,7 +265,7 @@ router.put('/:id/status', protect, async (req, res) => {
       } else {
         return res.status(400).json({
           success: false,
-          error: 'Residents can only cancel pending requests'
+          error: 'Residents can only cancel active requests'
         });
       }
     }
@@ -302,6 +328,122 @@ router.put('/:id/status', protect, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update status'
+    });
+  }
+});
+
+router.put('/:id', protect, authorize('resident'), async (req, res) => {
+  try {
+    const { title, description, priority, location } = req.body;
+
+    const request = await ServiceRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service request not found'
+      });
+    }
+
+    if (request.residentId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to edit this request'
+      });
+    }
+
+    if (request.category !== 'complaint') {
+      return res.status(400).json({
+        success: false,
+        error: 'Only complaints can be edited here'
+      });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        error: 'Only pending complaints can be edited'
+      });
+    }
+
+    if (!title || !description) {
+      return res.status(400).json({
+        success: false,
+        error: 'Title and description are required'
+      });
+    }
+
+    request.title = title;
+    request.description = description;
+    request.priority = priority || request.priority || 'medium';
+    request.location = location || '';
+
+    await request.save();
+
+    res.json({
+      success: true,
+      message: 'Complaint updated successfully',
+      data: request
+    });
+  } catch (error) {
+    console.error('Update complaint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update complaint'
+    });
+  }
+});
+
+router.put('/:id/archive', protect, authorize('resident', 'admin'), async (req, res) => {
+  try {
+    const { reason } = req.body;
+
+    const request = await ServiceRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service request not found'
+      });
+    }
+
+    if (req.user.role === 'resident') {
+      if (request.residentId.toString() !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Not authorized to archive this request'
+        });
+      }
+
+      if (request.category !== 'complaint') {
+        return res.status(400).json({
+          success: false,
+          error: 'Only complaints can be archived here'
+        });
+      }
+
+      if (!['completed', 'cancelled', 'rejected'].includes(request.status)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Only resolved or cancelled complaints can be archived'
+        });
+      }
+    }
+
+    request.isArchived = true;
+    request.archivedAt = new Date();
+    request.archivedBy = req.user._id;
+    request.archivedReason = reason || (req.user.role === 'resident' ? 'Archived by resident' : 'Archived by admin');
+    await request.save();
+
+    res.json({
+      success: true,
+      message: 'Complaint archived successfully',
+      data: request
+    });
+  } catch (error) {
+    console.error('Archive complaint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to archive complaint'
     });
   }
 });

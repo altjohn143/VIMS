@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Container,
+  IconButton,
   Paper,
   TextField,
   Typography,
@@ -13,6 +14,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
@@ -69,7 +71,7 @@ const suggestedQuestionsByRole = {
 
 const getSuggestedPrompts = (role) => suggestedQuestionsByRole[role] || suggestedQuestionsByRole.default;
 
-const Chatbot = () => {
+const Chatbot = ({ embedded = false, onClose }) => {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -122,6 +124,286 @@ const Chatbot = () => {
     setMessage(prompt);
     sendMessage(prompt);
   };
+
+  const conversationPanel = (
+    <Paper
+      sx={{
+        borderRadius: embedded ? 0 : '20px',
+        border: embedded ? 'none' : `1px solid ${themeColors.border}`,
+        boxShadow: embedded ? 'none' : '0 12px 26px rgba(15,23,42,0.06)',
+        overflow: 'hidden',
+        bgcolor: themeColors.cardBackground,
+        height: embedded ? '100%' : 'auto',
+        display: embedded ? 'flex' : 'block',
+        flexDirection: embedded ? 'column' : 'initial'
+      }}
+    >
+      <Box
+        sx={{
+          px: 2.5,
+          py: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          bgcolor: 'white',
+          gap: 2,
+          flexWrap: 'wrap'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <QuestionAnswerIcon sx={{ color: themeColors.primary }} />
+          <Typography sx={{ fontSize: '1.06rem', fontWeight: 900, color: themeColors.textPrimary }}>
+            {embedded ? 'VIMS Assistant' : 'Conversation'}
+          </Typography>
+          {!embedded && (
+            <Chip
+              label={`${messages.length} message${messages.length === 1 ? '' : 's'}`}
+              size="small"
+              sx={{
+                bgcolor: themeColors.primarySoft,
+                color: themeColors.primary,
+                fontWeight: 800,
+                borderRadius: '999px'
+              }}
+            />
+          )}
+        </Box>
+
+        {embedded ? (
+          <IconButton onClick={onClose} aria-label="Close VIMS Assistant" size="small">
+            <CloseIcon />
+          </IconButton>
+        ) : (
+          <Chip
+            icon={<ShieldOutlinedIcon />}
+            label="Secure VIMS Assistant"
+            size="small"
+            sx={{
+              bgcolor: '#f8fafc',
+              color: themeColors.textSecondary,
+              fontWeight: 800,
+              borderRadius: '999px',
+              border: '1px solid rgba(15,23,42,0.06)'
+            }}
+          />
+        )}
+      </Box>
+
+      <Divider />
+
+      {embedded && messages.length === 0 && (
+        <Box sx={{ p: 1.5, display: 'flex', gap: 1, overflowX: 'auto', bgcolor: '#ffffff' }}>
+          {suggestedPrompts.slice(0, 4).map((prompt) => (
+            <Chip
+              key={prompt}
+              label={prompt}
+              onClick={() => handleSuggestedPrompt(prompt)}
+              sx={{
+                flexShrink: 0,
+                maxWidth: 230,
+                bgcolor: '#f0fdf4',
+                color: themeColors.primary,
+                fontWeight: 800,
+                borderRadius: '999px'
+              }}
+            />
+          ))}
+        </Box>
+      )}
+
+      <Box
+        sx={{
+          minHeight: embedded ? 0 : 430,
+          maxHeight: embedded ? 'none' : 540,
+          flex: embedded ? 1 : 'initial',
+          overflowY: 'auto',
+          p: { xs: 1.5, md: 2 },
+          bgcolor: '#f8fafc'
+        }}
+      >
+        {messages.length === 0 && (
+          <Box
+            sx={{
+              minHeight: embedded ? 280 : 390,
+              display: 'grid',
+              placeItems: 'center',
+              textAlign: 'center',
+              px: 2
+            }}
+          >
+            <Box>
+              <Avatar
+                sx={{
+                  width: embedded ? 58 : 72,
+                  height: embedded ? 58 : 72,
+                  mx: 'auto',
+                  mb: 2,
+                  bgcolor: themeColors.primarySoft,
+                  color: themeColors.primary
+                }}
+              >
+                <AutoAwesomeIcon sx={{ fontSize: embedded ? 30 : 36 }} />
+              </Avatar>
+              <Typography sx={{ fontSize: embedded ? '1rem' : '1.15rem', fontWeight: 900, color: themeColors.textPrimary }}>
+                How can I help today?
+              </Typography>
+              <Typography sx={{ color: themeColors.textSecondary, fontWeight: 600, mt: 0.6 }}>
+                Start by typing a question below.
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
+        {messages.map((m, idx) => {
+          const isUser = m.role === 'user';
+
+          return (
+            <Box
+              key={idx}
+              sx={{
+                mb: 1.4,
+                display: 'flex',
+                justifyContent: isUser ? 'flex-end' : 'flex-start',
+                alignItems: 'flex-end',
+                gap: 1
+              }}
+            >
+              {!isUser && (
+                <Avatar
+                  sx={{
+                    width: 34,
+                    height: 34,
+                    bgcolor: themeColors.primary,
+                    color: 'white'
+                  }}
+                >
+                  <SmartToyIcon sx={{ fontSize: 18 }} />
+                </Avatar>
+              )}
+
+              <Box
+                sx={{
+                  maxWidth: embedded ? '78%' : { xs: '82%', md: '72%' },
+                  px: 1.7,
+                  py: 1.25,
+                  borderRadius: isUser ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
+                  background: isUser
+                    ? 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)'
+                    : '#ffffff',
+                  color: themeColors.textPrimary,
+                  border: isUser ? '1px solid rgba(34,197,94,0.18)' : '1px solid rgba(15,23,42,0.07)',
+                  boxShadow: '0 8px 20px rgba(15,23,42,0.05)'
+                }}
+              >
+                <Typography variant="body2" sx={{ lineHeight: 1.65, fontWeight: 600, whiteSpace: 'pre-wrap' }}>
+                  {m.content}
+                </Typography>
+              </Box>
+
+              {isUser && (
+                <Avatar
+                  sx={{
+                    width: 34,
+                    height: 34,
+                    bgcolor: '#e2e8f0',
+                    color: themeColors.textPrimary
+                  }}
+                >
+                  <PersonIcon sx={{ fontSize: 18 }} />
+                </Avatar>
+              )}
+            </Box>
+          );
+        })}
+
+        {loading && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mt: 1 }}>
+            <Avatar sx={{ width: 34, height: 34, bgcolor: themeColors.primary }}>
+              <SmartToyIcon sx={{ fontSize: 18 }} />
+            </Avatar>
+            <Box
+              sx={{
+                px: 1.7,
+                py: 1.25,
+                borderRadius: '18px 18px 18px 6px',
+                bgcolor: 'white',
+                border: '1px solid rgba(15,23,42,0.07)',
+                boxShadow: '0 8px 20px rgba(15,23,42,0.05)'
+              }}
+            >
+              <CircularProgress size={18} sx={{ color: themeColors.primary }} />
+            </Box>
+          </Box>
+        )}
+      </Box>
+
+      <Divider />
+
+      <Box sx={{ p: { xs: 1.5, md: 2 }, bgcolor: 'white' }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <TextField
+            fullWidth
+            multiline
+            maxRows={4}
+            placeholder="Type your message..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '16px',
+                bgcolor: '#f8fafc',
+                fontWeight: 600,
+                '& fieldset': {
+                  borderColor: 'rgba(15,23,42,0.10)'
+                },
+                '&:hover fieldset': {
+                  borderColor: 'rgba(22,101,52,0.34)'
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: themeColors.primary
+                }
+              }
+            }}
+          />
+
+          <Button
+            variant="contained"
+            endIcon={loading || embedded ? null : <SendIcon />}
+            disabled={loading}
+            onClick={sendMessage}
+            sx={{
+              minWidth: embedded ? 54 : { xs: 54, sm: 118 },
+              borderRadius: '16px',
+              textTransform: 'none',
+              fontWeight: 900,
+              bgcolor: themeColors.primary,
+              boxShadow: '0 12px 22px rgba(22,101,52,0.18)',
+              '&:hover': {
+                bgcolor: themeColors.primaryDark,
+                transform: 'translateY(-1px)'
+              },
+              '&:active': {
+                transform: 'translateY(1px) scale(0.99)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {loading ? <CircularProgress size={22} color="inherit" /> : embedded ? <SendIcon /> : 'Send'}
+          </Button>
+        </Box>
+      </Box>
+    </Paper>
+  );
+
+  if (embedded) {
+    return conversationPanel;
+  }
 
   return (
     <Box

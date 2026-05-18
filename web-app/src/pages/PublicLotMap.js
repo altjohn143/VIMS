@@ -136,11 +136,13 @@ const BLOCK_LAYOUTS = Object.fromEntries(
   Array.from({ length: 25 }, (_, i) => [i + 1, { rows: 1, cols: 20 }])
 );
 
+const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
+
 // Per-lot position overrides. If an entry includes `absolute: true`, the coordinates
 // are relative to the entire map image, not the block frame.
-// Use percentages for map-relative values.
+// Use `phase-block` keys so each phase resets its blocks to 1-5.
 const LOT_POSITION_OVERRIDES = {
-  '6-1': {
+  '2-1': {
     absolute: true,
     mapLeft: 19.79,
     mapTop: 60.64,
@@ -169,20 +171,24 @@ const getLotImageHotspots = (lots) => {
 const generateLotsFromAPI = (apiLots) => {
   if (!apiLots || apiLots.length === 0) return [];
   
-  return apiLots.map(lot => ({
-    id: lot.lotId,
-    phase: lot.phase,
-    block: lot.block,
-    lotNumber: lot.lotNumber,
-    status: lot.status,
-    type: lot.type,
-    sqm: lot.sqm,
-    price: lot.price,
-    address: lot.address,
-    features: lot.features || [],
-    photoSeed: lot.photoSeed || 0,
-    occupiedBy: lot.occupiedBy
-  }));
+  return apiLots.map(lot => {
+    const rawBlock = Number(lot.block);
+    return {
+      id: lot.lotId,
+      phase: Number(lot.phase) || 1,
+      block: rawBlock,
+      phaseBlock: getPhaseBlock(rawBlock),
+      lotNumber: lot.lotNumber,
+      status: lot.status,
+      type: lot.type,
+      sqm: lot.sqm,
+      price: lot.price,
+      address: lot.address,
+      features: lot.features || [],
+      photoSeed: lot.photoSeed || 0,
+      occupiedBy: lot.occupiedBy,
+    };
+  });
 };
 
 // ─── Virtual Tour Viewer ──────────────────────────────────────────────────────
@@ -578,7 +584,7 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
       {/* Scrollable content */}
       <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5 }}>
         <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.35rem', mb: 0.3 }}>
-          Lot {lot.lotNumber} — Block {lot.block}
+          Lot {lot.lotNumber} — Phase {lot.phase} Block {lot.phaseBlock}
         </Typography>
         <Typography sx={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.73rem', mb: 2.5 }}>
           {lot.address}
@@ -589,7 +595,7 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
           {[
             { l: 'Lot Area', v: `${lot.sqm} sqm`, e: '📐' },
             { l: 'Type',     v: lot.type,          e: '🏠' },
-            { l: 'Block',    v: `Block ${lot.block}`, e: '🗺️' },
+            { l: 'Block',    v: `Block ${lot.phaseBlock}`, e: '🗺️' },
             { l: 'Lot No.', v: `Lot ${lot.lotNumber}`, e: '🔢' },
           ].map(({ l, v, e }) => (
             <Box key={l} sx={{
@@ -737,6 +743,8 @@ const PublicLotMap = () => {
       const matchesSearch =
         !s ||
         String(lot.id).toLowerCase().includes(s) ||
+        String(lot.phase).toLowerCase().includes(s) ||
+        String(lot.phaseBlock).toLowerCase().includes(s) ||
         String(lot.block).toLowerCase().includes(s) ||
         String(lot.lotNumber).toLowerCase().includes(s);
 
@@ -746,7 +754,7 @@ const PublicLotMap = () => {
 
   const imageHotspots = useMemo(() => getLotImageHotspots(phaseFilteredLots), [phaseFilteredLots]);
   const absoluteOverrides = useMemo(() => phaseFilteredLots.filter((lot) => {
-    const override = LOT_POSITION_OVERRIDES[`${lot.block}-${lot.lotNumber}`];
+    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}`];
     return override?.absolute;
   }), [phaseFilteredLots]);
 
@@ -1078,7 +1086,7 @@ const PublicLotMap = () => {
                     )}
                     {lotsInBlock.map((lot, index) => {
                       const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
-                      const override = LOT_POSITION_OVERRIDES[`${lot.block}-${lot.lotNumber}`];
+                      const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}`];
 
                       if (override?.absolute) {
                         return null;
@@ -1096,7 +1104,7 @@ const PublicLotMap = () => {
                         <Box
                           key={lot.id}
                           onClick={() => setSelectedLot(lot)}
-                          title={`Block ${lot.block} · Lot ${lot.lotNumber} · ${cfg.label}`}
+                          title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
                           sx={{
                             position: 'absolute',
                             left,
@@ -1127,12 +1135,12 @@ const PublicLotMap = () => {
 
               {absoluteOverrides.map((lot) => {
                 const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
-                const override = LOT_POSITION_OVERRIDES[`${lot.block}-${lot.lotNumber}`];
+                const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}`];
                 return (
                   <Box
                     key={`abs-${lot.id}`}
                     onClick={() => setSelectedLot(lot)}
-                    title={`Block ${lot.block} · Lot ${lot.lotNumber} · ${cfg.label}`}
+                    title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
                     sx={{
                       position: 'absolute',
                       left: `${override.mapLeft}%`,
@@ -1262,7 +1270,7 @@ const PublicLotMap = () => {
                       }}>
                       <Box>
                         <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
-                          Block {lot.block}, Lot {lot.lotNumber}
+                          Phase {lot.phase} Block {lot.phaseBlock}, Lot {lot.lotNumber}
                         </Typography>
                         <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.62rem' }}>
                           {lot.type} · {lot.sqm} sqm

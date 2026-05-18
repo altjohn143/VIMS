@@ -139,23 +139,29 @@ const BLOCK_LAYOUTS = Object.fromEntries(
 const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
 
 // Per-lot position overrides. If an entry includes `absolute: true`, the coordinates
-// are relative to the entire map image, not the block frame.
+// are relative to the entire map image rendered at 1536x1024, and should be expressed
+// as percentages so they scale correctly with the responsive map container.
 // Use `phase-block` keys so each phase resets its blocks to 1-5.
-const LOT_POSITION_OVERRIDES = {
-  '2-1': {
-    absolute: true,
-    mapLeft: 19.79,
-    mapTop: 60.64,
-    mapWidth: 1.61,
-    mapHeight: 2.94,
-    rotate: 26.49,
-  },
-};
+// Example:
+// const LOT_POSITION_OVERRIDES = {
+//   '2-1': {
+//     absolute: true,
+//     mapLeft: (304 / 1536) * 100,
+//     mapTop: (621 / 1024) * 100,
+//     mapWidth: (24.68 / 1536) * 100,
+//     mapHeight: (30.14 / 1024) * 100,
+//     rotate: 26.49,
+//   },
+// };
+const LOT_POSITION_OVERRIDES = {};
 
 const getLotImageHotspots = (lots) => {
   const blocks = {};
 
   lots.forEach((lot) => {
+    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}`];
+    if (!override || override.absolute) return;
+
     const blockNo = Number(lot.block);
     if (!blocks[blockNo]) blocks[blockNo] = [];
     blocks[blockNo].push(lot);

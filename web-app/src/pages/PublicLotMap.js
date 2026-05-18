@@ -83,7 +83,7 @@ const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
 // };
 const LOT_POSITION_OVERRIDES = {
   '2-1-1': {
-    absolute: true,
+    absolute: false,
     mapLeft: 19.79,
     mapTop: 60.64,
     mapWidth: 1.61,

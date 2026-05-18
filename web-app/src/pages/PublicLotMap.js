@@ -295,6 +295,22 @@ const LOT_POSITION_OVERRIDES = {
   mapHeight: 2.94,
   rotate: 0,
 },
+'1-1-1': {
+absolute: true,
+mapLeft: 50.52,
+mapTop: 65.61,
+mapWidth: 1.70,
+mapHeight: 2.98,
+rotate: 0,
+},  
+'1-1-2': {
+absolute: true,
+mapLeft: 52.08,
+mapTop: 63.67,
+mapWidth: 1.80,
+mapHeight: 3.34,
+rotate: 0,
+},
 };
 
 const LOT_SVG_SHAPES = {
@@ -407,6 +423,15 @@ const LOT_SVG_SHAPES = {
   viewBox: '0 0 36 38',
 path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z',
 },
+'1-1-1': {
+  viewBox: '0 0 38 40',
+  path: 'M-2.0017e-06 13.3586L22.3643 -1.15961e-05L38 26.1765L15.6357 39.5351L-2.0017e-06 13.3586Z',
+},
+'1-1-2': {
+  viewBox: '0 0 42 44',
+  path: 'M-2.14895e-06 14.1821L23.7429 2.53637e-05L41.2727 29.3476L17.5298 43.5296L-2.14895e-06 14.1821Z',
+},
+
 };
 
 const generateLotsFromAPI = (apiLots) => {

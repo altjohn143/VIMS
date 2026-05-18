@@ -104,7 +104,7 @@ const LOT_POSITION_OVERRIDES = {
     mapTop: 67.58,
     mapWidth: 1.61,
     mapHeight: 2.94,
-    rotate: 26.49,
+    rotate: 30.49,
   },
 };
 

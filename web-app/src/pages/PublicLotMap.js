@@ -136,6 +136,19 @@ const BLOCK_LAYOUTS = Object.fromEntries(
   Array.from({ length: 25 }, (_, i) => [i + 1, { rows: 1, cols: 20 }])
 );
 
+// Per-lot position overrides. If an entry includes `absolute: true`, the coordinates
+// are relative to the entire map image, not the block frame.
+// Use percentages for map-relative values.
+const LOT_POSITION_OVERRIDES = {
+  '6-1': {
+    absolute: true,
+    mapLeft: 19.79,
+    mapTop: 60.64,
+    mapWidth: 1.61,
+    mapHeight: 2.94,
+    rotate: 26.49,
+  },
+};
 
 const getLotImageHotspots = (lots) => {
   const blocks = {};
@@ -732,6 +745,10 @@ const PublicLotMap = () => {
   }, [allLots, filterStatus, search]);
 
   const imageHotspots = useMemo(() => getLotImageHotspots(phaseFilteredLots), [phaseFilteredLots]);
+  const absoluteOverrides = useMemo(() => phaseFilteredLots.filter((lot) => {
+    const override = LOT_POSITION_OVERRIDES[`${lot.block}-${lot.lotNumber}`];
+    return override?.absolute;
+  }), [phaseFilteredLots]);
 
   const handleRegister = (lot) => {
     const l = lot || selectedLot;
@@ -1061,8 +1078,19 @@ const PublicLotMap = () => {
                     )}
                     {lotsInBlock.map((lot, index) => {
                       const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
+                      const override = LOT_POSITION_OVERRIDES[`${lot.block}-${lot.lotNumber}`];
+
+                      if (override?.absolute) {
+                        return null;
+                      }
+
                       const row = 0;
                       const col = index;
+                      const left = `${col * cellWidth}%`;
+                      const top = `${row * cellHeight}%`;
+                      const width = `${cellWidth * 0.96}%`;
+                      const height = `${cellHeight * 0.82}%`;
+                      const rotate = override?.rotate || 0;
 
                       return (
                         <Box
@@ -1071,10 +1099,12 @@ const PublicLotMap = () => {
                           title={`Block ${lot.block} · Lot ${lot.lotNumber} · ${cfg.label}`}
                           sx={{
                             position: 'absolute',
-                            left: `${col * cellWidth}%`,
-                            top: `${row * cellHeight}%`,
-                            width: `${cellWidth * 0.96}%`,
-                            height: `${cellHeight * 0.82}%`,
+                            left,
+                            top,
+                            width,
+                            height,
+                            transform: `rotate(${rotate}deg)`,
+                            transformOrigin: 'top left',
                             cursor: 'pointer',
                             borderRadius: '3px',
                             border: `1px solid ${cfg.border}`,
@@ -1092,6 +1122,39 @@ const PublicLotMap = () => {
                       );
                     })}
                   </Box>
+                );
+              })}
+
+              {absoluteOverrides.map((lot) => {
+                const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
+                const override = LOT_POSITION_OVERRIDES[`${lot.block}-${lot.lotNumber}`];
+                return (
+                  <Box
+                    key={`abs-${lot.id}`}
+                    onClick={() => setSelectedLot(lot)}
+                    title={`Block ${lot.block} · Lot ${lot.lotNumber} · ${cfg.label}`}
+                    sx={{
+                      position: 'absolute',
+                      left: `${override.mapLeft}%`,
+                      top: `${override.mapTop}%`,
+                      width: `${override.mapWidth}%`,
+                      height: `${override.mapHeight}%`,
+                      transform: `rotate(${override.rotate || 0}deg)`,
+                      transformOrigin: 'top left',
+                      cursor: 'pointer',
+                      borderRadius: '3px',
+                      border: `1px solid ${cfg.border}`,
+                      backgroundColor: `${cfg.color}18`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: '0.15s ease',
+                      '&:hover': {
+                        boxShadow: `0 0 0 2px ${cfg.color}44`,
+                        backgroundColor: `${cfg.color}11`,
+                      },
+                    }}
+                  />
                 );
               })}
             </Box>

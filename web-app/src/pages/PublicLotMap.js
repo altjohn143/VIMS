@@ -982,7 +982,45 @@ const PublicLotMap = () => {
 
                 const centerLeft = (override.mapLeft || 0) + ((override.mapWidth || 0) / 2);
                 const centerTop = (override.mapTop || 0) + ((override.mapHeight || 0) / 2);
+                const lotKey = `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`;
 
+                // SVG polygon for lot 2-1-1
+                if (lotKey === '2-1-1') {
+                  return (
+                    <Box
+                      key={`abs-${lot.id}`}
+                      component="svg"
+                      viewBox="0 0 36 39"
+                      onClick={() => setSelectedLot(lot)}
+                      title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
+                      sx={{
+                        position: 'absolute',
+                        left: `${centerLeft}%`,
+                        top: `${centerTop}%`,
+                        width: `${override.mapWidth}%`,
+                        height: `${override.mapHeight}%`,
+                        transform: `translate(-50%, -50%) rotate(${override.rotate || 0}deg)`,
+                        transformOrigin: 'center center',
+                        cursor: 'pointer',
+                        transition: '0.15s ease',
+                        '& path': {
+                          fill: `${cfg.color}18`,
+                          stroke: cfg.border,
+                          strokeWidth: '0.8',
+                          transition: 'all 0.15s ease',
+                        },
+                        '&:hover path': {
+                          fill: `${cfg.color}22`,
+                          filter: `drop-shadow(0 0 4px ${cfg.color}44)`,
+                        },
+                      }}
+                    >
+                      <path d="M35.8081 26.7385L13.9132 38.1314L8.42537e-06 11.3929L21.8949 8.95441e-06L35.8081 26.7385Z" />
+                    </Box>
+                  );
+                }
+
+                // Rectangle for all other lots
                 return (
                   <Box
                     key={`abs-${lot.id}`}

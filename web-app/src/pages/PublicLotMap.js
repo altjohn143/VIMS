@@ -538,6 +538,71 @@ rotate: 0,
   mapHeight: 1.96,
   rotate: 0,
 },
+'2-10-1': { 
+  absolute: true, 
+  mapLeft: 16.99, 
+  mapTop: 34.38, 
+  mapWidth: 1.61, 
+  mapHeight: 34.38, 
+  rotate: 0, 
+}, 
+'2-10-2': { 
+  absolute: true, 
+  mapLeft: 18.82, 
+  mapTop: 33.11, 
+  mapWidth: 1.61, 
+  mapHeight: 3.26, 
+  rotate: 0, 
+}, 
+'2-10-3': { 
+  absolute: true, 
+  mapLeft: 20.64, 
+  mapTop: 31.74, 
+  mapWidth: 1.61, 
+  mapHeight: 3.26, 
+  rotate: 0, 
+}, 
+'2-10-4': { 
+  absolute: true, 
+  mapLeft: 22.53, 
+  mapTop: 30.47, 
+  mapWidth: 1.61, 
+  mapHeight: 3.26, 
+  rotate: 0, 
+}, 
+'2-10-5': { 
+  absolute: true, 
+  mapLeft: 24.28, 
+  mapTop: 29.10, 
+  mapWidth: 1.61, 
+  mapHeight: 3.26, 
+  rotate: 0, 
+}, 
+'2-10-6': { 
+  absolute: true, 
+  mapLeft: 26.11, 
+  mapTop: 27.64, 
+  mapWidth: 1.61, 
+  mapHeight: 3.26, 
+  rotate: 0, 
+}, 
+'2-10-7': { 
+  absolute: true, 
+  mapLeft: 28.23, 
+  mapTop: 25.56, 
+  mapWidth: 1.61, 
+  mapHeight: 3.26, 
+  rotate: 0, 
+}, 
+'2-10-8': { 
+  absolute: true, 
+  mapLeft: 29.10, 
+  mapTop: 23.34, 
+  mapWidth: 1.61, 
+  mapHeight: 3.26, 
+  rotate: 0, 
+}, 
+
 };
 
 const LOT_SVG_SHAPES = {
@@ -772,6 +837,38 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
   viewBox: '0 0 28 28',
   path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
+'2-10-1': { 
+  viewBox: '0 0 37 41', 
+  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z', 
+}, 
+'2-10-2': { 
+  viewBox: '0 0 37 41', 
+  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z', 
+}, 
+'2-10-3': { 
+  viewBox: '0 0 37 41', 
+  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z', 
+}, 
+'2-10-4': { 
+  viewBox: '0 0 37 41', 
+  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z', 
+}, 
+'2-10-5': { 
+  viewBox: '0 0 37 41', 
+  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z', 
+}, 
+'2-10-6': { 
+  viewBox: '0 0 37 41', 
+  path: 'M0 11.0088L22.0905 0L37.001 29.9195L14.9104 40.9283L0 11.0088Z', 
+}, 
+'2-10-7': { 
+  viewBox: '0 0 40 42', 
+  path: 'M0 14.7131L19.8169 0L39.7444 26.8401L19.9275 41.5532L0 14.7131Z', 
+}, 
+'2-10-8': { 
+  viewBox: '0 0 40 42', 
+  path: 'M0 14.7131L19.8169 0L39.7444 26.8401L19.9275 41.5532L0 14.7131Z', 
+}, 
 };
 
 const generateLotsFromAPI = (apiLots) => {

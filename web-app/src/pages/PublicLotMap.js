@@ -363,6 +363,59 @@ rotate: 0,
   mapHeight: 2.46,
   rotate: 0,
 },
+'3-4-12': {
+  absolute: true,
+  mapLeft: 40.72,
+  mapTop: 48.91,
+  mapWidth: 1.13,
+  mapHeight: 2.36,
+  rotate: 0,
+},
+
+'3-4-11': {
+  absolute: true,
+  mapLeft: 41.69,
+  mapTop: 51.32,
+  mapWidth: 1.13,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'3-4-10': {
+  absolute: true,
+  mapLeft: 43.04,
+  mapTop: 54.16,
+  mapWidth: 1.13,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'3-4-9': {
+  absolute: true,
+  mapLeft: 41.47,
+  mapTop: 55.86,
+  mapWidth: 1.13,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'3-4-8': {
+  absolute: true,
+  mapLeft: 40.04,
+  mapTop: 57.03,
+  mapWidth: 1.13,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'3-4-7': {
+  absolute: true,
+  mapLeft: 38.67,
+  mapTop: 58.01,
+  mapWidth: 1.13,
+  mapHeight: 2.94,
+  rotate: 0,
+},
 };
 
 const LOT_SVG_SHAPES = {
@@ -506,6 +559,30 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
 '2-3-2': {
   viewBox: '0 0 30 32',
   path: 'M-1.58446e-06 9.02585L18.1114 -6.68298e-06L29.3471 22.5458L11.2357 31.5716L-1.58446e-06 9.02585Z',
+},
+'3-4-7': {
+  viewBox: '0 0 29 35',
+  path: 'M0 7.75165L15.5546 1.189e-05L28.9988 26.9773L13.4442 34.729L0 7.75165Z',
+},
+'3-4-8': {
+  viewBox: '0 0 29 35',
+  path: 'M0 7.75165L15.5546 1.189e-05L28.9988 26.9773L13.4442 34.729L0 7.75165Z',
+},
+'3-4-9': {
+  viewBox: '0 0 29 35',
+  path: 'M0 7.75165L15.5546 1.189e-05L28.9988 26.9773L13.4442 34.729L0 7.75165Z',
+},
+'3-4-10': {
+  viewBox: '0 0 32 35',
+  path: 'M0 10.0794L14.1576 1.5234e-05L31.639 24.5545L17.4814 34.6339L0 10.0794Z',
+},
+'3-4-11': {
+  viewBox: '0 0 32 35',
+  path: 'M0 10.0794L14.1576 1.5234e-05L31.639 24.5545L17.4814 34.6339L0 10.0794Z',
+},
+'3-4-12': {
+  viewBox: '0 0 28 30',
+  path: 'M0 9.20474L14.7413 2.64103e-07L27.5601 20.5292L12.8188 29.7339L0 9.20474Z',
 },
 };
 

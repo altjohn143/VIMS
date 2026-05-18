@@ -62,79 +62,6 @@ const STATUS_CONFIG = {
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
 };
 
-const IMAGE_BLOCK_FRAMES = {
-// PHASE 1
-1: { left: 17.60, top: 25.25, width: 21.18, height: 2.48, rotate: 0 },
-2: { left: 17.60, top: 29.88, width: 21.18, height: 2.48, rotate: 0 },
-3: { left: 17.67, top: 34.52, width: 21.18, height: 2.48, rotate: 0 },
-4: { left: 18.05, top: 39.15, width: 21.18, height: 2.48, rotate: 0 },
-5: { left: 18.05, top: 43.79, width: 21.18, height: 2.48, rotate: 0 },
-
-// PHASE 2
-6:  { left: 42.30, top: 22.78, width: 21.18, height: 2.48, rotate: 0 },
-7:  { left: 42.49, top: 27.71, width: 21.18, height: 2.48, rotate: 0 },
-8:  { left: 42.42, top: 32.35, width: 21.18, height: 2.48, rotate: 0 },
-9:  { left: 42.81, top: 36.79, width: 21.18, height: 2.48, rotate: 0 },
-10: { left: 43.00, top: 41.22, width: 21.18, height: 2.48, rotate: 0 },
-
-// PHASE 3
-
-// Block 1 slightly left + slightly up
-11: { left: 66.80, top: 8.30, width: 22.00, height: 2.45, rotate: -0.20 },
-
-// Block 2 slightly left
-12: { left: 66.90, top: 15.90, width: 22.00, height: 2.45, rotate: -0.20 },
-
-// Block 3 more left
-13: { left: 67.00, top: 23.30, width: 22.00, height: 2.45, rotate: -0.30 },
-
-// Block 4 more left + slightly down
-14: { left: 67.10, top: 31.00, width: 22.00, height: 2.45, rotate: -0.40 },
-
-// Block 5 more left + more down
-15: { left: 67.20, top: 38.80, width: 22.00, height: 2.45, rotate: -0.50 },
-
-// PHASE 4
-
-// Block 1 slightly left + slightly up
-16: { left: 16.90, top: 60.80, width: 22.00, height: 2.55, rotate: -0.20 },
-
-// Block 2 slightly left
-17: { left: 17.10, top: 67.70, width: 22.00, height: 2.55, rotate: -0.20 },
-
-// Block 3 more left
-18: { left: 17.30, top: 74.55, width: 22.00, height: 2.55, rotate: -0.30 },
-
-// Block 4 more left + slightly down
-19: { left: 17.50, top: 81.65, width: 22.00, height: 2.55, rotate: -0.40 },
-
-// Block 5 more left + more down
-20: { left: 17.70, top: 88.85, width: 22.00, height: 2.55, rotate: -0.50 },
-
-// PHASE 5
-
-// Block 1 slightly left + slightly up
-21: { left: 56.80, top: 57.30, width: 22.00, height: 2.55, rotate: -0.20 },
-
-// Block 2 slightly left
-22: { left: 57.00, top: 64.20, width: 22.00, height: 2.55, rotate: -0.20 },
-
-// Block 3 more left
-23: { left: 57.20, top: 71.05, width: 22.00, height: 2.55, rotate: -0.30 },
-
-// Block 4 more left + slightly down
-24: { left: 57.40, top: 78.15, width: 22.00, height: 2.55, rotate: -0.40 },
-
-// Block 5 more left + more down
-25: { left: 57.60, top: 85.35, width: 22.00, height: 2.55, rotate: -0.50 },
-};
-
-// Toggle visual debug overlays for block frames and labels
-const SHOW_BLOCK_DEBUG = false;
-
-const BLOCK_LAYOUTS = Object.fromEntries(
-  Array.from({ length: 25 }, (_, i) => [i + 1, { rows: 1, cols: 20 }])
-);
 
 const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
 
@@ -179,25 +106,6 @@ const LOT_POSITION_OVERRIDES = {
     mapHeight: 2.94,
     rotate: 26.49,
   },
-};
-
-const getLotImageHotspots = (lots) => {
-  const blocks = {};
-
-  lots.forEach((lot) => {
-    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
-    if (!override || override.absolute) return;
-
-    const blockNo = Number(lot.block);
-    if (!blocks[blockNo]) blocks[blockNo] = [];
-    blocks[blockNo].push(lot);
-  });
-
-  Object.keys(blocks).forEach((blockNo) => {
-    blocks[blockNo].sort((a, b) => Number(a.lotNumber) - Number(b.lotNumber));
-  });
-
-  return blocks;
 };
 
 const generateLotsFromAPI = (apiLots) => {
@@ -784,7 +692,6 @@ const PublicLotMap = () => {
     });
   }, [allLots, filterStatus, search]);
 
-  const imageHotspots = useMemo(() => getLotImageHotspots(phaseFilteredLots), [phaseFilteredLots]);
   const absoluteOverrides = useMemo(() => phaseFilteredLots.filter((lot) => {
     const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
     return override?.absolute;
@@ -1057,7 +964,7 @@ const PublicLotMap = () => {
             <Box sx={{
               position: 'relative',
               width: '100%',
-              aspectRatio: '1630 / 965',
+              aspectRatio: '1536 / 1024',
               overflow: 'hidden',
               transform: `scale(${0.78 + (mapZoom - 14) * 0.12})`,
               transformOrigin: 'top center',
@@ -1065,108 +972,17 @@ const PublicLotMap = () => {
               <Box component="img"
                 src={mapImage}
                 alt="Casimiro Westville Homes map"
-                sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                sx={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
               />
-
-              {Object.entries(imageHotspots).map(([blockNo, lotsInBlock]) => {
-                const frame = IMAGE_BLOCK_FRAMES[Number(blockNo)];
-                const layout = (typeof BLOCK_LAYOUTS !== 'undefined' && BLOCK_LAYOUTS[Number(blockNo)])
-                  ? BLOCK_LAYOUTS[Number(blockNo)]
-                  : { rows: 4, cols: 5 };
-
-                if (!frame) return null;
-
-                const cellWidth = 100 / layout.cols;
-                const cellHeight = 100 / layout.rows;
-
-                return (
-                  <Box
-                    key={blockNo}
-                    sx={{
-                      position: 'absolute',
-                      left: `${frame.left}%`,
-                      top: `${frame.top}%`,
-                      width: `${frame.width}%`,
-                      height: `${frame.height}%`,
-                      transform: `rotate(${frame.rotate || 0}deg)`,
-                      transformOrigin: 'top left',
-                    }}
-                  >
-                    {SHOW_BLOCK_DEBUG && (
-                      <>
-                        {/* non-rotated reference frame (where the percentages map before rotation) */}
-                        <Box sx={{
-                          position: 'absolute',
-                          left: `${frame.left}%`,
-                          top: `${frame.top}%`,
-                          width: `${frame.width}%`,
-                          height: `${frame.height}%`,
-                          pointerEvents: 'none',
-                          border: '2px dashed rgba(255,200,0,0.9)',
-                          zIndex: 1200,
-                          transform: 'none',
-                        }} />
-
-                        {/* rotated frame label inside the rotated container */}
-                        <Box sx={{
-                          position: 'absolute', top: 0, left: 0, zIndex: 1300,
-                          backgroundColor: 'rgba(255,255,255,0.85)', color: '#111',
-                          px: 0.5, py: 0.25, fontSize: '0.62rem', fontWeight: 800,
-                          borderRadius: '3px', pointerEvents: 'none'
-                        }}>B{blockNo}</Box>
-                      </>
-                    )}
-                    {lotsInBlock.map((lot, index) => {
-                      const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
-                    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
-                      if (override?.absolute) {
-                        return null;
-                      }
-
-                      const row = 0;
-                      const col = index;
-                      const left = `${col * cellWidth}%`;
-                      const top = `${row * cellHeight}%`;
-                      const width = `${cellWidth * 0.96}%`;
-                      const height = `${cellHeight * 0.82}%`;
-                      const rotate = override?.rotate || 0;
-
-                      return (
-                        <Box
-                          key={lot.id}
-                          onClick={() => setSelectedLot(lot)}
-                          title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
-                          sx={{
-                            position: 'absolute',
-                            left,
-                            top,
-                            width,
-                            height,
-                            transform: `rotate(${rotate}deg)`,
-                            transformOrigin: 'top left',
-                            cursor: 'pointer',
-                            borderRadius: '3px',
-                            border: `1px solid ${cfg.border}`,
-                            backgroundColor: `${cfg.color}18`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: '0.15s ease',
-                            '&:hover': {
-                              boxShadow: `0 0 0 2px ${cfg.color}44`,
-                              backgroundColor: `${cfg.color}11`,
-                            },
-                          }}
-                        />
-                      );
-                    })}
-                  </Box>
-                );
-              })}
 
               {absoluteOverrides.map((lot) => {
                 const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
                 const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
+                if (!override) return null;
+
+                const centerLeft = (override.mapLeft || 0) + ((override.mapWidth || 0) / 2);
+                const centerTop = (override.mapTop || 0) + ((override.mapHeight || 0) / 2);
+
                 return (
                   <Box
                     key={`abs-${lot.id}`}
@@ -1174,12 +990,12 @@ const PublicLotMap = () => {
                     title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
                     sx={{
                       position: 'absolute',
-                      left: `${override.mapLeft}%`,
-                      top: `${override.mapTop}%`,
+                      left: `${centerLeft}%`,
+                      top: `${centerTop}%`,
                       width: `${override.mapWidth}%`,
                       height: `${override.mapHeight}%`,
-                      transform: `rotate(${override.rotate || 0}deg)`,
-                      transformOrigin: 'top left',
+                      transform: `translate(-50%, -50%) rotate(${override.rotate || 0}deg)`,
+                      transformOrigin: 'center center',
                       cursor: 'pointer',
                       borderRadius: '3px',
                       border: `1px solid ${cfg.border}`,

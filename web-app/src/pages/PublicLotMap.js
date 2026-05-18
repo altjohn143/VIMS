@@ -83,12 +83,12 @@ const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
 // };
 const LOT_POSITION_OVERRIDES = {
   '2-1-1': {
-    absolute: false,
-    mapLeft: 19.79,
-    mapTop: 60.64,
+    absolute: true,
+    mapLeft: 19.81,
+    mapTop: 60.74,
     mapWidth: 1.61,
     mapHeight: 2.94,
-    rotate: 50,
+    rotate: 27.49,
   },
   '2-1-2': {
     absolute: true,
@@ -96,7 +96,7 @@ const LOT_POSITION_OVERRIDES = {
     mapTop: 64.06,
     mapWidth: 1.61,
     mapHeight: 2.94,
-    rotate: 26.49,
+    rotate: 27.49,
   },
   '2-1-3': {
     absolute: true,
@@ -104,7 +104,7 @@ const LOT_POSITION_OVERRIDES = {
     mapTop: 67.58,
     mapWidth: 1.61,
     mapHeight: 2.94,
-    rotate: 26.49,
+    rotate: 27.49,
   },
 };
 

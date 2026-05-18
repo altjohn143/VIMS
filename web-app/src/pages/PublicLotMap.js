@@ -1830,19 +1830,28 @@ const PublicLotMap = () => {
                         transformOrigin: 'center center',
                         cursor: 'pointer',
                         transition: '0.15s ease',
-                        '& path': {
+                        '& path, & rect': {
                           fill: `${cfg.color}18`,
                           stroke: cfg.border,
                           strokeWidth: '0.8',
                           transition: 'all 0.15s ease',
                         },
-                        '&:hover path': {
+                        '&:hover path, &:hover rect': {
                           fill: `${cfg.color}22`,
                           filter: `drop-shadow(0 0 4px ${cfg.color}44)`,
                         },
                       }}
                     >
-                      <path d={svgShape.path} />
+                      {svgShape.path && <path d={svgShape.path} />}
+                      {svgShape.rect && (
+                        <rect
+                          x={0}
+                          y={svgShape.rect.y}
+                          width={svgShape.rect.width}
+                          height={svgShape.rect.height}
+                          transform={`rotate(${svgShape.rect.rotate}, ${svgShape.rect.originX}, ${svgShape.rect.originY})`}
+                        />
+                      )}
                     </Box>
                   );
                 }

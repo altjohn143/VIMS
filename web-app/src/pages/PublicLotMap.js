@@ -183,6 +183,54 @@ const LOT_POSITION_OVERRIDES = {
   mapHeight: 1.96,
   rotate: 0,
 },
+'2-5-4': {
+  absolute: true,
+  mapLeft: 21.35,
+  mapTop: 54.30,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'2-5-5': {
+  absolute: true,
+  mapLeft: 22.79,
+  mapTop: 53.13,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'2-5-6': {
+  absolute: true,
+  mapLeft: 24.22,
+  mapTop: 52.05,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'2-5-1': {
+  absolute: true,
+  mapLeft: 20.44,
+  mapTop: 52.05,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'2-5-2': {
+  absolute: true,
+  mapLeft: 21.88,
+  mapTop: 50.98,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'2-5-3': {
+  absolute: true,
+  mapLeft: 23.57,
+  mapTop: 49.71,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
 '2-3-1': {
   absolute: true,
   mapLeft: 24.02,
@@ -1060,6 +1108,30 @@ const LOT_SVG_SHAPES = {
   '2-2-10': {
     viewBox: '0 0 28 28',
     path: 'M-1.51722e-06 9.76624L17.7232 1.1572e-05L27.4207 17.5985L9.69752 27.3647L-1.51722e-06 9.76624Z',
+  },
+  '2-5-1': {
+    viewBox: '0 0 28 27',
+    path: 'M-1.52616e-06 9.02588L18.1114 2.39516e-05L27.0738 17.984L8.96236 27.0099L-1.52616e-06 9.02588Z',
+  },
+  '2-5-2': {
+    viewBox: '0 0 28 27',
+    path: 'M-1.52616e-06 9.02588L18.1114 2.39516e-05L27.0738 17.984L8.96236 27.0099L-1.52616e-06 9.02588Z',
+  },
+  '2-5-3': {
+    viewBox: '0 0 28 27',
+    path: 'M-1.52616e-06 9.02585L18.1114 -6.56598e-06L27.0738 17.984L8.96236 27.0099L-1.52616e-06 9.02585Z',
+  },
+  '2-5-4': {
+    viewBox: '0 0 28 27',
+    path: 'M-1.52616e-06 9.02588L18.1114 2.39516e-05L27.0738 17.984L8.96236 27.0099L-1.52616e-06 9.02588Z',
+  },
+  '2-5-5': {
+    viewBox: '0 0 28 27',
+    path: 'M-1.52616e-06 9.02588L18.1114 2.39516e-05L27.0738 17.984L8.96236 27.0099L-1.52616e-06 9.02588Z',
+  },
+  '2-5-6': {
+    viewBox: '0 0 28 27',
+    path: 'M-1.52616e-06 9.02588L18.1114 2.39516e-05L27.0738 17.984L8.96236 27.0099L-1.52616e-06 9.02588Z',
   },
   '2-3-1': {
     viewBox: '0 0 36 38',

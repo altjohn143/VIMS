@@ -21,6 +21,15 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import mapImage from '../assets/lotbettermap.jpg';
+import { ReactComponent as P3B9L1 } from '../assets/P3 B9 L1.svg';
+import { ReactComponent as P3B9L2 } from '../assets/P3 B9 L2.svg';
+import { ReactComponent as P3B9L3 } from '../assets/P3 B9 L3.svg';
+import { ReactComponent as P3B9L4 } from '../assets/P3 B9 L4.svg';
+import { ReactComponent as P3B9L5 } from '../assets/P3 B9 L5.svg';
+import { ReactComponent as P3B9L6 } from '../assets/P3 B9 L6.svg';
+import { ReactComponent as P3B9L7 } from '../assets/P3 B9 L7.svg';
+import { ReactComponent as P3B9L8 } from '../assets/P3 B9 L8.svg';
+import { ReactComponent as P3B9L9 } from '../assets/P3 B9 L9.svg';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
 const OUTSIDE_PHOTOS = [
@@ -523,6 +532,86 @@ rotate: 0,
   mapHeight: 2.69,
   rotate: 0,
 },
+'1-5-1': {
+  absolute: true,
+  mapLeft: 65.64,
+  mapTop: 73.61,
+  mapWidth: 1.29,
+  mapHeight: 2.69,
+  rotate: 0,
+},
+'1-5-2': {
+  absolute: true,
+  mapLeft: 66.99,
+  mapTop: 72.33,
+  mapWidth: 1.29,
+  mapHeight: 2.69,
+  rotate: 0,
+},
+'1-5-3': {
+  absolute: true,
+  mapLeft: 68.30,
+  mapTop: 70.97,
+  mapWidth: 1.29,
+  mapHeight: 2.69,
+  rotate: 0,
+},
+'1-6-1': {
+  absolute: true,
+  mapLeft: 70.96,
+  mapTop: 68.85,
+  mapWidth: 1.29,
+  mapHeight: 2.69,
+  rotate: 0,
+},
+'1-6-2': {
+  absolute: true,
+  mapLeft: 72.46,
+  mapTop: 67.87,
+  mapWidth: 1.29,
+  mapHeight: 2.69,
+  rotate: 0,
+},
+'1-6-3': {
+  absolute: true,
+  mapLeft: 74.22,
+  mapTop: 66.99,
+  mapWidth: 1.29,
+  mapHeight: 2.69,
+  rotate: 0,
+},
+'1-6-4': {
+  absolute: true,
+  mapLeft: 75.59,
+  mapTop: 65.92,
+  mapWidth: 1.29,
+  mapHeight: 2.69,
+  rotate: 0,
+},
+'1-7-1': {
+  absolute: true,
+  mapLeft: 66.99,
+  mapTop: 78.52,
+  mapWidth: 1.29,
+  mapHeight: 1.86,
+  rotate: 0,
+},
+'1-7-2': {
+  absolute: true,
+  mapLeft: 68.29,
+  mapTop: 77.15,
+  mapWidth: 1.29,
+  mapHeight: 1.86,
+  rotate: 0,
+},
+'1-7-3': {
+  absolute: true,
+  mapLeft: 69.66,
+  mapTop: 75.78,
+  mapWidth: 1.29,
+  mapHeight: 1.86,
+  rotate: 0,
+},
 '2-8-1': {
   absolute: true,
   mapLeft: 24.48,
@@ -873,7 +962,55 @@ rotate: 0,
   mapWidth: 1.32,
   mapHeight: 1.96,
   rotate: 0,
-}, 
+},
+'3-9-6': {
+  absolute: true,
+  mapLeft: 47.72,
+  mapTop: 68.46,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'3-9-5': {
+  absolute: true,
+  mapLeft: 46.22,
+  mapTop: 69.73,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'3-9-4': {
+  absolute: true,
+  mapLeft: 44.79,
+  mapTop: 70.90,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'3-9-3': {
+  absolute: true,
+  mapLeft: 43.29,
+  mapTop: 72.27,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'3-9-2': {
+  absolute: true,
+  mapLeft: 41.86,
+  mapTop: 73.44,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+'3-9-1': {
+  absolute: true,
+  mapLeft: 40.43,
+  mapTop: 74.61,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
 };
 
 const LOT_SVG_SHAPES = {
@@ -1098,6 +1235,46 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
   viewBox: '0 0 30 34',
   path: 'M-1.5857e-06 8.26196L18.0382 -2.20007e-05L29.5265 25.0821L11.4883 33.3441L-1.5857e-06 8.26196Z',
 },
+'1-5-1': {
+  viewBox: '0 0 30 34',
+  path: 'M-1.5857e-06 8.26196L18.0382 -2.20007e-05L29.5265 25.0821L11.4883 33.3441L-1.5857e-06 8.26196Z',
+},
+'1-5-2': {
+  viewBox: '0 0 30 34',
+  path: 'M-1.5857e-06 8.26196L18.0382 -2.20007e-05L29.5265 25.0821L11.4883 33.3441L-1.5857e-06 8.26196Z',
+},
+'1-5-3': {
+  viewBox: '0 0 30 34',
+  path: 'M-1.5857e-06 8.26196L18.0382 -2.20007e-05L29.5265 25.0821L11.4883 33.3441L-1.5857e-06 8.26196Z',
+},
+'1-6-1': {
+  viewBox: '0 0 30 34',
+  path: 'M-1.5857e-06 8.26196L18.0382 -2.20007e-05L29.5265 25.0821L11.4883 33.3441L-1.5857e-06 8.26196Z',
+},
+'1-6-2': {
+  viewBox: '0 0 30 34',
+  path: 'M-1.5857e-06 8.26196L18.0382 -2.20007e-05L29.5265 25.0821L11.4883 33.3441L-1.5857e-06 8.26196Z',
+},
+'1-6-3': {
+  viewBox: '0 0 30 34',
+  path: 'M-1.5857e-06 8.26196L18.0382 -2.20007e-05L29.5265 25.0821L11.4883 33.3441L-1.5857e-06 8.26196Z',
+},
+'1-6-4': {
+  viewBox: '0 0 30 34',
+  path: 'M-1.5857e-06 8.26196L18.0382 -2.20007e-05L29.5265 25.0821L11.4883 33.3441L-1.5857e-06 8.26196Z',
+},
+'1-7-1': {
+  viewBox: '0 0 28 27',
+  path: 'M-1.51257e-06 10.5122L17.1848 -2.85902e-05L27.0714 16.5507L9.88659 27.0629L-1.51257e-06 10.5122Z',
+},
+'1-7-2': {
+  viewBox: '0 0 28 27',
+  path: 'M-1.51257e-06 10.5122L17.1848 -2.85902e-05L27.0714 16.5507L9.88659 27.0629L-1.51257e-06 10.5122Z',
+},
+'1-7-3': {
+  viewBox: '0 0 28 27',
+  path: 'M-1.51257e-06 10.5122L17.1848 -2.85902e-05L27.0714 16.5507L9.88659 27.0629L-1.51257e-06 10.5122Z',
+},
 '2-8-1': {
   viewBox: '0 0 37 40',
   path: 'M0 11.0175L16.6384 0L36.0949 28.1072L19.4565 39.6247L0 11.0175Z',
@@ -1291,18 +1468,31 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
 },
 
 '3-9-9': {
-  viewBox: '0 0 28 28',
-  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
+  component: P3B9L9,
 },
-
 '3-9-8': {
-  viewBox: '0 0 28 28',
-  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
+  component: P3B9L8,
 },
-
 '3-9-7': {
-  viewBox: '0 0 28 28',
-  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
+  component: P3B9L7,
+},
+'3-9-6': {
+  component: P3B9L6,
+},
+'3-9-5': {
+  component: P3B9L5,
+},
+'3-9-4': {
+  component: P3B9L4,
+},
+'3-9-3': {
+  component: P3B9L3,
+},
+'3-9-2': {
+  component: P3B9L2,
+},
+'3-9-1': {
+  component: P3B9L1,
 },
 };
 
@@ -2185,11 +2375,12 @@ const PublicLotMap = () => {
                 const renderRotation = svgShape ? 0 : (override.rotate || 0);
 
                 if (svgShape) {
+                const SvgComponent = svgShape.component;
                   return (
                     <Box
                       key={`abs-${lot.id}`}
-                      component="svg"
-                      viewBox={svgShape.viewBox}
+                      component={SvgComponent || 'svg'}
+                      {...(!SvgComponent ? { viewBox: svgShape.viewBox } : {})}
                       onClick={() => setSelectedLot(lot)}
                       title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
                       sx={{
@@ -2214,8 +2405,8 @@ const PublicLotMap = () => {
                         },
                       }}
                     >
-                      {svgShape.path && <path d={svgShape.path} />}
-                      {svgShape.rect && (
+                      {!SvgComponent && svgShape.path && <path d={svgShape.path} />}
+                      {!SvgComponent && svgShape.rect && (
                         <rect
                           x={0}
                           y={svgShape.rect.y}

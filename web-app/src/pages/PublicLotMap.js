@@ -64,6 +64,9 @@ const STATUS_CONFIG = {
 
 
 const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
+
+const getLotMapKey = (lot) => `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`;
+
 const LOT_POSITION_OVERRIDES = {
   '2-1-1': {
     absolute: true,
@@ -1934,6 +1937,23 @@ const generateLotsFromAPI = (apiLots) => {
 };
 
 // ─── Virtual Tour Viewer ──────────────────────────────────────────────────────
+const hasPreciseMapPosition = (lot) => Boolean(LOT_POSITION_OVERRIDES[getLotMapKey(lot)]);
+
+const getAutoClickablePosition = (lot) => {
+  const rawBlock = Number(lot.block) || Number(lot.phaseBlock) || 1;
+  const blockWithinPhase = Math.max(0, (rawBlock - 1) % 5);
+  const lotIndex = Math.max(0, (Number(lot.lotNumber) || 1) - 1);
+  const rowWithinBlock = Math.floor(lotIndex / 10);
+  const colWithinRow = lotIndex % 10;
+
+  return {
+    left: 8 + (colWithinRow * 8.55),
+    top: 10 + (blockWithinPhase * 16.2) + (rowWithinBlock * 6.2),
+    width: 5.8,
+    height: 4.7,
+  };
+};
+
 const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
   const [activeTab, setActiveTab] = useState('outside');
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -2489,15 +2509,25 @@ const PublicLotMap = () => {
         String(lot.phaseBlock).toLowerCase().includes(s) ||
         String(lot.block).toLowerCase().includes(s) ||
         String(lot.lotNumber).toLowerCase().includes(s);
+      const matchesPhase = Number(lot.phase) === Number(selectedPhase);
 
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesSearch && matchesPhase;
     });
-  }, [allLots, filterStatus, search]);
+  }, [allLots, filterStatus, search, selectedPhase]);
 
   const absoluteOverrides = useMemo(() => phaseFilteredLots.filter((lot) => {
-    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
+    const override = LOT_POSITION_OVERRIDES[getLotMapKey(lot)];
     return override?.absolute;
   }), [phaseFilteredLots]);
+
+  const autoClickableLots = useMemo(
+    () => phaseFilteredLots.filter((lot) => !hasPreciseMapPosition(lot)),
+    [phaseFilteredLots]
+  );
+
+  const clickableCoverage = phaseFilteredLots.length > 0
+    ? Math.round(((absoluteOverrides.length + autoClickableLots.length) / phaseFilteredLots.length) * 100)
+    : 100;
 
   const handleRegister = (lot) => {
     const l = lot || selectedLot;
@@ -2779,12 +2809,12 @@ const PublicLotMap = () => {
 
               {absoluteOverrides.map((lot) => {
                 const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
-                const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
+                const override = LOT_POSITION_OVERRIDES[getLotMapKey(lot)];
                 if (!override) return null;
 
                 const centerLeft = (override.mapLeft || 0) + ((override.mapWidth || 0) / 2);
                 const centerTop = (override.mapTop || 0) + ((override.mapHeight || 0) / 2);
-                const lotKey = `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`;
+                const lotKey = getLotMapKey(lot);
                 const svgShape = LOT_SVG_SHAPES[lotKey];
                 const renderRotation = svgShape ? 0 : (override.rotate || 0);
 
@@ -2862,11 +2892,57 @@ const PublicLotMap = () => {
                   />
                 );
               })}
+
+              {autoClickableLots.map((lot) => {
+                const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
+                const pos = getAutoClickablePosition(lot);
+
+                return (
+                  <Box
+                    key={`auto-${lot.id}`}
+                    onClick={() => setSelectedLot(lot)}
+                    title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
+                    sx={{
+                      position: 'absolute',
+                      left: `${pos.left}%`,
+                      top: `${pos.top}%`,
+                      width: `${pos.width}%`,
+                      height: `${pos.height}%`,
+                      cursor: 'pointer',
+                      borderRadius: '5px',
+                      border: `1px solid ${cfg.border}`,
+                      backgroundColor: `${cfg.color}20`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: cfg.border,
+                      fontSize: 'clamp(6px, 0.62vw, 9px)',
+                      fontWeight: 800,
+                      lineHeight: 1,
+                      transition: '0.15s ease',
+                      boxShadow: '0 0 0 1px rgba(255,255,255,0.22) inset',
+                      '&:hover': {
+                        backgroundColor: `${cfg.color}38`,
+                        boxShadow: `0 0 0 2px ${cfg.color}66, 0 10px 22px rgba(0,0,0,0.22)`,
+                        transform: 'scale(1.08)',
+                        zIndex: 5,
+                      },
+                    }}
+                  >
+                    {lot.phaseBlock}-{lot.lotNumber}
+                  </Box>
+                );
+              })}
             </Box>
 
             <Box sx={{ position: 'absolute', top: 16, left: 16, px: 2, py: 1, borderRadius: 2, backgroundColor: 'rgba(15,23,42,0.78)' }}>
               <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.12em' }}>
                 Casimiro Westville Homes Map
+              </Typography>
+            </Box>
+            <Box sx={{ position: 'absolute', top: 16, right: 16, px: 2, py: 1, borderRadius: 2, backgroundColor: 'rgba(22,101,52,0.9)', border: '1px solid rgba(134,239,172,0.45)' }}>
+              <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.72rem', letterSpacing: '0.04em' }}>
+                {clickableCoverage}% CLICKABLE · {phaseFilteredLots.length} LOTS
               </Typography>
             </Box>
           </Box>

@@ -20,7 +20,7 @@ import {
   Pause as PauseIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
-import mapImage from '../assets/lotbettermap.png';
+import mapImage from '../assets/lotbettermap.jpg';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
 const OUTSIDE_PHOTOS = [

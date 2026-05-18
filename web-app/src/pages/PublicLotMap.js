@@ -440,6 +440,104 @@ rotate: 0,
   mapHeight: 3.34,
   rotate: 0,
 },
+'3-5-2': {
+  absolute: true,
+  mapLeft: 32.88,
+  mapTop: 68.36,
+  mapWidth: 1.61,
+  mapHeight: 1.54,
+  rotate: 0,
+},
+
+'3-5-3': {
+  absolute: true,
+  mapLeft: 34.51,
+  mapTop: 67.09,
+  mapWidth: 1.61,
+  mapHeight: 1.54,
+  rotate: 0,
+},
+
+'3-5-4': {
+  absolute: true,
+  mapLeft: 36.13,
+  mapTop: 65.82,
+  mapWidth: 1.61,
+  mapHeight: 1.54,
+  rotate: 0,
+},
+
+'3-5-5': {
+  absolute: true,
+  mapLeft: 37.83,
+  mapTop: 64.45,
+  mapWidth: 1.61,
+  mapHeight: 1.54,
+  rotate: 0,
+},
+
+'3-5-6': {
+  absolute: true,
+  mapLeft: 39.52,
+  mapTop: 63.09,
+  mapWidth: 1.61,
+  mapHeight: 1.54,
+  rotate: 0,
+},
+
+'3-5-7': {
+  absolute: true,
+  mapLeft: 41.15,
+  mapTop: 61.82,
+  mapWidth: 1.61,
+  mapHeight: 1.54,
+  rotate: 0,
+},
+
+'3-5-8': {
+  absolute: true,
+  mapLeft: 43.03,
+  mapTop: 60.16,
+  mapWidth: 1.61,
+  mapHeight: 1.54,
+  rotate: 0,
+},
+
+'3-5-9': {
+  absolute: true,
+  mapLeft: 44.79,
+  mapTop: 58.79,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+
+'3-9-9': {
+  absolute: true,
+  mapLeft: 45.90,
+  mapTop: 61.04,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+
+'3-9-8': {
+  absolute: true,
+  mapLeft: 46.81,
+  mapTop: 63.18,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
+
+'3-9-7': {
+  absolute: true,
+  mapLeft: 47.66,
+  mapTop: 65.14,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
 };
 
 const LOT_SVG_SHAPES = {
@@ -619,6 +717,60 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
 '4-1-3': {
   viewBox: '0 0 37 40',
   path: 'M-1.68988e-06 11.5175L16.6384 -4.26593e-06L36.0949 28.1072L19.4565 39.6247L-1.68988e-06 11.5175Z',
+},
+'3-5-2': {
+  viewBox: '0 0 30 26',
+  path: 'M0 11.0089L22.0905 1.82257e-05L29.1368 14.1393L7.04632 25.1481L0 11.0089Z',
+},
+
+'3-5-3': {
+  viewBox: '0 0 30 26',
+  path: 'M0 11.0089L22.0905 1.82257e-05L29.1368 14.1393L7.04632 25.1481L0 11.0089Z',
+},
+
+'3-5-4': {
+  viewBox: '0 0 30 26',
+  path: 'M0 11.0089L22.0905 1.82257e-05L29.1368 14.1393L7.04632 25.1481L0 11.0089Z',
+},
+
+'3-5-5': {
+  viewBox: '0 0 30 26',
+  path: 'M0 11.0089L22.0905 1.82257e-05L29.1368 14.1393L7.04632 25.1481L0 11.0089Z',
+},
+
+'3-5-6': {
+  viewBox: '0 0 30 26',
+  path: 'M0 11.0089L22.0905 1.82257e-05L29.1368 14.1393L7.04632 25.1481L0 11.0089Z',
+},
+
+'3-5-7': {
+  viewBox: '0 0 30 26',
+  path: 'M0 11.0089L22.0905 1.82257e-05L29.1368 14.1393L7.04632 25.1481L0 11.0089Z',
+},
+
+'3-5-8': {
+  viewBox: '0 0 30 26',
+  path: 'M0 11.0089L22.0905 2.71759e-05L29.1368 14.1393L7.04632 25.1481L0 11.0089Z',
+},
+
+'3-5-9': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
+},
+
+'3-9-9': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
+},
+
+'3-9-8': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
+},
+
+'3-9-7': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
 };
 

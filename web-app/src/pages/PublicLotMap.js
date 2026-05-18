@@ -89,14 +89,14 @@ const LOT_POSITION_OVERRIDES = {
     mapHeight: 2.94,
     rotate: 0,
   },
-  '2-1-4': {
-    absolute: true,
-    mapLeft: 21.74,
-    mapTop: 71.10,
-    mapWidth: 1.61,
-    mapHeight: 2.94,
-    rotate: 0,
-  },
+'2-1-4': {
+  absolute: true,
+  mapLeft: 22.79,
+  mapTop: 70.90,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
 };
 
 const LOT_SVG_SHAPES = {

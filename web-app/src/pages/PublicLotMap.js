@@ -183,6 +183,67 @@ const LOT_POSITION_OVERRIDES = {
   mapHeight: 1.96,
   rotate: 0,
 },
+'2-3-1': {
+  absolute: true,
+  mapLeft: 24.02,
+  mapTop: 64.06,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+'3-4-1': {
+  absolute: true,
+  mapLeft: 25.72,
+  mapTop: 68.46,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'3-4-2': {
+  absolute: true,
+  mapLeft: 28.45,
+  mapTop: 65.82,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'3-4-3': {
+  absolute: true,
+  mapLeft: 31.38,
+  mapTop: 63.77,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'3-4-4': {
+  absolute: true,
+  mapLeft: 33.07,
+  mapTop: 62.50,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'3-4-5': {
+  absolute: true,
+  mapLeft: 34.64,
+  mapTop: 61.23,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'3-4-6': {
+  absolute: true,
+  mapLeft: 36.39,
+  mapTop: 60.18,
+  mapWidth: 1.13,
+  mapHeight: 2.94,
+  rotate: 0,
+},
 };
 
 const LOT_SVG_SHAPES = {
@@ -241,6 +302,34 @@ const LOT_SVG_SHAPES = {
   '2-2-10': {
     viewBox: '0 0 28 28',
     path: 'M-1.51722e-06 9.76624L17.7232 1.1572e-05L27.4207 17.5985L9.69752 27.3647L-1.51722e-06 9.76624Z',
+  },
+  '2-3-1': {
+    viewBox: '0 0 36 38',
+    path: 'M-1.9259e-06 11.0089L22.0905 1.83845e-05L35.5347 26.9774L13.4442 37.9862L-1.9259e-06 11.0089Z',
+  },
+  '3-4-1': {
+    viewBox: '0 0 36 38',
+    path: 'M-1.9259e-06 11.0089L22.0905 1.83845e-05L35.5347 26.9774L13.4442 37.9862L-1.9259e-06 11.0089Z',
+  },
+  '3-4-2': {
+    viewBox: '0 0 36 38',
+    path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z',
+  },
+  '3-4-3': {
+    viewBox: '0 0 36 38',
+    path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z',
+  },
+  '3-4-4': {
+    viewBox: '0 0 36 38',
+    path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z',
+  },
+  '3-4-5': {
+    viewBox: '0 0 36 38',
+    path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z',
+  },
+  '3-4-6': {
+    viewBox: '0 0 29 35',
+    path: 'M0 7.75165L15.5546 1.189e-05L28.9988 26.9773L13.4442 34.729L0 7.75165Z',
   },
 };
 

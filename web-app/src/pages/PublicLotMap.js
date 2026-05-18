@@ -108,6 +108,21 @@ const LOT_POSITION_OVERRIDES = {
   },
 };
 
+const LOT_SVG_SHAPES = {
+  '2-1-1': {
+    viewBox: '0 0 36 39',
+    path: 'M35.8081 26.7385L13.9132 38.1314L8.42537e-06 11.3929L21.8949 8.95441e-06L35.8081 26.7385Z',
+  },
+  '2-1-2': {
+    viewBox: '0 0 36 38',
+    path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z',
+  },
+  '2-1-3': {
+    viewBox: '0 0 36 38',
+    path: 'M-1.9259e-06 11.0089L22.0905 1.83845e-05L35.5347 26.9774L13.4442 37.9862L-1.9259e-06 11.0089Z',
+  },
+};
+
 const generateLotsFromAPI = (apiLots) => {
   if (!apiLots || apiLots.length === 0) return [];
   
@@ -983,14 +998,15 @@ const PublicLotMap = () => {
                 const centerLeft = (override.mapLeft || 0) + ((override.mapWidth || 0) / 2);
                 const centerTop = (override.mapTop || 0) + ((override.mapHeight || 0) / 2);
                 const lotKey = `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`;
+                const svgShape = LOT_SVG_SHAPES[lotKey];
+                const renderRotation = svgShape ? 0 : (override.rotate || 0);
 
-                // SVG polygon for lot 2-1-1
-                if (lotKey === '2-1-1') {
+                if (svgShape) {
                   return (
                     <Box
                       key={`abs-${lot.id}`}
                       component="svg"
-                      viewBox="0 0 36 39"
+                      viewBox={svgShape.viewBox}
                       onClick={() => setSelectedLot(lot)}
                       title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
                       sx={{
@@ -999,7 +1015,7 @@ const PublicLotMap = () => {
                         top: `${centerTop}%`,
                         width: `${override.mapWidth}%`,
                         height: `${override.mapHeight}%`,
-                        transform: `translate(-50%, -50%) rotate(${override.rotate || 0}deg)`,
+                        transform: `translate(-50%, -50%) rotate(${renderRotation}deg)`,
                         transformOrigin: 'center center',
                         cursor: 'pointer',
                         transition: '0.15s ease',
@@ -1015,12 +1031,11 @@ const PublicLotMap = () => {
                         },
                       }}
                     >
-                      <path d="M35.8081 26.7385L13.9132 38.1314L8.42537e-06 11.3929L21.8949 8.95441e-06L35.8081 26.7385Z" />
+                      <path d={svgShape.path} />
                     </Box>
                   );
                 }
 
-                // Rectangle for all other lots
                 return (
                   <Box
                     key={`abs-${lot.id}`}

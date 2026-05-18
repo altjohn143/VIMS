@@ -64,23 +64,6 @@ const STATUS_CONFIG = {
 
 
 const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
-
-// Per-lot position overrides. If an entry includes `absolute: true`, the coordinates
-// are relative to the entire map image rendered at 1536x1024, and should be expressed
-// as percentages so they scale correctly with the responsive map container.
-// Use `phase-block-lot` keys so multiple lots can be positioned independently within
-// the same block.
-// Example:
-// const LOT_POSITION_OVERRIDES = {
-//   '2-1-1': {
-//     absolute: true,
-//     mapLeft: (304 / 1536) * 100,
-//     mapTop: (621 / 1024) * 100,
-//     mapWidth: (24.68 / 1536) * 100,
-//     mapHeight: (30.14 / 1024) * 100,
-//     rotate: 26.49,
-//   },
-// };
 const LOT_POSITION_OVERRIDES = {
   '2-1-1': {
     absolute: true,
@@ -106,6 +89,14 @@ const LOT_POSITION_OVERRIDES = {
     mapHeight: 2.94,
     rotate: 0,
   },
+  '2-1-4': {
+    absolute: true,
+    mapLeft: 21.74,
+    mapTop: 71.10,
+    mapWidth: 1.61,
+    mapHeight: 2.94,
+    rotate: 0,
+  },
 };
 
 const LOT_SVG_SHAPES = {
@@ -118,6 +109,10 @@ const LOT_SVG_SHAPES = {
     path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z',
   },
   '2-1-3': {
+    viewBox: '0 0 36 38',
+    path: 'M-1.9259e-06 11.0089L22.0905 1.83845e-05L35.5347 26.9774L13.4442 37.9862L-1.9259e-06 11.0089Z',
+  },
+  '2-1-4': {
     viewBox: '0 0 36 38',
     path: 'M-1.9259e-06 11.0089L22.0905 1.83845e-05L35.5347 26.9774L13.4442 37.9862L-1.9259e-06 11.0089Z',
   },

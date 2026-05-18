@@ -186,6 +186,7 @@ const SecurityReturnsScreen = () => {
         })
       )}
     </ScrollView>
+  </View>
   );
 };
 

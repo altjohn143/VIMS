@@ -595,13 +595,16 @@ const DashboardScreen = ({ navigation }) => {
                 ))
               )}
             </>
+          )}
 
-      {/* Notification Modal */}
-      <NotificationModal 
-        visible={notificationModalVisible} 
-        onClose={() => setNotificationModalVisible(false)} 
-      />
-    </View>
+        {/* Notification Modal */}
+        <NotificationModal 
+          visible={notificationModalVisible} 
+          onClose={() => setNotificationModalVisible(false)} 
+        />
+      </View>
+    </ScrollView>
+  </View>
   );
 };
 

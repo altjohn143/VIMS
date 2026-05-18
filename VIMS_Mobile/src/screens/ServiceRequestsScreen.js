@@ -48,6 +48,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
     { value: 'cleaning', label: 'Cleaning', icon: 'brush', priority: 'low' },
     { value: 'gardening', label: 'Gardening', icon: 'leaf', priority: 'low' },
     { value: 'security', label: 'Security', icon: 'shield', priority: 'urgent' },
+    { value: 'complaint', label: 'Complaint', icon: 'chatbox-ellipses', priority: 'medium' },
     { value: 'other', label: 'Other', icon: 'apps', priority: 'medium' },
   ];
 

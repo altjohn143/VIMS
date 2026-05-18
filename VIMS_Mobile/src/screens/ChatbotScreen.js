@@ -45,7 +45,7 @@ const suggestedQuestionsByRole = {
 
 const getSuggestedPrompts = (role) => suggestedQuestionsByRole[role] || suggestedQuestionsByRole.default;
 
-const ChatbotScreen = ({ navigation }) => {
+const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -92,10 +92,10 @@ const ChatbotScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#0f172a" />
+        <TouchableOpacity onPress={embedded ? onClose : () => navigation.goBack()}>
+          <Ionicons name={embedded ? 'close' : 'arrow-back'} size={22} color="#0f172a" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>VIMS AI Assistant</Text>
+        <Text style={styles.headerTitle}>{embedded ? 'VIMS Assistant' : 'VIMS AI Assistant'}</Text>
         <View style={{ width: 22 }} />
       </View>
 

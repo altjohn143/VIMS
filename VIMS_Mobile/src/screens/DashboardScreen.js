@@ -21,6 +21,7 @@ import testDirectFetch from '../utils/testFetch';
 import { startUnreadCountPolling } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationModal from '../components/NotificationModal';
+import ChatbotScreen from './ChatbotScreen';
 
 const DashboardScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
@@ -33,6 +34,7 @@ const DashboardScreen = ({ navigation }) => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [assistantVisible, setAssistantVisible] = useState(false);
   const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
   const [collapsedSections, setCollapsedSections] = useState({
     quickActions: false,
@@ -241,6 +243,7 @@ const DashboardScreen = ({ navigation }) => {
         { title: 'Make Reservation', subtitle: 'Book venues and equipment',   icon: 'calendar-outline',         screen: 'ReservationsTab', color: '#7c3aed', bg: '#f5f3ff' },
         { title: 'Visitor Pass',     subtitle: 'Manage visitor QR codes',     icon: 'qr-code-outline', screen: 'VisitorsTab', color: '#16a34a', bg: '#f0fdf4' },
         { title: 'Service Requests', subtitle: 'Submit maintenance requests', icon: 'build-outline',   screen: 'ServicesTab', color: '#d97706', bg: '#fffbeb' },
+        { title: 'Complaints Form',  subtitle: 'Report community concerns',  icon: 'chatbox-ellipses-outline', screen: 'Complaints', color: '#dc2626', bg: '#fef2f2' },
         { title: 'AI Assistant',     subtitle: 'Ask VIMS questions',          icon: 'sparkles-outline', screen: 'Chatbot', color: '#2563eb', bg: '#eff6ff' },
       ],
     },
@@ -536,7 +539,7 @@ const DashboardScreen = ({ navigation }) => {
             <TouchableOpacity
               key={i}
               style={[styles.actionRow, i < config.quickActions.length - 1 && styles.actionRowDivider]}
-              onPress={() => navigation.navigate(action.screen)}
+              onPress={() => action.screen === 'Chatbot' ? setAssistantVisible(true) : navigation.navigate(action.screen)}
               activeOpacity={0.7}
             >
               <View style={[styles.actionIconWrap, { backgroundColor: action.bg }]}>
@@ -604,6 +607,27 @@ const DashboardScreen = ({ navigation }) => {
         />
       </View>
     </ScrollView>
+
+      <Modal
+        visible={assistantVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setAssistantVisible(false)}
+      >
+        <View style={styles.assistantBackdrop}>
+          <View style={styles.assistantBubble}>
+            <ChatbotScreen navigation={navigation} embedded onClose={() => setAssistantVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      <TouchableOpacity
+        style={styles.floatingAssistant}
+        onPress={() => setAssistantVisible(true)}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="sparkles" size={22} color="#fff" />
+      </TouchableOpacity>
   </View>
   );
 };
@@ -813,6 +837,38 @@ const styles = StyleSheet.create({
   /* Footer */
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 },
   footerText: { color: '#94a3b8', fontSize: 11, fontWeight: '600' },
+  assistantBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.22)',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 12,
+    paddingBottom: 88,
+  },
+  assistantBubble: {
+    height: '72%',
+    minHeight: 470,
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.10)',
+  },
+  floatingAssistant: {
+    position: 'absolute',
+    right: 18,
+    bottom: 88,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#166534',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 10,
+  },
 });
 
 export default DashboardScreen;

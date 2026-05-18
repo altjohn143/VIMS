@@ -54,6 +54,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     { value: 'cleaning', label: 'Cleaning', icon: 'brush' },
     { value: 'gardening', label: 'Gardening', icon: 'leaf' },
     { value: 'security', label: 'Security', icon: 'shield' },
+    { value: 'complaint', label: 'Complaint', icon: 'chatbox-ellipses' },
     { value: 'other', label: 'Other', icon: 'apps' },
   ];
 

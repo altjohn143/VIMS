@@ -57,6 +57,8 @@ import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import villageLogo from '../assets/village-logo.png';
 
+const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
+
 const VisitorManagement = () => {
   // Unified theme colors aligned with Dashboard/Login
   const themeColors = {
@@ -212,6 +214,25 @@ const VisitorManagement = () => {
     return '';
   };
 
+  const validateVisitWindow = ({ expectedArrival, expectedDeparture }) => {
+    const arrivalDate = new Date(expectedArrival);
+    const departureDate = new Date(expectedDeparture);
+
+    if (!expectedArrival || !expectedDeparture || Number.isNaN(arrivalDate.getTime()) || Number.isNaN(departureDate.getTime())) {
+      return 'Please provide valid expected arrival and departure dates';
+    }
+
+    if (departureDate <= arrivalDate) {
+      return 'Expected departure must be after expected arrival';
+    }
+
+    if (departureDate.getTime() - arrivalDate.getTime() > MAX_VISITOR_STAY_MS) {
+      return 'Visitors cannot stay more than 3 days in the village';
+    }
+
+    return '';
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
@@ -244,6 +265,12 @@ const VisitorManagement = () => {
     
     if (nameError || phoneError) {
       toast.error('Please fix the form errors before submitting');
+      return;
+    }
+
+    const visitWindowError = validateVisitWindow(formData);
+    if (visitWindowError) {
+      toast.error(visitWindowError);
       return;
     }
     
@@ -1453,6 +1480,7 @@ const VisitorManagement = () => {
                     required
                     margin="normal"
                     InputLabelProps={{ shrink: true }}
+                    helperText="Visitor stay is limited to 3 days maximum."
                     InputProps={{
                       sx: {
                         borderRadius: 2,
@@ -1477,6 +1505,7 @@ const VisitorManagement = () => {
                     required
                     margin="normal"
                     InputLabelProps={{ shrink: true }}
+                    helperText="Must be after arrival and within 3 days."
                     InputProps={{
                       sx: {
                         borderRadius: 2,

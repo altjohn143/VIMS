@@ -8,6 +8,8 @@ const QRCode = require('qrcode');
 const { sendVisitorReminderNotification } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 
+const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
+
 const decodeScanValue = (rawValue = '') => {
   if (!rawValue || typeof rawValue !== 'string') return '';
 
@@ -208,6 +210,30 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       });
     }
 
+    const arrivalDate = new Date(expectedArrival);
+    const departureDate = new Date(expectedDeparture);
+
+    if (Number.isNaN(arrivalDate.getTime()) || Number.isNaN(departureDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Arrival and departure dates must be valid'
+      });
+    }
+
+    if (departureDate <= arrivalDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Expected departure must be after expected arrival'
+      });
+    }
+
+    if (departureDate.getTime() - arrivalDate.getTime() > MAX_VISITOR_STAY_MS) {
+      return res.status(400).json({
+        success: false,
+        error: 'Visitors cannot stay more than 3 days in the village'
+      });
+    }
+
     const qrToken = uuidv4();
     const qrCode = await QRCode.toDataURL(qrToken);
     
@@ -219,8 +245,8 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       purpose,
       qrCode,
       qrToken,
-      expectedArrival: new Date(expectedArrival),
-      expectedDeparture: new Date(expectedDeparture),
+      expectedArrival: arrivalDate,
+      expectedDeparture: departureDate,
       status: 'pending', 
       qrCodeVisible: false
     });

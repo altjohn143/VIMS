@@ -22,6 +22,8 @@ import { format } from 'date-fns';
 import UserDropdownMenu from '../components/UserDropdownMenu';
 import { Camera, CameraView } from 'expo-camera';
 
+const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
+
 const VisitorManagementScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
   const [allVisitors, setAllVisitors] = useState([]);
@@ -97,6 +99,25 @@ const VisitorManagementScreen = ({ navigation }) => {
     return '';
   };
 
+  const validateVisitWindow = () => {
+    const arrival = new Date(formData.expectedArrival);
+    const departure = new Date(formData.expectedDeparture);
+
+    if (Number.isNaN(arrival.getTime()) || Number.isNaN(departure.getTime())) {
+      return 'Please select valid arrival and departure dates';
+    }
+
+    if (departure <= arrival) {
+      return 'Expected departure must be after expected arrival';
+    }
+
+    if (departure.getTime() - arrival.getTime() > MAX_VISITOR_STAY_MS) {
+      return 'Visitors cannot stay more than 3 days in the village';
+    }
+
+    return '';
+  };
+
   const handleInputChange = (field, value) => {
     if (field === 'visitorName') {
       const filtered = value.replace(/[^A-Za-z\s]/g, '');
@@ -160,6 +181,12 @@ const VisitorManagementScreen = ({ navigation }) => {
     if (nameError || phoneError) {
       setFormErrors({ visitorName: nameError, visitorPhone: phoneError });
       Alert.alert('Error', 'Please fix the form errors');
+      return;
+    }
+
+    const visitWindowError = validateVisitWindow();
+    if (visitWindowError) {
+      Alert.alert('Invalid Visit Schedule', visitWindowError);
       return;
     }
 
@@ -633,6 +660,7 @@ const VisitorManagementScreen = ({ navigation }) => {
                   {format(formData.expectedDeparture, 'MMM dd, yyyy hh:mm a')}
                 </Text>
               </TouchableOpacity>
+              <Text style={styles.helperText}>Visitor stay is limited to 3 days maximum.</Text>
             </View>
 
             <View style={styles.inputGroup}>
@@ -1165,6 +1193,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     color: themeColors.textPrimary,
+  },
+  helperText: {
+    color: themeColors.textSecondary,
+    fontSize: 12,
+    marginTop: 6,
+    fontWeight: '600',
   },
   modalActions: {
     flexDirection: 'row',

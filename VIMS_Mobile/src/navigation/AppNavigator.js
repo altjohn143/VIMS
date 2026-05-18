@@ -16,6 +16,7 @@ import PublicLotMapScreen from '../screens/PublicLotMapScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import VisitorManagementScreen from '../screens/VisitorManagementScreen';
 import ServiceRequestsScreen from '../screens/ServiceRequestsScreen';
+import ComplaintsScreen from '../screens/ComplaintsScreen';
 import ReservationsScreen from '../screens/ReservationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
@@ -261,6 +262,7 @@ const AppNavigator = () => {
       {/* ✅ ALWAYS OUTSIDE CONDITION */}
       <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Complaints" component={ComplaintsScreen} />
       <Stack.Screen name="SecurityServiceRequests" component={SecurityServiceRequestsScreen} />
       <Stack.Screen name="SecurityPatrolSchedule" component={SecurityPatrolScheduleScreen} />
       <Stack.Screen name="SecurityIncidents" component={SecurityIncidentsScreen} />

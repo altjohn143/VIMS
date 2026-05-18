@@ -88,7 +88,7 @@ const LOT_POSITION_OVERRIDES = {
     mapTop: 60.64,
     mapWidth: 1.61,
     mapHeight: 2.94,
-    rotate: 27.49,
+    rotate: 26.49,
   },
   '2-1-2': {
     absolute: true,
@@ -96,15 +96,15 @@ const LOT_POSITION_OVERRIDES = {
     mapTop: 64.06,
     mapWidth: 1.61,
     mapHeight: 2.94,
-    rotate: 27.49,
+    rotate: 26.49,
   },
   '2-1-3': {
     absolute: true,
     mapLeft: 21.74,
-    mapTop: 67.48,
+    mapTop: 67.58,
     mapWidth: 1.61,
     mapHeight: 2.94,
-    rotate: 27.49,
+    rotate: 26.49,
   },
 };
 

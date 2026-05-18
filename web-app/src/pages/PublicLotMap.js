@@ -141,10 +141,11 @@ const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
 // Per-lot position overrides. If an entry includes `absolute: true`, the coordinates
 // are relative to the entire map image rendered at 1536x1024, and should be expressed
 // as percentages so they scale correctly with the responsive map container.
-// Use `phase-block` keys so each phase resets its blocks to 1-5.
+// Use `phase-block-lot` keys so multiple lots can be positioned independently within
+// the same block.
 // Example:
 // const LOT_POSITION_OVERRIDES = {
-//   '2-1': {
+//   '2-1-1': {
 //     absolute: true,
 //     mapLeft: (304 / 1536) * 100,
 //     mapTop: (621 / 1024) * 100,
@@ -153,13 +154,38 @@ const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
 //     rotate: 26.49,
 //   },
 // };
-const LOT_POSITION_OVERRIDES = {};
+const LOT_POSITION_OVERRIDES = {
+  '2-1-1': {
+    absolute: true,
+    mapLeft: 19.79,
+    mapTop: 60.64,
+    mapWidth: 1.61,
+    mapHeight: 2.94,
+    rotate: 26.49,
+  },
+  '2-1-2': {
+    absolute: true,
+    mapLeft: 20.83,
+    mapTop: 64.06,
+    mapWidth: 1.61,
+    mapHeight: 2.94,
+    rotate: 26.49,
+  },
+  '2-1-3': {
+    absolute: true,
+    mapLeft: 21.74,
+    mapTop: 67.48,
+    mapWidth: 1.61,
+    mapHeight: 2.94,
+    rotate: 26.49,
+  },
+};
 
 const getLotImageHotspots = (lots) => {
   const blocks = {};
 
   lots.forEach((lot) => {
-    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}`];
+    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
     if (!override || override.absolute) return;
 
     const blockNo = Number(lot.block);
@@ -760,7 +786,7 @@ const PublicLotMap = () => {
 
   const imageHotspots = useMemo(() => getLotImageHotspots(phaseFilteredLots), [phaseFilteredLots]);
   const absoluteOverrides = useMemo(() => phaseFilteredLots.filter((lot) => {
-    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}`];
+    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
     return override?.absolute;
   }), [phaseFilteredLots]);
 
@@ -1092,8 +1118,7 @@ const PublicLotMap = () => {
                     )}
                     {lotsInBlock.map((lot, index) => {
                       const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
-                      const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}`];
-
+                    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
                       if (override?.absolute) {
                         return null;
                       }
@@ -1141,7 +1166,7 @@ const PublicLotMap = () => {
 
               {absoluteOverrides.map((lot) => {
                 const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
-                const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}`];
+                const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
                 return (
                   <Box
                     key={`abs-${lot.id}`}

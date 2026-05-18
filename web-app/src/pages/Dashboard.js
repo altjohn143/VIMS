@@ -2174,28 +2174,42 @@ const Dashboard = () => {
         onClose={() => setNotificationAnchor(null)}
       />
 
-      <Drawer
-        anchor="right"
-        open={assistantOpen}
-        onClose={() => setAssistantOpen(false)}
-        PaperProps={{
-          sx: {
-            width: { xs: '100%', sm: 430, md: 460 },
-            maxWidth: '100vw',
-            height: '100vh',
+      {assistantOpen && (
+        <Box
+          sx={{
+            position: 'fixed',
+            right: { xs: 12, sm: 20, md: 28 },
+            bottom: { xs: 88, sm: 96 },
+            zIndex: theme.zIndex.drawer + 3,
+            width: { xs: 'calc(100vw - 24px)', sm: 420, md: 440 },
+            height: { xs: 'min(620px, calc(100vh - 116px))', sm: 'min(620px, calc(100vh - 130px))' },
+            borderRadius: '20px',
             overflow: 'hidden',
-            borderTopLeftRadius: { xs: 0, sm: 18 },
-            borderBottomLeftRadius: { xs: 0, sm: 18 },
-            boxShadow: '-18px 0 40px rgba(15,23,42,0.18)'
-          }
-        }}
-      >
-        <Chatbot embedded onClose={() => setAssistantOpen(false)} />
-      </Drawer>
+            bgcolor: themeColors.cardBackground,
+            border: '1px solid rgba(15,23,42,0.10)',
+            boxShadow: '0 24px 60px rgba(15,23,42,0.24)',
+            animation: 'slideUpSoft 0.22s ease',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              right: { xs: 28, sm: 34 },
+              bottom: -9,
+              width: 18,
+              height: 18,
+              bgcolor: themeColors.cardBackground,
+              borderRight: '1px solid rgba(15,23,42,0.10)',
+              borderBottom: '1px solid rgba(15,23,42,0.10)',
+              transform: 'rotate(45deg)'
+            }
+          }}
+        >
+          <Chatbot embedded onClose={() => setAssistantOpen(false)} />
+        </Box>
+      )}
 
       <Tooltip title="Open VIMS Assistant" placement="left">
         <Button
-          onClick={() => setAssistantOpen(true)}
+          onClick={() => setAssistantOpen((prev) => !prev)}
           variant="contained"
           aria-label="Open VIMS Assistant"
           sx={{

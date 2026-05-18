@@ -9,7 +9,7 @@ const serviceRequestSchema = new mongoose.Schema({
   
   category: {
     type: String,
-    enum: ['plumbing', 'electrical', 'carpentry', 'cleaning', 'gardening', 'security', 'other'],
+    enum: ['plumbing', 'electrical', 'carpentry', 'cleaning', 'gardening', 'security', 'complaint', 'other'],
     required: true
   },
   

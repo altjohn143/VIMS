@@ -145,6 +145,7 @@ function App() {
             <Route path="/reservations" element={<ResidentRoute><Navigate to="/dashboard/reservations" replace /></ResidentRoute>} />
             <Route path="/visitors" element={<ResidentRoute><Navigate to="/dashboard/visitors" replace /></ResidentRoute>} />
             <Route path="/service-requests" element={<ResidentRoute><Navigate to="/dashboard/service-requests" replace /></ResidentRoute>} />
+            <Route path="/complaints" element={<ResidentRoute><Navigate to="/dashboard/complaints" replace /></ResidentRoute>} />
             <Route path="/payments" element={<ResidentRoute><Navigate to="/dashboard/payments" replace /></ResidentRoute>} />
             <Route path="/announcements" element={<ProtectedRoute><Navigate to="/dashboard/announcements" replace /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Navigate to="/dashboard/notifications" replace /></ProtectedRoute>} />

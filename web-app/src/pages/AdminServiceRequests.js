@@ -134,7 +134,7 @@ const AdminServiceRequests = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
 
-  const categories = useMemo(() => ['plumbing', 'electrical', 'carpentry', 'cleaning', 'gardening', 'security', 'other'], []);
+  const categories = useMemo(() => ['plumbing', 'electrical', 'carpentry', 'cleaning', 'gardening', 'security', 'complaint', 'other'], []);
   const priorities = useMemo(() => ['low', 'medium', 'high', 'urgent'], []);
 
   const logout = useCallback(() => {

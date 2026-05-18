@@ -249,6 +249,7 @@ const SecurityServiceRequests = () => {
           <TextField select size="small" value={category} onChange={(e) => setCategory(e.target.value)} sx={{ minWidth: 140 }}>
             <MenuItem value="all">All Category</MenuItem>
             <MenuItem value="security">Security</MenuItem>
+            <MenuItem value="complaint">Complaint</MenuItem>
             <MenuItem value="maintenance">Maintenance</MenuItem>
             <MenuItem value="utilities">Utilities</MenuItem>
             <MenuItem value="sanitation">Sanitation</MenuItem>

@@ -45,6 +45,7 @@ import {
   QrCode as QrCodeIcon,
   Payment as PaymentIcon,
   Build as BuildIcon,
+  Feedback as FeedbackIcon,
   Announcement as AnnouncementIcon,
   CheckCircle as CheckCircleIcon,
   Menu as MenuIcon,
@@ -74,6 +75,7 @@ import SecurityDashboardGraphs from '../components/SecurityDashboardGraphs';
 import NotificationPanel from '../components/NotificationPanel';
 import VisitorManagement from './VisitorManagement';
 import ServiceRequests from './ServiceRequests';
+import Complaints from './Complaints';
 import Payments from './Payments';
 import ProfileSettings from './ProfileSettings';
 import Announcements from './Announcements';
@@ -486,6 +488,7 @@ const Dashboard = () => {
         reservations: [{ title: 'Make Reservation', icon: <EventAvailableIcon />, link: '/dashboard/reservations' }],
         visitors: [{ title: 'Generate Visitor Pass', icon: <QrCodeIcon />, link: '/dashboard/visitors' }],
         services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/dashboard/service-requests' }],
+        complaints: [{ title: 'Complaints Form', icon: <FeedbackIcon />, link: '/dashboard/complaints' }],
         payments: [{ title: 'Pay Dues', icon: <PaymentIcon />, link: '/dashboard/payments' }],
         community: [{ title: 'Announcements', icon: <AnnouncementIcon />, link: '/dashboard/announcements' }],
         settings: [{ title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' }]
@@ -611,6 +614,7 @@ const Dashboard = () => {
       reservations: 'Make Reservation',
       visitors: 'Generate Visitor Pass',
       'service-requests': 'Service Requests',
+      complaints: 'Complaints Form',
       payments: 'Pay Dues',
       announcements: 'Announcements',
       profile: 'Profile Settings',
@@ -646,6 +650,7 @@ const Dashboard = () => {
     reservations: <Reservations />,
     visitors: <VisitorManagement />,
     'service-requests': <ServiceRequests />,
+    complaints: <Complaints />,
     payments: <Payments />,
     announcements: <Announcements />,
     profile: <ProfileSettings />,

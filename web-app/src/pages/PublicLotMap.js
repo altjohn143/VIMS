@@ -21,15 +21,6 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import mapImage from '../assets/lotbettermap.jpg';
-import { ReactComponent as P3B9L1 } from '../assets/P3 B9 L1.svg';
-import { ReactComponent as P3B9L2 } from '../assets/P3 B9 L2.svg';
-import { ReactComponent as P3B9L3 } from '../assets/P3 B9 L3.svg';
-import { ReactComponent as P3B9L4 } from '../assets/P3 B9 L4.svg';
-import { ReactComponent as P3B9L5 } from '../assets/P3 B9 L5.svg';
-import { ReactComponent as P3B9L6 } from '../assets/P3 B9 L6.svg';
-import { ReactComponent as P3B9L7 } from '../assets/P3 B9 L7.svg';
-import { ReactComponent as P3B9L8 } from '../assets/P3 B9 L8.svg';
-import { ReactComponent as P3B9L9 } from '../assets/P3 B9 L9.svg';
 
 // ─── Photo banks ─────────────────────────────────────────────────────────────
 const OUTSIDE_PHOTOS = [
@@ -1467,32 +1458,41 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
   path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
 
-'3-9-9': {
-  component: P3B9L9,
+ '3-9-9': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
-'3-9-8': {
-  component: P3B9L8,
+ '3-9-8': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
-'3-9-7': {
-  component: P3B9L7,
+ '3-9-7': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
-'3-9-6': {
-  component: P3B9L6,
+ '3-9-6': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
-'3-9-5': {
-  component: P3B9L5,
+ '3-9-5': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
-'3-9-4': {
-  component: P3B9L4,
+ '3-9-4': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
-'3-9-3': {
-  component: P3B9L3,
+ '3-9-3': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
-'3-9-2': {
-  component: P3B9L2,
+ '3-9-2': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
-'3-9-1': {
-  component: P3B9L1,
+ '3-9-1': {
+  viewBox: '0 0 28 28',
+  path: 'M-1.49146e-06 11.2021L16.8524 1.30205e-05L27.9757 16.7338L11.1233 27.936L-1.49146e-06 11.2021Z',
 },
 };
 

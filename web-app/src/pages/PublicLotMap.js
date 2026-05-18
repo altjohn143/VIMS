@@ -354,6 +354,15 @@ mapWidth: 1.80,
 mapHeight: 3.34,
 rotate: 0,
 },
+
+'2-3-2': {
+  absolute: true,
+  mapLeft: 14.19,
+  mapTop: 48.83,
+  mapWidth: 1.32,
+  mapHeight: 2.46,
+  rotate: 0,
+},
 };
 
 const LOT_SVG_SHAPES = {
@@ -494,7 +503,10 @@ path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z
   viewBox: '0 0 42 44',
   path: 'M-2.14895e-06 14.1821L23.7429 2.53637e-05L41.2727 29.3476L17.5298 43.5296L-2.14895e-06 14.1821Z',
 },
-
+'2-3-2': {
+  viewBox: '0 0 30 32',
+  path: 'M-1.58446e-06 9.02585L18.1114 -6.68298e-06L29.3471 22.5458L11.2357 31.5716L-1.58446e-06 9.02585Z',
+},
 };
 
 const generateLotsFromAPI = (apiLots) => {

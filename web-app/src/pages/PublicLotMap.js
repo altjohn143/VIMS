@@ -97,6 +97,40 @@ const LOT_POSITION_OVERRIDES = {
   mapHeight: 2.94,
   rotate: 0,
 },
+'2-2-1': {
+  absolute: true,
+  mapLeft: 22.33,
+  mapTop: 58.59,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'2-2-2': {
+  absolute: true,
+  mapLeft: 23.96,
+  mapTop: 57.42,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+'2-2-3': {
+  absolute: true,
+  mapLeft: 25.59,
+  mapTop: 56.15,
+  mapWidth: 1.61,
+  mapHeight: 2.94,
+  rotate: 0,
+},
+
+'2-2-4': {
+  absolute: true,
+  mapLeft: 28.26,
+  mapTop: 53.42,
+  mapWidth: 1.61,
+  mapHeight: 3.35,
+  rotate: 0,
+},
 };
 
 const LOT_SVG_SHAPES = {
@@ -115,6 +149,22 @@ const LOT_SVG_SHAPES = {
   '2-1-4': {
     viewBox: '0 0 36 38',
     path: 'M-1.9259e-06 11.0089L22.0905 1.83845e-05L35.5347 26.9774L13.4442 37.9862L-1.9259e-06 11.0089Z',
+  },
+  '2-2-1': {
+    viewBox: '0 0 36 38',
+    path: 'M-1.9259e-06 11.0089L22.0905 1.83845e-05L35.5347 26.9774L13.4442 37.9862L-1.9259e-06 11.0089Z',
+  },
+  '2-2-2': {
+    viewBox: '0 0 36 38',
+    path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z',
+  },
+  '2-2-3': {
+    viewBox: '0 0 36 38',
+    path: 'M0 11.0089L22.0905 1.82257e-05L35.5347 26.9774L13.4442 37.9862L0 11.0089Z',
+  },
+  '2-2-4': {
+    viewBox: '0 0 38 42',
+    path: 'M-1.97376e-06 11.0089L22.0905 1.82885e-05L37.4008 30.7218L15.3103 41.7307L-1.97376e-06 11.0089Z',
   },
 };
 

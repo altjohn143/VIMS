@@ -26,6 +26,7 @@ import {
   Menu,
   MenuItem,
   Badge,
+  Tooltip,
   useTheme,
   useMediaQuery,
   Collapse,
@@ -46,6 +47,7 @@ import {
   Payment as PaymentIcon,
   Build as BuildIcon,
   Feedback as FeedbackIcon,
+  SmartToy as SmartToyIcon,
   Announcement as AnnouncementIcon,
   CheckCircle as CheckCircleIcon,
   Menu as MenuIcon,
@@ -2170,6 +2172,50 @@ const Dashboard = () => {
         open={Boolean(notificationAnchor)}
         onClose={() => setNotificationAnchor(null)}
       />
+
+      <Tooltip title="Open VIMS Assistant" placement="left">
+        <Button
+          component={RouterLink}
+          to="/dashboard/ai-assistant"
+          variant="contained"
+          aria-label="Open VIMS Assistant"
+          sx={{
+            position: 'fixed',
+            right: { xs: 18, md: 28 },
+            bottom: { xs: 18, md: 28 },
+            zIndex: theme.zIndex.drawer + 2,
+            minWidth: { xs: 56, sm: 64 },
+            width: { xs: 56, sm: 'auto' },
+            height: 56,
+            px: { xs: 0, sm: 2.2 },
+            borderRadius: '999px',
+            bgcolor: activePageKey === 'ai-assistant' ? themeColors.primaryDark : themeColors.primary,
+            color: 'white',
+            boxShadow: '0 16px 34px rgba(22, 101, 52, 0.34)',
+            textTransform: 'none',
+            fontWeight: 900,
+            gap: { xs: 0, sm: 1 },
+            '&:hover': {
+              bgcolor: themeColors.primaryDark,
+              transform: 'translateY(-2px)',
+              boxShadow: '0 20px 40px rgba(20, 83, 45, 0.38)'
+            },
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <SmartToyIcon sx={{ fontSize: 26 }} />
+          <Box
+            component="span"
+            sx={{
+              display: { xs: 'none', sm: 'inline' },
+              whiteSpace: 'nowrap',
+              lineHeight: 1
+            }}
+          >
+            VIMS Assistant
+          </Box>
+        </Button>
+      </Tooltip>
     </>
   );
 };

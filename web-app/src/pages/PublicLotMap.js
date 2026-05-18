@@ -131,6 +131,58 @@ const LOT_POSITION_OVERRIDES = {
   mapHeight: 3.35,
   rotate: 0,
 },
+'2-2-5': {
+  absolute: true,
+  mapLeft: 30.01,
+  mapTop: 52.05,
+  mapWidth: 1.61,
+  mapHeight: 3.35,
+  rotate: 0,
+},
+
+'2-2-6': {
+  absolute: true,
+  mapLeft: 31.84,
+  mapTop: 50.49,
+  mapWidth: 1.61,
+  mapHeight: 3.35,
+  rotate: 0,
+},
+
+'2-2-7': {
+  absolute: true,
+  mapLeft: 33.66,
+  mapTop: 49.12,
+  mapWidth: 1.61,
+  mapHeight: 2.93,
+  rotate: 0,
+},
+'2-2-8': {
+  absolute: true,
+  mapLeft: 35.48,
+  mapTop: 47.56,
+  mapWidth: 1.61,
+  mapHeight: 2.93,
+  rotate: 0,
+},
+
+'2-2-9': {
+  absolute: true,
+  mapLeft: 37.30,
+  mapTop: 46.19,
+  mapWidth: 1.61,
+  mapHeight: 2.34,
+  rotate: 0,
+},
+
+'2-2-10': {
+  absolute: true,
+  mapLeft: 39.13,
+  mapTop: 45.12,
+  mapWidth: 1.32,
+  mapHeight: 1.96,
+  rotate: 0,
+},
 };
 
 const LOT_SVG_SHAPES = {
@@ -165,6 +217,30 @@ const LOT_SVG_SHAPES = {
   '2-2-4': {
     viewBox: '0 0 38 42',
     path: 'M-1.97376e-06 11.0089L22.0905 1.82885e-05L37.4008 30.7218L15.3103 41.7307L-1.97376e-06 11.0089Z',
+  },
+  '2-2-5': {
+    viewBox: '0 0 38 42',
+    path: 'M-1.97376e-06 11.0089L22.0905 1.82885e-05L37.4008 30.7218L15.3103 41.7307L-1.97376e-06 11.0089Z',
+  },
+  '2-2-6': {
+    viewBox: '0 0 38 42',
+    path: 'M-1.97376e-06 11.0089L22.0905 1.82885e-05L37.4008 30.7218L15.3103 41.7307L-1.97376e-06 11.0089Z',
+  },
+  '2-2-7': {
+    viewBox: '0 0 36 38',
+    path: 'M-1.92382e-06 11.0088L22.0905 -1.21289e-05L35.4535 26.8145L13.363 37.8233L-1.92382e-06 11.0088Z',
+  },
+  '2-2-8': {
+    viewBox: '0 0 36 38',
+    path: 'M-1.92382e-06 11.0088L22.0905 -1.21289e-05L35.4535 26.8145L13.363 37.8233L-1.92382e-06 11.0088Z',
+  },
+  '2-2-9': {
+    viewBox: '0 0 33 33',
+    path: 'M-1.85535e-06 11.0088L22.0905 -1.19915e-05L32.7841 21.458L10.6936 32.4668L-1.85535e-06 11.0088Z',
+  },
+  '2-2-10': {
+    viewBox: '0 0 28 28',
+    path: 'M-1.51722e-06 9.76624L17.7232 1.1572e-05L27.4207 17.5985L9.69752 27.3647L-1.51722e-06 9.76624Z',
   },
 };
 

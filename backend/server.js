@@ -233,9 +233,8 @@ async function autoSeedDatabase() {
         isActive: true
       });
       await adminUser.save();
-      console.log('✅ Admin account created with password: SecureVIMS@123');
+      console.log('Admin account created with password: SecureVIMS@123');
 
-      // Create seeded security head officer account with compliant password
       const securityUser = new User({
         firstName: 'Jane',
         lastName: 'Smith',
@@ -248,14 +247,13 @@ async function autoSeedDatabase() {
         isActive: true
       });
       await securityUser.save();
-      console.log('✅ Security account created with password: SecureVIMS@123');
+      console.log('Security account created with password: SecureVIMS@123');
       
-      console.log('\n✅ Login credentials:');
+      console.log('\nLogin credentials:');
       console.log('   Admin: admin@vims.com / SecureVIMS@123');
       console.log('   Security: security@vims.com / SecureVIMS@123');
     }
 
-    // Seed resources if they don't exist
     const existingResources = await Resource.find({});
     if (existingResources.length === 0) {
       console.log('Seeding resources...');

@@ -417,17 +417,6 @@ const VisitorManagement = () => {
           validityStatus = '✅ VALID';
         }
 
-        const description = isExpired
-          ? 'This QR code has expired.'
-          : qrStatus === 'Exited'
-          ? 'Visitor has exited and pass is completed.'
-          : qrStatus === 'Departed'
-          ? 'Visitor departure has been confirmed and the QR code is ready for gate exit scan.'
-          : qrStatus === 'Arrived'
-          ? 'Visitor arrival has been confirmed by the resident.'
-          : qrStatus === 'Entered'
-          ? 'Visitor has entered through the gate.'
-          : 'Show this QR code at the gate.';
 
         modal.document.write(`
           <html>

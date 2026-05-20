@@ -1592,7 +1592,15 @@ const Dashboard = () => {
 
                       <Grid item xs={12} md={5.5}>
                         <Grid container sx={{ height: '100%' }}>
-                          {dashboardStats.slice(0, 4).map((stat, index) => (
+                          {[
+                            ...dashboardStats.slice(0, 3),
+                            {
+                              label: 'Live Monthly Collection',
+                              value: collectionLoading ? 'Loading…' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '₱0',
+                              helper: collectionLoading ? 'Fetching latest totals' : collectionError ? collectionError : 'Updated automatically for the current month'
+                            },
+                            ...dashboardStats.slice(3, 4)
+                          ].map((stat, index) => (
                             <Grid item xs={6} key={index}>
                               <Box
                                 sx={{
@@ -1601,7 +1609,7 @@ const Dashboard = () => {
                                   display: 'flex',
                                   flexDirection: 'column',
                                   justifyContent: 'center',
-                                  borderLeft: { md: '1px solid rgba(255,255,255,0.10)' },
+                                  borderLeft: { md: index > 0 ? '1px solid rgba(255,255,255,0.10)' : 'none' },
                                   borderTop: {
                                     xs: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none',
                                     md: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none'

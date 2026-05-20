@@ -212,34 +212,7 @@ const Dashboard = () => {
       });
   }, [user?.role]);
 
-  // Resident dashboard: show Live Monthly Collection card
-  const renderResidentCollectionCard = () => {
-    if (user?.role !== 'resident') return null;
-    return (
-      <Grid item xs={12} md={4}>
-        <Card sx={{ borderRadius: 3, bgcolor: '#f8fffa', border: '1px solid rgba(34,197,94,0.15)', boxShadow: '0 12px 32px rgba(15,23,42,0.08)' }}>
-          <CardContent sx={{ p: 3, minHeight: 228, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography sx={{ color: '#166534', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 1 }}>
-                Live Monthly Collection
-              </Typography>
-              <Typography sx={{ fontSize: '2.5rem', fontWeight: 900, color: '#0b3d1f', lineHeight: 1.05 }}>
-                {collectionLoading ? 'Loading…' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '₱0'}
-              </Typography>
-              <Typography sx={{ mt: 1.2, color: '#475569', fontSize: '1.1rem', fontWeight: 600 }}>
-                {collectionLoading ? 'Fetching latest totals' : collectionError ? collectionError : 'Updated automatically for the current month'}
-              </Typography>
-            </Box>
-            <Box sx={{ mt: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Chip label="Real-time" size="small" sx={{ bgcolor: '#dcfce7', color: '#166534', fontWeight: 800 }} />
-              <Chip label="Monthly dues and payments" size="small" sx={{ bgcolor: '#ecfdf5', color: '#166534', fontWeight: 700 }} />
-              <Chip label="Visible to residents" size="small" sx={{ bgcolor: '#dbeafe', color: '#1e40af', fontWeight: 700 }} />
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-    );
-  };
+  // Removed unused renderResidentCollectionCard function
 
   useEffect(() => {
     const checkAuth = () => {
@@ -1655,14 +1628,44 @@ const Dashboard = () => {
                   </Paper>
 
                 </Grid>
-                {/* Resident dashboard: show Live Monthly Collection card as part of stats row */}
+                {/* Resident dashboard: show Live Monthly Collection as a stat card */}
                 {user?.role === 'resident' && (
-                  <Grid item xs={12}>
-                    <Grid container spacing={2} justifyContent="center">
-                      <Grid item xs={12} sm={6} md={3}>
-                        {renderResidentCollectionCard()}
-                      </Grid>
-                      {/* Render other resident stat cards here if needed, or keep as is for single card */}
+                  <Grid item xs={12} md={5.5}>
+                    <Grid container sx={{ height: '100%' }}>
+                      {[...dashboardStats.slice(0, 3), {
+                        label: 'Live Monthly Collection',
+                        value: collectionLoading ? 'Loading…' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '₱0',
+                        helper: collectionLoading ? 'Fetching latest totals' : collectionError ? collectionError : 'Updated automatically for the current month'
+                      }].map((stat, index) => (
+                        <Grid item xs={6} key={index}>
+                          <Box
+                            sx={{
+                              height: '100%',
+                              p: 2.5,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'center',
+                              borderLeft: { md: index > 0 ? '1px solid rgba(255,255,255,0.10)' : 'none' },
+                              borderTop: {
+                                xs: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none',
+                                md: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none'
+                              },
+                              background: 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                              backdropFilter: 'blur(8px)'
+                            }}
+                          >
+                            <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>
+                              {stat.value}
+                            </Typography>
+                            <Typography sx={{ mt: 0.8, fontSize: '0.86rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
+                              {stat.label}
+                            </Typography>
+                            <Typography sx={{ mt: 1, fontSize: '0.76rem', color: '#86efac', fontWeight: 700 }}>
+                              ↗ {stat.helper}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      ))}
                     </Grid>
                   </Grid>
                 )}

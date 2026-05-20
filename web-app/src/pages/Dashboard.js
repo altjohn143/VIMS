@@ -1753,79 +1753,98 @@ const Dashboard = () => {
                 </Paper>
               </Grid>
 
-              {dashboardStats.slice(0, 4).map((stat, index) => {
-                const style = statCardStyles[index % statCardStyles.length];
-                return (
-                  <Grid item xs={12} sm={6} md={3} key={index}>
-                    <Card
-                      sx={{
-                        position: 'relative',
-                        overflow: 'hidden',
-                        minHeight: 166,
-                        borderRadius: '20px',
-                        color: 'white',
-                        background: style.bg,
-                        boxShadow: '0 16px 28px rgba(15,23,42,0.10)',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        animation: `cardPop ${0.35 + index * 0.08}s ease`,
-                        transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: '0 24px 40px rgba(15,23,42,0.16)'
-                        },
-                        '&::before': {
-                          content: '""',
-                          position: 'absolute',
-                          width: 180,
-                          height: 180,
-                          borderRadius: '50%',
-                          top: -72,
-                          right: -52,
-                          bgcolor: style.light
-                        },
-                        '&::after': {
-                          content: '""',
-                          position: 'absolute',
-                          width: 90,
-                          height: 90,
-                          borderRadius: '50%',
-                          top: 22,
-                          right: 28,
-                          bgcolor: 'rgba(255,255,255,0.06)'
-                        }
-                      }}
-                    >
-                      <CardContent
-                        sx={{
-                          position: 'relative',
-                          zIndex: 1,
-                          p: 2.25,
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between'
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.18 }}>
-                          {style.icon}
-                        </Box>
-
-                        <Box>
-                          <Typography sx={{ fontSize: '2.1rem', fontWeight: 900, lineHeight: 1 }}>
-                            {stat.value}
-                          </Typography>
-                          <Typography sx={{ mt: 0.7, fontSize: '0.94rem', fontWeight: 700 }}>
-                            {stat.label}
-                          </Typography>
-                          <Typography sx={{ mt: 1.2, fontSize: '0.78rem', color: style.accent, fontWeight: 700 }}>
-                            ↗ {stat.helper}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                );
-              })}
+              {/* Restore the four original stat cards for residents and add Monthly Collection as a fifth card */}
+              {user?.role === 'resident' && (
+                <>
+                  {[...dashboardStats,
+                    {
+                      label: 'Monthly Collection',
+                      value: collectionLoading ? 'Loading…' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '₱0',
+                      helper: collectionLoading ? 'Fetching latest totals' : collectionError ? collectionError : 'Updated automatically for the current month',
+                      icon: <VerifiedUserIcon sx={{ fontSize: 56 }} />,
+                      style: {
+                        bg: 'linear-gradient(135deg, #18a34a 0%, #17803d 100%)',
+                        light: 'rgba(255,255,255,0.16)',
+                        accent: '#dcfce7',
+                        icon: <VerifiedUserIcon sx={{ fontSize: 56 }} />
+                      }
+                    }
+                  ].map((stat, index) => {
+                    // Use statCardStyles for the first four, custom for Monthly Collection
+                    const style = index < 4 ? statCardStyles[index % statCardStyles.length] : stat.style;
+                    const icon = index < 4 ? style.icon : stat.icon;
+                    return (
+                      <Grid item xs={12} sm={6} md={3} key={index}>
+                        <Card
+                          sx={{
+                            position: 'relative',
+                            overflow: 'hidden',
+                            minHeight: 166,
+                            borderRadius: '20px',
+                            color: 'white',
+                            background: style.bg,
+                            boxShadow: '0 16px 28px rgba(15,23,42,0.10)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            animation: `cardPop ${0.35 + index * 0.08}s ease`,
+                            transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                              boxShadow: '0 24px 40px rgba(15,23,42,0.16)'
+                            },
+                            '&::before': {
+                              content: '""',
+                              position: 'absolute',
+                              width: 180,
+                              height: 180,
+                              borderRadius: '50%',
+                              top: -72,
+                              right: -52,
+                              bgcolor: style.light
+                            },
+                            '&::after': {
+                              content: '""',
+                              position: 'absolute',
+                              width: 90,
+                              height: 90,
+                              borderRadius: '50%',
+                              top: 22,
+                              right: 28,
+                              bgcolor: 'rgba(255,255,255,0.06)'
+                            }
+                          }}
+                        >
+                          <CardContent
+                            sx={{
+                              position: 'relative',
+                              zIndex: 1,
+                              p: 2.25,
+                              height: '100%',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between'
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', opacity: 0.18 }}>
+                              {icon}
+                            </Box>
+                            <Box>
+                              <Typography sx={{ fontSize: '2.1rem', fontWeight: 900, lineHeight: 1 }}>
+                                {stat.value}
+                              </Typography>
+                              <Typography sx={{ mt: 0.7, fontSize: '0.94rem', fontWeight: 700 }}>
+                                {stat.label}
+                              </Typography>
+                              <Typography sx={{ mt: 1.2, fontSize: '0.78rem', color: style.accent, fontWeight: 700 }}>
+                                ↗ {stat.helper}
+                              </Typography>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    );
+                  })}
+                </>
+              )}
 
               <Grid item xs={12} md={8.5}>
                 <Paper

@@ -1655,12 +1655,15 @@ const Dashboard = () => {
                   </Paper>
 
                 </Grid>
-                {/* Centered Live Monthly Collection Card for Residents */}
+                {/* Resident dashboard: show Live Monthly Collection card as part of stats row */}
                 {user?.role === 'resident' && (
-                  <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-                    <Box sx={{ maxWidth: 420, width: '100%' }}>
-                      {renderResidentCollectionCard()}
-                    </Box>
+                  <Grid item xs={12}>
+                    <Grid container spacing={2} justifyContent="center">
+                      <Grid item xs={12} sm={6} md={3}>
+                        {renderResidentCollectionCard()}
+                      </Grid>
+                      {/* Render other resident stat cards here if needed, or keep as is for single card */}
+                    </Grid>
                   </Grid>
                 )}
 

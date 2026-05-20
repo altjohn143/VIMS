@@ -1640,7 +1640,11 @@ const Dashboard = () => {
 
                 </Grid>
                 <Grid item xs={12}>
-                  <Grid container spacing={2.25}>
+                  <Grid
+                    container
+                    spacing={2.25}
+                    columns={{ xs: 4, md: user?.role === 'resident' ? 20 : 16 }}
+                  >
                     {[
                       ...dashboardStats,
                       ...(user?.role === 'resident'
@@ -1657,7 +1661,7 @@ const Dashboard = () => {
                       const icon = stat.icon || style.icon;
 
                       return (
-                        <Grid item xs={12} sm={6} md={3} key={`${stat.label}-${index}`}>
+                        <Grid item xs={4} md={4} key={`${stat.label}-${index}`}>
                           <Card
                             sx={{
                               position: 'relative',

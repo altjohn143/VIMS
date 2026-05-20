@@ -1661,9 +1661,11 @@ const Dashboard = () => {
                       const icon = stat.icon || style.icon;
 
                       return (
-                        <Grid item xs={4} md={4} key={`${stat.label}-${index}`}>
+                        <Grid item xs={4} md={4} sx={{ display: 'flex' }} key={`${stat.label}-${index}`}>
                           <Card
                             sx={{
+                              width: '100%',
+                              height: '100%',
                               position: 'relative',
                               overflow: 'hidden',
                               minHeight: 166,

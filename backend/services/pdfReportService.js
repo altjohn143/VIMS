@@ -37,6 +37,19 @@ class PDFReportService {
     };
   }
 
+  persistReportBuffer(buffer, filename, subdir = 'pdf-exports') {
+    const uploadDir = path.join(__dirname, '..', 'uploads', subdir);
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    const filePath = path.join(uploadDir, filename);
+    fs.writeFileSync(filePath, buffer);
+    return {
+      filePath,
+      relativeUrl: `/uploads/${subdir}/${filename}`
+    };
+  }
+
   /**
    * Generate AI Financial Report PDF
    */
@@ -47,6 +60,7 @@ class PDFReportService {
         const doc = new PDFDocument({
           size: 'A4',
           margin: 50,
+          bufferPages: true,
           info: {
             Title: 'VIMS Financial Report',
             Author: options.creator ? `${options.creator.firstName} ${options.creator.lastName}` : 'VIMS System',
@@ -83,6 +97,7 @@ class PDFReportService {
         const doc = new PDFDocument({
           size: 'A4',
           margin: 50,
+          bufferPages: true,
           info: {
             Title: 'VIMS Visitor Security Report',
             Author: options.creator ? `${options.creator.firstName} ${options.creator.lastName}` : 'VIMS System',
@@ -119,6 +134,7 @@ class PDFReportService {
         const doc = new PDFDocument({
           size: 'A4',
           margin: 50,
+          bufferPages: true,
           info: {
             Title: 'VIMS Incident Analysis Report',
             Author: options.creator ? `${options.creator.firstName} ${options.creator.lastName}` : 'VIMS System',
@@ -157,6 +173,7 @@ class PDFReportService {
         const doc = new PDFDocument({
           size: 'A4',
           margin: 50,
+          bufferPages: true,
           info: {
             Title: title,
             Author: options.creator ? `${options.creator.firstName} ${options.creator.lastName}` : 'VIMS System',
@@ -168,6 +185,9 @@ class PDFReportService {
         doc.on('data', buffers.push.bind(buffers));
         doc.on('end', () => {
           const pdfBuffer = Buffer.concat(buffers);
+          if (options.persistFilename) {
+            this.persistReportBuffer(pdfBuffer, options.persistFilename, options.persistSubdir);
+          }
           console.log(`PDF generation completed, buffer size: ${pdfBuffer.length} bytes`);
           resolve(pdfBuffer);
         });
@@ -292,59 +312,53 @@ class PDFReportService {
       return;
     }
 
-    const tableTop = doc.y + 10;
-    const totalWidth = 495;
+    const startX = 50;
+    const usableWidth = 495;
     const totalColWidth = columns.reduce((sum, col) => sum + (col.width || 10), 0);
-    let xPosition = 50;
+    const colWidths = columns.map((col) => ((col.width || 10) / totalColWidth) * usableWidth);
 
-    // Table headers
-    doc.fontSize(10).font(this.fonts.bold);
-    columns.forEach((col) => {
-      const colWidth = (col.width || 10) / totalColWidth * totalWidth;
-      const headerText = col.header || col.label || col.key || 'Unknown';
-      doc.text(headerText, xPosition, tableTop, this._getTextOptions({ width: colWidth - 5, align: 'left' }));
-      xPosition += colWidth;
-    });
+    const drawHeader = (yPosition) => {
+      let x = startX;
+      doc.fontSize(10).font(this.fonts.bold).fillColor('#000');
+      columns.forEach((col, index) => {
+        const width = colWidths[index];
+        const headerText = col.header || col.label || col.key || 'Unknown';
+        doc.text(headerText, x, yPosition, this._getTextOptions({ width: width - 8, align: 'left' }));
+        x += width;
+      });
+      doc.moveTo(startX, yPosition + 16).lineTo(startX + usableWidth, yPosition + 16).stroke();
+      return yPosition + 20;
+    };
 
-    // Header separator
-    doc.moveTo(50, doc.y + 5).lineTo(545, doc.y + 5).stroke();
+    let yPosition = drawHeader(doc.y + 10);
+    doc.fontSize(9).font(this.fonts.normal).fillColor('#000');
 
-    // Table rows
-    doc.fontSize(9).font(this.fonts.normal);
-    let yPosition = doc.y + 15;
-
-    data.slice(0, 50).forEach((row, rowIndex) => { // Limit to 50 rows for PDF
-      const rowHeights = [];
+    data.slice(0, 50).forEach((row, rowIndex) => {
       const rowValues = columns.map((col) => {
-        const value = this._getNestedValue(row, col.key) || '';
+        const value = this._getNestedValue(row, col.key) ?? '';
         return typeof value === 'object' ? JSON.stringify(value) : String(value);
       });
 
-      // Calculate row height for each cell
-      columns.forEach((col, colIndex) => {
-        const colWidth = (col.width || 10) / totalColWidth * totalWidth;
-        const textHeight = doc.heightOfString(rowValues[colIndex], {
-          width: colWidth - 5,
-          align: 'left'
-        });
-        rowHeights.push(textHeight);
-      });
+      const rowHeights = rowValues.map((value, index) => doc.heightOfString(value, {
+        width: colWidths[index] - 8,
+        align: 'left'
+      }));
 
-      const rowHeight = Math.max(...rowHeights, 12) + 6;
+      const rowHeight = Math.max(...rowHeights, 12) + 8;
 
-      if (yPosition + rowHeight > 750) { // New page if needed
+      if (yPosition + rowHeight > 730) {
         doc.addPage();
-        yPosition = 50;
+        yPosition = drawHeader(50);
       }
 
-      xPosition = 50;
-      columns.forEach((col, colIndex) => {
-        const colWidth = (col.width || 10) / totalColWidth * totalWidth;
-        doc.text(rowValues[colIndex], xPosition, yPosition, this._getTextOptions({ width: colWidth - 5, align: 'left' }));
-        xPosition += colWidth;
+      let x = startX;
+      rowValues.forEach((text, index) => {
+        doc.text(text, x, yPosition, this._getTextOptions({ width: colWidths[index] - 8, align: 'left' }));
+        x += colWidths[index];
       });
 
       yPosition += rowHeight;
+      doc.moveTo(startX, yPosition - 4).lineTo(startX + usableWidth, yPosition - 4).stroke();
     });
 
     if (data.length > 50) {
@@ -412,18 +426,16 @@ class PDFReportService {
       doc.switchToPage(pageIndex);
 
       // Footer line
-      doc.moveTo(50, 780).lineTo(545, 780).stroke();
+      const footerY = 730;
+      doc.moveTo(50, footerY).lineTo(545, footerY).stroke();
 
-      // Footer text
-      doc.fontSize(8).font(this.fonts.normal)
-         .text('VIMS - Village Integrated Management System', 50, 790, this._getTextOptions({ align: 'center' }))
-         .text(`Page ${i + 1} of ${pageCount}`, 50, 790, this._getTextOptions({ align: 'right' }))
-         .text(`Generated on ${displayTime.toLocaleString()}`, 50, 800, this._getTextOptions({ align: 'center' }));
+      doc.fontSize(8).font(this.fonts.normal);
+      doc.text('VIMS - Village Integrated Management System', 50, footerY + 10, this._getTextOptions({ width: 495, align: 'center' }));
+      doc.text(`Page ${i + 1} of ${pageCount}`, 50, footerY + 10, this._getTextOptions({ width: 495, align: 'right' }));
+      doc.text(`Generated on ${displayTime.toLocaleString()}`, 50, footerY + 22, this._getTextOptions({ width: 495, align: 'center' }));
 
-      // Creator info in footer
       if (creator) {
-        doc.fontSize(8).font(this.fonts.normal)
-           .text(`Generated by: ${creator.firstName} ${creator.lastName}`, 50, 810, this._getTextOptions({ align: 'center' }));
+        doc.text(`Generated by: ${creator.firstName} ${creator.lastName}`, 50, footerY + 34, this._getTextOptions({ width: 495, align: 'center' }));
       }
     }
   }

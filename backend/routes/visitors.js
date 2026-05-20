@@ -1371,7 +1371,8 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
 // Export visitors data (CSV or PDF format)
 router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
   try {
-    const { startDate, endDate, format = 'json' } = req.query;
+    const { startDate, endDate, format = 'json', timezoneOffset = '0' } = req.query;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     let filter = {};
 
@@ -1389,30 +1390,52 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
       .sort({ createdAt: -1 });
 
     if (format === 'pdf') {
-      // Import PDF service at the top of the file
       const pdfReportService = require('../services/pdfReportService');
 
       const columns = [
-        { key: 'visitorName', label: 'Visitor Name' },
-        { key: 'visitorPhone', label: 'Phone' },
-        { key: 'purpose', label: 'Purpose' },
-        { key: 'residentId.firstName', label: 'Resident' },
-        { key: 'residentId.houseNumber', label: 'House' },
-        { key: 'status', label: 'Status' },
-        { key: 'expectedArrival', label: 'Expected Arrival' },
-        { key: 'actualEntry', label: 'Entry Time' },
-        { key: 'approvedBy.firstName', label: 'Approved By' }
+        { key: 'visitorName', label: 'Visitor Name', width: 14 },
+        { key: 'visitorPhone', label: 'Phone', width: 10 },
+        { key: 'vehicleNumber', label: 'Vehicle', width: 10 },
+        { key: 'numberOfCompanions', label: 'Companions', width: 8 },
+        { key: 'purpose', label: 'Purpose', width: 18 },
+        { key: 'residentName', label: 'Resident', width: 12 },
+        { key: 'residentHouse', label: 'House', width: 7 },
+        { key: 'status', label: 'Status', width: 8 },
+        { key: 'expectedArrival', label: 'Expected Arrival', width: 12 },
+        { key: 'actualEntry', label: 'Entry Time', width: 8 },
+        { key: 'approvedByName', label: 'Approved By', width: 10 }
       ];
 
+      const reportData = visitors.map((v) => ({
+        visitorName: v.visitorName || 'N/A',
+        visitorPhone: v.visitorPhone || 'N/A',
+        vehicleNumber: v.vehicleNumber || 'N/A',
+        numberOfCompanions: v.numberOfCompanions ?? 0,
+        purpose: v.purpose || 'N/A',
+        residentName: v.residentId ? `${v.residentId.firstName || ''} ${v.residentId.lastName || ''}`.trim() : 'N/A',
+        residentHouse: v.residentId?.houseNumber || 'N/A',
+        status: v.status || 'N/A',
+        expectedArrival: v.expectedArrival ? new Date(v.expectedArrival).toLocaleString() : 'N/A',
+        actualEntry: v.actualEntry ? new Date(v.actualEntry).toLocaleString() : 'N/A',
+        approvedByName: v.approvedBy ? `${v.approvedBy.firstName || ''} ${v.approvedBy.lastName || ''} (${v.approvedBy.role || ''})`.trim() : 'N/A'
+      }));
+
+      const filename = `VIMS_Visitors_Export_${new Date().toISOString().split('T')[0]}.pdf`;
       const pdfBuffer = await pdfReportService.generateDataReport(
         'VIMS Visitors Export Report',
-        visitors,
+        reportData,
         columns,
-        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role }, timezoneOffsetMinutes }
+        {
+          creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role },
+          timezoneOffsetMinutes,
+          persistFilename: filename,
+          persistSubdir: 'pdf-exports'
+        }
       );
 
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitors_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('X-PDF-Report-Url', `/uploads/pdf-exports/${filename}`);
       return res.send(pdfBuffer);
     }
 
@@ -1423,6 +1446,7 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
       'Visitor Phone': v.visitorPhone,
       'Purpose': v.purpose,
       'Vehicle Number': v.vehicleNumber || 'N/A',
+      'Companions': v.numberOfCompanions ?? 0,
       'Resident Name': `${v.residentId?.firstName || ''} ${v.residentId?.lastName || ''}`,
       'Resident House': v.residentId?.houseNumber || 'N/A',
       'Expected Arrival': v.expectedArrival,

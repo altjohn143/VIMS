@@ -277,7 +277,12 @@ const VisitorManagement = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('/api/visitors', formData);
+      const payload = {
+        ...formData,
+        numberOfCompanions: parseInt(formData.numberOfCompanions, 10) || 0
+      };
+
+      const response = await axios.post('/api/visitors', payload);
       if (response.data.success) {
         toast.success('Visitor pass created successfully!');
         setOpenDialog(false);

@@ -193,6 +193,54 @@ const Dashboard = () => {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const { logout, getCurrentUser } = useAuth();
 
+  // Live Monthly Collection state and logic for resident dashboard
+  const [monthlyCollection, setMonthlyCollection] = useState(null);
+  const [collectionLoading, setCollectionLoading] = useState(false);
+  const [collectionError, setCollectionError] = useState(null);
+
+  useEffect(() => {
+    if (user?.role !== 'resident') return;
+    setCollectionLoading(true);
+    axios.get('/api/payments/public/monthly-collection')
+      .then((res) => {
+        setMonthlyCollection(res.data?.monthlyCollection ?? 0);
+        setCollectionLoading(false);
+      })
+      .catch((err) => {
+        setCollectionError('Failed to load collection');
+        setCollectionLoading(false);
+      });
+  }, [user?.role]);
+
+  // Resident dashboard: show Live Monthly Collection card
+  const renderResidentCollectionCard = () => {
+    if (user?.role !== 'resident') return null;
+    return (
+      <Grid item xs={12} md={4}>
+        <Card sx={{ borderRadius: 3, bgcolor: '#f8fffa', border: '1px solid rgba(34,197,94,0.15)', boxShadow: '0 12px 32px rgba(15,23,42,0.08)' }}>
+          <CardContent sx={{ p: 3, minHeight: 228, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <Box>
+              <Typography sx={{ color: '#166534', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 1 }}>
+                Live Monthly Collection
+              </Typography>
+              <Typography sx={{ fontSize: '2.5rem', fontWeight: 900, color: '#0b3d1f', lineHeight: 1.05 }}>
+                {collectionLoading ? 'Loading…' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '₱0'}
+              </Typography>
+              <Typography sx={{ mt: 1.2, color: '#475569', fontSize: '1.1rem', fontWeight: 600 }}>
+                {collectionLoading ? 'Fetching latest totals' : collectionError ? collectionError : 'Updated automatically for the current month'}
+              </Typography>
+            </Box>
+            <Box sx={{ mt: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Chip label="Real-time" size="small" sx={{ bgcolor: '#dcfce7', color: '#166534', fontWeight: 800 }} />
+              <Chip label="Monthly dues and payments" size="small" sx={{ bgcolor: '#ecfdf5', color: '#166534', fontWeight: 700 }} />
+              <Chip label="Visible to residents" size="small" sx={{ bgcolor: '#dbeafe', color: '#1e40af', fontWeight: 700 }} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+    );
+  };
+
   useEffect(() => {
     const checkAuth = () => {
       const currentUser = getCurrentUser();
@@ -1482,129 +1530,130 @@ const Dashboard = () => {
               </Box>
             ) : (
               <Grid container spacing={2.25}>
-              <Grid item xs={12}>
-                <Paper
-                  sx={{
-                    position: 'relative',
-                    overflow: 'hidden',
-                    borderRadius: '22px',
-                    minHeight: { xs: 220, md: 240 },
-                    backgroundColor: '#0f172a',
-                    border: `1px solid ${themeColors.border}`,
-                    boxShadow: '0 16px 40px rgba(15, 23, 42, 0.08)'
-                  }}
-                >
-                  <Box
+                {renderResidentCollectionCard()}
+                <Grid item xs={12}>
+                  <Paper
                     sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      backgroundImage: `url("https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1600&q=80")`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center'
+                      position: 'relative',
+                      overflow: 'hidden',
+                      borderRadius: '22px',
+                      minHeight: { xs: 220, md: 240 },
+                      backgroundColor: '#0f172a',
+                      border: `1px solid ${themeColors.border}`,
+                      boxShadow: '0 16px 40px rgba(15, 23, 42, 0.08)'
                     }}
-                  />
+                  >
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundImage: `url("https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1600&q=80")`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}
+                    />
 
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'linear-gradient(90deg, rgba(2,6,23,0.82) 0%, rgba(2,6,23,0.65) 38%, rgba(2,6,23,0.18) 68%, rgba(2,6,23,0.08) 100%)'
-                    }}
-                  />
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(90deg, rgba(2,6,23,0.82) 0%, rgba(2,6,23,0.65) 38%, rgba(2,6,23,0.18) 68%, rgba(2,6,23,0.08) 100%)'
+                      }}
+                    />
 
-                  <Grid container sx={{ position: 'relative', zIndex: 1, minHeight: { xs: 220, md: 240 } }}>
-                    <Grid item xs={12} md={6.5}>
-                      <Box
-                        sx={{
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center',
-                          p: { xs: 2.5, md: 3.5 },
-                          color: 'white',
-                          animation: 'slideUpSoft 0.65s ease'
-                        }}
-                      >
-                        <Typography
+                    <Grid container sx={{ position: 'relative', zIndex: 1, minHeight: { xs: 220, md: 240 } }}>
+                      <Grid item xs={12} md={6.5}>
+                        <Box
                           sx={{
-                            fontSize: '0.8rem',
-                            fontWeight: 800,
-                            letterSpacing: '0.08em',
-                            color: '#4ade80',
-                            textTransform: 'uppercase',
-                            mb: 1.2
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            p: { xs: 2.5, md: 3.5 },
+                            color: 'white',
+                            animation: 'slideUpSoft 0.65s ease'
                           }}
                         >
-                          Casimiro Westville Homes • Cavite
-                        </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: '0.8rem',
+                              fontWeight: 800,
+                              letterSpacing: '0.08em',
+                              color: '#4ade80',
+                              textTransform: 'uppercase',
+                              mb: 1.2
+                            }}
+                          >
+                            Casimiro Westville Homes • Cavite
+                          </Typography>
 
-                        <Typography
-                          sx={{
-                            fontSize: { xs: '1.75rem', md: '2.25rem' },
-                            fontWeight: 900,
-                            lineHeight: 1.05,
-                            mb: 1
-                          }}
-                        >
-                          Good morning, {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.role === 'admin' ? 'Administrator' : user.role === 'security' ? 'Security Officer' : 'User'}
-                        </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: { xs: '1.75rem', md: '2.25rem' },
+                              fontWeight: 900,
+                              lineHeight: 1.05,
+                              mb: 1
+                            }}
+                          >
+                            Good morning, {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.role === 'admin' ? 'Administrator' : user.role === 'security' ? 'Security Officer' : 'User'}
+                          </Typography>
 
-                        <Typography
-                          sx={{
-                            color: 'rgba(255,255,255,0.78)',
-                            fontWeight: 500,
-                            maxWidth: 520,
-                            fontSize: { xs: '0.92rem', md: '1rem' }
-                          }}
-                        >
-                          {new Date().toLocaleDateString(undefined, {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}{' '}
-                          • Your community is running smoothly today.
-                        </Typography>
-                      </Box>
-                    </Grid>
+                          <Typography
+                            sx={{
+                              color: 'rgba(255,255,255,0.78)',
+                              fontWeight: 500,
+                              maxWidth: 520,
+                              fontSize: { xs: '0.92rem', md: '1rem' }
+                            }}
+                          >
+                            {new Date().toLocaleDateString(undefined, {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}{' '}
+                            • Your community is running smoothly today.
+                          </Typography>
+                        </Box>
+                      </Grid>
 
-                    <Grid item xs={12} md={5.5}>
-                      <Grid container sx={{ height: '100%' }}>
-                        {dashboardStats.slice(0, 4).map((stat, index) => (
-                          <Grid item xs={6} key={index}>
-                            <Box
-                              sx={{
-                                height: '100%',
-                                p: 2.5,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                borderLeft: { md: '1px solid rgba(255,255,255,0.10)' },
-                                borderTop: {
-                                  xs: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none',
-                                  md: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none'
-                                },
-                                background: 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
-                                backdropFilter: 'blur(8px)'
-                              }}
-                            >
-                              <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>
-                                {stat.value}
-                              </Typography>
-                              <Typography sx={{ mt: 0.8, fontSize: '0.86rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
-                                {stat.label}
-                              </Typography>
-                              <Typography sx={{ mt: 1, fontSize: '0.76rem', color: '#86efac', fontWeight: 700 }}>
-                                ↗ {stat.helper}
-                              </Typography>
-                            </Box>
-                          </Grid>
-                        ))}
+                      <Grid item xs={12} md={5.5}>
+                        <Grid container sx={{ height: '100%' }}>
+                          {dashboardStats.slice(0, 4).map((stat, index) => (
+                            <Grid item xs={6} key={index}>
+                              <Box
+                                sx={{
+                                  height: '100%',
+                                  p: 2.5,
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  justifyContent: 'center',
+                                  borderLeft: { md: '1px solid rgba(255,255,255,0.10)' },
+                                  borderTop: {
+                                    xs: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none',
+                                    md: index > 1 ? '1px solid rgba(255,255,255,0.10)' : 'none'
+                                  },
+                                  background: 'linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                                  backdropFilter: 'blur(8px)'
+                                }}
+                              >
+                                <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>
+                                  {stat.value}
+                                </Typography>
+                                <Typography sx={{ mt: 0.8, fontSize: '0.86rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
+                                  {stat.label}
+                                </Typography>
+                                <Typography sx={{ mt: 1, fontSize: '0.76rem', color: '#86efac', fontWeight: 700 }}>
+                                  ↗ {stat.helper}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          ))}
+                        </Grid>
                       </Grid>
                     </Grid>
-                  </Grid>
-                </Paper>
-              </Grid>
+                  </Paper>
+                </Grid>
 
               <Grid item xs={12}>
                 <Paper

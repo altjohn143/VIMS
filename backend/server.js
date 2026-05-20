@@ -133,6 +133,14 @@ app.use('/uploads/vehicle-photos', express.static(path.join(__dirname, 'uploads/
   }
 }));
 
+// SECURITY: Serve generated PDF exports from the backend uploads folder
+app.use('/uploads/pdf-exports', express.static(path.join(__dirname, 'uploads/pdf-exports'), {
+  maxAge: '1d',
+  setHeaders: (res, path) => {
+    res.set('Cache-Control', 'public, max-age=86400');
+  }
+}));
+
 app.use('/api', apiLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);

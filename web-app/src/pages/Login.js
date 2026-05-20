@@ -447,6 +447,7 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
 // LANDING PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
+  const { user } = useAuth();
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [monthlyCollection, setMonthlyCollection] = useState(null);
@@ -1076,28 +1077,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             </Box>
 
             <Grid container spacing={2.5}>
-              <Grid item xs={12} md={4}>
-                <Card sx={{ borderRadius: 3, bgcolor: '#f8fffa', border: '1px solid rgba(34,197,94,0.15)', boxShadow: '0 12px 32px rgba(15,23,42,0.08)' }}>
-                  <CardContent sx={{ p: 3, minHeight: 228, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <Box>
-                      <Typography sx={{ color: '#166534', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 1 }}>
-                        Live Monthly Collection
-                      </Typography>
-                      <Typography sx={{ fontSize: '2.5rem', fontWeight: 900, color: T.dark, lineHeight: 1.05 }}>
-                        {collectionLoading ? 'Loading…' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '₱0'}
-                      </Typography>
-                      <Typography sx={{ mt: 1.2, color: '#475569', fontSize: '1.1rem', fontWeight: 600 }}>
-                        {collectionLoading ? 'Fetching latest totals' : collectionError ? collectionError : 'Updated automatically for the current month'}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mt: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Chip label="Real-time" size="small" sx={{ bgcolor: '#dcfce7', color: '#166534', fontWeight: 800 }} />
-                      <Chip label="Monthly dues and payments" size="small" sx={{ bgcolor: '#ecfdf5', color: '#166534', fontWeight: 700 }} />
-                      <Chip label="Visible on homepage" size="small" sx={{ bgcolor: '#dbeafe', color: '#1e40af', fontWeight: 700 }} />
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
+
 
               {ANNOUNCEMENTS.slice(0, 2).map((ann) => (
                 <Grid item xs={12} md={4} key={ann.id}>

@@ -4,7 +4,6 @@ import villageLogo from '../assets/village-logo.png';
 import bgImage from '../assets/Westville.png';
 import heroBg from '../assets/roof.png';
 import { useAuth } from '../context/AuthContext';
-import axios from '../config/axios';
 import {
   Container, Box, TextField, Button, Typography, Paper,
   CircularProgress, Alert, Dialog, DialogTitle, DialogContent,
@@ -447,12 +446,8 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
 // LANDING PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
-  const { user } = useAuth();
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [monthlyCollection, setMonthlyCollection] = useState(null);
-  const [collectionLoading, setCollectionLoading] = useState(false);
-  const [collectionError, setCollectionError] = useState(null);
   const calendarRef = useRef(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const homeRef = useRef(null);
@@ -466,29 +461,6 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
     const handler = (e) => { if (calendarRef.current && !calendarRef.current.contains(e.target)) setShowCalendar(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  useEffect(() => {
-    const fetchCollection = async () => {
-      setCollectionLoading(true);
-      setCollectionError(null);
-
-      try {
-        const response = await axios.get('/api/payments/public/monthly-collection');
-        if (response.data?.success) {
-          setMonthlyCollection(response.data.data?.monthlyCollected ?? 0);
-        } else {
-          setCollectionError('Unable to load latest collection data.');
-        }
-      } catch (error) {
-        console.error('Monthly collection load error:', error);
-        setCollectionError('Unable to load latest collection data.');
-      } finally {
-        setCollectionLoading(false);
-      }
-    };
-
-    fetchCollection();
   }, []);
 
   const scrollTo = (ref) => {
@@ -668,7 +640,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               textTransform: 'none',
               '&:hover': { borderColor: T.accent, color: T.accent, bgcolor: 'rgba(124, 219, 107, 0.12)' },
               '&:active': { transform: 'translateY(1px) scale(0.99)' },
-              transition: 'transform 0.15s ease',
+              transition: 'transform 0.15s ease, background-color 0.2s ease',
             }}
           >
             View Map
@@ -784,7 +756,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               textTransform: 'none',
               '&:hover': { borderColor: T.accent, color: T.accent, bgcolor: 'rgba(124, 219, 107, 0.12)' },
               '&:active': { transform: 'translateY(1px) scale(0.99)' },
-              transition: 'transform 0.15s ease',
+              transition: 'transform 0.15s ease, background-color 0.2s ease',
             }}
           >
             Browse Lots
@@ -845,7 +817,9 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               py: 1.05,
               fontWeight: 900,
               textTransform: 'none',
-              '&:hover': { borderColor: T.accent, color: T.accent, bgcolor: 'rgba(124, 219, 107, 0.12)' },
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              '&:hover': { backgroundColor: 'rgba(15, 90, 42, 0.06)', borderColor: T.dark },
               '&:active': { transform: 'translateY(1px) scale(0.99)' },
               transition: 'transform 0.15s ease',
             }}
@@ -1107,7 +1081,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                         />
                         <Typography sx={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>{ann.date}</Typography>
                       </Box>
-                      <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: '0.95rem', lineHeight: 1.35 }}>
+                      <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.95rem', lineHeight: 1.35 }}>
                         {ann.title}
                       </Typography>
                       <Typography

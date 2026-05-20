@@ -506,6 +506,7 @@ const Dashboard = () => {
     resident: {
       title: 'Resident Dashboard',
       subtitle: 'Your community tools and services in one place',
+      panelLabel: 'Resident Panel',
       icon: <HomeIcon />,
       color: '#1e88e5',
       features: {
@@ -528,6 +529,7 @@ const Dashboard = () => {
     admin: {
       title: 'Dashboard',
       subtitle: 'Casimiro Westville Homes',
+      panelLabel: 'Admin Panel',
       icon: <AdminIcon />,
       color: '#166534',
       features: {
@@ -560,6 +562,7 @@ const Dashboard = () => {
     security: {
       title: 'Security Dashboard',
       subtitle: 'Monitor visitors and on-site activity',
+      panelLabel: 'Security Panel',
       icon: <SecurityIcon />,
       color: '#1565c0',
       features: {
@@ -587,6 +590,7 @@ const Dashboard = () => {
     headOfficer: {
       title: 'Team Dashboard',
       subtitle: 'Manage security personnel and patrol operations',
+      panelLabel: 'Team Panel',
       icon: <SupervisorAccountIcon />,
       color: '#7c3aed',
       features: {
@@ -622,6 +626,7 @@ const Dashboard = () => {
 
   const configRole = isHeadOfficer ? 'headOfficer' : user.role;
   const config = roleConfig[configRole] || roleConfig.resident;
+  const panelLabel = config.panelLabel || 'Panel';
 
   const getActivePageKey = () => {
     const base = '/dashboard/';
@@ -888,7 +893,7 @@ const Dashboard = () => {
                   fontWeight: 500
                 }}
               >
-                Homes • Admin Panel
+                Homes • {panelLabel}
               </Typography>
             </Box>
           </Box>

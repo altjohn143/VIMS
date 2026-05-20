@@ -306,30 +306,40 @@ const VisitorManagementScreen = ({ navigation }) => {
     ? 'Confirm Visitor Departure via QR Scan'
     : 'Confirm Visitor via QR Scan';
 
-  const getStatusChip = (status, visitor = null) => {
-    const config = {
-      pending: { label: 'Pending', color: themeColors.warning, icon: 'time', bg: themeColors.warning + '20' },
-      approved: { label: 'Approved', color: themeColors.success, icon: 'checkmark-circle', bg: themeColors.success + '20' },
-      rejected: { label: 'Rejected', color: themeColors.error, icon: 'close-circle', bg: themeColors.error + '20' },
-      confirmed: { label: 'Confirmed', color: themeColors.success, icon: 'shield-checkmark', bg: themeColors.success + '20' },
-      active: { label: 'Active', color: themeColors.info, icon: 'radio-button-on', bg: themeColors.info + '20' },
-      completed: { label: 'Completed', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
-      cancelled: { label: 'Cancelled', color: themeColors.error, icon: 'ban', bg: themeColors.error + '20' },
-    };
-    if (status === 'active') {
-      if (visitor?.residentDepartureConfirmedAt) {
-        return {
-          label: 'Departing',
-          color: themeColors.warning,
-          icon: 'arrow-forward-circle',
-          bg: themeColors.warning + '20'
-        };
-      }
-      if (visitor?.residentEntryConfirmedAt) {
-        return config.confirmed;
-      }
+  const getVisitorQrStatus = (visitor) => {
+    if (!visitor) return 'Unknown';
+    if (visitor.status === 'pending') return 'Pending';
+    if (visitor.status === 'approved') return 'Approved';
+    if (visitor.status === 'active') {
+      if (visitor.actualExit) return 'Exited';
+      if (visitor.residentDepartureConfirmedAt) return 'Departed';
+      if (visitor.residentEntryConfirmedAt) return 'Arrived';
+      if (visitor.actualEntry) return 'Entered';
+      return 'Active';
     }
-    return config[status] || config.pending;
+    if (visitor.status === 'completed') return 'Exited';
+    if (visitor.status === 'rejected') return 'Rejected';
+    if (visitor.status === 'cancelled') return 'Cancelled';
+    return visitor.status ? visitor.status.charAt(0).toUpperCase() + visitor.status.slice(1) : 'Unknown';
+  };
+
+  const getStatusChip = (visitor) => {
+    const status = getVisitorQrStatus(visitor);
+    const config = {
+      Pending: { label: 'Pending', color: themeColors.warning, icon: 'time', bg: themeColors.warning + '20' },
+      Approved: { label: 'Approved', color: themeColors.success, icon: 'checkmark-circle', bg: themeColors.success + '20' },
+      Entered: { label: 'Entered', color: themeColors.info, icon: 'log-in', bg: themeColors.info + '20' },
+      Arrived: { label: 'Arrived', color: themeColors.success, icon: 'home', bg: themeColors.success + '20' },
+      Departed: { label: 'Departed', color: themeColors.warning, icon: 'arrow-forward-circle', bg: themeColors.warning + '20' },
+      Exited: { label: 'Exited', color: themeColors.textSecondary, icon: 'walk', bg: themeColors.textSecondary + '20' },
+      Active: { label: 'Active', color: themeColors.info, icon: 'radio-button-on', bg: themeColors.info + '20' },
+      Completed: { label: 'Exited', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
+      Rejected: { label: 'Rejected', color: themeColors.error, icon: 'close-circle', bg: themeColors.error + '20' },
+      Cancelled: { label: 'Cancelled', color: themeColors.error, icon: 'ban', bg: themeColors.error + '20' },
+      Unknown: { label: 'Unknown', color: themeColors.textSecondary, icon: 'help-circle', bg: themeColors.textSecondary + '20' }
+    };
+
+    return config[status] || config.Unknown;
   };
 
   const formatDate = (dateString) => {
@@ -365,7 +375,7 @@ const VisitorManagementScreen = ({ navigation }) => {
   };
 
   const renderVisitorCard = ({ item }) => {
-    const status = getStatusChip(item.status, item);
+    const status = getStatusChip(item);
     const isQRValid = ['approved', 'active', 'completed'].includes(item.status);
     const isPending = item.status === 'pending';
 
@@ -771,9 +781,27 @@ const VisitorManagementScreen = ({ navigation }) => {
 
                   {selectedVisitor.actualEntry && (
                     <View style={styles.qrDetailRow}>
-                      <Text style={styles.qrDetailLabel}>Entry Time:</Text>
+                      <Text style={styles.qrDetailLabel}>Gate Entry Time:</Text>
                       <Text style={styles.qrDetailValue}>
                         {formatDate(selectedVisitor.actualEntry)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedVisitor.residentEntryConfirmedAt && (
+                    <View style={styles.qrDetailRow}>
+                      <Text style={styles.qrDetailLabel}>Resident Confirmed:</Text>
+                      <Text style={styles.qrDetailValue}>
+                        {formatDate(selectedVisitor.residentEntryConfirmedAt)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedVisitor.residentDepartureConfirmedAt && (
+                    <View style={styles.qrDetailRow}>
+                      <Text style={styles.qrDetailLabel}>Departure Confirmed:</Text>
+                      <Text style={styles.qrDetailValue}>
+                        {formatDate(selectedVisitor.residentDepartureConfirmedAt)}
                       </Text>
                     </View>
                   )}
@@ -788,17 +816,17 @@ const VisitorManagementScreen = ({ navigation }) => {
                   )}
 
                   <View style={[styles.statusBadge, { 
-                    backgroundColor: getStatusChip(selectedVisitor.status, selectedVisitor).bg,
+                    backgroundColor: getStatusChip(selectedVisitor).bg,
                     alignSelf: 'center',
                     marginTop: 16,
                   }]}>
                     <Ionicons 
-                      name={getStatusChip(selectedVisitor.status, selectedVisitor).icon} 
+                      name={getStatusChip(selectedVisitor).icon} 
                       size={16} 
-                      color={getStatusChip(selectedVisitor.status, selectedVisitor).color} 
+                      color={getStatusChip(selectedVisitor).color} 
                     />
-                    <Text style={[styles.statusText, { color: getStatusChip(selectedVisitor.status, selectedVisitor).color }]}>
-                      {getStatusChip(selectedVisitor.status, selectedVisitor).label.toUpperCase()}
+                    <Text style={[styles.statusText, { color: getStatusChip(selectedVisitor).color }]}>
+                      {getStatusChip(selectedVisitor).label.toUpperCase()}
                     </Text>
                   </View>
                 </View>

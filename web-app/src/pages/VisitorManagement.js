@@ -305,21 +305,39 @@ const VisitorManagement = () => {
     }
   };
 
-  const getStatusChip = (status, visitor) => {
-    if (status === 'active' && visitor?.residentEntryConfirmedAt) {
-      return <Chip label="Confirmed" color="success" size="small" />;
+  const getVisitorQrStatus = (visitor) => {
+    if (!visitor) return 'Unknown';
+    if (visitor.status === 'pending') return 'Pending';
+    if (visitor.status === 'approved') return 'Approved';
+    if (visitor.status === 'active') {
+      if (visitor.actualExit) return 'Exited';
+      if (visitor.residentDepartureConfirmedAt) return 'Departed';
+      if (visitor.residentEntryConfirmedAt) return 'Arrived';
+      if (visitor.actualEntry) return 'Entered';
+      return 'Active';
     }
+    if (visitor.status === 'completed') return 'Exited';
+    if (visitor.status === 'rejected') return 'Rejected';
+    if (visitor.status === 'cancelled') return 'Cancelled';
+    return visitor.status ? visitor.status.charAt(0).toUpperCase() + visitor.status.slice(1) : 'Unknown';
+  };
 
+  const getStatusChip = (status, visitor) => {
+    const qrStatus = visitor?.qrStatus || getVisitorQrStatus(visitor || { status });
     const statusConfig = {
       pending: { label: 'Pending', color: 'warning' },
       approved: { label: 'Approved', color: 'success' },
-      rejected: { label: 'Rejected', color: 'error' },
+      entered: { label: 'Entered', color: 'info' },
+      arrived: { label: 'Arrived', color: 'success' },
+      departed: { label: 'Departed', color: 'warning' },
+      exited: { label: 'Exited', color: 'default' },
       active: { label: 'Active', color: 'info' },
       completed: { label: 'Completed', color: 'default' },
+      rejected: { label: 'Rejected', color: 'error' },
       cancelled: { label: 'Cancelled', color: 'error' }
     };
 
-    const config = statusConfig[status] || { label: status, color: 'default' };
+    const config = statusConfig[qrStatus.toLowerCase()] || { label: qrStatus, color: 'default' };
     return <Chip label={config.label} color={config.color} size="small" />;
   };
 
@@ -378,6 +396,7 @@ const VisitorManagement = () => {
       if (response.data.success) {
         const { qrCodeUrl, visitor, residentName, residentHouse } = response.data.data;
 
+        const qrStatus = visitor.qrStatus || getVisitorQrStatus(visitor);
         const modal = window.open('', 'QR Code', 'width=500,height=600');
         const now = new Date();
         const departureDate = new Date(visitor.expectedDeparture);
@@ -387,11 +406,23 @@ const VisitorManagement = () => {
         let validityStatus = '';
         if (isExpired) {
           validityStatus = '❌ EXPIRED';
-        } else if (hasLeft) {
-          validityStatus = '✅ USED (Visitor has left)';
+        } else if (qrStatus === 'Exited' || qrStatus === 'Departed') {
+          validityStatus = '✅ ' + qrStatus.toUpperCase();
         } else {
           validityStatus = '✅ VALID';
         }
+
+        const description = isExpired
+          ? 'This QR code has expired.'
+          : qrStatus === 'Exited'
+          ? 'Visitor has exited and pass is completed.'
+          : qrStatus === 'Departed'
+          ? 'Visitor departure has been confirmed and the QR code is ready for gate exit scan.'
+          : qrStatus === 'Arrived'
+          ? 'Visitor arrival has been confirmed by the resident.'
+          : qrStatus === 'Entered'
+          ? 'Visitor has entered through the gate.'
+          : 'Show this QR code at the gate.';
 
         modal.document.write(`
           <html>
@@ -519,34 +550,77 @@ const VisitorManagement = () => {
                   <span class="info-value">${new Date(visitor.actualEntry).toLocaleString()}</span>
                 </div>
                 ` : ''}
-                ${visitor.actualExit ? `
-                <div class="info-row">
-                  <span class="info-label">Exit Time:</span>
-                  <span class="info-value">${new Date(visitor.actualExit).toLocaleString()}</span>
-                </div>
-                ` : ''}
                 ${visitor.residentEntryConfirmedAt ? `
                 <div class="info-row">
                   <span class="info-label">Resident Confirmed:</span>
                   <span class="info-value">${new Date(visitor.residentEntryConfirmedAt).toLocaleString()}</span>
                 </div>
                 ` : ''}
+                ${visitor.residentDepartureConfirmedAt ? `
+                <div class="info-row">
+                  <span class="info-label">Departure Confirmed:</span>
+                  <span class="info-value">${new Date(visitor.residentDepartureConfirmedAt).toLocaleString()}</span>
+                </div>
+                ` : ''}
+                ${visitor.actualExit ? `
+                <div class="info-row">
+                  <span class="info-label">Exit Time:</span>
+                  <span class="info-value">${new Date(visitor.actualExit).toLocaleString()}</span>
+                </div>
+                ` : ''}
                 <div class="info-row">
                   <span class="info-label">Status:</span>
                   <span class="info-value" style="font-weight: bold; color: ${
-                    visitor.status === 'approved' ? themeColors.success : 
-                    visitor.status === 'active' ? themeColors.info : 
-                    visitor.status === 'completed' ? '#718096' : 
-                    visitor.status === 'pending' ? themeColors.warning : 
-                    visitor.status === 'rejected' ? themeColors.error : '#4a5568'
+                    qrStatus === 'Approved' ? themeColors.success : 
+                    qrStatus === 'Entered' ? themeColors.info : 
+                    qrStatus === 'Arrived' ? themeColors.success : 
+                    qrStatus === 'Departed' ? themeColors.warning : 
+                    qrStatus === 'Exited' ? '#718096' : 
+                    qrStatus === 'pending' ? themeColors.warning : 
+                    qrStatus === 'rejected' ? themeColors.error : '#4a5568'
                   }">
-                    ${visitor.status.toUpperCase()}
+                    ${qrStatus.toUpperCase()}
                   </span>
                 </div>
               </div>
               
-              <button class="print-btn" onclick="window.print()">Print QR Code</button>
-              
+              <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:20px;">
+                <button class="print-btn" onclick="window.print()">Print QR Code</button>
+                <a class="print-btn" download="visitor_qr_${visitor._id}.png" href="${qrCodeUrl}">Download QR Code</a>
+                <button class="print-btn" onclick="shareQrCode()">Share QR Code</button>
+              </div>
+              <script>
+                function dataURLtoFile(dataurl, filename) {
+                  const arr = dataurl.split(',');
+                  const mime = arr[0].match(/:(.*?);/)[1];
+                  const bstr = atob(arr[1]);
+                  let n = bstr.length;
+                  const u8arr = new Uint8Array(n);
+                  while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                  }
+                  return new File([u8arr], filename, { type: mime });
+                }
+
+                async function shareQrCode() {
+                  if (!navigator.share) {
+                    alert('Sharing is not supported in this browser. Please download the QR code instead.');
+                    return;
+                  }
+
+                  try {
+                    const file = dataURLtoFile('${qrCodeUrl}', 'visitor_qr_${visitor._id}.png');
+                    await navigator.share({
+                      files: [file],
+                      title: 'Visitor QR Code',
+                      text: 'Visitor pass for ${visitor.visitorName} at ${residentName}',
+                    });
+                  } catch (error) {
+                    console.error('Share failed:', error);
+                    alert('Unable to share the QR code. Please try downloading it.');
+                  }
+                }
+              </script>
               <div class="watermark">
                 Generated on ${new Date().toLocaleDateString()} | VIMS Visitor System
               </div>
@@ -1221,6 +1295,7 @@ const VisitorManagement = () => {
                                 size="small" 
                                 color="primary" 
                                 title="Print"
+                                onClick={() => handleViewQRCode(visitor._id)}
                                 sx={{
                                   '&:hover': {
                                     backgroundColor: themeColors.primary + '20'

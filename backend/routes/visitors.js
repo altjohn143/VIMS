@@ -64,6 +64,31 @@ const findVisitorByScanValue = async (scanValue) => {
   return visitor;
 };
 
+const getVisitorQrStatus = (visitor) => {
+  if (!visitor) return 'Unknown';
+  if (visitor.status === 'pending') return 'Pending';
+  if (visitor.status === 'approved') return 'Approved';
+  if (visitor.status === 'active') {
+    if (visitor.actualExit) return 'Exited';
+    if (visitor.residentDepartureConfirmedAt) return 'Departed';
+    if (visitor.residentEntryConfirmedAt) return 'Arrived';
+    if (visitor.actualEntry) return 'Entered';
+    return 'Active';
+  }
+  if (visitor.status === 'completed') return 'Exited';
+  if (visitor.status === 'rejected') return 'Rejected';
+  if (visitor.status === 'cancelled') return 'Cancelled';
+  return typeof visitor.status === 'string'
+    ? visitor.status.charAt(0).toUpperCase() + visitor.status.slice(1)
+    : 'Unknown';
+};
+
+const attachQrStatus = (visitor) => {
+  if (!visitor) return visitor;
+  visitor.qrStatus = getVisitorQrStatus(visitor);
+  return visitor;
+};
+
 const notifyResidentOverstays = async (filter = {}) => {
   const now = new Date();
   const overdueVisitors = await Visitor.find({
@@ -111,6 +136,8 @@ router.get('/history', protect, authorize('resident'), async (req, res) => {
   try {
     const visitors = await Visitor.find({ residentId: req.user.id })
       .sort({ createdAt: -1 });
+
+    visitors.forEach(attachQrStatus);
     
     res.json({
       success: true,
@@ -200,13 +227,22 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       vehicleNumber,
       purpose,
       expectedArrival,
-      expectedDeparture
+      expectedDeparture,
+      numberOfCompanions = 0
     } = req.body;
 
     if (!visitorName || !visitorPhone || !purpose || !expectedArrival || !expectedDeparture) {
       return res.status(400).json({
         success: false,
         error: 'All required fields must be provided'
+      });
+    }
+
+    const companionsCount = parseInt(numberOfCompanions, 10) || 0;
+    if (companionsCount < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Number of companions must be zero or positive'
       });
     }
 
@@ -243,6 +279,7 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       visitorPhone,
       vehicleNumber: vehicleNumber || '',
       purpose,
+      numberOfCompanions: companionsCount,
       qrCode,
       qrToken,
       expectedArrival: arrivalDate,
@@ -437,6 +474,8 @@ router.get('/qr/:qrCode', protect, authorize('security'), async (req, res) => {
         error: 'Invalid QR code'
       });
     }
+
+    attachQrStatus(visitor);
     
     res.json({
       success: true,
@@ -469,6 +508,7 @@ router.post('/scan', protect, authorize('security'), async (req, res) => {
       return res.status(404).json({ success: false, error: 'Invalid QR code' });
     }
 
+    attachQrStatus(visitor);
     res.json({ success: true, data: visitor });
   } catch (error) {
     console.error('QR scan parse error:', error);
@@ -501,6 +541,7 @@ router.get('/:id/qr', protect, authorize('resident'), async (req, res) => {
       });
     }
 
+    attachQrStatus(visitor);
     const resident = await User.findById(req.user.id);
     
     res.json({
@@ -688,6 +729,8 @@ router.get('/my', protect, authorize('resident'), async (req, res) => {
     await notifyResidentOverstays({ residentId: req.user.id });
     const visitors = await Visitor.find({ residentId: req.user.id })
       .sort({ createdAt: -1 });
+
+    visitors.forEach(attachQrStatus);
     
     res.json({
       success: true,
@@ -781,6 +824,7 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
       visitor.status = 'active';
       if (securityNotes) visitor.securityNotes = securityNotes;
       await visitor.save();
+      attachQrStatus(visitor);
       await createInAppNotification({
         userId: visitor.residentId,
         type: 'visitor',
@@ -810,6 +854,7 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
         visitor.securityNotes += (visitor.securityNotes ? '\n' : '') + securityNotes;
       }
       await visitor.save();
+      attachQrStatus(visitor);
       await createInAppNotification({
         userId: visitor.residentId,
         type: 'visitor',
@@ -877,6 +922,7 @@ router.post('/confirm-arrival', protect, authorize('resident'), async (req, res)
 
     if (confirmedType !== 'alreadyConfirmed') {
       await visitor.save();
+      attachQrStatus(visitor);
 
       await createInAppNotification({
         userId: visitor.residentId,
@@ -888,6 +934,8 @@ router.post('/confirm-arrival', protect, authorize('resident'), async (req, res)
             : `${visitor.visitorName} is leaving and has been confirmed for departure.`,
         metadata: { visitorId: visitor._id, event: confirmedType === 'arrival' ? 'resident_confirmed' : 'resident_departure_confirmed' }
       });
+    } else {
+      attachQrStatus(visitor);
     }
 
     return res.json({

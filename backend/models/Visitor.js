@@ -30,6 +30,12 @@ const visitorSchema = new mongoose.Schema({
     trim: true
   },
 
+  numberOfCompanions: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+
   qrCode: {
     type: String,
     required: true,

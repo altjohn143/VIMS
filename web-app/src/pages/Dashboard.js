@@ -1530,7 +1530,7 @@ const Dashboard = () => {
               </Box>
             ) : (
               <Grid container spacing={2.25}>
-                {renderResidentCollectionCard()}
+                {/* Hero/Welcome Section */}
                 <Grid item xs={12}>
                   <Paper
                     sx={{
@@ -1653,7 +1653,16 @@ const Dashboard = () => {
                       </Grid>
                     </Grid>
                   </Paper>
+
                 </Grid>
+                {/* Centered Live Monthly Collection Card for Residents */}
+                {user?.role === 'resident' && (
+                  <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+                    <Box sx={{ maxWidth: 420, width: '100%' }}>
+                      {renderResidentCollectionCard()}
+                    </Box>
+                  </Grid>
+                )}
 
               <Grid item xs={12}>
                 <Paper

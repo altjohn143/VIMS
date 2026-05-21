@@ -83,20 +83,26 @@ const AdminAnnouncements = () => {
     }
     try {
       setSaving(true);
-      const formData = new FormData();
-      formData.append('title', form.title);
-      formData.append('body', form.body);
-      formData.append('status', form.status);
-      formData.append('category', form.category);
-      if (form.status === 'scheduled') {
-        formData.append('scheduledAt', form.scheduledAt.toISOString());
-      }
+      const payload = form.image ? new FormData() : {
+        title: form.title,
+        body: form.body,
+        status: form.status,
+        category: form.category,
+        ...(form.status === 'scheduled' ? { scheduledAt: form.scheduledAt.toISOString() } : {})
+      };
+
       if (form.image) {
-        formData.append('image', form.image);
+        payload.append('title', form.title);
+        payload.append('body', form.body);
+        payload.append('status', form.status);
+        payload.append('category', form.category);
+        if (form.status === 'scheduled') {
+          payload.append('scheduledAt', form.scheduledAt.toISOString());
+        }
+        payload.append('image', form.image);
       }
-      const res = await axios.post('/api/announcements', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+
+      const res = await axios.post('/api/announcements', payload);
       if (res.data?.success) {
         toast.success(form.status === 'scheduled' ? 'Announcement scheduled' : 'Announcement posted');
         setForm(emptyForm);

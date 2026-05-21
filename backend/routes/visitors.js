@@ -163,11 +163,13 @@ router.get('/resident/dashboard', protect, authorize('resident'), async (req, re
       (async () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
         
         const totalVisitors = await Visitor.countDocuments({ residentId: req.user.id });
         const todayVisitors = await Visitor.countDocuments({
           residentId: req.user.id,
-          expectedArrival: { $gte: today }
+          expectedArrival: { $gte: today, $lt: tomorrow }
         });
         const activeVisitors = await Visitor.countDocuments({ 
           residentId: req.user.id,
@@ -201,12 +203,14 @@ router.get('/security/dashboard', protect, authorize('security'), async (req, re
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     const [visitorsToday, pendingApproval, activeNow, completed] = await Promise.all([
-      Visitor.countDocuments({ createdAt: { $gte: today } }),
+      Visitor.countDocuments({ createdAt: { $gte: today, $lt: tomorrow } }),
       Visitor.countDocuments({ status: 'pending' }),
       Visitor.countDocuments({ status: 'active' }),
-      Visitor.countDocuments({ status: 'completed', updatedAt: { $gte: today } }),
+      Visitor.countDocuments({ status: 'completed', updatedAt: { $gte: today, $lt: tomorrow } }),
     ]);
 
     return res.json({
@@ -953,10 +957,12 @@ router.get('/stats/summary', protect, async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     
     const totalVisitors = await Visitor.countDocuments();
     const todayVisitors = await Visitor.countDocuments({
-      expectedArrival: { $gte: today }
+      expectedArrival: { $gte: today, $lt: tomorrow }
     });
     const activeVisitors = await Visitor.countDocuments({ status: 'active' });
     const pendingVisitors = await Visitor.countDocuments({ status: 'pending' });
@@ -1482,6 +1488,8 @@ router.get('/resident/dashboard', protect, authorize('resident'), async (req, re
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     
     // Get all data in parallel for better performance
     const [currentVisitors, allVisitors, stats] = await Promise.all([
@@ -1496,7 +1504,7 @@ router.get('/resident/dashboard', protect, authorize('resident'), async (req, re
         const totalVisitors = await Visitor.countDocuments({ residentId: req.user.id });
         const todayVisitors = await Visitor.countDocuments({
           residentId: req.user.id,
-          expectedArrival: { $gte: today }
+          expectedArrival: { $gte: today, $lt: tomorrow }
         });
         const activeVisitors = await Visitor.countDocuments({ 
           residentId: req.user.id,

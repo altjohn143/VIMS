@@ -231,6 +231,19 @@ const DashboardScreen = ({ navigation }) => {
     }
   };
 
+  useEffect(() => {
+    if (!userToShow?.role) return undefined;
+
+    const refreshStats = () => fetchDashboardData(userToShow);
+    const unsubscribe = navigation.addListener('focus', refreshStats);
+    const intervalId = setInterval(refreshStats, 30000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(intervalId);
+    };
+  }, [navigation, userToShow?.id, userToShow?.role, userToShow?.securityLevel]);
+
   const fetchRecentNotifications = async () => {
     try {
       const res = await api.get('/notifications');
@@ -418,6 +431,15 @@ const DashboardScreen = ({ navigation }) => {
     ? userToShow.role.charAt(0).toUpperCase() + userToShow.role.slice(1)
     : 'User';
 
+  const activeMetricValue = (() => {
+    if (configKey === 'security') return stats.activeNow ?? 0;
+    if (configKey === 'headOfficer') return stats.activePatrols ?? 0;
+    return stats.activeVisitors ?? 0;
+  })();
+
+  const activeMetricLabel = configKey === 'headOfficer' ? 'Active Patrols' : 'Active Visitors';
+  const activeMetricSub = configKey === 'headOfficer' ? 'Live Patrols' : 'Secured Entries';
+
   return (
     <View style={styles.container}>
 
@@ -586,12 +608,12 @@ const DashboardScreen = ({ navigation }) => {
             <View style={[styles.heroRightWidget, isNarrow && styles.heroRightWidgetNarrow]}>
               <View style={styles.accessIndicatorCircle}>
                 <Text style={styles.accessIndicatorValue}>
-                  {stats.activeVisitors || 0}
+                  {activeMetricValue}
                 </Text>
                 <View style={styles.accessPulseDot} />
               </View>
-              <Text style={styles.accessIndicatorLabel}>Active Visitors</Text>
-              <Text style={styles.accessIndicatorSub}>Secured Entries</Text>
+              <Text style={styles.accessIndicatorLabel}>{activeMetricLabel}</Text>
+              <Text style={styles.accessIndicatorSub}>{activeMetricSub}</Text>
             </View>
           </View>
         </View>

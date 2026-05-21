@@ -195,3 +195,5 @@ router.post('/', protect, authorize('admin'), upload.single('image'), async (req
     res.status(500).json({ success: false, error: error.message || 'Failed to create announcement' });
   }
 });
+
+module.exports = router;

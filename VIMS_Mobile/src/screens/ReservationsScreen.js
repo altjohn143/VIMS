@@ -458,7 +458,7 @@ const ReservationsScreen = ({ navigation }) => {
                       </TouchableOpacity>
                     )}
 
-                    {reservation.status === 'borrowed' && isSingleResourceType(reservation, 'equipment') && (
+                    {['confirmed', 'borrowed'].includes(reservation.status) && isSingleResourceType(reservation, 'equipment') && (
                       <TouchableOpacity
                         style={styles.cardReturnButton}
                         onPress={() => handleCompleteUse(reservation, 'return-equipment')}

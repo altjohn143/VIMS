@@ -961,11 +961,35 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
       { header: 'Last Login', key: 'Last Login', width: 12 }
     ];
 
+    const pdfColumns = [
+      { header: 'ID', key: 'ID', width: 30 },
+      { header: 'First Name', key: 'First Name', width: 18 },
+      { header: 'Last Name', key: 'Last Name', width: 18 },
+      { header: 'Email', key: 'Email', width: 38 },
+      { header: 'Role', key: 'Role', width: 12 },
+      { header: 'Status', key: 'Status', width: 20 },
+      { header: 'Phone', key: 'Phone Number', width: 17 },
+      { header: 'Lot', key: 'Lot ID', width: 12 },
+      { header: 'Approved', key: 'Approval Date', width: 16 },
+      { header: 'Created', key: 'Created Date', width: 16 },
+      { header: 'Last Login', key: 'Last Login', width: 14 }
+    ];
+
     const title = 'User Management Report';
 
     if (format === 'pdf') {
       const pdfReportService = require('../services/pdfReportService');
-      const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user, timezoneOffsetMinutes });
+      const pdfBuffer = await pdfReportService.generateDataReport(title, data, pdfColumns, {
+        creator: req.user,
+        timezoneOffsetMinutes,
+        layout: 'landscape',
+        margin: 36,
+        table: {
+          headerFontSize: 8,
+          bodyFontSize: 7.5,
+          cellPadding: 3
+        }
+      });
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Users_Export_${new Date().toISOString().split('T')[0]}.pdf"`);
       return res.send(pdfBuffer);

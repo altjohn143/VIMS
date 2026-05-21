@@ -897,7 +897,7 @@ const Reservations = () => {
                                   Cancel
                                 </Button>
                               )}
-                              {reservation.status === 'borrowed' && isSingleResourceType(reservation, 'equipment') && (
+                              {['confirmed', 'borrowed'].includes(reservation.status) && isSingleResourceType(reservation, 'equipment') && (
                                 <Button
                                   onClick={() => handleCompleteUse(reservation, 'return-equipment')}
                                   variant="contained"

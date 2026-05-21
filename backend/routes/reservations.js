@@ -197,7 +197,12 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
     }
 
     const previousStatus = reservation.status;
-    const updatedReservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = { ...req.body };
+    if (updateData.status === 'confirmed' && isSingleResourceType(reservation, 'equipment')) {
+      updateData.status = 'borrowed';
+    }
+
+    const updatedReservation = await Reservation.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
     });
@@ -206,16 +211,17 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
       return res.status(404).json({ success: false, error: 'Reservation not found' });
     }
 
-    if (req.body.status && req.body.status !== previousStatus) {
+    if (updateData.status && updateData.status !== previousStatus) {
       let title;
       let body;
+      const itemSummary = getReservationItemSummary(updatedReservation);
 
-      if (req.body.status === 'confirmed') {
+      if (updateData.status === 'confirmed' || updateData.status === 'borrowed') {
         title = 'Reservation approved';
-        body = `Your reservation for ${updatedReservation.resourceName} has been approved by admin.`;
-      } else if (req.body.status === 'cancelled') {
+        body = `Your reservation for ${itemSummary} has been approved by admin.`;
+      } else if (updateData.status === 'cancelled') {
         title = 'Reservation denied';
-        body = `Your reservation for ${updatedReservation.resourceName} has been denied by admin.`;
+        body = `Your reservation for ${itemSummary} has been denied by admin.`;
       }
 
       if (title && body) {
@@ -269,7 +275,7 @@ router.put('/:id/status', protect, async (req, res) => {
       if (!['pending', 'confirmed', 'cancelled', 'borrowed', 'returned', 'checked_out'].includes(status)) {
         return res.status(400).json({ success: false, error: 'Invalid reservation status' });
       }
-      reservation.status = status;
+      reservation.status = status === 'confirmed' && isSingleResourceType(reservation, 'equipment') ? 'borrowed' : status;
       if (status === 'cancelled') {
         reservation.cancelledAt = new Date();
         reservation.cancelledBy = req.user._id;
@@ -344,8 +350,8 @@ router.put('/:id/complete-use', protect, authorize('resident'), async (req, res)
       if (!isEquipmentOnly) {
         return res.status(400).json({ success: false, error: 'Return is only available for equipment reservations' });
       }
-      if (reservation.status !== 'borrowed') {
-        return res.status(400).json({ success: false, error: 'Only borrowed equipment can be returned' });
+      if (!['confirmed', 'borrowed'].includes(reservation.status)) {
+        return res.status(400).json({ success: false, error: 'Only confirmed or borrowed equipment can be returned' });
       }
     } else if (action === 'checkout-venue') {
       if (!isVenueOnly) {

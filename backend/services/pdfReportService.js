@@ -171,8 +171,9 @@ class PDFReportService {
         console.log(`Generating PDF report: ${title}, ${data.length} rows, ${columns.length} columns`);
 
         const doc = new PDFDocument({
-          size: 'A4',
-          margin: 50,
+          size: options.size || 'A4',
+          layout: options.layout || 'portrait',
+          margin: options.margin || 50,
           bufferPages: true,
           info: {
             Title: title,
@@ -201,7 +202,7 @@ class PDFReportService {
         if (options.summary) {
           this._addLotStatusSummary(doc, options.summary);
         }
-        this._addDataTable(doc, data, columns);
+        this._addDataTable(doc, data, columns, options.table || {});
         this._addReportFooter(doc, options.creator, generatedAt, options.timezoneOffsetMinutes);
 
         doc.end();
@@ -242,7 +243,7 @@ class PDFReportService {
 
     // Separator line
     doc.moveDown(1);
-    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+    doc.moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).stroke();
     doc.moveDown(2);
   }
 
@@ -306,64 +307,86 @@ class PDFReportService {
     this._addWrappedText(doc, analysis, 11);
   }
 
-  _addDataTable(doc, data, columns) {
+  _addDataTable(doc, data, columns, options = {}) {
     if (!data || data.length === 0) {
       doc.fontSize(11).text('No data available for this report.');
       return;
     }
 
-    const startX = 50;
-    const usableWidth = 495;
+    const startX = doc.page.margins.left;
+    const usableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const bottomY = doc.page.height - doc.page.margins.bottom - 58;
+    const headerFontSize = options.headerFontSize || 8.5;
+    const bodyFontSize = options.bodyFontSize || 8;
+    const cellPadding = options.cellPadding ?? 4;
+    const maxRows = options.maxRows || 50;
     const totalColWidth = columns.reduce((sum, col) => sum + (col.width || 10), 0);
     const colWidths = columns.map((col) => ((col.width || 10) / totalColWidth) * usableWidth);
 
     const drawHeader = (yPosition) => {
       let x = startX;
-      doc.fontSize(10).font(this.fonts.bold).fillColor('#000');
+      doc.fontSize(headerFontSize).font(this.fonts.bold).fillColor('#000');
+      const headerHeights = columns.map((col, index) => {
+        const width = colWidths[index];
+        const headerText = col.header || col.label || col.key || 'Unknown';
+        return doc.heightOfString(headerText, {
+          width: Math.max(width - cellPadding * 2, 8),
+          align: 'left'
+        });
+      });
+      const headerHeight = Math.max(...headerHeights, 12) + cellPadding * 2;
+
       columns.forEach((col, index) => {
         const width = colWidths[index];
         const headerText = col.header || col.label || col.key || 'Unknown';
-        doc.text(headerText, x, yPosition, this._getTextOptions({ width: width - 8, align: 'left' }));
+        doc.text(headerText, x + cellPadding, yPosition + cellPadding, this._getTextOptions({
+          width: Math.max(width - cellPadding * 2, 8),
+          align: 'left'
+        }));
         x += width;
       });
-      doc.moveTo(startX, yPosition + 16).lineTo(startX + usableWidth, yPosition + 16).stroke();
-      return yPosition + 20;
+      doc.moveTo(startX, yPosition + headerHeight).lineTo(startX + usableWidth, yPosition + headerHeight).stroke();
+      return yPosition + headerHeight + 4;
     };
 
     let yPosition = drawHeader(doc.y + 10);
-    doc.fontSize(9).font(this.fonts.normal).fillColor('#000');
+    doc.fontSize(bodyFontSize).font(this.fonts.normal).fillColor('#000');
 
-    data.slice(0, 50).forEach((row, rowIndex) => {
+    data.slice(0, maxRows).forEach((row) => {
       const rowValues = columns.map((col) => {
         const value = this._getNestedValue(row, col.key) ?? '';
         return typeof value === 'object' ? JSON.stringify(value) : String(value);
       });
 
       const rowHeights = rowValues.map((value, index) => doc.heightOfString(value, {
-        width: colWidths[index] - 8,
+        width: Math.max(colWidths[index] - cellPadding * 2, 8),
         align: 'left'
       }));
 
-      const rowHeight = Math.max(...rowHeights, 12) + 8;
+      const rowHeight = Math.max(...rowHeights, 12) + cellPadding * 2;
 
-      if (yPosition + rowHeight > 730) {
+      if (yPosition + rowHeight > bottomY) {
         doc.addPage();
-        yPosition = drawHeader(50);
+        yPosition = drawHeader(doc.page.margins.top);
+        doc.fontSize(bodyFontSize).font(this.fonts.normal).fillColor('#000');
       }
 
       let x = startX;
       rowValues.forEach((text, index) => {
-        doc.text(text, x, yPosition, this._getTextOptions({ width: colWidths[index] - 8, align: 'left' }));
+        doc.text(text, x + cellPadding, yPosition + cellPadding, this._getTextOptions({
+          width: Math.max(colWidths[index] - cellPadding * 2, 8),
+          align: 'left'
+        }));
         x += colWidths[index];
       });
 
       yPosition += rowHeight;
-      doc.moveTo(startX, yPosition - 4).lineTo(startX + usableWidth, yPosition - 4).stroke();
+      doc.moveTo(startX, yPosition).lineTo(startX + usableWidth, yPosition).stroke();
     });
 
-    if (data.length > 50) {
+    if (data.length > maxRows) {
       doc.moveDown(1);
-      doc.fontSize(10).text(`... and ${data.length - 50} more records`);
+      doc.fontSize(10).text(`... and ${data.length - maxRows} more records`);
     }
   }
 
@@ -426,16 +449,18 @@ class PDFReportService {
       doc.switchToPage(pageIndex);
 
       // Footer line
-      const footerY = 730;
-      doc.moveTo(50, footerY).lineTo(545, footerY).stroke();
+      const left = doc.page.margins.left;
+      const usableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      const footerY = doc.page.height - doc.page.margins.bottom - 20;
+      doc.moveTo(left, footerY).lineTo(left + usableWidth, footerY).stroke();
 
       doc.fontSize(8).font(this.fonts.normal);
-      doc.text('VIMS - Village Integrated Management System', 50, footerY + 10, this._getTextOptions({ width: 495, align: 'center' }));
-      doc.text(`Page ${i + 1} of ${pageCount}`, 50, footerY + 10, this._getTextOptions({ width: 495, align: 'right' }));
-      doc.text(`Generated on ${displayTime.toLocaleString()}`, 50, footerY + 22, this._getTextOptions({ width: 495, align: 'center' }));
+      doc.text('VIMS - Village Integrated Management System', left, footerY + 10, this._getTextOptions({ width: usableWidth, align: 'center' }));
+      doc.text(`Page ${i + 1} of ${pageCount}`, left, footerY + 10, this._getTextOptions({ width: usableWidth, align: 'right' }));
+      doc.text(`Generated on ${displayTime.toLocaleString()}`, left, footerY + 22, this._getTextOptions({ width: usableWidth, align: 'center' }));
 
       if (creator) {
-        doc.text(`Generated by: ${creator.firstName} ${creator.lastName}`, 50, footerY + 34, this._getTextOptions({ width: 495, align: 'center' }));
+        doc.text(`Generated by: ${creator.firstName} ${creator.lastName}`, left, footerY + 34, this._getTextOptions({ width: usableWidth, align: 'center' }));
       }
     }
   }

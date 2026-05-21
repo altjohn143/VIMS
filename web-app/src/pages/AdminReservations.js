@@ -84,8 +84,9 @@ const AdminReservations = () => {
       cancelled: reservations.filter((reservation) => reservation.status === 'cancelled').length,
       borrowed: reservations.filter((reservation) => reservation.status === 'borrowed').length,
       returned: reservations.filter((reservation) => reservation.status === 'returned').length,
+      checkedOut: reservations.filter((reservation) => reservation.status === 'checked_out').length,
       overdue: reservations.filter(
-        (reservation) => new Date(reservation.endDate) < now && !['returned', 'cancelled'].includes(reservation.status)
+        (reservation) => new Date(reservation.endDate) < now && !['returned', 'checked_out', 'cancelled'].includes(reservation.status)
       ).length,
     };
   }, [reservations]);
@@ -277,6 +278,7 @@ const AdminReservations = () => {
       case 'cancelled': return 'error';
       case 'borrowed': return 'warning';
       case 'returned': return 'info';
+      case 'checked_out': return 'secondary';
       default: return 'default';
     }
   };
@@ -287,8 +289,14 @@ const AdminReservations = () => {
       case 'cancelled': return <CancelIcon />;
       case 'borrowed': return <BuildIcon />;
       case 'returned': return <EventAvailableIcon />;
+      case 'checked_out': return <EventAvailableIcon />;
       default: return <ScheduleIcon />;
     }
+  };
+
+  const formatStatusLabel = (status) => {
+    if (status === 'checked_out') return 'Checked Out';
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   const handleResourceDialogOpen = () => {
@@ -396,6 +404,7 @@ const AdminReservations = () => {
               { label: 'Confirmed', value: stats.confirmed, color: '#16a34a' },
               { label: 'Borrowed', value: stats.borrowed, color: '#0ea5e9' },
               { label: 'Returned', value: stats.returned, color: '#64748b' },
+              { label: 'Checked Out', value: stats.checkedOut, color: '#7c3aed' },
               { label: 'Overdue', value: stats.overdue, color: '#dc2626' },
             ].map((stat) => (
               <Paper
@@ -436,8 +445,8 @@ const AdminReservations = () => {
               </TableHead>
               <TableBody>
                 {reservations.map((reservation) => {
-                  const isOverdue = new Date(reservation.endDate) < new Date() && reservation.status !== 'returned' && reservation.status !== 'cancelled';
-                  const displayStatus = isOverdue ? 'Overdue' : reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1);
+                  const isOverdue = new Date(reservation.endDate) < new Date() && !['returned', 'checked_out', 'cancelled'].includes(reservation.status);
+                  const displayStatus = isOverdue ? 'Overdue' : formatStatusLabel(reservation.status);
                   const statusColor = isOverdue ? 'error' : getStatusColor(reservation.status);
                   const statusIcon = isOverdue ? <ReportProblemOutlinedIcon /> : getStatusIcon(reservation.status);
 
@@ -671,6 +680,7 @@ const AdminReservations = () => {
                     <MenuItem value="cancelled">Cancelled</MenuItem>
                     <MenuItem value="borrowed">Borrowed</MenuItem>
                     <MenuItem value="returned">Returned</MenuItem>
+                    <MenuItem value="checked_out">Checked Out</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>

@@ -242,6 +242,7 @@ const AdminReservationsScreen = ({ navigation }) => {
       case 'cancelled': return '#ef4444';
       case 'borrowed': return '#f59e0b';
       case 'returned': return '#0ea5e9';
+      case 'checked_out': return '#7c3aed';
       default: return '#6b7280';
     }
   };
@@ -252,8 +253,14 @@ const AdminReservationsScreen = ({ navigation }) => {
       case 'cancelled': return 'close-circle';
       case 'borrowed': return 'build';
       case 'returned': return 'return-up-back';
+      case 'checked_out': return 'exit-outline';
       default: return 'time';
     }
+  };
+
+  const formatStatusLabel = (status) => {
+    if (status === 'checked_out') return 'Checked Out';
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   const getResourceIcon = (type) => {
@@ -321,8 +328,8 @@ const AdminReservationsScreen = ({ navigation }) => {
           </View>
         ) : (
           reservations.map((reservation) => {
-            const isOverdue = new Date(reservation.endDate) < new Date() && reservation.status !== 'returned' && reservation.status !== 'cancelled';
-            const displayStatus = isOverdue ? 'Overdue' : reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1);
+            const isOverdue = new Date(reservation.endDate) < new Date() && !['returned', 'checked_out', 'cancelled'].includes(reservation.status);
+            const displayStatus = isOverdue ? 'Overdue' : formatStatusLabel(reservation.status);
             const statusColor = isOverdue ? '#ef4444' : getStatusColor(reservation.status);
             const statusIcon = isOverdue ? 'alert-circle' : getStatusIcon(reservation.status);
 
@@ -440,7 +447,7 @@ const AdminReservationsScreen = ({ navigation }) => {
                   </View>
                 )}
 
-                {reservation.status === 'borrowed' && getResourceTypeLabel(reservation) === 'equipment' && (
+                {reservation.status === 'borrowed' && getReservationType(reservation) === 'equipment' && (
                   <View style={styles.actionRow}>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.approveButton]}
@@ -595,6 +602,7 @@ const AdminReservationsScreen = ({ navigation }) => {
                   <Picker.Item label="Cancelled" value="cancelled" />
                   <Picker.Item label="Borrowed" value="borrowed" />
                   <Picker.Item label="Returned" value="returned" />
+                  <Picker.Item label="Checked Out" value="checked_out" />
                 </Picker>
               </View>
 

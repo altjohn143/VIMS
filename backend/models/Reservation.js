@@ -54,7 +54,7 @@ const reservationSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'cancelled', 'borrowed', 'returned'],
+      enum: ['pending', 'confirmed', 'cancelled', 'borrowed', 'returned', 'checked_out'],
       default: 'pending',
     },
     actualCheckout: {

@@ -166,7 +166,7 @@ const Reservations = () => {
     }
   };
 
-  const handleOpenDialog = () => {
+  const handleOpenDialog = (resourceType = 'venue') => {
     setFormData({
       description: '',
       startDate: new Date(),
@@ -175,7 +175,7 @@ const Reservations = () => {
       items: [],
     });
     setCurrentItem({
-      resourceType: 'venue',
+      resourceType,
       resourceName: '',
       quantity: 1,
     });
@@ -337,6 +337,7 @@ const Reservations = () => {
       case 'cancelled': return 'error';
       case 'borrowed': return 'warning';
       case 'returned': return 'info';
+      case 'checked_out': return 'secondary';
       default: return 'default';
     }
   };
@@ -347,6 +348,7 @@ const Reservations = () => {
       case 'cancelled': return <CancelIcon />;
       case 'borrowed': return <BuildIcon />;
       case 'returned': return <EventAvailableIcon />;
+      case 'checked_out': return <EventAvailableIcon />;
       default: return <ScheduleIcon />;
     }
   };
@@ -355,7 +357,12 @@ const Reservations = () => {
     return type === 'venue' ? <MeetingRoomIcon /> : <BuildIcon />;
   };
 
-  const pendingCount = reservations.filter((reservation) => !['confirmed', 'cancelled', 'returned'].includes(reservation.status)).length;
+  const formatStatusLabel = (status) => {
+    if (status === 'checked_out') return 'Checked Out';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const pendingCount = reservations.filter((reservation) => !['confirmed', 'cancelled', 'returned', 'checked_out'].includes(reservation.status)).length;
   const confirmedCount = reservations.filter((reservation) => reservation.status === 'confirmed').length;
   const venueCount = reservations.filter((reservation) => reservation.resourceType === 'venue').length;
   const equipmentCount = reservations.filter((reservation) => reservation.resourceType === 'equipment').length;
@@ -708,10 +715,7 @@ const Reservations = () => {
                     <Paper
                       key={action.type}
                       elevation={0}
-                      onClick={() => {
-                        setFormData({ ...formData, resourceType: action.type, resourceName: '' });
-                        setOpen(true);
-                      }}
+                      onClick={() => handleOpenDialog(action.type)}
                       sx={{
                         px: 1.5,
                         py: 1.4,
@@ -876,7 +880,7 @@ const Reservations = () => {
                           alignItems="flex-start"
                           secondaryAction={
                             <Stack direction="row" spacing={0.8}>
-                              {['pending', 'confirmed'].includes(reservation.status) && (
+                              {reservation.status === 'pending' && (
                                 <Button
                                   onClick={() => handleCancelReservation(reservation._id)}
                                   variant="outlined"
@@ -959,7 +963,7 @@ const Reservations = () => {
                                 </Typography>
                                 <Chip
                                   icon={getStatusIcon(reservation.status)}
-                                  label={reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                                  label={formatStatusLabel(reservation.status)}
                                   color={getStatusColor(reservation.status)}
                                   size="small"
                                   sx={{

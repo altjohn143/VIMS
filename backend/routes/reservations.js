@@ -257,8 +257,8 @@ router.put('/:id/status', protect, async (req, res) => {
         return res.status(400).json({ success: false, error: 'Residents can only cancel reservations' });
       }
 
-      if (!['pending', 'confirmed'].includes(reservation.status)) {
-        return res.status(400).json({ success: false, error: 'Only pending or confirmed reservations can be cancelled' });
+      if (reservation.status !== 'pending') {
+        return res.status(400).json({ success: false, error: 'Only pending reservations can be cancelled' });
       }
 
       reservation.status = 'cancelled';
@@ -266,7 +266,7 @@ router.put('/:id/status', protect, async (req, res) => {
       reservation.cancelledBy = req.user._id;
       reservation.cancelledReason = cancelledReason || 'Cancelled by resident';
     } else if (req.user.role === 'admin') {
-      if (!['pending', 'confirmed', 'cancelled', 'borrowed', 'returned'].includes(status)) {
+      if (!['pending', 'confirmed', 'cancelled', 'borrowed', 'returned', 'checked_out'].includes(status)) {
         return res.status(400).json({ success: false, error: 'Invalid reservation status' });
       }
       reservation.status = status;
@@ -358,8 +358,12 @@ router.put('/:id/complete-use', protect, authorize('resident'), async (req, res)
       return res.status(400).json({ success: false, error: 'Invalid completion action' });
     }
 
-    reservation.status = 'returned';
-    reservation.actualReturn = new Date();
+    reservation.status = action === 'checkout-venue' ? 'checked_out' : 'returned';
+    if (action === 'checkout-venue') {
+      reservation.actualCheckout = new Date();
+    } else {
+      reservation.actualReturn = new Date();
+    }
     await reservation.save();
 
     const admins = await User.find({ role: 'admin' }).select('_id');
@@ -378,7 +382,7 @@ router.put('/:id/complete-use', protect, authorize('resident'), async (req, res)
         reservationId: reservation._id,
         status: reservation.status,
         completedBy: req.user._id,
-        completedAt: reservation.actualReturn,
+        completedAt: action === 'checkout-venue' ? reservation.actualCheckout : reservation.actualReturn,
         action
       }
     })));

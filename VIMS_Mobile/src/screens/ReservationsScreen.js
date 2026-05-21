@@ -247,6 +247,7 @@ const ReservationsScreen = ({ navigation }) => {
       case 'cancelled': return '#ef4444';
       case 'borrowed': return '#f59e0b';
       case 'returned': return '#0ea5e9';
+      case 'checked_out': return '#7c3aed';
       default: return '#6b7280';
     }
   };
@@ -257,8 +258,14 @@ const ReservationsScreen = ({ navigation }) => {
       case 'cancelled': return 'close-circle';
       case 'borrowed': return 'build';
       case 'returned': return 'return-up-back';
+      case 'checked_out': return 'exit-outline';
       default: return 'time';
     }
+  };
+
+  const formatStatusLabel = (status) => {
+    if (status === 'checked_out') return 'Checked Out';
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   const formatDate = (date) => {
@@ -336,7 +343,14 @@ const ReservationsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.quickActionButton, { backgroundColor: '#166534' }]}
             onPress={() => {
-              setFormData({ ...formData, resourceType: 'venue' });
+              setFormData({
+                description: '',
+                startDate: new Date(),
+                endDate: new Date(),
+                notes: '',
+                items: [],
+              });
+              setCurrentItem({ resourceType: 'venue', resourceName: '', quantity: 1 });
               setModalVisible(true);
             }}
           >
@@ -347,7 +361,14 @@ const ReservationsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.quickActionButton, { backgroundColor: '#d97706' }]}
             onPress={() => {
-              setFormData({ ...formData, resourceType: 'equipment' });
+              setFormData({
+                description: '',
+                startDate: new Date(),
+                endDate: new Date(),
+                notes: '',
+                items: [],
+              });
+              setCurrentItem({ resourceType: 'equipment', resourceName: '', quantity: 1 });
               setModalVisible(true);
             }}
           >
@@ -385,7 +406,7 @@ const ReservationsScreen = ({ navigation }) => {
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(reservation.status) }]}>
                     <Ionicons name={getStatusIcon(reservation.status)} size={12} color="#fff" />
                     <Text style={styles.statusText}>
-                      {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                      {formatStatusLabel(reservation.status)}
                     </Text>
                   </View>
                 </View>
@@ -427,7 +448,7 @@ const ReservationsScreen = ({ navigation }) => {
                   )}
 
                   <View style={styles.buttonContainer}>
-                    {['pending', 'confirmed'].includes(reservation.status) && (
+                    {reservation.status === 'pending' && (
                       <TouchableOpacity
                         style={styles.cardCancelButton}
                         onPress={() => handleCancelReservation(reservation._id)}

@@ -1,7 +1,34 @@
+
 const express = require('express');
 const Announcement = require('../models/Announcement');
 const { protect, authorize } = require('../middleware/auth');
 const ActivityNotificationService = require('../services/activityNotificationService');
+const multer = require('multer');
+const path = require('path');
+
+// Multer storage config for announcement images
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../uploads/announcements'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'announcement-' + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    // Accept only image files
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed!'), false);
+    }
+    cb(null, true);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 const router = express.Router();
 
@@ -165,26 +192,41 @@ router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// Get archived announcements
-router.get('/archived', protect, authorize('admin'), async (req, res) => {
+// Create announcement (with optional image upload)
+router.post('/', protect, authorize('admin'), upload.single('image'), async (req, res) => {
   try {
-    const announcements = await Announcement.find({ isArchived: true })
-      .populate('createdBy', 'firstName lastName')
-      .populate('archivedBy', 'firstName lastName email')
-      .sort({ archivedAt: -1 });
-    
-    res.json({
-      success: true,
-      data: announcements
+    const { title, body, status = 'published', scheduledAt, category = 'general' } = req.body;
+    if (!title || !body) {
+      return res.status(400).json({ success: false, error: 'Title and body are required' });
+    }
+    if (!ALLOWED_ANNOUNCEMENT_CATEGORIES.includes(category)) {
+      return res.status(400).json({ success: false, error: 'Invalid announcement category' });
+    }
+    if (status === 'scheduled' && !scheduledAt) {
+      return res.status(400).json({ success: false, error: 'Scheduled time is required for scheduled announcements' });
+    }
+    if (status === 'scheduled' && new Date(scheduledAt) <= new Date()) {
+      return res.status(400).json({ success: false, error: 'Scheduled time must be in the future' });
+    }
+
+    let image = '';
+    if (req.file) {
+      image = req.file.filename;
+    }
+
+    const row = await Announcement.create({
+      title: String(title).trim(),
+      body: String(body).trim(),
+      status,
+      category,
+      scheduledAt: status === 'scheduled' ? new Date(scheduledAt) : null,
+      publishedAt: status === 'published' ? new Date() : null,
+      createdBy: req.user._id,
+      image
     });
-    
+
+    res.status(201).json({ success: true, data: row });
   } catch (error) {
-    console.error('Get archived announcements error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get archived announcements'
-    });
+    res.status(500).json({ success: false, error: error.message || 'Failed to create announcement' });
   }
 });
-
-module.exports = router;

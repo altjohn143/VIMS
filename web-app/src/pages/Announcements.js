@@ -239,6 +239,22 @@ const Announcements = () => {
                   </Stack>
                 </Box>
 
+                {/* Show announcement image if present */}
+                {item.image && (
+                  <Box sx={{ my: 1.5, textAlign: 'center' }}>
+                    <img
+                      src={`${axios.defaults.baseURL}/uploads/announcements/${item.image}`}
+                      alt="Announcement"
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: 260,
+                        borderRadius: 12,
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)'
+                      }}
+                    />
+                  </Box>
+                )}
+
                 <Divider sx={{ my: 1.5 }} />
 
                 <Typography

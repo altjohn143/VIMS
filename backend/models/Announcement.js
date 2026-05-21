@@ -34,6 +34,11 @@ const announcementSchema = new mongoose.Schema(
       type: String,
       default: ''
     }
+    // Image field for announcement picture
+    ,image: {
+      type: String,
+      default: ''
+    }
   },
   { timestamps: true }
 );

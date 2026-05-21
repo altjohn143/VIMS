@@ -34,7 +34,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null, category: 'general' };
+const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null, category: 'general', image: null };
 
 const AdminAnnouncements = () => {
   const navigate = useNavigate();
@@ -45,6 +45,7 @@ const AdminAnnouncements = () => {
     { value: 'monthlyCollection', label: 'Monthly collection' }
   ];
   const [saving, setSaving] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
   const [query, setQuery] = useState('');
   const [viewFilter, setViewFilter] = useState('all');
 
@@ -82,19 +83,24 @@ const AdminAnnouncements = () => {
     }
     try {
       setSaving(true);
-      const payload = {
-        title: form.title,
-        body: form.body,
-        status: form.status,
-        category: form.category
-      };
+      const formData = new FormData();
+      formData.append('title', form.title);
+      formData.append('body', form.body);
+      formData.append('status', form.status);
+      formData.append('category', form.category);
       if (form.status === 'scheduled') {
-        payload.scheduledAt = form.scheduledAt.toISOString();
+        formData.append('scheduledAt', form.scheduledAt.toISOString());
       }
-      const res = await axios.post('/api/announcements', payload);
+      if (form.image) {
+        formData.append('image', form.image);
+      }
+      const res = await axios.post('/api/announcements', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       if (res.data?.success) {
         toast.success(form.status === 'scheduled' ? 'Announcement scheduled' : 'Announcement posted');
         setForm(emptyForm);
+        setImagePreview(null);
         load();
       }
     } catch (error) {
@@ -292,6 +298,38 @@ const AdminAnnouncements = () => {
                 </LocalizationProvider>
               )}
               <Box>
+                <input
+                  accept="image/*"
+                  type="file"
+                  id="announcement-image-upload"
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setForm(prev => ({ ...prev, image: file }));
+                      setImagePreview(URL.createObjectURL(file));
+                    } else {
+                      setForm(prev => ({ ...prev, image: null }));
+                      setImagePreview(null);
+                    }
+                  }}
+                />
+                <label htmlFor="announcement-image-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, mr: 2 }}
+                  >
+                    {form.image ? 'Change Image' : 'Add Image'}
+                  </Button>
+                </label>
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    style={{ maxHeight: 80, borderRadius: 8, marginRight: 12, verticalAlign: 'middle' }}
+                  />
+                )}
                 <Button variant="contained" onClick={createAnnouncement} disabled={saving} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800, px: 2.2, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
                   {saving ? 'Saving...' : form.status === 'scheduled' ? 'Schedule Announcement' : form.status === 'draft' ? 'Save Draft' : 'Post Announcement'}
                 </Button>

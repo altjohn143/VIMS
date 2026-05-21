@@ -117,6 +117,7 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 
+
 // SECURITY: Serve static files securely - only allow access to profile photos
 app.use('/uploads/profile-photos', express.static(path.join(__dirname, 'uploads/profile-photos'), {
   maxAge: '1d', // Cache for 1 day
@@ -128,6 +129,14 @@ app.use('/uploads/profile-photos', express.static(path.join(__dirname, 'uploads/
 // SECURITY: Serve static files securely - only allow access to vehicle photos
 app.use('/uploads/vehicle-photos', express.static(path.join(__dirname, 'uploads/vehicle-photos'), {
   maxAge: '1d', // Cache for 1 day
+  setHeaders: (res, path) => {
+    res.set('Cache-Control', 'public, max-age=86400');
+  }
+}));
+
+// SECURITY: Serve announcement images
+app.use('/uploads/announcements', express.static(path.join(__dirname, 'uploads/announcements'), {
+  maxAge: '1d',
   setHeaders: (res, path) => {
     res.set('Cache-Control', 'public, max-age=86400');
   }

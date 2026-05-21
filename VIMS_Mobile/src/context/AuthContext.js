@@ -16,6 +16,23 @@ export const AuthProvider = ({ children }) => {
     loadStoredData();
   }, []);
 
+  const normalizeUser = (incomingUser, previousUser = null) => {
+    if (!incomingUser) return incomingUser;
+    return {
+      ...previousUser,
+      ...incomingUser,
+      securityLevel: incomingUser.securityLevel || previousUser?.securityLevel || null,
+    };
+  };
+
+  const persistUser = async (incomingUser, previousUser = null) => {
+    const normalizedUser = normalizeUser(incomingUser, previousUser);
+    if (!normalizedUser) return null;
+    await AsyncStorage.setItem('user', JSON.stringify(normalizedUser));
+    setUser(normalizedUser);
+    return normalizedUser;
+  };
+
   const loadStoredData = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -23,8 +40,14 @@ export const AuthProvider = ({ children }) => {
       
       if (token && userData) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        setUser(JSON.parse(userData));
+        const storedUser = JSON.parse(userData);
+        setUser(storedUser);
         setIsAuthenticated(true);
+
+        const response = await api.get('/auth/me');
+        if (response.data?.success && response.data?.user) {
+          await persistUser(response.data.user, storedUser);
+        }
       }
     } catch (error) {
       console.error('Error loading stored data:', error);
@@ -52,21 +75,14 @@ export const AuthProvider = ({ children }) => {
       
       if (response.data.success) {
         const { token, user } = response.data;
-        
-        // Ensure securityLevel is included in user data for security staff
-        if (user.role === 'security' && !user.securityLevel) {
-          user.securityLevel = 'personnel';
-        }
-        
+
         await AsyncStorage.setItem('token', token);
-        await AsyncStorage.setItem('user', JSON.stringify(user));
         
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        setUser(user);
+        const normalizedUser = await persistUser(user);
         setIsAuthenticated(true);
         
-        return { success: true, user };
+        return { success: true, user: normalizedUser };
       } else {
         return { success: false, error: response.data.error };
       }
@@ -133,8 +149,7 @@ export const AuthProvider = ({ children }) => {
   const updateUser = async (updatedUser) => {
     try {
       if (!updatedUser) return;
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
+      await persistUser(updatedUser, user);
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Update user error:', error);

@@ -154,7 +154,7 @@ const DashboardScreen = ({ navigation }) => {
     return () => {
       cancelled = true;
     };
-  }, [authUser?.id]);
+  }, [authUser?.id, authUser?.securityLevel]);
 
   useEffect(() => {
     if (!user?.role) return;

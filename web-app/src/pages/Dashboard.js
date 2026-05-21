@@ -222,7 +222,11 @@ const Dashboard = () => {
         navigate('/login');
         return;
       }
-      setUser(currentUser);
+      setUser((prevUser) => ({
+        ...prevUser,
+        ...currentUser,
+        securityLevel: currentUser.securityLevel || prevUser?.securityLevel
+      }));
       setLoading(false);
     };
     checkAuth();

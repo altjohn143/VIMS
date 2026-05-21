@@ -63,7 +63,7 @@ router.get('/', protect, async (req, res) => {
     if (req.user.role === 'admin') {
       query = {};
     } else if (req.user.role === 'security') {
-      query = { status: { $in: ['borrowed', 'return_initiated'] } };
+      query = { _id: null };
     } else {
       query = { reservedBy: req.user._id };
     }
@@ -254,7 +254,7 @@ router.put('/:id/status', protect, async (req, res) => {
       reservation.cancelledBy = req.user._id;
       reservation.cancelledReason = cancelledReason || 'Cancelled by resident';
     } else if (req.user.role === 'admin') {
-      if (!['pending', 'confirmed', 'cancelled', 'borrowed', 'return_initiated', 'returned'].includes(status)) {
+      if (!['pending', 'confirmed', 'cancelled', 'borrowed', 'returned'].includes(status)) {
         return res.status(400).json({ success: false, error: 'Invalid reservation status' });
       }
       reservation.status = status;
@@ -397,90 +397,7 @@ router.get('/export', protect, async (req, res) => {
   }
 });
 
-// Notify admins that security received the returned item
-const notifyAdminsOnItemReceipt = async (reservation, securityOfficer) => {
-  try {
-    const admins = await User.find({ role: 'admin' }).select('_id');
-    const resident = await Reservation.findById(reservation._id).populate('reservedBy', 'firstName lastName');
-    const itemSummary = getReservationItemSummary(reservation);
-    
-    await Promise.all(admins.map(admin => createInAppNotification({
-      userId: admin._id,
-      type: 'reservation',
-      title: 'Item received from resident',
-      body: `${securityOfficer.firstName} ${securityOfficer.lastName} confirmed receipt of ${itemSummary} from ${resident.reservedBy.firstName} ${resident.reservedBy.lastName}.`,
-      metadata: {
-        reservationId: reservation._id,
-        status: reservation.status,
-        receivedBy: securityOfficer._id,
-        receivedAt: new Date()
-      }
-    })));
-  } catch (error) {
-    console.error('Failed to notify admins about item receipt:', error.message);
-  }
-};
-
-// Resident initiates return - marks item as ready for return
-router.put('/:id/initiate-return', protect, async (req, res) => {
-  try {
-    const reservation = await Reservation.findById(req.params.id);
-
-    if (!reservation) {
-      return res.status(404).json({ success: false, error: 'Reservation not found' });
-    }
-
-    // Only the resident who made the reservation can initiate return
-    if (req.user.role !== 'resident') {
-      return res.status(403).json({ success: false, error: 'Only residents can initiate returns' });
-    }
-
-    if (reservation.reservedBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, error: 'Not authorized to initiate return for this reservation' });
-    }
-
-    // Can only initiate return if status is 'borrowed'
-    if (reservation.status !== 'borrowed') {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Only borrowed items can be returned. Current status: ' + reservation.status 
-      });
-    }
-
-    // Mark return as initiated
-    reservation.status = 'return_initiated';
-    reservation.returnInitiatedAt = new Date();
-    await reservation.save();
-
-    // Notify admins that resident is ready to return the item
-    const admins = await User.find({ role: 'admin' }).select('_id');
-    const resident = await User.findById(reservation.reservedBy).select('firstName lastName');
-    const itemSummary = getReservationItemSummary(reservation);
-    
-    await Promise.all(admins.map(admin => createInAppNotification({
-      userId: admin._id,
-      type: 'reservation',
-      title: 'Return initiated by resident - Security Action Required',
-      body: `${resident.firstName} ${resident.lastName} is ready to return ${itemSummary}. Please confirm receipt at security desk.`,
-      metadata: {
-        reservationId: reservation._id,
-        status: reservation.status,
-        returnInitiatedAt: reservation.returnInitiatedAt
-      }
-    })));
-
-    res.json({ 
-      success: true, 
-      message: 'Return initiated. Please bring the item to security for verification.',
-      data: reservation 
-    });
-  } catch (error) {
-    console.error('Initiate return error:', error.message);
-    res.status(500).json({ success: false, error: 'Failed to initiate return' });
-  }
-});
-
-// Security confirms receipt of returned item
+// Admin confirms receipt of returned item
 router.put('/:id/confirm-receipt', protect, async (req, res) => {
   try {
     const reservation = await Reservation.findById(req.params.id);
@@ -489,28 +406,22 @@ router.put('/:id/confirm-receipt', protect, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Reservation not found' });
     }
 
-    // Only security staff can confirm receipt
-    if (req.user.role !== 'security') {
-      return res.status(403).json({ success: false, error: 'Only security staff can confirm item receipt' });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Only admin can confirm item receipt' });
     }
 
-    // Can only confirm receipt if return was initiated or status is borrowed
-    if (!['borrowed', 'return_initiated'].includes(reservation.status)) {
+    if (reservation.status !== 'borrowed') {
       return res.status(400).json({ 
         success: false, 
-        error: 'Item must be in borrowed or return_initiated status for receipt confirmation' 
+        error: 'Item must be borrowed before receipt can be confirmed' 
       });
     }
 
-    // Mark item as received
     reservation.status = 'returned';
     reservation.itemReceivedBy = req.user._id;
     reservation.itemReceivedAt = new Date();
     reservation.actualReturn = new Date();
     await reservation.save();
-
-    // Notify admins that security received the item
-    await notifyAdminsOnItemReceipt(reservation, req.user);
 
     // Notify resident that their item was successfully received
     const itemSummary = getReservationItemSummary(reservation);
@@ -518,7 +429,7 @@ router.put('/:id/confirm-receipt', protect, async (req, res) => {
       userId: reservation.reservedBy,
       type: 'reservation',
       title: 'Item received confirmation',
-      body: `Your ${itemSummary} has been received and confirmed by security.`,
+      body: `Your ${itemSummary} has been received and confirmed by admin.`,
       metadata: {
         reservationId: reservation._id,
         status: reservation.status,

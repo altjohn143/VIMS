@@ -241,7 +241,6 @@ const AdminReservationsScreen = ({ navigation }) => {
       case 'confirmed': return '#22c55e';
       case 'cancelled': return '#ef4444';
       case 'borrowed': return '#f59e0b';
-      case 'return_initiated': return '#a855f7'; // Purple for return ready
       case 'returned': return '#0ea5e9';
       default: return '#6b7280';
     }
@@ -252,7 +251,6 @@ const AdminReservationsScreen = ({ navigation }) => {
       case 'confirmed': return 'checkmark-circle';
       case 'cancelled': return 'close-circle';
       case 'borrowed': return 'build';
-      case 'return_initiated': return 'arrow-undo';
       case 'returned': return 'return-up-back';
       default: return 'time';
     }
@@ -442,14 +440,14 @@ const AdminReservationsScreen = ({ navigation }) => {
                   </View>
                 )}
 
-                {['return_initiated', 'borrowed'].includes(reservation.status) && (
+                {reservation.status === 'borrowed' && (
                   <View style={styles.actionRow}>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.approveButton]}
                       onPress={() => handleConfirmReceipt(reservation._id)}
                     >
                       <Text style={styles.actionButtonText}>
-                        {reservation.status === 'return_initiated' ? 'Confirm Return Receipt' : 'Confirm Receipt'}
+                        Confirm Receipt
                       </Text>
                     </TouchableOpacity>
                   </View>

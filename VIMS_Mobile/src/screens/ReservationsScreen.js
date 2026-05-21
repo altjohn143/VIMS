@@ -78,6 +78,15 @@ const ReservationsScreen = ({ navigation }) => {
       return;
     }
 
+    // Prevent multiple venues
+    if (currentItem.resourceType === 'venue') {
+      const venueExists = formData.items.some((item) => item.resourceType === 'venue');
+      if (venueExists) {
+        Alert.alert('Error', 'You can only reserve one venue at a time.');
+        return;
+      }
+    }
+
     // Check if item already exists
     const exists = formData.items.find(
       (item) => item.resourceName === currentItem.resourceName && item.resourceType === currentItem.resourceType
@@ -169,34 +178,6 @@ const ReservationsScreen = ({ navigation }) => {
             } catch (error) {
               console.error('Error cancelling reservation:', error);
               Alert.alert('Error', 'Failed to cancel reservation');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleInitiateReturn = async (reservationId) => {
-    Alert.alert(
-      'Return Item',
-      'Are you ready to return this item to security?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Yes',
-          style: 'default',
-          onPress: async () => {
-            try {
-              const response = await api.put(`/reservations/${reservationId}/initiate-return`);
-              if (response.data?.success) {
-                Alert.alert('Success', response.data.message || 'Return initiated successfully. Please bring the item to security.');
-                fetchReservations();
-              } else {
-                Alert.alert('Error', response.data?.error || 'Failed to initiate return');
-              }
-            } catch (error) {
-              console.error('Error initiating return:', error);
-              Alert.alert('Error', error.response?.data?.error || 'Failed to initiate return');
             }
           },
         },
@@ -415,15 +396,6 @@ const ReservationsScreen = ({ navigation }) => {
                       </TouchableOpacity>
                     )}
 
-                    {reservation.status === 'borrowed' && (
-                      <TouchableOpacity
-                        style={styles.cardReturnButton}
-                        onPress={() => handleInitiateReturn(reservation._id)}
-                      >
-                        <Ionicons name="return-up-back" size={16} color="#fff" />
-                        <Text style={styles.cardReturnButtonText}>Return Item</Text>
-                      </TouchableOpacity>
-                    )}
                   </View>
                 </View>
               </View>
@@ -478,14 +450,19 @@ const ReservationsScreen = ({ navigation }) => {
                 </Picker>
               </View>
 
-              <Text style={styles.label}>Quantity</Text>
-              <TextInput
-                style={styles.numberInput}
-                placeholder="1"
-                value={currentItem.quantity.toString()}
-                onChangeText={(text) => setCurrentItem({ ...currentItem, quantity: parseInt(text) || 1 })}
-                keyboardType="number-pad"
-              />
+              {/* Show quantity field only for equipment */}
+              {currentItem.resourceType === 'equipment' && (
+                <>
+                  <Text style={styles.label}>Quantity</Text>
+                  <TextInput
+                    style={styles.numberInput}
+                    placeholder="1"
+                    value={currentItem.quantity.toString()}
+                    onChangeText={(text) => setCurrentItem({ ...currentItem, quantity: parseInt(text) || 1 })}
+                    keyboardType="number-pad"
+                  />
+                </>
+              )}
 
               <TouchableOpacity
                 style={styles.addItemButton}
@@ -506,15 +483,18 @@ const ReservationsScreen = ({ navigation }) => {
                           <Text style={styles.itemName}>{item.resourceName}</Text>
                           <Text style={styles.itemType}>{item.resourceType}</Text>
                         </View>
-                        <View style={styles.itemQuantitySection}>
-                          <Text style={styles.label}>Qty:</Text>
-                          <TextInput
-                            style={styles.quantityInput}
-                            value={item.quantity.toString()}
-                            onChangeText={(text) => handleUpdateItemQuantity(index, text)}
-                            keyboardType="number-pad"
-                          />
-                        </View>
+                        {/* Show quantity only for equipment */}
+                        {item.resourceType === 'equipment' && (
+                          <View style={styles.itemQuantitySection}>
+                            <Text style={styles.label}>Qty:</Text>
+                            <TextInput
+                              style={styles.quantityInput}
+                              value={item.quantity.toString()}
+                              onChangeText={(text) => handleUpdateItemQuantity(index, text)}
+                              keyboardType="number-pad"
+                            />
+                          </View>
+                        )}
                       </View>
                       <TouchableOpacity
                         style={styles.removeItemButton}
@@ -1031,21 +1011,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#b91c1c',
-  },
-  cardReturnButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#0ea5e9',
-  },
-  cardReturnButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#fff',
   },
   addItemButton: {
     flexDirection: 'row',

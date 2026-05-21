@@ -5,11 +5,15 @@ const { protect, authorize } = require('../middleware/auth');
 const ActivityNotificationService = require('../services/activityNotificationService');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+const uploadDir = path.join(__dirname, '../uploads/announcements');
+fs.mkdirSync(uploadDir, { recursive: true });
 
 // Multer storage config for announcement images
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads/announcements'));
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

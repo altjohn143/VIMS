@@ -100,7 +100,6 @@ import SecurityVisitorLogs from './SecurityVisitorLogs';
 import SecurityServiceRequests from './SecurityServiceRequests';
 import SecurityPatrolSchedule from './SecurityPatrolSchedule';
 import SecurityIncidents from './SecurityIncidents';
-import SecurityReservationReturns from './SecurityReservationReturns';
 import Notifications from './Notifications';
 import Chatbot from './Chatbot';
 
@@ -573,7 +572,6 @@ const Dashboard = () => {
         ],
         patrol: [{ title: 'Patrol Schedule', icon: <AssignmentIcon />, link: '/dashboard/security/schedule' }],
         services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/dashboard/security/service-requests' }],
-        returns: [{ title: 'Return Verification', icon: <EventAvailableIcon />, link: '/dashboard/security/returns' }],
         incidents: [{ title: 'Incident Reports', icon: <AssignmentIcon />, link: '/dashboard/security/incidents' }],
         settings: [
           { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' },
@@ -667,7 +665,6 @@ const Dashboard = () => {
       'security/schedule': 'Patrol Schedule',
       'security/incidents': 'Incident Reports',
       'security/service-requests': 'Service Requests',
-      'security/returns': 'Return Verification',
       notifications: 'Notifications',
       'ai-assistant': 'AI Assistant'
     };
@@ -703,7 +700,6 @@ const Dashboard = () => {
     'security/schedule': <SecurityPatrolSchedule />,
     'security/incidents': <SecurityIncidents />,
     'security/service-requests': <SecurityServiceRequests />,
-    'security/returns': <SecurityReservationReturns />,
     notifications: <Notifications />,
     'ai-assistant': <Chatbot />
   };
@@ -1654,8 +1650,8 @@ const Dashboard = () => {
                       ...dashboardStats,
                       ...(user?.role === 'resident'
                         ? [{
-                          label: 'Monthly Collection',
-                          value: collectionLoading ? 'Loadingâ€¦' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : 'â‚±0',
+                          label: 'Monthly Collec  ion',
+                          value: collectionLoading ? 'Loadingâ€¦' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '0',
                           helper: collectionLoading ? 'Fetching latest totals' : collectionError ? collectionError : 'Updated automatically for the current month',
                           icon: <VerifiedUserIcon sx={{ fontSize: 56 }} />,
                           style: statCardStyles[1]

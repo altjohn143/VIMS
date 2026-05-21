@@ -204,6 +204,15 @@ const Reservations = () => {
       return;
     }
 
+    // Prevent multiple venues
+    if (currentItem.resourceType === 'venue') {
+      const venueExists = formData.items.some((item) => item.resourceType === 'venue');
+      if (venueExists) {
+        setSnackbar({ open: true, message: 'You can only reserve one venue at a time.', severity: 'warning' });
+        return;
+      }
+    }
+
     const exists = formData.items.find(
       (item) => item.resourceName === currentItem.resourceName && item.resourceType === currentItem.resourceType
     );
@@ -285,24 +294,6 @@ const Reservations = () => {
     } catch (error) {
       console.error('Failed to cancel reservation:', error);
       setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to cancel reservation', severity: 'error' });
-    }
-  };
-
-  const handleInitiateReturn = async (reservationId) => {
-    if (!window.confirm('Are you ready to return this item to security?')) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(`/api/reservations/${reservationId}/initiate-return`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSnackbar({ open: true, message: response.data.message || 'Return initiated successfully! Please bring the item to security.', severity: 'success' });
-      fetchReservations();
-    } catch (error) {
-      console.error('Failed to initiate return:', error);
-      setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to initiate return', severity: 'error' });
     }
   };
 
@@ -866,27 +857,6 @@ const Reservations = () => {
                                 <CancelIcon sx={{ mr: 1 }} />
                                 Cancel
                               </Button>
-                            ) : reservation.status === 'borrowed' ? (
-                              <Stack direction="row" spacing={0.8}>
-                                <Button
-                                  onClick={() => handleInitiateReturn(reservation._id)}
-                                  variant="contained"
-                                  color="primary"
-                                  size="small"
-                                  sx={{
-                                    textTransform: 'none',
-                                    fontWeight: 800,
-                                    borderRadius: '12px',
-                                    backgroundColor: themeColors.info,
-                                    '&:hover': {
-                                      backgroundColor: '#0369a1'
-                                    }
-                                  }}
-                                >
-                                  <ArrowOutwardIcon sx={{ mr: 1, transform: 'rotate(180deg)' }} />
-                                  Return
-                                </Button>
-                              </Stack>
                             ) : null
                           }
                           sx={{
@@ -1050,17 +1020,21 @@ const Reservations = () => {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Quantity"
-                  value={currentItem.quantity}
-                  onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value) || 1 })}
-                  inputProps={{ min: 1 }}
-                  sx={fieldSx}
-                />
-              </Grid>
+
+              {/* Show quantity field only for equipment */}
+              {currentItem.resourceType === 'equipment' && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Quantity"
+                    value={currentItem.quantity}
+                    onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value) || 1 })}
+                    inputProps={{ min: 1 }}
+                    sx={fieldSx}
+                  />
+                </Grid>
+              )}
 
               <Grid item xs={12} sm={6}>
                 <Button
@@ -1109,17 +1083,32 @@ const Reservations = () => {
                           {item.resourceType}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography sx={{ fontWeight: 600 }}>Qty:</Typography>
-                          <TextField
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => handleUpdateItemQuantity(index, e.target.value)}
-                            inputProps={{ min: 1, style: { width: '60px', textAlign: 'center' } }}
-                            sx={{ '& input': { p: 0.5 } }}
-                          />
+                      {/* Show quantity only for equipment */}
+                      {item.resourceType === 'equipment' && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography sx={{ fontWeight: 600 }}>Qty:</Typography>
+                            <TextField
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e) => handleUpdateItemQuantity(index, e.target.value)}
+                              inputProps={{ min: 1, style: { width: '60px', textAlign: 'center' } }}
+                              sx={{ '& input': { p: 0.5 } }}
+                            />
+                          </Box>
+                          <Button
+                            color="error"
+                            size="small"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => handleRemoveItem(index)}
+                            sx={{ textTransform: 'none' }}
+                          >
+                            Remove
+                          </Button>
                         </Box>
+                      )}
+                      {/* For venues, just show remove button */}
+                      {item.resourceType === 'venue' && (
                         <Button
                           color="error"
                           size="small"
@@ -1129,7 +1118,7 @@ const Reservations = () => {
                         >
                           Remove
                         </Button>
-                      </Box>
+                      )}
                     </Paper>
                   ))}
                 </Grid>

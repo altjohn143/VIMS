@@ -40,8 +40,7 @@ import {
   EventAvailable as EventAvailableIcon,
   Build as BuildIcon,
   MeetingRoom as MeetingRoomIcon,
-  ReportProblemOutlined as ReportProblemOutlinedIcon,
-  Undo as UndoIcon
+  ReportProblemOutlined as ReportProblemOutlinedIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -277,7 +276,6 @@ const AdminReservations = () => {
       case 'confirmed': return 'success';
       case 'cancelled': return 'error';
       case 'borrowed': return 'warning';
-      case 'return_initiated': return 'secondary';
       case 'returned': return 'info';
       default: return 'default';
     }
@@ -288,7 +286,6 @@ const AdminReservations = () => {
       case 'confirmed': return <CheckCircleIcon />;
       case 'cancelled': return <CancelIcon />;
       case 'borrowed': return <BuildIcon />;
-      case 'return_initiated': return <UndoIcon />;
       case 'returned': return <EventAvailableIcon />;
       default: return <ScheduleIcon />;
     }
@@ -533,7 +530,7 @@ const AdminReservations = () => {
                             </Button>
                           </>
                         )}
-                        {['return_initiated', 'borrowed'].includes(reservation.status) && (
+                        {reservation.status === 'borrowed' && (
                           <Button
                             size="small"
                             color="success"
@@ -541,7 +538,7 @@ const AdminReservations = () => {
                             startIcon={<CheckCircleIcon />}
                             sx={{ textTransform: 'none', mr: 1 }}
                           >
-                            {reservation.status === 'return_initiated' ? 'Confirm Return' : 'Confirm Receipt'}
+                            Confirm Receipt
                           </Button>
                         )}
                         <Tooltip title="Delete">

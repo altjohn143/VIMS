@@ -66,41 +66,6 @@ router.get('/admin', protect, authorize('admin'), async (req, res) => {
 
 const ALLOWED_ANNOUNCEMENT_CATEGORIES = ['general', 'monthlyCollection'];
 
-// Create announcement
-router.post('/', protect, authorize('admin'), async (req, res) => {
-  try {
-    const { title, body, status = 'published', scheduledAt, category = 'general' } = req.body;
-    if (!title || !body) {
-      return res.status(400).json({ success: false, error: 'Title and body are required' });
-    }
-    if (!ALLOWED_ANNOUNCEMENT_CATEGORIES.includes(category)) {
-      return res.status(400).json({ success: false, error: 'Invalid announcement category' });
-    }
-
-    if (status === 'scheduled' && !scheduledAt) {
-      return res.status(400).json({ success: false, error: 'Scheduled time is required for scheduled announcements' });
-    }
-
-    if (status === 'scheduled' && new Date(scheduledAt) <= new Date()) {
-      return res.status(400).json({ success: false, error: 'Scheduled time must be in the future' });
-    }
-
-    const row = await Announcement.create({
-      title: String(title).trim(),
-      body: String(body).trim(),
-      status,
-      category,
-      scheduledAt: status === 'scheduled' ? new Date(scheduledAt) : null,
-      publishedAt: status === 'published' ? new Date() : null,
-      createdBy: req.user._id
-    });
-
-    res.status(201).json({ success: true, data: row });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to create announcement' });
-  }
-});
-
 // Update announcement
 router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {

@@ -59,6 +59,12 @@ const AdminAnnouncements = () => {
     border: 'rgba(15, 23, 42, 0.08)'
   };
 
+  const getAnnouncementImageUrl = (image) => {
+    if (!image) return null;
+    if (String(image).startsWith('http')) return image;
+    return `${axios.defaults.baseURL}/uploads/announcements/${image}`;
+  };
+
   const load = useCallback(async () => {
     try {
       const res = await axios.get('/api/announcements/admin');
@@ -411,6 +417,23 @@ const AdminAnnouncements = () => {
                    `Created: ${new Date(item.createdAt).toLocaleString()}`}
                 </Typography>
                 <Typography sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{item.body}</Typography>
+                {(item.imageUrl || item.image) && (
+                  <Box sx={{ mt: 1.5 }}>
+                    <Box
+                      component="img"
+                      src={item.imageUrl || getAnnouncementImageUrl(item.image)}
+                      alt={item.title || 'Announcement'}
+                      sx={{
+                        width: '100%',
+                        maxHeight: 260,
+                        objectFit: 'contain',
+                        borderRadius: '14px',
+                        bgcolor: '#f8fafc',
+                        border: `1px solid ${themeColors.border}`
+                      }}
+                    />
+                  </Box>
+                )}
                 <Divider sx={{ my: 1.5 }} />
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
                   {item.status === 'scheduled' ? (

@@ -22,6 +22,12 @@ const Announcements = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const navigate = useNavigate();
 
+  const getAnnouncementImageUrl = (image) => {
+    if (!image) return null;
+    if (String(image).startsWith('http')) return image;
+    return `${axios.defaults.baseURL}/uploads/announcements/${image}`;
+  };
+
   const load = useCallback(async () => {
     try {
       const res = await axios.get('/api/announcements');
@@ -240,10 +246,10 @@ const Announcements = () => {
                 </Box>
 
                 {/* Show announcement image if present */}
-                {item.image && (
+                {(item.imageUrl || item.image) && (
                   <Box sx={{ my: 1.5, textAlign: 'center' }}>
                     <img
-                      src={`${axios.defaults.baseURL}/uploads/announcements/${item.image}`}
+                      src={item.imageUrl || getAnnouncementImageUrl(item.image)}
                       alt="Announcement"
                       style={{
                         maxWidth: '100%',

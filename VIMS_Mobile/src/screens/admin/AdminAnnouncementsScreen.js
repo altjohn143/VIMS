@@ -11,6 +11,7 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -62,6 +63,12 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
     } catch {
       return 'N/A';
     }
+  };
+
+  const getAnnouncementImageUrl = (image) => {
+    if (!image) return null;
+    if (String(image).startsWith('http')) return image;
+    return `${api.defaults.baseURL?.replace(/\/api\/?$/, '')}/uploads/announcements/${image}`;
   };
 
   const publishCounts = useMemo(() => {
@@ -193,6 +200,10 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
         <Text style={styles.body} numberOfLines={5}>
           {item?.body || ''}
         </Text>
+
+        {item?.imageUrl || item?.image ? (
+          <Image source={{ uri: item.imageUrl || getAnnouncementImageUrl(item.image) }} style={styles.cardImage} resizeMode="cover" />
+        ) : null}
 
         <View style={styles.actionsRow}>
           {item?.status === 'scheduled' ? (
@@ -424,6 +435,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: '900' },
   meta: { marginTop: 8, fontSize: 11, color: themeColors.textSecondary, fontWeight: '600' },
   body: { marginTop: 10, fontSize: 13, color: themeColors.textPrimary, opacity: 0.92, lineHeight: 20 },
+  cardImage: { width: '100%', height: 170, borderRadius: 12, marginTop: 12, backgroundColor: '#f8fafc' },
   actionsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   actionBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   secondaryBtn: { backgroundColor: '#f1f5f9' },

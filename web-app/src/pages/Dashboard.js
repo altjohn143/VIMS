@@ -271,6 +271,13 @@ const Dashboard = () => {
     return `${backendBaseUrl}/uploads/profile-photos/${photo}`;
   };
 
+  const buildAnnouncementImageUrl = (image) => {
+    if (!image) return null;
+    if (String(image).startsWith('http')) return image;
+    const backendBaseUrl = axios.defaults.baseURL || window.location.origin;
+    return `${backendBaseUrl}/uploads/announcements/${image}`;
+  };
+
   const avatarSrc = user?.profilePhotoUrl || buildProfilePhotoUrl(user?.profilePhoto);
 
   const handleLogout = useCallback(() => {
@@ -1998,7 +2005,15 @@ const Dashboard = () => {
                             flexWrap: { xs: 'wrap', sm: 'nowrap' }
                           }}
                         >
-                          <Box sx={{ minWidth: 0 }}>
+                          {(item.imageUrl || item.image) && (
+                            <Box
+                              component="img"
+                              src={item.imageUrl || buildAnnouncementImageUrl(item.image)}
+                              alt={item.title || 'Announcement'}
+                              sx={{ width: 58, height: 58, borderRadius: 2, objectFit: 'cover', flexShrink: 0, bgcolor: '#f8fafc' }}
+                            />
+                          )}
+                          <Box sx={{ minWidth: 0, flex: 1 }}>
                             <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
                               {item.title}
                             </Typography>

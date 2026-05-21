@@ -185,6 +185,15 @@ const AdminApprovals = () => {
     setDetailsOpen(true);
   };
 
+  const getProfilePhotoUrl = (user) => {
+    if (!user) return null;
+    if (user.profilePhotoUrl) return user.profilePhotoUrl;
+    if (!user.profilePhoto) return null;
+    if (String(user.profilePhoto).startsWith('http')) return user.profilePhoto;
+    const backendBaseUrl = axios.defaults.baseURL || window.location.origin;
+    return `${backendBaseUrl}/uploads/profile-photos/${user.profilePhoto}`;
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -382,7 +391,7 @@ const AdminApprovals = () => {
                   >
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{ bgcolor: themeColors.primary, color: 'white' }}>
+                        <Avatar src={getProfilePhotoUrl(user)} sx={{ bgcolor: themeColors.primary, color: 'white' }}>
                           {user.firstName?.charAt(0)}
                           {user.lastName?.charAt(0)}
                         </Avatar>
@@ -531,7 +540,8 @@ const AdminApprovals = () => {
             </DialogTitle>
             <DialogContent sx={{ pt: 3 }}>
               <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Avatar 
+                <Avatar
+                  src={getProfilePhotoUrl(selectedUser)}
                   sx={{ 
                     width: 80, 
                     height: 80, 

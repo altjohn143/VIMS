@@ -111,6 +111,9 @@ const AdminUserManagement = () => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageModalTitle, setImageModalTitle] = useState('');
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [documentLoading, setDocumentLoading] = useState(false);
+  const [documentImages, setDocumentImages] = useState({ front: null, back: null, selfie: null });
   const [newUserForm, setNewUserForm] = useState({
     firstName: '',
     lastName: '',
@@ -133,6 +136,54 @@ const AdminUserManagement = () => {
   
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  const getProfilePhotoUrl = (user) => {
+    if (!user) return null;
+    if (user.profilePhotoUrl) return user.profilePhotoUrl;
+    if (!user.profilePhoto) return null;
+    if (String(user.profilePhoto).startsWith('http')) return user.profilePhoto;
+    const backendBaseUrl = getBackendApiUrl('').replace(/\/api\/?$/, '').replace(/\/$/, '');
+    return `${backendBaseUrl}/uploads/profile-photos/${user.profilePhoto}`;
+  };
+
+  const handleOpenImage = (title, src) => {
+    if (!src) {
+      toast.error('No image available');
+      return;
+    }
+    setImageModalTitle(title);
+    setSelectedImage(src);
+    setImageModalOpen(true);
+  };
+
+  const handleLoadVerificationImages = async (user) => {
+    if (!user?.verificationId) {
+      toast.error('No uploaded ID documents available for this user');
+      return;
+    }
+
+    setDocumentLoading(true);
+    setDocumentImages({ front: null, back: null, selfie: null });
+    setDocumentModalOpen(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`/api/verifications/admin/${user.verificationId}/images`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (response.data?.success) {
+        setDocumentImages(response.data.data || { front: null, back: null, selfie: null });
+      } else {
+        toast.error(response.data?.error || 'Failed to load uploaded documents');
+      }
+    } catch (error) {
+      console.error('Error loading uploaded ID documents:', error);
+      toast.error(error.response?.data?.error || 'Failed to load uploaded documents');
+      setDocumentModalOpen(false);
+    } finally {
+      setDocumentLoading(false);
+    }
+  };
 
   // Filter users based on all criteria
   const filterUsers = useCallback((usersList, search, role, status, approval, tab) => {
@@ -1017,7 +1068,7 @@ const AdminUserManagement = () => {
                     <TableRow key={user._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar sx={{ bgcolor: getRoleColor(user.role) }}>
+                          <Avatar src={getProfilePhotoUrl(user)} sx={{ bgcolor: getRoleColor(user.role) }}>
                             {user.firstName?.charAt(0)}
                             {user.lastName?.charAt(0)}
                           </Avatar>
@@ -1101,7 +1152,7 @@ const AdminUserManagement = () => {
                       </TableCell>
                       <TableCell align="center">
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Tooltip title="View Details">
+                        <Tooltip title="View Details">
                             <IconButton
                               size="small"
                               onClick={() => handleViewDetails(user)}
@@ -1109,7 +1160,22 @@ const AdminUserManagement = () => {
                             >
                               <ViewIcon />
                             </IconButton>
-                          </Tooltip>
+                        </Tooltip>
+                        <Tooltip title={user.verificationId ? 'View uploaded IDs' : 'No uploaded IDs'}>
+                          <span>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleLoadVerificationImages(user)}
+                              disabled={!user.verificationId}
+                              sx={{
+                                color: user.verificationId ? themeColors.primary : themeColors.textSecondary,
+                                '&:hover': { backgroundColor: user.verificationId ? themeColors.primary + '15' : 'transparent' }
+                              }}
+                            >
+                              <ImageIcon />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                           
                           {user.role === 'resident' && !user.isApproved && (
                             <Tooltip title="Approve">
@@ -1190,7 +1256,7 @@ const AdminUserManagement = () => {
             <>
               <DialogTitle sx={{ borderBottom: `1px solid ${themeColors.border}` }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ width: 56, height: 56, bgcolor: getRoleColor(selectedUser.role) }}>
+                  <Avatar src={getProfilePhotoUrl(selectedUser)} sx={{ width: 56, height: 56, bgcolor: getRoleColor(selectedUser.role) }}>
                     {selectedUser.firstName?.charAt(0)}
                     {selectedUser.lastName?.charAt(0)}
                   </Avatar>
@@ -1206,6 +1272,33 @@ const AdminUserManagement = () => {
               </DialogTitle>
               <DialogContent sx={{ pt: 3 }}>
                 <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Paper sx={{ p: 2, bgcolor: themeColors.background, borderRadius: 2 }}>
+                      <Typography variant="subtitle2" sx={{ mb: 2, color: themeColors.primary, fontWeight: 600 }}>
+                        Registration Images
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Button
+                          variant="outlined"
+                          startIcon={<ImageIcon />}
+                          onClick={() => handleOpenImage('Profile Picture', getProfilePhotoUrl(selectedUser))}
+                          disabled={!getProfilePhotoUrl(selectedUser)}
+                          sx={{ textTransform: 'none', borderRadius: 2 }}
+                        >
+                          View Profile Picture
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          startIcon={<ImageIcon />}
+                          onClick={() => handleLoadVerificationImages(selectedUser)}
+                          disabled={!selectedUser.verificationId}
+                          sx={{ textTransform: 'none', borderRadius: 2 }}
+                        >
+                          View Uploaded IDs
+                        </Button>
+                      </Box>
+                    </Paper>
+                  </Grid>
                   <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 2, bgcolor: themeColors.background, borderRadius: 2 }}>
                       <Typography variant="subtitle2" sx={{ mb: 2, color: themeColors.primary, fontWeight: 600 }}>
@@ -1654,7 +1747,7 @@ const AdminUserManagement = () => {
                 </Typography>
                 <Paper sx={{ p: 2, bgcolor: themeColors.background, borderRadius: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: getRoleColor(selectedUser.role) }}>
+                    <Avatar src={getProfilePhotoUrl(selectedUser)} sx={{ bgcolor: getRoleColor(selectedUser.role) }}>
                       {selectedUser.firstName?.charAt(0)}
                       {selectedUser.lastName?.charAt(0)}
                     </Avatar>
@@ -1746,6 +1839,65 @@ const AdminUserManagement = () => {
             sx={{ textTransform: 'none', fontWeight: 800 }}
           >
             {processing ? 'Processing…' : (moveOutAction === 'approve' ? 'Approve' : 'Deny')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Uploaded ID Documents Modal */}
+      <Dialog
+        open={documentModalOpen}
+        onClose={() => setDocumentModalOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, maxHeight: '90vh' } }}
+      >
+        <DialogTitle sx={{ bgcolor: themeColors.primary, color: 'white', fontWeight: 700 }}>
+          Uploaded Registration Documents
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {documentLoading ? (
+            <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
+              <CircularProgress sx={{ color: themeColors.primary }} />
+            </Box>
+          ) : (
+            <Grid container spacing={2}>
+              {[
+                { key: 'selfie', label: 'Profile/Selfie' },
+                { key: 'front', label: 'ID Front' },
+                { key: 'back', label: 'ID Back' }
+              ].map((doc) => (
+                <Grid item xs={12} md={4} key={doc.key}>
+                  <Paper sx={{ p: 1.5, borderRadius: 2, border: `1px solid ${themeColors.border}`, height: '100%' }}>
+                    <Typography sx={{ fontWeight: 800, mb: 1 }}>{doc.label}</Typography>
+                    {documentImages[doc.key] ? (
+                      <Box
+                        component="img"
+                        src={documentImages[doc.key]}
+                        alt={doc.label}
+                        onClick={() => handleOpenImage(doc.label, documentImages[doc.key])}
+                        sx={{
+                          width: '100%',
+                          height: 260,
+                          objectFit: 'contain',
+                          borderRadius: 2,
+                          bgcolor: '#f8fafc',
+                          cursor: 'zoom-in'
+                        }}
+                      />
+                    ) : (
+                      <Box sx={{ height: 260, borderRadius: 2, bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: themeColors.textSecondary }}>
+                        No image uploaded
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${themeColors.border}` }}>
+          <Button onClick={() => setDocumentModalOpen(false)} sx={{ textTransform: 'none' }}>
+            Close
           </Button>
         </DialogActions>
       </Dialog>

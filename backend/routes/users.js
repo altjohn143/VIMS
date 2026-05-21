@@ -103,11 +103,34 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     const users = await User.find({ isArchived: false })
       .select('-password')
       .sort({ createdAt: -1 });
+
+    const verificationRecords = await IdentityVerification.find({
+      userId: { $in: users.map((user) => user._id) }
+    }).select('userId status updatedAt frontImage backImage selfieImage documentsVerified');
+
+    const verificationMap = new Map(
+      verificationRecords.map((record) => [String(record.userId), record])
+    );
+
+    const data = users.map((user) => {
+      const verification = verificationMap.get(String(user._id));
+      const userObj = user.toObject();
+      if (user.profilePhoto) {
+        userObj.profilePhotoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${user.profilePhoto}`;
+      }
+      userObj.verificationStatus = verification?.status || 'pending_upload';
+      userObj.verificationUpdatedAt = verification?.updatedAt || null;
+      userObj.verificationId = verification?._id || null;
+      userObj.hasUploadedId = !!(verification?.frontImage && verification?.backImage);
+      userObj.hasUploadedSelfie = !!verification?.selfieImage;
+      userObj.documentsVerified = !!verification?.documentsVerified;
+      return userObj;
+    });
     
     res.json({
       success: true,
-      count: users.length,
-      data: users
+      count: data.length,
+      data
     });
   } catch (error) {
     console.error('Get users error:', error);
@@ -140,8 +163,12 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
     const data = pendingUsers.map((user) => {
       const verification = verificationMap.get(String(user._id));
       const hasUploadedId = !!(verification?.frontImage && verification?.backImage);
+      const userObj = user.toObject();
+      if (user.profilePhoto) {
+        userObj.profilePhotoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${user.profilePhoto}`;
+      }
       return {
-        ...user.toObject(),
+        ...userObj,
         verificationStatus: verification?.status || 'pending_upload',
         verificationUpdatedAt: verification?.updatedAt || null,
         verificationId: verification?._id || null,

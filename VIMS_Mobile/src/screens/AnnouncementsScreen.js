@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -70,6 +71,12 @@ const AnnouncementsScreen = ({ navigation }) => {
     setDetailsOpen(true);
   };
 
+  const getAnnouncementImageUrl = (image) => {
+    if (!image) return null;
+    if (String(image).startsWith('http')) return image;
+    return `${api.defaults.baseURL?.replace(/\/api\/?$/, '')}/uploads/announcements/${image}`;
+  };
+
   const renderItem = ({ item }) => {
     const author =
       item?.createdBy?.firstName || item?.createdBy?.lastName
@@ -92,6 +99,10 @@ const AnnouncementsScreen = ({ navigation }) => {
         <Text style={styles.bodyPreview} numberOfLines={3}>
           {item.body || ''}
         </Text>
+
+        {item.imageUrl || item.image ? (
+          <Image source={{ uri: item.imageUrl || getAnnouncementImageUrl(item.image) }} style={styles.cardImage} resizeMode="cover" />
+        ) : null}
 
         <View style={styles.cardBottomRow}>
           <View style={styles.authorRow}>
@@ -179,6 +190,9 @@ const AnnouncementsScreen = ({ navigation }) => {
               <Text style={styles.detailsMeta}>
                 {formatWhen(selected?.publishedAt || selected?.createdAt)}
               </Text>
+              {selected?.imageUrl || selected?.image ? (
+                <Image source={{ uri: selected.imageUrl || getAnnouncementImageUrl(selected.image) }} style={styles.detailsImage} resizeMode="contain" />
+              ) : null}
               <View style={styles.detailsDivider} />
               <Text style={styles.detailsBody}>{selected?.body || ''}</Text>
             </ScrollView>
@@ -255,6 +269,7 @@ const styles = StyleSheet.create({
   timeText: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '600' },
   title: { color: themeColors.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 8 },
   bodyPreview: { color: themeColors.textPrimary, fontSize: 13, lineHeight: 19, opacity: 0.9 },
+  cardImage: { width: '100%', height: 170, borderRadius: 12, marginTop: 12, backgroundColor: '#f8fafc' },
   cardBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 },
   authorText: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '600', flexShrink: 1 },
@@ -275,6 +290,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 16, fontWeight: '800', color: themeColors.textPrimary },
   detailsTitle: { fontSize: 18, fontWeight: '900', color: themeColors.textPrimary, marginTop: 6 },
   detailsMeta: { fontSize: 12, color: themeColors.textSecondary, marginTop: 4, fontWeight: '600' },
+  detailsImage: { width: '100%', height: 260, borderRadius: 12, marginTop: 12, backgroundColor: '#f8fafc' },
   detailsDivider: { height: 1, backgroundColor: themeColors.border, marginVertical: 12 },
   detailsBody: { fontSize: 14, color: themeColors.textPrimary, lineHeight: 22 },
 });

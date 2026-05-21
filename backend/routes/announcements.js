@@ -35,6 +35,13 @@ const upload = multer({
 });
 
 const router = express.Router();
+const withImageUrl = (req, row) => {
+  const obj = typeof row.toObject === 'function' ? row.toObject() : row;
+  if (obj.image) {
+    obj.imageUrl = `${req.protocol}://${req.get('host')}/uploads/announcements/${obj.image}`;
+  }
+  return obj;
+};
 
 // Public feed for logged-in users
 router.get('/', protect, async (req, res) => {
@@ -50,7 +57,7 @@ router.get('/', protect, async (req, res) => {
       .populate('createdBy', 'firstName lastName role')
       .sort({ publishedAt: -1, createdAt: -1 });
 
-    res.json({ success: true, count: rows.length, data: rows });
+    res.json({ success: true, count: rows.length, data: rows.map((row) => withImageUrl(req, row)) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to load announcements' });
   }
@@ -62,9 +69,22 @@ router.get('/admin', protect, authorize('admin'), async (req, res) => {
     const rows = await Announcement.find({ isArchived: false })
       .populate('createdBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
-    res.json({ success: true, count: rows.length, data: rows });
+    res.json({ success: true, count: rows.length, data: rows.map((row) => withImageUrl(req, row)) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to load announcement admin list' });
+  }
+});
+
+// Admin archived list
+router.get('/archived', protect, authorize('admin'), async (req, res) => {
+  try {
+    const rows = await Announcement.find({ isArchived: true })
+      .populate('createdBy', 'firstName lastName role')
+      .populate('archivedBy', 'firstName lastName role')
+      .sort({ archivedAt: -1, updatedAt: -1 });
+    res.json({ success: true, count: rows.length, data: rows.map((row) => withImageUrl(req, row)) });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to load archived announcements' });
   }
 });
 
@@ -115,7 +135,7 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
     }
 
     await row.save();
-    res.json({ success: true, data: row });
+    res.json({ success: true, data: withImageUrl(req, row) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to update announcement' });
   }
@@ -155,7 +175,7 @@ router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
     row.archivedReason = '';
     await row.save();
     
-    res.json({ success: true, message: 'Announcement restored', data: row });
+    res.json({ success: true, message: 'Announcement restored', data: withImageUrl(req, row) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to restore announcement' });
   }
@@ -194,7 +214,7 @@ router.post('/', protect, authorize('admin'), upload.single('image'), async (req
       image
     });
 
-    res.status(201).json({ success: true, data: row });
+    res.status(201).json({ success: true, data: withImageUrl(req, row) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message || 'Failed to create announcement' });
   }

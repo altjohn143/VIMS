@@ -1823,7 +1823,7 @@ const Dashboard = () => {
                 </Paper>
               </Grid>
 
-              <Grid item xs={12} md={8.5}>
+              <Grid item xs={12}>
                 <Paper
                   sx={{
                     borderRadius: '20px',
@@ -2285,36 +2285,70 @@ const Dashboard = () => {
             right: { xs: 18, md: 28 },
             bottom: { xs: 18, md: 28 },
             zIndex: theme.zIndex.drawer + 2,
-            minWidth: { xs: 56, sm: 64 },
-            width: { xs: 56, sm: 'auto' },
-            height: 56,
-            px: { xs: 0, sm: 2.2 },
-            borderRadius: '999px',
+            minWidth: 0,
+            width: 64,
+            height: 64,
+            p: 0,
+            borderRadius: '50%',
             bgcolor: assistantOpen || activePageKey === 'ai-assistant' ? themeColors.primaryDark : themeColors.primary,
             color: 'white',
-            boxShadow: '0 16px 34px rgba(22, 101, 52, 0.34)',
+            boxShadow: '0 18px 36px rgba(22, 101, 52, 0.34)',
             textTransform: 'none',
-            fontWeight: 900,
-            gap: { xs: 0, sm: 1 },
+            overflow: 'visible',
+            transition: 'transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              inset: -7,
+              borderRadius: '50%',
+              border: '2px solid rgba(34,197,94,0.24)',
+              opacity: 0,
+              transform: 'scale(0.86)',
+              transition: 'opacity 0.22s ease, transform 0.22s ease'
+            },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              width: 9,
+              height: 9,
+              borderRadius: '50%',
+              bgcolor: '#bbf7d0',
+              boxShadow: '0 0 0 0 rgba(187,247,208,0.70)',
+              opacity: 0,
+              transition: 'opacity 0.22s ease'
+            },
             '&:hover': {
               bgcolor: themeColors.primaryDark,
-              transform: 'translateY(-2px)',
-              boxShadow: '0 20px 40px rgba(20, 83, 45, 0.38)'
+              transform: 'translateY(-4px) scale(1.06)',
+              boxShadow: '0 24px 46px rgba(20, 83, 45, 0.42)'
             },
-            transition: 'all 0.2s ease'
+            '&:hover::before': {
+              opacity: 1,
+              transform: 'scale(1.08)'
+            },
+            '&:hover::after': {
+              opacity: 1,
+              animation: 'assistantPulse 1.1s ease-out infinite'
+            },
+            '&:hover .assistant-icon': {
+              transform: 'rotate(-8deg) scale(1.08)'
+            },
+            '@keyframes assistantPulse': {
+              '0%': { boxShadow: '0 0 0 0 rgba(187,247,208,0.70)' },
+              '70%': { boxShadow: '0 0 0 12px rgba(187,247,208,0)' },
+              '100%': { boxShadow: '0 0 0 0 rgba(187,247,208,0)' }
+            }
           }}
         >
-          <SmartToyIcon sx={{ fontSize: 26 }} />
-          <Box
-            component="span"
+          <SmartToyIcon
+            className="assistant-icon"
             sx={{
-              display: { xs: 'none', sm: 'inline' },
-              whiteSpace: 'nowrap',
-              lineHeight: 1
+              fontSize: 29,
+              transition: 'transform 0.22s ease'
             }}
-          >
-            VIMS Assistant
-          </Box>
+          />
         </Button>
       </Tooltip>
     </>

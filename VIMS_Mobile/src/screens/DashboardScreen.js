@@ -13,8 +13,10 @@ import {
   Animated,
   TouchableWithoutFeedback,
   Alert,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import api, { getProtectedImageDataUrl } from '../utils/api';
 import testDirectFetch from '../utils/testFetch';
@@ -40,12 +42,87 @@ const DashboardScreen = ({ navigation }) => {
     quickActions: false,
     recentActivity: false,
   });
+  
+  // Animation States (Senior Developer Micro-Interactions)
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  const statScaleAnims = useRef([
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1),
+  ]).current;
+
+  const actionScaleAnims = useRef(
+    Array(10).fill(null).map(() => new Animated.Value(1))
+  ).current;
+
   const { logout, user: authUser } = useAuth();
 
   const userToShow = authUser || user;
 
   const formatPeso = (n) => Math.round(Number(n) || 0).toLocaleString('en-PH');
+
+  // Looping Pulse Animation for AI Assistant FAB
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.15,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1.0,
+          duration: 1200,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  // Spring scale animations for Stats
+  const animateStatPressIn = (index) => {
+    Animated.spring(statScaleAnims[index], {
+      toValue: 0.94,
+      friction: 6,
+      tension: 180,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const animateStatPressOut = (index) => {
+    Animated.spring(statScaleAnims[index], {
+      toValue: 1.0,
+      friction: 5,
+      tension: 150,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Spring scale animations for Actions
+  const animateActionPressIn = (index) => {
+    if (actionScaleAnims[index]) {
+      Animated.spring(actionScaleAnims[index], {
+        toValue: 0.96,
+        friction: 6,
+        tension: 180,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const animateActionPressOut = (index) => {
+    if (actionScaleAnims[index]) {
+      Animated.spring(actionScaleAnims[index], {
+        toValue: 1.0,
+        friction: 5,
+        tension: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -482,48 +559,88 @@ const DashboardScreen = ({ navigation }) => {
         {/* ── Hero Card ── */}
         <View style={styles.heroCard}>
           <Image source={require('../../assets/roof.png')} style={styles.heroBg} resizeMode="cover" />
-          <View style={styles.heroOverlay} />
+          <LinearGradient
+            colors={['rgba(20, 83, 45, 0.85)', 'rgba(15, 23, 42, 0.92)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
           <View style={[styles.heroInner, isNarrow && styles.heroInnerNarrow]}>
             <View style={styles.heroLeft}>
-              <Text style={styles.heroEyebrow}>Casimiro Westville Homes · Cavite</Text>
-              <Text style={[styles.heroTitle, isNarrow && { fontSize: 19, lineHeight: 24 }]}>
-                {greeting()}{'\n'}{userToShow?.firstName || 'User'}
+              <View style={styles.heroEyebrowPill}>
+                <Ionicons name="location-sharp" size={10} color="#4ade80" />
+                <Text style={styles.heroEyebrow}>WESTVILLE CASIMIRO HOMES</Text>
+              </View>
+              <Text style={[styles.heroTitle, isNarrow && { fontSize: 20, lineHeight: 26 }]}>
+                {greeting()},{'\n'}
+                <Text style={styles.heroTitleBold}>{userToShow?.firstName || 'User'}</Text>
               </Text>
               <Text style={styles.heroDate}>{formattedDate}</Text>
               <View style={styles.heroPill}>
                 <View style={styles.heroPillDot} />
-                <Text style={styles.heroPillText}>Community running smoothly</Text>
+                <Text style={styles.heroPillText}>Secure Community Active</Text>
               </View>
             </View>
-            <View style={[styles.heroRight, isNarrow && styles.heroRightNarrow]}>
-              {config.stats.map((stat, i) => (
-                <View key={i} style={[styles.heroStatCell, i === config.stats.length - 1 && { borderBottomWidth: 0 }]}>
-                  <Text style={styles.heroStatValue}>{stat.prefix || ''}{stat.value}</Text>
-                  <Text style={styles.heroStatLabel} numberOfLines={2}>{stat.label}</Text>
-                  <Text style={[styles.heroStatHint, i === 1 && { color: '#fca5a5' }]}>
-                    ↗ {config.hints[i]}
-                  </Text>
-                </View>
-              ))}
+            
+            {/* Elegant Glassmorphic Access Widget (Replacing cluttered duplicate lists) */}
+            <View style={[styles.heroRightWidget, isNarrow && styles.heroRightWidgetNarrow]}>
+              <View style={styles.accessIndicatorCircle}>
+                <Text style={styles.accessIndicatorValue}>
+                  {stats.activeVisitors || 0}
+                </Text>
+                <View style={styles.accessPulseDot} />
+              </View>
+              <Text style={styles.accessIndicatorLabel}>Active Visitors</Text>
+              <Text style={styles.accessIndicatorSub}>Secured Entries</Text>
             </View>
           </View>
         </View>
 
         {/* ── Colored Stat Cards ── */}
         <View style={[styles.statGrid, isNarrow && styles.statGridNarrow]}>
-          {config.stats.map((stat, i) => (
-            <View key={i} style={[styles.statCard, isNarrow && styles.statCardNarrow, { backgroundColor: stat.bg }]}>
-              <View style={styles.statCardBgIcon}>
-                <Ionicons name={stat.icon} size={56} color="rgba(255,255,255,0.15)" />
-              </View>
-              <View style={styles.statCardTop}>
-                <Ionicons name={stat.icon} size={18} color="rgba(255,255,255,0.7)" />
-              </View>
-              <Text style={styles.statCardValue}>{stat.prefix || ''}{stat.value}</Text>
-              <Text style={styles.statCardLabel} numberOfLines={2}>{stat.label}</Text>
-              <Text style={styles.statCardHint}>↗ {config.hints[i]}</Text>
-            </View>
-          ))}
+          {config.stats.map((stat, i) => {
+            // Curated, beautiful gradients matching the original colors
+            const gradientColors = 
+              i === 0 ? ['#4F46E5', '#3730A3'] : // Indigo
+              i === 1 ? ['#10B981', '#065F46'] : // Emerald Green
+              i === 2 ? ['#0EA5E9', '#0369A1'] : // Ocean Sky
+              ['#EF4444', '#991B1B'];            // Crimson Red
+
+            return (
+              <Animated.View
+                key={i}
+                style={[
+                  isNarrow ? styles.statCardNarrow : styles.statCardWrapper,
+                  {
+                    transform: [{ scale: statScaleAnims[i] || 1 }],
+                  }
+                ]}
+              >
+                <Pressable
+                  onPressIn={() => animateStatPressIn(i)}
+                  onPressOut={() => animateStatPressOut(i)}
+                  style={{ flex: 1 }}
+                >
+                  <LinearGradient
+                    colors={gradientColors}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.statCard}
+                  >
+                    <View style={styles.statCardBgIcon}>
+                      <Ionicons name={stat.icon} size={62} color="rgba(255,255,255,0.12)" />
+                    </View>
+                    <View style={styles.statCardTop}>
+                      <Ionicons name={stat.icon} size={18} color="rgba(255,255,255,0.7)" />
+                    </View>
+                    <Text style={styles.statCardValue}>{stat.prefix || ''}{stat.value}</Text>
+                    <Text style={styles.statCardLabel} numberOfLines={2}>{stat.label}</Text>
+                    <Text style={styles.statCardHint}>↗ {config.hints[i]}</Text>
+                  </LinearGradient>
+                </Pressable>
+              </Animated.View>
+            );
+          })}
         </View>
 
         {/* ── Quick Actions ── */}
@@ -536,21 +653,32 @@ const DashboardScreen = ({ navigation }) => {
             </View>
           </TouchableOpacity>
           {!collapsedSections.quickActions && config.quickActions.map((action, i) => (
-            <TouchableOpacity
+            <Animated.View
               key={i}
-              style={[styles.actionRow, i < config.quickActions.length - 1 && styles.actionRowDivider]}
-              onPress={() => action.screen === 'Chatbot' ? setAssistantVisible(true) : navigation.navigate(action.screen)}
-              activeOpacity={0.7}
+              style={{
+                transform: [{ scale: actionScaleAnims[i] || 1 }]
+              }}
             >
-              <View style={[styles.actionIconWrap, { backgroundColor: action.bg }]}>
-                <Ionicons name={action.icon} size={18} color={action.color} />
-              </View>
-              <View style={styles.actionBody}>
-                <Text style={styles.actionTitle}>{action.title}</Text>
-                <Text style={styles.actionSub}>{action.subtitle}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#cbd5e1" />
-            </TouchableOpacity>
+              <Pressable
+                onPressIn={() => animateActionPressIn(i)}
+                onPressOut={() => animateActionPressOut(i)}
+                onPress={() => action.screen === 'Chatbot' ? setAssistantVisible(true) : navigation.navigate(action.screen)}
+                style={({ pressed }) => [
+                  styles.actionRow,
+                  pressed && styles.actionRowPressed,
+                  i < config.quickActions.length - 1 && styles.actionRowDivider
+                ]}
+              >
+                <View style={[styles.actionIconWrap, { backgroundColor: action.bg }]}>
+                  <Ionicons name={action.icon} size={18} color={action.color} />
+                </View>
+                <View style={styles.actionBody}>
+                  <Text style={styles.actionTitle}>{action.title}</Text>
+                  <Text style={styles.actionSub}>{action.subtitle}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#cbd5e1" />
+              </Pressable>
+            </Animated.View>
           ))}
         </View>
 
@@ -621,13 +749,22 @@ const DashboardScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      <TouchableOpacity
-        style={styles.floatingAssistant}
-        onPress={() => setAssistantVisible(true)}
-        activeOpacity={0.85}
+      <Animated.View
+        style={[
+          styles.floatingAssistantPulseContainer,
+          {
+            transform: [{ scale: pulseAnim }],
+          },
+        ]}
       >
-        <Ionicons name="sparkles" size={22} color="#fff" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.floatingAssistant}
+          onPress={() => setAssistantVisible(true)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="sparkles" size={22} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
   </View>
   );
 };
@@ -755,16 +892,27 @@ const styles = StyleSheet.create({
   /* Hero */
   heroCard: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#0f172a' },
   heroBg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#111827' },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  heroInner: { flexDirection: 'row' },
-  heroInnerNarrow: { flexDirection: 'column' },
-  heroLeft: { flex: 1, padding: 16 },
+  heroInner: { flexDirection: 'row', alignItems: 'center' },
+  heroInnerNarrow: { flexDirection: 'column', alignItems: 'stretch' },
+  heroLeft: { flex: 1, padding: 18 },
+  heroEyebrowPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(74, 222, 128, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
   heroEyebrow: {
     color: '#4ade80', fontSize: 9, fontWeight: '800',
-    textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8,
+    textTransform: 'uppercase', letterSpacing: 0.6,
   },
-  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '900', lineHeight: 28, marginBottom: 6 },
-  heroDate: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '500', lineHeight: 16, marginBottom: 10 },
+  heroTitle: { color: '#e2e8f0', fontSize: 20, fontWeight: '500', lineHeight: 26, marginBottom: 6 },
+  heroTitleBold: { color: '#fff', fontSize: 24, fontWeight: '900' },
+  heroDate: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '500', lineHeight: 16, marginBottom: 12 },
   heroPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -772,21 +920,73 @@ const styles = StyleSheet.create({
   },
   heroPillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4ade80' },
   heroPillText: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '600' },
-  heroRight: { width: 120, borderLeftWidth: 0.5, borderLeftColor: 'rgba(255,255,255,0.1)' },
-  heroRightNarrow: { width: '100%', borderLeftWidth: 0, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.1)', marginTop: 16 },
-  heroStatCell: {
-    paddingVertical: 11, paddingHorizontal: 10,
-    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.08)',
+  
+  /* Modern Access Widget */
+  heroRightWidget: {
+    width: 130,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 20,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    height: '100%',
   },
-  heroStatValue: { color: '#fff', fontSize: 20, fontWeight: '900', lineHeight: 22 },
-  heroStatLabel: { color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: '600', marginTop: 2, lineHeight: 13 },
-  heroStatHint: { color: '#4ade80', fontSize: 9, fontWeight: '700', marginTop: 3 },
+  heroRightWidgetNarrow: {
+    width: '100%',
+    borderLeftWidth: 0,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 16,
+    height: 'auto',
+  },
+  accessIndicatorCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 2,
+    borderColor: 'rgba(74, 222, 128, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    marginBottom: 6,
+    position: 'relative',
+  },
+  accessIndicatorValue: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  accessPulseDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4ade80',
+    shadowColor: '#4ade80',
+    shadowRadius: 4,
+    shadowOpacity: 0.8,
+  },
+  accessIndicatorLabel: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  accessIndicatorSub: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 9,
+    fontWeight: '600',
+    marginTop: 2,
+  },
 
   /* Stat Cards */
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statGridNarrow: { flexDirection: 'column', gap: 10 },
   statCard: {
-    width: '47.5%', borderRadius: 16, padding: 12, minHeight: 115,
+    width: '100%', borderRadius: 16, padding: 12, minHeight: 115,
     overflow: 'hidden', justifyContent: 'flex-end',
   },
   statCardNarrow: { width: '100%' },
@@ -854,20 +1054,34 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(15,23,42,0.10)',
   },
   floatingAssistant: {
-    position: 'absolute',
-    right: 18,
-    bottom: 88,
     width: 56,
     height: 56,
     borderRadius: 28,
     backgroundColor: '#166534',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowColor: '#166534',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  floatingAssistantPulseContainer: {
+    position: 'absolute',
+    right: 18,
+    bottom: 88,
+    width: 68,
+    height: 68,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statCardWrapper: {
+    width: '48.5%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  actionRowPressed: {
+    backgroundColor: '#f8fafc',
   },
 });
 

@@ -46,6 +46,7 @@ import SecurityQrScannerScreen from '../screens/security/SecurityQrScannerScreen
 import SecurityServiceRequestsScreen from '../screens/security/SecurityServiceRequestsScreen';
 import SecurityPatrolScheduleScreen from '../screens/security/SecurityPatrolScheduleScreen';
 import SecurityIncidentsScreen from '../screens/security/SecurityIncidentsScreen';
+import HeadOfficerTeamScreen from '../screens/security/HeadOfficerTeamScreen';
 
 import PaymentsScreen from '../screens/PaymentsScreen';
 import AdminPaymentsScreen from '../screens/admin/AdminPaymentsScreen';
@@ -262,6 +263,9 @@ const AppNavigator = () => {
       <Stack.Screen name="SecurityServiceRequests" component={SecurityServiceRequestsScreen} />
       <Stack.Screen name="SecurityPatrolSchedule" component={SecurityPatrolScheduleScreen} />
       <Stack.Screen name="SecurityIncidents" component={SecurityIncidentsScreen} />
+      <Stack.Screen name="TeamPerformanceTab" component={HeadOfficerTeamScreen} />
+      <Stack.Screen name="PersonnelTab" component={HeadOfficerTeamScreen} />
+      <Stack.Screen name="AnalyticsTab" component={HeadOfficerTeamScreen} />
       <Stack.Screen name="PaymentRedirect" component={PaymentRedirectScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
       <Stack.Screen name="PaymentCancelled" component={PaymentCancelledScreen} />

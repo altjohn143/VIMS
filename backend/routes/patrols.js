@@ -5,6 +5,75 @@ const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+const getHeadOfficerScope = async (headOfficerId) => {
+  const team = await User.find({
+    role: 'security',
+    securityLevel: 'personnel',
+    headOfficerId,
+    isArchived: false
+  }).select('_id firstName lastName email phone securityLevel assignedPhases assignedAreas patrolSchedule isActive');
+
+  return {
+    team,
+    officerIds: [headOfficerId, ...team.map((officer) => officer._id)]
+  };
+};
+
+router.get('/head-officer/stats', protect, authorize('security'), async (req, res) => {
+  try {
+    if (req.user.securityLevel !== 'head-officer') {
+      return res.status(403).json({ success: false, error: 'Only head officers can view team stats' });
+    }
+
+    const { team, officerIds } = await getHeadOfficerScope(req.user._id);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [activePatrols, pendingReports, completedToday] = await Promise.all([
+      PatrolLog.countDocuments({
+        officerId: { $in: officerIds },
+        status: { $in: ['completed', 'nothing_found'] },
+        loggedAt: { $gte: today }
+      }),
+      PatrolLog.countDocuments({
+        officerId: { $in: officerIds },
+        status: 'issue_found'
+      }),
+      PatrolLog.countDocuments({
+        officerId: { $in: officerIds },
+        loggedAt: { $gte: today }
+      })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        personnelCount: team.length,
+        activePatrols,
+        pendingReports,
+        completedToday
+      }
+    });
+  } catch (error) {
+    console.error('Error loading head officer stats:', error);
+    res.status(500).json({ success: false, error: 'Failed to load head officer stats' });
+  }
+});
+
+router.get('/head-officer/team', protect, authorize('security'), async (req, res) => {
+  try {
+    if (req.user.securityLevel !== 'head-officer') {
+      return res.status(403).json({ success: false, error: 'Only head officers can view team members' });
+    }
+
+    const { team } = await getHeadOfficerScope(req.user._id);
+    res.json({ success: true, data: team });
+  } catch (error) {
+    console.error('Error loading head officer team:', error);
+    res.status(500).json({ success: false, error: 'Failed to load head officer team' });
+  }
+});
+
 router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
   try {
     let query = {};

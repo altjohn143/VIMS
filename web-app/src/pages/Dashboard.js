@@ -100,6 +100,7 @@ import SecurityVisitorLogs from './SecurityVisitorLogs';
 import SecurityServiceRequests from './SecurityServiceRequests';
 import SecurityPatrolSchedule from './SecurityPatrolSchedule';
 import SecurityIncidents from './SecurityIncidents';
+import HeadOfficerTeamManagement from './HeadOfficerTeamManagement';
 import Notifications from './Notifications';
 import Chatbot from './Chatbot';
 
@@ -665,6 +666,10 @@ const Dashboard = () => {
       'security/schedule': 'Patrol Schedule',
       'security/incidents': 'Incident Reports',
       'security/service-requests': 'Service Requests',
+      'security/team-performance': 'Team Performance',
+      'security/personnel': 'Personnel Management',
+      'security/patrol-analytics': 'Patrol Analytics',
+      'security/pending-approvals': 'Pending Approvals',
       notifications: 'Notifications',
       'ai-assistant': 'AI Assistant'
     };
@@ -700,6 +705,10 @@ const Dashboard = () => {
     'security/schedule': <SecurityPatrolSchedule />,
     'security/incidents': <SecurityIncidents />,
     'security/service-requests': <SecurityServiceRequests />,
+    'security/team-performance': <HeadOfficerTeamManagement view="performance" />,
+    'security/personnel': <HeadOfficerTeamManagement view="team" />,
+    'security/patrol-analytics': <HeadOfficerTeamManagement view="analytics" />,
+    'security/pending-approvals': <HeadOfficerTeamManagement view="approvals" />,
     notifications: <Notifications />,
     'ai-assistant': <Chatbot />
   };

@@ -530,7 +530,7 @@ const AdminReservations = () => {
                             </Button>
                           </>
                         )}
-                        {reservation.status === 'borrowed' && (
+                        {reservation.status === 'borrowed' && getReservationType(reservation) === 'equipment' && (
                           <Button
                             size="small"
                             color="success"

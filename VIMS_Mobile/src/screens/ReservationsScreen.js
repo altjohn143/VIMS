@@ -185,6 +185,47 @@ const ReservationsScreen = ({ navigation }) => {
     );
   };
 
+  const getReservationResourceTypes = (reservation) => {
+    if (reservation.items && reservation.items.length > 0) {
+      return [...new Set(reservation.items.map((item) => item.resourceType).filter(Boolean))];
+    }
+    return reservation.resourceType ? [reservation.resourceType] : [];
+  };
+
+  const isSingleResourceType = (reservation, type) => {
+    const resourceTypes = getReservationResourceTypes(reservation);
+    return resourceTypes.length === 1 && resourceTypes[0] === type;
+  };
+
+  const handleCompleteUse = (reservation, action) => {
+    Alert.alert(
+      action === 'return-equipment' ? 'Return Equipment' : 'Check Out Venue',
+      action === 'return-equipment'
+        ? 'Mark this equipment reservation as returned?'
+        : 'Check out from this venue reservation?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            try {
+              const response = await api.put(`/reservations/${reservation._id}/complete-use`, { action });
+              if (response.data?.success) {
+                Alert.alert('Success', response.data.message || 'Reservation status updated');
+                fetchReservations();
+              } else {
+                Alert.alert('Error', response.data?.error || 'Failed to update reservation status');
+              }
+            } catch (error) {
+              console.error('Error updating reservation use:', error);
+              Alert.alert('Error', error.response?.data?.error || 'Failed to update reservation status');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const resetForm = () => {
     setFormData({
       description: '',
@@ -393,6 +434,26 @@ const ReservationsScreen = ({ navigation }) => {
                       >
                         <Ionicons name="close-circle" size={16} color="#b91c1c" />
                         <Text style={styles.cardCancelButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {reservation.status === 'borrowed' && isSingleResourceType(reservation, 'equipment') && (
+                      <TouchableOpacity
+                        style={styles.cardReturnButton}
+                        onPress={() => handleCompleteUse(reservation, 'return-equipment')}
+                      >
+                        <Ionicons name="return-up-back" size={16} color="#fff" />
+                        <Text style={styles.cardActionButtonText}>Return Equipment</Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {['confirmed', 'borrowed'].includes(reservation.status) && isSingleResourceType(reservation, 'venue') && (
+                      <TouchableOpacity
+                        style={styles.cardCheckoutButton}
+                        onPress={() => handleCompleteUse(reservation, 'checkout-venue')}
+                      >
+                        <Ionicons name="exit-outline" size={16} color="#fff" />
+                        <Text style={styles.cardActionButtonText}>Check Out</Text>
                       </TouchableOpacity>
                     )}
 
@@ -1011,6 +1072,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#b91c1c',
+  },
+  cardReturnButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#0ea5e9',
+  },
+  cardCheckoutButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#166534',
+  },
+  cardActionButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
   },
   addItemButton: {
     flexDirection: 'row',

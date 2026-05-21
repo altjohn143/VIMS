@@ -297,6 +297,40 @@ const Reservations = () => {
     }
   };
 
+  const getReservationResourceTypes = (reservation) => {
+    if (reservation.items && reservation.items.length > 0) {
+      return [...new Set(reservation.items.map((item) => item.resourceType).filter(Boolean))];
+    }
+    return reservation.resourceType ? [reservation.resourceType] : [];
+  };
+
+  const isSingleResourceType = (reservation, type) => {
+    const resourceTypes = getReservationResourceTypes(reservation);
+    return resourceTypes.length === 1 && resourceTypes[0] === type;
+  };
+
+  const handleCompleteUse = async (reservation, action) => {
+    const message = action === 'return-equipment'
+      ? 'Mark this equipment reservation as returned?'
+      : 'Check out from this venue reservation?';
+
+    if (!window.confirm(message)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`/api/reservations/${reservation._id}/complete-use`, { action }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSnackbar({ open: true, message: response.data.message || 'Reservation status updated', severity: 'success' });
+      fetchReservations();
+    } catch (error) {
+      console.error('Failed to update reservation use:', error);
+      setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to update reservation status', severity: 'error' });
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed': return 'success';
@@ -841,23 +875,59 @@ const Reservations = () => {
                         <ListItem
                           alignItems="flex-start"
                           secondaryAction={
-                            ['pending', 'confirmed'].includes(reservation.status) ? (
-                              <Button
-                                onClick={() => handleCancelReservation(reservation._id)}
-                                variant="outlined"
-                                color="error"
-                                size="small"
-                                sx={{
-                                  textTransform: 'none',
-                                  fontWeight: 800,
-                                  borderRadius: '12px',
-                                  minWidth: 130
-                                }}
-                              >
-                                <CancelIcon sx={{ mr: 1 }} />
-                                Cancel
-                              </Button>
-                            ) : null
+                            <Stack direction="row" spacing={0.8}>
+                              {['pending', 'confirmed'].includes(reservation.status) && (
+                                <Button
+                                  onClick={() => handleCancelReservation(reservation._id)}
+                                  variant="outlined"
+                                  color="error"
+                                  size="small"
+                                  sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 800,
+                                    borderRadius: '12px',
+                                    minWidth: 112
+                                  }}
+                                >
+                                  <CancelIcon sx={{ mr: 1 }} />
+                                  Cancel
+                                </Button>
+                              )}
+                              {reservation.status === 'borrowed' && isSingleResourceType(reservation, 'equipment') && (
+                                <Button
+                                  onClick={() => handleCompleteUse(reservation, 'return-equipment')}
+                                  variant="contained"
+                                  size="small"
+                                  sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 800,
+                                    borderRadius: '12px',
+                                    minWidth: 138,
+                                    bgcolor: themeColors.info,
+                                    '&:hover': { bgcolor: '#0369a1' }
+                                  }}
+                                >
+                                  Return Equipment
+                                </Button>
+                              )}
+                              {['confirmed', 'borrowed'].includes(reservation.status) && isSingleResourceType(reservation, 'venue') && (
+                                <Button
+                                  onClick={() => handleCompleteUse(reservation, 'checkout-venue')}
+                                  variant="contained"
+                                  size="small"
+                                  sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 800,
+                                    borderRadius: '12px',
+                                    minWidth: 112,
+                                    bgcolor: themeColors.primary,
+                                    '&:hover': { bgcolor: themeColors.primaryDark }
+                                  }}
+                                >
+                                  Check Out
+                                </Button>
+                              )}
+                            </Stack>
                           }
                           sx={{
                             borderRadius: '16px',

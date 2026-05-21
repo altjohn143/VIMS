@@ -18,6 +18,18 @@ const getReservationItemSummary = (reservation) => {
   return reservation.resourceName;
 };
 
+const getReservationResourceTypes = (reservation) => {
+  if (reservation.items && reservation.items.length > 0) {
+    return [...new Set(reservation.items.map((item) => item.resourceType).filter(Boolean))];
+  }
+  return reservation.resourceType ? [reservation.resourceType] : [];
+};
+
+const isSingleResourceType = (reservation, type) => {
+  const resourceTypes = getReservationResourceTypes(reservation);
+  return resourceTypes.length === 1 && resourceTypes[0] === type;
+};
+
 const notifyAdminsOnCancellation = async (reservation) => {
   try {
     const admins = await User.find({ role: 'admin' }).select('_id');
@@ -312,6 +324,76 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+router.put('/:id/complete-use', protect, authorize('resident'), async (req, res) => {
+  try {
+    const { action } = req.body;
+    const reservation = await Reservation.findById(req.params.id);
+
+    if (!reservation) {
+      return res.status(404).json({ success: false, error: 'Reservation not found' });
+    }
+
+    if (reservation.reservedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: 'Not authorized to update this reservation' });
+    }
+
+    const isEquipmentOnly = isSingleResourceType(reservation, 'equipment');
+    const isVenueOnly = isSingleResourceType(reservation, 'venue');
+
+    if (action === 'return-equipment') {
+      if (!isEquipmentOnly) {
+        return res.status(400).json({ success: false, error: 'Return is only available for equipment reservations' });
+      }
+      if (reservation.status !== 'borrowed') {
+        return res.status(400).json({ success: false, error: 'Only borrowed equipment can be returned' });
+      }
+    } else if (action === 'checkout-venue') {
+      if (!isVenueOnly) {
+        return res.status(400).json({ success: false, error: 'Checkout is only available for venue reservations' });
+      }
+      if (!['confirmed', 'borrowed'].includes(reservation.status)) {
+        return res.status(400).json({ success: false, error: 'Only confirmed or active venue reservations can be checked out' });
+      }
+    } else {
+      return res.status(400).json({ success: false, error: 'Invalid completion action' });
+    }
+
+    reservation.status = 'returned';
+    reservation.actualReturn = new Date();
+    await reservation.save();
+
+    const admins = await User.find({ role: 'admin' }).select('_id');
+    const itemSummary = getReservationItemSummary(reservation);
+    const title = action === 'return-equipment' ? 'Equipment returned by resident' : 'Venue checked out by resident';
+    const body = action === 'return-equipment'
+      ? `${req.user.firstName} ${req.user.lastName} marked ${itemSummary} as returned.`
+      : `${req.user.firstName} ${req.user.lastName} checked out from ${itemSummary}.`;
+
+    await Promise.all(admins.map(admin => createInAppNotification({
+      userId: admin._id,
+      type: 'reservation',
+      title,
+      body,
+      metadata: {
+        reservationId: reservation._id,
+        status: reservation.status,
+        completedBy: req.user._id,
+        completedAt: reservation.actualReturn,
+        action
+      }
+    })));
+
+    res.json({
+      success: true,
+      message: action === 'return-equipment' ? 'Equipment returned successfully.' : 'Venue checked out successfully.',
+      data: reservation
+    });
+  } catch (error) {
+    console.error('Complete reservation use error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to update reservation status' });
+  }
+});
+
 // Export reservations data (CSV or PDF format)
 router.get('/export', protect, async (req, res) => {
   try {
@@ -408,6 +490,10 @@ router.put('/:id/confirm-receipt', protect, async (req, res) => {
 
     if (req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Only admin can confirm item receipt' });
+    }
+
+    if (!isSingleResourceType(reservation, 'equipment')) {
+      return res.status(400).json({ success: false, error: 'Receipt confirmation is only available for equipment reservations' });
     }
 
     if (reservation.status !== 'borrowed') {

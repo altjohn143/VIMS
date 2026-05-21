@@ -440,7 +440,7 @@ const AdminReservationsScreen = ({ navigation }) => {
                   </View>
                 )}
 
-                {reservation.status === 'borrowed' && (
+                {reservation.status === 'borrowed' && getResourceTypeLabel(reservation) === 'equipment' && (
                   <View style={styles.actionRow}>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.approveButton]}

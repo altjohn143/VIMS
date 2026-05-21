@@ -22,6 +22,8 @@ const ReservationsScreen = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resources, setResources] = useState({ venue: [], equipment: [] });
+  const [availability, setAvailability] = useState([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     description: '',
@@ -47,6 +49,12 @@ const ReservationsScreen = ({ navigation }) => {
     fetchResources();
   }, []);
 
+  useEffect(() => {
+    if (modalVisible) {
+      fetchAvailability();
+    }
+  }, [modalVisible, currentItem.resourceType, currentItem.resourceName, formData.items]);
+
   const fetchReservations = async () => {
     try {
       const response = await api.get('/reservations');
@@ -70,6 +78,62 @@ const ReservationsScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Error fetching resources:', error);
     }
+  };
+
+  const getAvailabilityResources = () => {
+    const items = [...formData.items];
+    if (currentItem.resourceName) items.push(currentItem);
+    const unique = new Map();
+    items
+      .filter((item) => item.resourceType && item.resourceName)
+      .forEach((item) => unique.set(`${item.resourceType}:${item.resourceName}`, {
+        resourceType: item.resourceType,
+        resourceName: item.resourceName,
+      }));
+    return [...unique.values()];
+  };
+
+  const fetchAvailability = async () => {
+    const trackedResources = getAvailabilityResources();
+    if (trackedResources.length === 0) {
+      setAvailability([]);
+      return;
+    }
+
+    setAvailabilityLoading(true);
+    try {
+      const now = new Date();
+      const endWindow = new Date();
+      endWindow.setMonth(endWindow.getMonth() + 6);
+      const responses = await Promise.all(trackedResources.map((item) => (
+        api.get('/reservations/availability', {
+          params: {
+            resourceType: item.resourceType,
+            resourceName: item.resourceName,
+            startDate: now.toISOString(),
+            endDate: endWindow.toISOString(),
+          },
+        })
+      )));
+      setAvailability(responses.flatMap((response) => response.data?.data || []));
+    } catch (error) {
+      console.error('Error fetching availability:', error);
+      setAvailability([]);
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  };
+
+  const rangesOverlap = (startA, endA, startB, endB) => (
+    new Date(startA) < new Date(endB) && new Date(endA) > new Date(startB)
+  );
+
+  const getSelectedScheduleConflicts = () => {
+    const selectedKeys = new Set(formData.items.map((item) => `${item.resourceType}:${item.resourceName}`));
+    return availability.filter((slot) =>
+      selectedKeys.has(`${slot.resourceType}:${slot.resourceName}`) &&
+      rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
+    );
   };
 
   const handleAddItem = () => {
@@ -133,6 +197,11 @@ const ReservationsScreen = ({ navigation }) => {
 
     if (!formData.description) {
       Alert.alert('Error', 'Please provide a description/purpose for the reservation');
+      return;
+    }
+
+    if (getSelectedScheduleConflicts().length > 0) {
+      Alert.alert('Schedule Unavailable', 'One or more selected items are already reserved for this date and time.');
       return;
     }
 
@@ -234,6 +303,7 @@ const ReservationsScreen = ({ navigation }) => {
       notes: '',
       items: [],
     });
+    setAvailability([]);
     setCurrentItem({
       resourceType: 'venue',
       resourceName: '',
@@ -589,6 +659,40 @@ const ReservationsScreen = ({ navigation }) => {
                   ))}
                 </>
               )}
+
+              <Text style={styles.sectionTitle}>Availability Calendar</Text>
+              <View style={styles.availabilityPanel}>
+                {getAvailabilityResources().length === 0 ? (
+                  <Text style={styles.availabilityText}>Select a venue or equipment item to see reserved schedules.</Text>
+                ) : availabilityLoading ? (
+                  <View style={styles.availabilityLoading}>
+                    <ActivityIndicator size="small" color="#166534" />
+                    <Text style={styles.availabilityText}>Checking availability...</Text>
+                  </View>
+                ) : availability.length === 0 ? (
+                  <Text style={styles.availabilitySuccess}>No reserved schedules found in the next 6 months.</Text>
+                ) : (
+                  <>
+                    {getSelectedScheduleConflicts().length > 0 && (
+                      <Text style={styles.availabilityError}>Selected schedule overlaps with an existing reservation.</Text>
+                    )}
+                    {availability.slice(0, 6).map((slot) => (
+                      <View
+                        key={`${slot.reservationId}-${slot.resourceName}-${slot.startDate}`}
+                        style={[
+                          styles.availabilitySlot,
+                          rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate) && styles.availabilitySlotConflict
+                        ]}
+                      >
+                        <Text style={styles.availabilitySlotName}>{slot.resourceName}</Text>
+                        <Text style={styles.availabilitySlotTime}>
+                          {formatDate(slot.startDate)} - {formatDate(slot.endDate)}
+                        </Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+              </View>
 
               {/* Description */}
               <Text style={styles.label}>Purpose/Description *</Text>
@@ -1205,6 +1309,58 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#ef4444',
     fontWeight: '600',
+  },
+  availabilityPanel: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  availabilityLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  availabilityText: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  availabilitySuccess: {
+    fontSize: 13,
+    color: '#166534',
+    fontWeight: '700',
+  },
+  availabilityError: {
+    fontSize: 13,
+    color: '#b91c1c',
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  availabilitySlot: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    backgroundColor: '#f8fafc',
+    padding: 10,
+    marginBottom: 8,
+  },
+  availabilitySlotConflict: {
+    borderColor: '#fecaca',
+    backgroundColor: '#fef2f2',
+  },
+  availabilitySlotName: {
+    color: '#0f172a',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  availabilitySlotTime: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 3,
   },
   submitButtonText: {
     fontSize: 16,

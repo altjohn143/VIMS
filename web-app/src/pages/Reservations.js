@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -115,6 +115,8 @@ const Reservations = () => {
   const [open, setOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [resources, setResources] = useState({ venue: [], equipment: [] });
+  const [availability, setAvailability] = useState([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     description: '',
@@ -196,7 +198,63 @@ const Reservations = () => {
       quantity: 1,
     });
     setOpen(false);
+    setAvailability([]);
   };
+
+  const getAvailabilityResources = useCallback(() => {
+    const items = [...formData.items];
+    if (currentItem.resourceName) {
+      items.push(currentItem);
+    }
+    const unique = new Map();
+    items
+      .filter((item) => item.resourceType && item.resourceName)
+      .forEach((item) => unique.set(`${item.resourceType}:${item.resourceName}`, {
+        resourceType: item.resourceType,
+        resourceName: item.resourceName
+      }));
+    return [...unique.values()];
+  }, [currentItem, formData.items]);
+
+  const fetchAvailability = useCallback(async () => {
+    const trackedResources = getAvailabilityResources();
+    if (trackedResources.length === 0) {
+      setAvailability([]);
+      return;
+    }
+
+    setAvailabilityLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const now = new Date();
+      const endWindow = new Date();
+      endWindow.setMonth(endWindow.getMonth() + 6);
+
+      const responses = await Promise.all(trackedResources.map((item) =>
+        axios.get('/api/reservations/availability', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            resourceType: item.resourceType,
+            resourceName: item.resourceName,
+            startDate: now.toISOString(),
+            endDate: endWindow.toISOString()
+          }
+        })
+      ));
+
+      setAvailability(responses.flatMap((response) => response.data?.data || []));
+    } catch (error) {
+      console.error('Failed to load reservation availability:', error);
+      setAvailability([]);
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  }, [getAvailabilityResources]);
+
+  useEffect(() => {
+    if (!open) return;
+    fetchAvailability();
+  }, [open, fetchAvailability]);
 
   const handleAddItem = () => {
     if (!currentItem.resourceName) {
@@ -258,6 +316,11 @@ const Reservations = () => {
 
     if (!formData.description) {
       setSnackbar({ open: true, message: 'Please provide a description/purpose for the reservation', severity: 'error' });
+      return;
+    }
+
+    if (getSelectedScheduleConflicts().length > 0) {
+      setSnackbar({ open: true, message: 'One or more selected items are already reserved for this date and time.', severity: 'error' });
       return;
     }
 
@@ -355,6 +418,56 @@ const Reservations = () => {
 
   const getResourceIcon = (type) => {
     return type === 'venue' ? <MeetingRoomIcon /> : <BuildIcon />;
+  };
+
+  const rangesOverlap = (startA, endA, startB, endB) => {
+    return new Date(startA) < new Date(endB) && new Date(endA) > new Date(startB);
+  };
+
+  const getSelectedScheduleConflicts = () => {
+    const selectedKeys = new Set(formData.items.map((item) => `${item.resourceType}:${item.resourceName}`));
+    return availability.filter((slot) =>
+      selectedKeys.has(`${slot.resourceType}:${slot.resourceName}`) &&
+      rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
+    );
+  };
+
+  const formatDateTime = (date) => new Date(date).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const getCalendarDays = () => {
+    const baseDate = formData.startDate || new Date();
+    const firstOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+    const firstGridDate = new Date(firstOfMonth);
+    firstGridDate.setDate(firstGridDate.getDate() - firstGridDate.getDay());
+
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(firstGridDate);
+      date.setDate(firstGridDate.getDate() + index);
+      return date;
+    });
+  };
+
+  const isDateBlocked = (date) => {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    return availability.some((slot) => rangesOverlap(dayStart, dayEnd, slot.startDate, slot.endDate));
+  };
+
+  const isDateInSelectedRange = (date) => {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const selectedStart = new Date(formData.startDate);
+    selectedStart.setHours(0, 0, 0, 0);
+    const selectedEnd = new Date(formData.endDate);
+    selectedEnd.setHours(0, 0, 0, 0);
+    return dayStart >= selectedStart && dayStart <= selectedEnd;
   };
 
   const formatStatusLabel = (status) => {
@@ -1197,6 +1310,127 @@ const Reservations = () => {
                   ))}
                 </Grid>
               )}
+
+              <Grid item xs={12}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderRadius: '16px',
+                    border: `1px solid ${themeColors.border}`,
+                    bgcolor: '#ffffff'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
+                    <Box>
+                      <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>
+                        Availability Calendar
+                      </Typography>
+                      <Typography sx={{ color: themeColors.textSecondary, fontSize: '0.84rem', fontWeight: 600 }}>
+                        Red dates already have reservations for the selected resource.
+                      </Typography>
+                    </Box>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip size="small" label="Selected" sx={{ bgcolor: '#dcfce7', color: themeColors.primary, fontWeight: 800 }} />
+                      <Chip size="small" label="Reserved" sx={{ bgcolor: '#fee2e2', color: '#b91c1c', fontWeight: 800 }} />
+                    </Stack>
+                  </Box>
+
+                  {getAvailabilityResources().length === 0 ? (
+                    <Alert severity="info" sx={{ borderRadius: '12px' }}>
+                      Choose a venue or equipment item to see when it is already reserved.
+                    </Alert>
+                  ) : (
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={7}>
+                        <Box sx={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                          gap: 0.75
+                        }}>
+                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                            <Typography key={day} sx={{ textAlign: 'center', fontSize: '0.74rem', fontWeight: 900, color: themeColors.textSecondary }}>
+                              {day}
+                            </Typography>
+                          ))}
+                          {getCalendarDays().map((day) => {
+                            const blocked = isDateBlocked(day);
+                            const selected = isDateInSelectedRange(day);
+                            const outsideMonth = day.getMonth() !== formData.startDate.getMonth();
+                            return (
+                              <Box
+                                key={day.toISOString()}
+                                sx={{
+                                  minHeight: 42,
+                                  borderRadius: '10px',
+                                  border: `1px solid ${selected ? '#86efac' : blocked ? '#fecaca' : themeColors.border}`,
+                                  bgcolor: selected ? '#dcfce7' : blocked ? '#fef2f2' : '#f8fafc',
+                                  color: outsideMonth ? '#94a3b8' : blocked ? '#991b1b' : themeColors.textPrimary,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 900,
+                                  position: 'relative'
+                                }}
+                              >
+                                {day.getDate()}
+                                {blocked && (
+                                  <Box sx={{ position: 'absolute', bottom: 5, width: 5, height: 5, borderRadius: '50%', bgcolor: '#dc2626' }} />
+                                )}
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={5}>
+                        {availabilityLoading ? (
+                          <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
+                            <CircularProgress size={26} sx={{ color: themeColors.primary }} />
+                          </Box>
+                        ) : availability.length === 0 ? (
+                          <Alert severity="success" sx={{ borderRadius: '12px' }}>
+                            No reserved schedules found for the selected resource in the next 6 months.
+                          </Alert>
+                        ) : (
+                          <Stack spacing={1}>
+                            {getSelectedScheduleConflicts().length > 0 && (
+                              <Alert severity="error" sx={{ borderRadius: '12px' }}>
+                                The selected date and time overlaps with an existing reservation.
+                              </Alert>
+                            )}
+                            <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>
+                              Reserved schedules
+                            </Typography>
+                            <Box sx={{ maxHeight: 220, overflowY: 'auto', pr: 0.5 }}>
+                              <Stack spacing={1}>
+                                {availability.slice(0, 8).map((slot) => (
+                                  <Paper
+                                    key={`${slot.reservationId}-${slot.resourceName}-${slot.startDate}`}
+                                    elevation={0}
+                                    sx={{
+                                      p: 1.25,
+                                      borderRadius: '12px',
+                                      border: `1px solid ${themeColors.border}`,
+                                      bgcolor: rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate) ? '#fef2f2' : '#f8fafc'
+                                    }}
+                                  >
+                                    <Typography sx={{ fontWeight: 900, fontSize: '0.86rem' }}>
+                                      {slot.resourceName}
+                                    </Typography>
+                                    <Typography sx={{ color: themeColors.textSecondary, fontSize: '0.78rem', fontWeight: 700 }}>
+                                      {formatDateTime(slot.startDate)} - {formatDateTime(slot.endDate)}
+                                    </Typography>
+                                  </Paper>
+                                ))}
+                              </Stack>
+                            </Box>
+                          </Stack>
+                        )}
+                      </Grid>
+                    </Grid>
+                  )}
+                </Paper>
+              </Grid>
 
               {/* Description */}
               <Grid item xs={12}>

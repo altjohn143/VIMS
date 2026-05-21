@@ -30,6 +30,20 @@ const isSingleResourceType = (reservation, type) => {
   return resourceTypes.length === 1 && resourceTypes[0] === type;
 };
 
+const getReservationItems = (reservation) => {
+  if (reservation.items && reservation.items.length > 0) {
+    return reservation.items;
+  }
+  if (reservation.resourceType && reservation.resourceName) {
+    return [{
+      resourceType: reservation.resourceType,
+      resourceName: reservation.resourceName,
+      quantity: reservation.quantity || 1
+    }];
+  }
+  return [];
+};
+
 const notifyAdminsOnCancellation = async (reservation) => {
   try {
     const admins = await User.find({ role: 'admin' }).select('_id');
@@ -66,6 +80,59 @@ router.get('/resources', protect, async (req, res) => {
   } catch (error) {
     console.error('Get resources error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to fetch resources' });
+  }
+});
+
+router.get('/availability', protect, async (req, res) => {
+  try {
+    const { resourceType, resourceName, resourceNames, startDate, endDate } = req.query;
+    const names = String(resourceNames || resourceName || '')
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean);
+
+    if (!resourceType || names.length === 0) {
+      return res.status(400).json({ success: false, error: 'Resource type and resource name are required' });
+    }
+
+    const filter = {
+      status: { $in: ['pending', 'confirmed', 'borrowed'] },
+      $or: [
+        { items: { $elemMatch: { resourceType, resourceName: { $in: names } } } },
+        { resourceType, resourceName: { $in: names } }
+      ]
+    };
+
+    if (startDate || endDate) {
+      if (endDate) filter.startDate = { $lte: new Date(endDate) };
+      if (startDate) filter.endDate = { $gte: new Date(startDate) };
+    } else {
+      filter.endDate = { $gte: new Date() };
+    }
+
+    const reservations = await Reservation.find(filter)
+      .select('items resourceType resourceName quantity startDate endDate status description')
+      .sort({ startDate: 1 })
+      .limit(100);
+
+    const data = reservations.flatMap((reservation) =>
+      getReservationItems(reservation)
+        .filter((item) => item.resourceType === resourceType && names.includes(item.resourceName))
+        .map((item) => ({
+          reservationId: reservation._id,
+          resourceType: item.resourceType,
+          resourceName: item.resourceName,
+          quantity: item.quantity || 1,
+          startDate: reservation.startDate,
+          endDate: reservation.endDate,
+          status: reservation.status
+        }))
+    );
+
+    res.json({ success: true, count: data.length, data });
+  } catch (error) {
+    console.error('Get reservation availability error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch reservation availability' });
   }
 });
 
@@ -147,24 +214,28 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Resource type and name are required' });
     }
 
-    const now = new Date();
+    const requestedStart = new Date(startDate);
+    const requestedEnd = new Date(endDate);
+    if (Number.isNaN(requestedStart.getTime()) || Number.isNaN(requestedEnd.getTime()) || requestedEnd <= requestedStart) {
+      return res.status(400).json({ success: false, error: 'Please select a valid start and end time' });
+    }
     
     // Check for conflicting reservations
     for (const item of reservationItems) {
       const existingActive = await Reservation.findOne({
-        reservedBy: req.user._id,
         $or: [
-          { 'items.resourceName': item.resourceName },
-          { resourceName: item.resourceName }
+          { items: { $elemMatch: { resourceType: item.resourceType, resourceName: item.resourceName } } },
+          { resourceType: item.resourceType, resourceName: item.resourceName }
         ],
         status: { $in: ['pending', 'confirmed', 'borrowed'] },
-        endDate: { $gte: now }
+        startDate: { $lt: requestedEnd },
+        endDate: { $gt: requestedStart }
       });
 
       if (existingActive) {
         return res.status(409).json({
           success: false,
-          error: `You already have an active or pending reservation for ${item.resourceName}. Please wait until that reservation is completed or expired before requesting it again.`
+          error: `${item.resourceName} is already reserved for the selected date and time. Please choose another schedule.`
         });
       }
     }
@@ -174,8 +245,8 @@ router.post('/', protect, async (req, res) => {
       resourceName: items ? undefined : resourceName,
       items: reservationItems,
       description: description || '',
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: requestedStart,
+      endDate: requestedEnd,
       quantity: items ? undefined : (quantity || 1),
       reservedBy: req.user._id,
       status: status || 'pending',

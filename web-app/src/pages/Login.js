@@ -885,12 +885,16 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             </Typography>
           </Box>
 
-          <Grid container spacing={3} justifyContent="center">
+          <Grid container spacing={3} justifyContent="center" alignItems="stretch">
             {ROLES.map((role) => (
-              <Grid item xs={12} sm={4} key={role.key}>
+              <Grid item xs={12} sm={4} key={role.key} sx={{ display: 'flex' }}>
                 <Card
                   onClick={() => onRoleSelect(role.key)}
                   sx={{
+                    width: '100%',
+                    height: { xs: 420, sm: 356, md: 360 },
+                    display: 'flex',
+                    flexDirection: 'column',
                     borderRadius: 3,
                     overflow: 'hidden',
                     cursor: 'pointer',
@@ -903,18 +907,20 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                     '&:active': { transform: 'translateY(-4px)' },
                   }}
                 >
-                  <Box sx={{ height: 160, backgroundImage: `url(${role.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+                  <Box sx={{ height: { xs: 190, sm: 150, md: 160 }, flexShrink: 0, backgroundImage: `url(${role.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
                     <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(2,6,23,0.08), rgba(2,6,23,0.38))' }} />
                     <Box sx={{ position: 'absolute', bottom: -24, left: '50%', transform: 'translateX(-50%)', width: 56, height: 56, borderRadius: '50%', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 24px rgba(0,0,0,0.22)', border: '3px solid #e8f5e9' }}>{role.icon}</Box>
                   </Box>
-                  <CardContent sx={{ pt: 5, pb: 3, textAlign: 'center', px: 3 }}>
+                  <CardContent sx={{ pt: 5, pb: 3, textAlign: 'center', px: 3, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: T.primary, letterSpacing: '0.08em', mb: 1 }}>{role.label}</Typography>
-                    <Typography sx={{ fontSize: '0.8rem', color: '#555', mb: 2.5, lineHeight: 1.5 }}>{role.description}</Typography>
+                    <Typography sx={{ fontSize: '0.8rem', color: '#555', lineHeight: 1.5, minHeight: 42, maxWidth: 360 }}>{role.description}</Typography>
                     <Button variant="contained" onClick={(e) => { e.stopPropagation(); onRoleSelect(role.key); }}
                     sx={{
+                      mt: 'auto',
                       backgroundColor: T.primary,
                       color: 'white',
                       borderRadius: 999,
+                      minWidth: 136,
                       px: 3,
                       py: 0.9,
                       fontSize: '0.78rem',

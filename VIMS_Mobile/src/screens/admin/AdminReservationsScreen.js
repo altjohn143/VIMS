@@ -346,12 +346,6 @@ const AdminReservationsScreen = ({ navigation }) => {
                   </View>
                   <View style={styles.cardActions}>
                     <TouchableOpacity
-                      style={styles.editButton}
-                      onPress={() => handleOpenModal(reservation)}
-                    >
-                      <Ionicons name="pencil" size={16} color="#166534" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
                       style={styles.deleteButton}
                       onPress={() => handleDelete(reservation._id)}
                     >

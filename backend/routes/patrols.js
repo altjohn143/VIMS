@@ -9,9 +9,15 @@ const getHeadOfficerScope = async (headOfficerId) => {
   const team = await User.find({
     role: 'security',
     securityLevel: 'personnel',
-    headOfficerId,
+    $or: [
+      { headOfficerId },
+      { headOfficerId: null },
+      { headOfficerId: { $exists: false } }
+    ],
     isArchived: false
-  }).select('_id firstName lastName email phone securityLevel assignedPhases assignedAreas patrolSchedule isActive');
+  })
+    .select('_id firstName lastName email phone securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId isActive')
+    .sort({ firstName: 1, lastName: 1 });
 
   return {
     team,
@@ -82,10 +88,8 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
     if (req.user.role === 'security') {
       // Head officers see all patrol logs from their subordinate security personnel (excluding archived)
       if (req.user.securityLevel === 'head-officer') {
-        const subordinateOfficers = await User.find({ headOfficerId: req.user._id, isArchived: false }).select('_id');
-        const subordinateIds = subordinateOfficers.map(o => o._id);
-        subordinateIds.push(req.user._id); // Include head officer's own logs
-        query.officerId = { $in: subordinateIds };
+        const { officerIds } = await getHeadOfficerScope(req.user._id);
+        query.officerId = { $in: officerIds };
       } else {
         // Regular security personnel see only their own logs
         query.officerId = req.user._id;

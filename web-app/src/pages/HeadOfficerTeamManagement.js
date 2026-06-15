@@ -72,6 +72,151 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
     approvals: 'Pending Approvals'
   };
 
+  const formatList = (value, fallback = 'None') => {
+    if (!Array.isArray(value) || value.length === 0) return fallback;
+    return value.join(', ');
+  };
+
+  const getOfficerName = (officer) => `${officer?.firstName || ''} ${officer?.lastName || ''}`.trim() || 'Unassigned officer';
+  const issueLogs = logs.filter((log) => log.status === 'issue_found');
+  const completedLogs = logs.filter((log) => ['completed', 'nothing_found'].includes(log.status));
+  const recentLogs = logs.slice(0, 12);
+  const activeTeam = team.filter((member) => member.isActive);
+  const unassignedTeam = team.filter((member) => !member.headOfficerId);
+
+  const renderPersonnelView = () => (
+    <Paper sx={{ borderRadius: '8px', border: `1px solid ${themeColors.border}`, overflow: 'hidden' }}>
+      <Box sx={{ p: 2 }}>
+        <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Team Members</Typography>
+        <Typography sx={{ color: themeColors.textSecondary, fontSize: '0.85rem', fontWeight: 600 }}>
+          Assigned personnel and unassigned admin-created personnel available for supervision.
+        </Typography>
+      </Box>
+      <List sx={{ pt: 0 }}>
+        {team.length === 0 ? (
+          <ListItem>
+            <ListItemText primary="No personnel available yet." />
+          </ListItem>
+        ) : team.map((member) => (
+          <ListItem key={member._id} divider alignItems="flex-start">
+            <Avatar sx={{ mr: 1.5, bgcolor: '#dcfce7', color: themeColors.primary }}>
+              {(member.firstName?.[0] || '') + (member.lastName?.[0] || '')}
+            </Avatar>
+            <ListItemText
+              primary={getOfficerName(member)}
+              secondary={
+                <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
+                  <Typography component="span" sx={{ display: 'block', color: themeColors.textSecondary, fontSize: '0.85rem' }}>
+                    {member.email || 'No email'} | {member.phone || 'No phone'}
+                  </Typography>
+                  <Typography component="span" sx={{ display: 'block', color: themeColors.textSecondary, fontSize: '0.85rem' }}>
+                    Location: {formatList(member.assignedAreas, 'No assigned area')} | Phases: {formatList(member.assignedPhases, 'No phases')}
+                  </Typography>
+                  <Typography component="span" sx={{ display: 'block', color: themeColors.textSecondary, fontSize: '0.85rem' }}>
+                    Time: {member.patrolSchedule || 'No patrol schedule'}
+                  </Typography>
+                </Box>
+              }
+            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'flex-end' }}>
+              <Chip size="small" label={member.isActive ? 'Active' : 'Inactive'} color={member.isActive ? 'success' : 'default'} />
+              {!member.headOfficerId && <Chip size="small" label="Unassigned" variant="outlined" />}
+            </Box>
+          </ListItem>
+        ))}
+      </List>
+    </Paper>
+  );
+
+  const renderPerformanceView = () => (
+    <Grid container spacing={2.5}>
+      <Grid item xs={12} md={4}>
+        <Paper sx={{ p: 2, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
+          <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Personnel Coverage</Typography>
+          <Typography sx={{ mt: 1, color: themeColors.textSecondary }}>Active personnel: {activeTeam.length}</Typography>
+          <Typography sx={{ color: themeColors.textSecondary }}>Unassigned personnel: {unassignedTeam.length}</Typography>
+          <Typography sx={{ color: themeColors.textSecondary }}>Personnel with schedules: {team.filter((member) => member.patrolSchedule).length}</Typography>
+        </Paper>
+      </Grid>
+      <Grid item xs={12} md={8}>
+        <Paper sx={{ borderRadius: '8px', border: `1px solid ${themeColors.border}`, overflow: 'hidden' }}>
+          <Box sx={{ p: 2 }}>
+            <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Recent Team Activity</Typography>
+          </Box>
+          <List sx={{ pt: 0 }}>
+            {recentLogs.length === 0 ? (
+              <ListItem><ListItemText primary="No patrol activity yet." /></ListItem>
+            ) : recentLogs.map((log) => (
+              <ListItem key={log._id} divider>
+                <ListItemText
+                  primary={`${log.area || 'Area'} - ${log.checkpoint || 'Checkpoint'}`}
+                  secondary={`${getOfficerName(log.officerId)} | ${new Date(log.loggedAt || log.createdAt).toLocaleString()}`}
+                />
+                <Chip size="small" label={log.status || 'completed'} color={log.status === 'issue_found' ? 'warning' : 'success'} />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
+      </Grid>
+    </Grid>
+  );
+
+  const renderAnalyticsView = () => (
+    <Grid container spacing={2.5}>
+      <Grid item xs={12} md={6}>
+        <Paper sx={{ p: 2, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
+          <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Patrol Outcomes</Typography>
+          <Typography sx={{ mt: 1, color: themeColors.textSecondary }}>Completed or clear: {completedLogs.length}</Typography>
+          <Typography sx={{ color: themeColors.textSecondary }}>Issues found: {issueLogs.length}</Typography>
+          <Typography sx={{ color: themeColors.textSecondary }}>Completion rate: {logs.length ? Math.round((completedLogs.length / logs.length) * 100) : 0}%</Typography>
+        </Paper>
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <Paper sx={{ p: 2, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
+          <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Coverage Areas</Typography>
+          {team.length === 0 ? (
+            <Typography sx={{ mt: 1, color: themeColors.textSecondary }}>No assignment data yet.</Typography>
+          ) : team.map((member) => (
+            <Typography key={member._id} sx={{ mt: 1, color: themeColors.textSecondary }}>
+              {getOfficerName(member)}: {formatList(member.assignedAreas, 'No area')} | {member.patrolSchedule || 'No schedule'}
+            </Typography>
+          ))}
+        </Paper>
+      </Grid>
+    </Grid>
+  );
+
+  const renderApprovalsView = () => (
+    <Paper sx={{ borderRadius: '8px', border: `1px solid ${themeColors.border}`, overflow: 'hidden' }}>
+      <Box sx={{ p: 2 }}>
+        <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Pending Patrol Reports</Typography>
+        <Typography sx={{ color: themeColors.textSecondary, fontSize: '0.85rem', fontWeight: 600 }}>
+          Patrol logs marked with issues for head officer review.
+        </Typography>
+      </Box>
+      <List sx={{ pt: 0 }}>
+        {issueLogs.length === 0 ? (
+          <ListItem><ListItemText primary="No pending patrol reports." /></ListItem>
+        ) : issueLogs.map((log) => (
+          <ListItem key={log._id} divider alignItems="flex-start">
+            <ListItemText
+              primary={`${log.area || 'Area'} - ${log.checkpoint || 'Checkpoint'}`}
+              secondary={`${getOfficerName(log.officerId)} | ${new Date(log.loggedAt || log.createdAt).toLocaleString()} | ${log.notes || 'No notes'}`}
+            />
+            <Chip size="small" label="Issue Found" color="warning" />
+          </ListItem>
+        ))}
+      </List>
+    </Paper>
+  );
+
+  const renderView = () => {
+    if (view === 'performance') return renderPerformanceView();
+    if (view === 'analytics') return renderAnalyticsView();
+    if (view === 'approvals') return renderApprovalsView();
+    return renderPersonnelView();
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -92,7 +237,7 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
       <Grid container spacing={2} sx={{ mb: 2.5 }}>
         {stats.map((stat) => (
           <Grid item xs={12} sm={6} md={2.4} key={stat.label}>
-            <Paper sx={{ p: 2, borderRadius: '18px', border: `1px solid ${themeColors.border}` }}>
+            <Paper sx={{ p: 2, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                 <Avatar sx={{ bgcolor: `${stat.color}20`, color: stat.color }}>{stat.icon}</Avatar>
                 <Box>
@@ -109,56 +254,7 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
         ))}
       </Grid>
 
-      <Grid container spacing={2.5}>
-        <Grid item xs={12} md={5}>
-          <Paper sx={{ borderRadius: '18px', border: `1px solid ${themeColors.border}`, overflow: 'hidden' }}>
-            <Box sx={{ p: 2 }}>
-              <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Team Members</Typography>
-            </Box>
-            <List sx={{ pt: 0 }}>
-              {team.length === 0 ? (
-                <ListItem>
-                  <ListItemText primary="No personnel assigned yet." />
-                </ListItem>
-              ) : team.map((member) => (
-                <ListItem key={member._id} divider>
-                  <Avatar sx={{ mr: 1.5, bgcolor: '#dcfce7', color: themeColors.primary }}>
-                    {(member.firstName?.[0] || '') + (member.lastName?.[0] || '')}
-                  </Avatar>
-                  <ListItemText
-                    primary={`${member.firstName || ''} ${member.lastName || ''}`.trim()}
-                    secondary={`${member.email || 'No email'} | ${member.patrolSchedule || 'No schedule'}`}
-                  />
-                  <Chip size="small" label={member.isActive ? 'Active' : 'Inactive'} color={member.isActive ? 'success' : 'default'} />
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={7}>
-          <Paper sx={{ borderRadius: '18px', border: `1px solid ${themeColors.border}`, overflow: 'hidden' }}>
-            <Box sx={{ p: 2 }}>
-              <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Recent Patrol Activity</Typography>
-            </Box>
-            <List sx={{ pt: 0 }}>
-              {logs.length === 0 ? (
-                <ListItem>
-                  <ListItemText primary="No patrol activity yet." />
-                </ListItem>
-              ) : logs.slice(0, 12).map((log) => (
-                <ListItem key={log._id} divider>
-                  <ListItemText
-                    primary={`${log.area || 'Area'} - ${log.checkpoint || 'Checkpoint'}`}
-                    secondary={`${log.officerId?.firstName || ''} ${log.officerId?.lastName || ''} | ${new Date(log.loggedAt || log.createdAt).toLocaleString()}`}
-                  />
-                  <Chip size="small" label={log.status || 'completed'} color={log.status === 'issue_found' ? 'warning' : 'success'} />
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
-        </Grid>
-      </Grid>
+      {renderView()}
     </Box>
   );
 };

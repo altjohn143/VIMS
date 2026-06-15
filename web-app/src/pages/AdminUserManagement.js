@@ -121,6 +121,8 @@ const AdminUserManagement = () => {
     phone: '',
     password: '',
     role: 'security',
+    securityLevel: 'personnel',
+    headOfficerId: '',
     assignedPhases: '',
     assignedAreas: '',
     patrolSchedule: ''
@@ -128,6 +130,8 @@ const AdminUserManagement = () => {
   const [securityAssignments, setSecurityAssignments] = useState([]);
   const [assignmentEditMode, setAssignmentEditMode] = useState(false);
   const [assignmentForm, setAssignmentForm] = useState({
+    securityLevel: 'personnel',
+    headOfficerId: '',
     assignedPhases: '',
     assignedAreas: '',
     patrolSchedule: ''
@@ -136,6 +140,10 @@ const AdminUserManagement = () => {
   
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  const headOfficerOptions = users.filter(
+    (user) => user.role === 'security' && user.securityLevel === 'head-officer' && !user.isArchived
+  );
 
   const getProfilePhotoUrl = (user) => {
     if (!user) return null;
@@ -292,12 +300,14 @@ const AdminUserManagement = () => {
   useEffect(() => {
     if (selectedUser?.role === 'security') {
       setAssignmentForm({
+        securityLevel: selectedUser.securityLevel || 'personnel',
+        headOfficerId: selectedUser.headOfficerId?._id || selectedUser.headOfficerId || '',
         assignedPhases: (selectedUser.assignedPhases || []).join(', '),
         assignedAreas: (selectedUser.assignedAreas || []).join(', '),
         patrolSchedule: selectedUser.patrolSchedule || ''
       });
     } else {
-      setAssignmentForm({ assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
+      setAssignmentForm({ securityLevel: 'personnel', headOfficerId: '', assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
       setAssignmentEditMode(false);
     }
   }, [selectedUser]);
@@ -427,12 +437,14 @@ const AdminUserManagement = () => {
       role: 'security',
       assignedPhases: '',
       assignedAreas: '',
+      securityLevel: 'personnel',
+      headOfficerId: '',
       patrolSchedule: ''
     });
   };
 
   const handleCreateUser = async () => {
-    const { firstName, lastName, email, phone, password, role, assignedPhases, assignedAreas, patrolSchedule } = newUserForm;
+    const { firstName, lastName, email, phone, password, role, securityLevel, headOfficerId, assignedPhases, assignedAreas, patrolSchedule } = newUserForm;
     if (!firstName || !lastName || !email || !phone || !password || !role) {
       toast.error('Please complete all required fields');
       return;
@@ -450,6 +462,8 @@ const AdminUserManagement = () => {
           phone,
           password,
           role,
+          securityLevel: role === 'security' ? securityLevel : undefined,
+          headOfficerId: role === 'security' && securityLevel === 'personnel' ? headOfficerId || null : null,
           assignedPhases: assignedPhases
             .split(',')
             .map((value) => Number(value.trim()))
@@ -489,12 +503,14 @@ const AdminUserManagement = () => {
   const handleCancelAssignmentEdit = () => {
     if (selectedUser?.role === 'security') {
       setAssignmentForm({
+        securityLevel: selectedUser.securityLevel || 'personnel',
+        headOfficerId: selectedUser.headOfficerId?._id || selectedUser.headOfficerId || '',
         assignedPhases: (selectedUser.assignedPhases || []).join(', '),
         assignedAreas: (selectedUser.assignedAreas || []).join(', '),
         patrolSchedule: selectedUser.patrolSchedule || ''
       });
     } else {
-      setAssignmentForm({ assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
+      setAssignmentForm({ securityLevel: 'personnel', headOfficerId: '', assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
     }
     setAssignmentEditMode(false);
   };
@@ -509,6 +525,8 @@ const AdminUserManagement = () => {
       setAssignmentProcessing(true);
       const token = localStorage.getItem('token');
       const payload = {
+        securityLevel: assignmentForm.securityLevel,
+        headOfficerId: assignmentForm.securityLevel === 'personnel' ? assignmentForm.headOfficerId || null : null,
         assignedPhases: assignmentForm.assignedPhases
           .split(',')
           .map((value) => Number(value.trim()))
@@ -904,6 +922,14 @@ const AdminUserManagement = () => {
                     <Typography variant="body2" sx={{ mb: 0.5 }}>
                       Email: {officer.email}
                     </Typography>
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                      Level: {officer.securityLevel === 'head-officer' ? 'Head Officer' : 'Personnel'}
+                    </Typography>
+                    {officer.securityLevel === 'personnel' && (
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        Head Officer: {officer.headOfficerId ? `${officer.headOfficerId.firstName || ''} ${officer.headOfficerId.lastName || ''}`.trim() : 'Unassigned'}
+                      </Typography>
+                    )}
                     <Typography variant="body2" sx={{ mb: 0.5 }}>
                       Phases: {officer.assignedPhases?.join(', ') || 'None'}
                     </Typography>
@@ -1385,6 +1411,40 @@ const AdminUserManagement = () => {
                             </Typography>
                             {assignmentEditMode ? (
                               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <FormControl fullWidth>
+                                  <InputLabel>Security Level</InputLabel>
+                                  <Select
+                                    value={assignmentForm.securityLevel}
+                                    label="Security Level"
+                                    onChange={(e) => setAssignmentForm((prev) => ({
+                                      ...prev,
+                                      securityLevel: e.target.value,
+                                      headOfficerId: e.target.value === 'head-officer' ? '' : prev.headOfficerId
+                                    }))}
+                                  >
+                                    <MenuItem value="personnel">Personnel</MenuItem>
+                                    <MenuItem value="head-officer">Head Officer</MenuItem>
+                                  </Select>
+                                </FormControl>
+                                {assignmentForm.securityLevel === 'personnel' && (
+                                  <FormControl fullWidth>
+                                    <InputLabel>Head Officer</InputLabel>
+                                    <Select
+                                      value={assignmentForm.headOfficerId}
+                                      label="Head Officer"
+                                      onChange={(e) => setAssignmentForm((prev) => ({ ...prev, headOfficerId: e.target.value }))}
+                                    >
+                                      <MenuItem value="">Unassigned</MenuItem>
+                                      {headOfficerOptions
+                                        .filter((officer) => officer._id !== selectedUser._id)
+                                        .map((officer) => (
+                                          <MenuItem key={officer._id} value={officer._id}>
+                                            {officer.firstName} {officer.lastName}
+                                          </MenuItem>
+                                        ))}
+                                    </Select>
+                                  </FormControl>
+                                )}
                                 <TextField
                                   fullWidth
                                   label="Assigned Phases"
@@ -1426,6 +1486,14 @@ const AdminUserManagement = () => {
                               </Box>
                             ) : (
                               <>
+                                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                  Level: {selectedUser.securityLevel === 'head-officer' ? 'Head Officer' : 'Personnel'}
+                                </Typography>
+                                {selectedUser.securityLevel !== 'head-officer' && (
+                                  <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                    Head Officer: {selectedUser.headOfficerId?.firstName ? `${selectedUser.headOfficerId.firstName} ${selectedUser.headOfficerId.lastName || ''}`.trim() : 'Unassigned'}
+                                  </Typography>
+                                )}
                                 <Typography variant="body2" sx={{ mb: 0.5 }}>
                                   Phases: {selectedUser.assignedPhases?.join(', ') || 'None'}
                                 </Typography>
@@ -1671,6 +1739,42 @@ const AdminUserManagement = () => {
 
             {newUserForm.role === 'security' && (
               <>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Security Level</InputLabel>
+                    <Select
+                      value={newUserForm.securityLevel}
+                      label="Security Level"
+                      onChange={(e) => setNewUserForm((prev) => ({
+                        ...prev,
+                        securityLevel: e.target.value,
+                        headOfficerId: e.target.value === 'head-officer' ? '' : prev.headOfficerId
+                      }))}
+                    >
+                      <MenuItem value="personnel">Personnel</MenuItem>
+                      <MenuItem value="head-officer">Head Officer</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                {newUserForm.securityLevel === 'personnel' && (
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Head Officer</InputLabel>
+                      <Select
+                        value={newUserForm.headOfficerId}
+                        label="Head Officer"
+                        onChange={(e) => setNewUserForm((prev) => ({ ...prev, headOfficerId: e.target.value }))}
+                      >
+                        <MenuItem value="">Unassigned</MenuItem>
+                        {headOfficerOptions.map((officer) => (
+                          <MenuItem key={officer._id} value={officer._id}>
+                            {officer.firstName} {officer.lastName}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
                 <Grid item xs={12}>
                   <TextField
                     fullWidth

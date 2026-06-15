@@ -75,6 +75,7 @@ import axios from 'axios';
 import AdminDashboardGraphs from '../components/AdminDashboardGraphs';
 import SecurityDashboardGraphs from '../components/SecurityDashboardGraphs';
 import NotificationPanel from '../components/NotificationPanel';
+import AnnouncementImage from '../components/AnnouncementImage';
 import VisitorManagement from './VisitorManagement';
 import ServiceRequests from './ServiceRequests';
 import Complaints from './Complaints';
@@ -269,13 +270,6 @@ const Dashboard = () => {
     if (photo.startsWith('http')) return photo;
     const backendBaseUrl = axios.defaults.baseURL || window.location.origin;
     return `${backendBaseUrl}/uploads/profile-photos/${photo}`;
-  };
-
-  const buildAnnouncementImageUrl = (image) => {
-    if (!image) return null;
-    if (String(image).startsWith('http')) return image;
-    const backendBaseUrl = axios.defaults.baseURL || window.location.origin;
-    return `${backendBaseUrl}/uploads/announcements/${image}`;
   };
 
   const avatarSrc = user?.profilePhotoUrl || buildProfilePhotoUrl(user?.profilePhoto);
@@ -942,7 +936,7 @@ const Dashboard = () => {
         )}
       </Box>
 
-      <Box sx={{ px: sidebarOpen ? 2 : 1, py: 2 }}>
+      <Box sx={{ px: sidebarOpen ? 2 : 1, py: sidebarOpen ? 1.5 : 1.25 }}>
         {sidebarOpen ? (
           <Paper
             elevation={0}
@@ -1019,7 +1013,12 @@ const Dashboard = () => {
           flexGrow: 1,
           px: sidebarOpen ? 1.25 : 0.75,
           overflowY: 'auto',
-          overflowX: 'hidden'
+          overflowX: 'hidden',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none'
+          }
         }}
       >
         <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -1070,7 +1069,7 @@ const Dashboard = () => {
                     <ListItemButton
                       onClick={() => handleSectionToggle(section)}
                       sx={{
-                        minHeight: 46,
+                        minHeight: 44,
                         borderRadius: '14px',
                         px: 1.5,
                         color: sectionIsActive ? 'white' : 'rgba(255,255,255,0.92)',
@@ -1142,7 +1141,7 @@ const Dashboard = () => {
                     }}
                     selected={items[0].link === location.pathname}
                     sx={{
-                      minHeight: 48,
+                      minHeight: 46,
                       borderRadius: '14px',
                       px: 1.5,
                       color: section === 'dashboard' || items[0].link === location.pathname ? 'white' : 'rgba(255,255,255,0.9)',
@@ -1170,7 +1169,7 @@ const Dashboard = () => {
         </List>
       </Box>
 
-      <Box sx={{ px: sidebarOpen ? 1.75 : 1, pb: 2, pt: 1.5 }}>
+      <Box sx={{ px: sidebarOpen ? 1.75 : 1, pb: 1.5, pt: 1 }}>
         {sidebarOpen ? (
           <>
             <Button
@@ -2006,11 +2005,11 @@ const Dashboard = () => {
                           }}
                         >
                           {(item.imageUrl || item.image) && (
-                            <Box
-                              component="img"
-                              src={item.imageUrl || buildAnnouncementImageUrl(item.image)}
-                              alt={item.title || 'Announcement'}
-                              sx={{ width: 58, height: 58, borderRadius: 2, objectFit: 'cover', flexShrink: 0, bgcolor: '#f8fafc' }}
+                            <AnnouncementImage
+                              compact
+                              image={item.image}
+                              imageUrl={item.imageUrl}
+                              title={item.title || 'Announcement'}
                             />
                           )}
                           <Box sx={{ minWidth: 0, flex: 1 }}>

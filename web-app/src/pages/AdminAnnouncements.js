@@ -33,6 +33,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
+import AnnouncementImage from '../components/AnnouncementImage';
 
 const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null, category: 'general', image: null };
 
@@ -57,12 +58,6 @@ const AdminAnnouncements = () => {
     textPrimary: '#0f172a',
     textSecondary: '#64748b',
     border: 'rgba(15, 23, 42, 0.08)'
-  };
-
-  const getAnnouncementImageUrl = (image) => {
-    if (!image) return null;
-    if (String(image).startsWith('http')) return image;
-    return `${axios.defaults.baseURL}/uploads/announcements/${image}`;
   };
 
   const load = useCallback(async () => {
@@ -430,19 +425,7 @@ const AdminAnnouncements = () => {
                 <Typography sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{item.body}</Typography>
                 {(item.imageUrl || item.image) && (
                   <Box sx={{ mt: 1.5 }}>
-                    <Box
-                      component="img"
-                      src={item.imageUrl || getAnnouncementImageUrl(item.image)}
-                      alt={item.title || 'Announcement'}
-                      sx={{
-                        width: '100%',
-                        maxHeight: 260,
-                        objectFit: 'contain',
-                        borderRadius: '14px',
-                        bgcolor: '#f8fafc',
-                        border: `1px solid ${themeColors.border}`
-                      }}
-                    />
+                    <AnnouncementImage image={item.image} imageUrl={item.imageUrl} title={item.title || 'Announcement'} />
                   </Box>
                 )}
                 <Divider sx={{ my: 1.5 }} />

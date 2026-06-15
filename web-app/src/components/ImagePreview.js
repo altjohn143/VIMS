@@ -13,7 +13,8 @@ import {
   Close as CloseIcon,
   ZoomIn as ZoomInIcon,
   Delete as DeleteIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  ImageNotSupported as ImageNotSupportedIcon
 } from '@mui/icons-material';
 
 const ImagePreview = ({
@@ -26,12 +27,15 @@ const ImagePreview = ({
   sx = {}
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [imageUrl, setImageUrl] = useState(() => {
     if (file instanceof File) return URL.createObjectURL(file);
     return typeof file === 'string' ? file : null;
   });
 
   React.useEffect(() => {
+    setLoadFailed(false);
+
     if (file instanceof File) {
       const objectUrl = URL.createObjectURL(file);
       setImageUrl(objectUrl);
@@ -59,18 +63,44 @@ const ImagePreview = ({
           ...sx
         }}
       >
-        <CardMedia
-          component="img"
-          image={imageUrl}
-          alt={label}
-          sx={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            cursor: showZoom ? 'pointer' : 'default'
-          }}
-          onClick={() => showZoom && setPreviewOpen(true)}
-        />
+        {loadFailed ? (
+          <Box
+            onClick={() => showZoom && setPreviewOpen(true)}
+            sx={{
+              width: '100%',
+              height: '100%',
+              bgcolor: '#f0fdf4',
+              color: '#166534',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              gap: 0.5,
+              cursor: showZoom ? 'pointer' : 'default',
+              textAlign: 'center',
+              p: 1
+            }}
+          >
+            <ImageNotSupportedIcon fontSize="small" />
+            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+              Preview unavailable
+            </Typography>
+          </Box>
+        ) : (
+          <CardMedia
+            component="img"
+            image={imageUrl}
+            alt={label}
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              cursor: showZoom ? 'pointer' : 'default'
+            }}
+            onClick={() => showZoom && setPreviewOpen(true)}
+            onError={() => setLoadFailed(true)}
+          />
+        )}
 
         {/* Status indicator */}
         <Box
@@ -149,17 +179,27 @@ const ImagePreview = ({
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
-          <Box
-            component="img"
-            src={imageUrl}
-            alt={label}
-            sx={{
-              width: '100%',
-              maxHeight: '70vh',
-              objectFit: 'contain',
-              display: 'block'
-            }}
-          />
+          {loadFailed ? (
+            <Box sx={{ minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1, color: '#166534', bgcolor: '#f0fdf4' }}>
+              <ImageNotSupportedIcon />
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                Preview unavailable
+              </Typography>
+            </Box>
+          ) : (
+            <Box
+              component="img"
+              src={imageUrl}
+              alt={label}
+              onError={() => setLoadFailed(true)}
+              sx={{
+                width: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                display: 'block'
+              }}
+            />
+          )}
           {file?.name && (
             <Box sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
               <Typography variant="body2" color="text.secondary">

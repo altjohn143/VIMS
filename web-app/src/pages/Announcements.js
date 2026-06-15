@@ -4,6 +4,7 @@ import { ArrowBack as ArrowBackIcon, Campaign as CampaignIcon } from '@mui/icons
 import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
+import AnnouncementImage from '../components/AnnouncementImage';
 
 // Match dashboard/login color palette
 const themeColors = {
@@ -21,12 +22,6 @@ const Announcements = () => {
   const [rows, setRows] = useState([]);
   const [filterCategory, setFilterCategory] = useState('all');
   const navigate = useNavigate();
-
-  const getAnnouncementImageUrl = (image) => {
-    if (!image) return null;
-    if (String(image).startsWith('http')) return image;
-    return `${axios.defaults.baseURL}/uploads/announcements/${image}`;
-  };
 
   const load = useCallback(async () => {
     try {
@@ -248,15 +243,11 @@ const Announcements = () => {
                 {/* Show announcement image if present */}
                 {(item.imageUrl || item.image) && (
                   <Box sx={{ my: 1.5, textAlign: 'center' }}>
-                    <img
-                      src={item.imageUrl || getAnnouncementImageUrl(item.image)}
-                      alt="Announcement"
-                      style={{
-                        maxWidth: '100%',
-                        maxHeight: 260,
-                        borderRadius: 12,
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)'
-                      }}
+                    <AnnouncementImage
+                      image={item.image}
+                      imageUrl={item.imageUrl}
+                      title={item.title || 'Announcement'}
+                      sx={{ mx: 'auto', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
                     />
                   </Box>
                 )}

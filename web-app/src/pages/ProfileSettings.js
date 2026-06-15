@@ -47,6 +47,98 @@ import { useAuth } from '../context/AuthContext';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
+const DocumentPreviewImage = ({
+  filename,
+  src,
+  alt,
+  onClick,
+  sx = {},
+  placeholder = 'Document preview'
+}) => {
+  const [imageSrc, setImageSrc] = useState(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    let objectUrl = null;
+    let active = true;
+
+    const loadImage = async () => {
+      setLoadFailed(false);
+
+      if (src && /^(blob:|data:|https?:)/.test(String(src))) {
+        setImageSrc(src);
+        return;
+      }
+
+      const endpoint = filename ? `/api/verifications/my-files/${filename}` : src;
+      if (!endpoint) {
+        setImageSrc(null);
+        setLoadFailed(true);
+        return;
+      }
+
+      try {
+        const response = await axios.get(endpoint, { responseType: 'blob' });
+        objectUrl = URL.createObjectURL(response.data);
+        if (active) setImageSrc(objectUrl);
+      } catch (error) {
+        if (active) {
+          setImageSrc(null);
+          setLoadFailed(true);
+        }
+      }
+    };
+
+    loadImage();
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [filename, src]);
+
+  if (loadFailed || !imageSrc) {
+    return (
+      <Box
+        onClick={onClick}
+        sx={{
+          width: '100%',
+          height: 120,
+          borderRadius: 2,
+          border: '2px solid rgba(15, 23, 42, 0.08)',
+          backgroundColor: '#f0fdf4',
+          color: '#166534',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 0.5,
+          cursor: onClick ? 'pointer' : 'default',
+          textAlign: 'center',
+          p: 1,
+          ...sx
+        }}
+      >
+        <PersonIcon sx={{ fontSize: 28 }} />
+        <Typography variant="caption" sx={{ fontWeight: 700 }}>
+          {placeholder}
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      component="img"
+      src={imageSrc}
+      alt={alt}
+      onClick={onClick}
+      onError={() => setLoadFailed(true)}
+      sx={sx}
+    />
+  );
+};
+
 const ProfileSettings = () => {
   // Dashboard Theme Colors from Login
   const themeColors = {
@@ -909,10 +1001,12 @@ const ProfileSettings = () => {
                                 <Typography variant="caption" sx={{ fontWeight: 600, color: themeColors.textPrimary, display: 'block', mb: 1 }}>
                                   ID Front
                                 </Typography>
-                                <Box
-                                  component="img"
+                                <DocumentPreviewImage
+                                  filename={uploadedDocuments.frontImage}
                                   src={documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage)}
                                   alt="ID Front"
+                                  placeholder="ID Front"
+                                  onClick={() => openPreview(uploadedDocuments.frontImage, 'ID Front', 'front')}
                                   sx={{
                                     width: '100%',
                                     height: 120,
@@ -927,7 +1021,6 @@ const ProfileSettings = () => {
                                       borderColor: themeColors.primary
                                     }
                                   }}
-                                  onClick={() => openPreview(uploadedDocuments.frontImage, 'ID Front', 'front')}
                                 />
                                 <Typography variant="caption" sx={{ color: themeColors.textSecondary, display: 'block', mt: 0.5 }}>
                                   Tap to preview
@@ -942,10 +1035,12 @@ const ProfileSettings = () => {
                                 <Typography variant="caption" sx={{ fontWeight: 600, color: themeColors.textPrimary, display: 'block', mb: 1 }}>
                                   ID Back
                                 </Typography>
-                                <Box
-                                  component="img"
+                                <DocumentPreviewImage
+                                  filename={uploadedDocuments.backImage}
                                   src={documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage)}
                                   alt="ID Back"
+                                  placeholder="ID Back"
+                                  onClick={() => openPreview(uploadedDocuments.backImage, 'ID Back', 'back')}
                                   sx={{
                                     width: '100%',
                                     height: 120,
@@ -960,7 +1055,6 @@ const ProfileSettings = () => {
                                       borderColor: themeColors.primary
                                     }
                                   }}
-                                  onClick={() => openPreview(uploadedDocuments.backImage, 'ID Back', 'back')}
                                 />
                                 <Typography variant="caption" sx={{ color: themeColors.textSecondary, display: 'block', mt: 0.5 }}>
                                   Tap to preview
@@ -1033,13 +1127,14 @@ const ProfileSettings = () => {
                 </DialogTitle>
                 <DialogContent sx={{ p: 0, backgroundColor: themeColors.background }}>
                   {previewImage && (
-                    <Box
-                      component="img"
+                    <DocumentPreviewImage
                       src={previewImage}
                       alt={previewTitle}
+                      placeholder={previewTitle}
                       sx={{
                         width: '100%',
                         height: 'auto',
+                        minHeight: 260,
                         maxHeight: '75vh',
                         objectFit: 'contain',
                         backgroundColor: themeColors.paperBackground

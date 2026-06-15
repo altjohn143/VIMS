@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,14 @@ const SecurityIncidentsScreen = ({ navigation }) => {
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [processing, setProcessing] = useState(false);
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 5;
+
+  const paginatedRows = useMemo(
+    () => rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rows]
+  );
+  const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
 
   const load = useCallback(async () => {
     try {
@@ -110,6 +118,7 @@ const SecurityIncidentsScreen = ({ navigation }) => {
         Alert.alert('Success', 'Incident reported');
         setCreateOpen(false);
         setForm(initialForm);
+        setPage(0);
         load();
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to report incident');
@@ -191,9 +200,6 @@ const SecurityIncidentsScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Incidents</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.headerIconButton}>
-            <Ionicons name="add" size={22} color="white" />
-          </TouchableOpacity>
           <TouchableOpacity onPress={load} style={styles.headerIconButton}>
             <Ionicons name="refresh" size={22} color="white" />
           </TouchableOpacity>
@@ -202,11 +208,80 @@ const SecurityIncidentsScreen = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={rows}
+        data={paginatedRows}
         renderItem={renderItem}
         keyExtractor={(item) => item?._id || String(Math.random())}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListHeaderComponent={
+          <View style={[styles.formCard, shadows.small]}>
+            <Text style={styles.sectionTitle}>Incident Report Form</Text>
+            <Text style={styles.label}>Title</Text>
+            <TextInput style={styles.input} value={form.title} onChangeText={(v) => setForm((p) => ({ ...p, title: v }))} placeholder="Short title" />
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={form.description}
+              onChangeText={(v) => setForm((p) => ({ ...p, description: v }))}
+              placeholder="Describe what happened"
+              multiline
+              numberOfLines={5}
+              textAlignVertical="top"
+            />
+            <Text style={styles.label}>Phase</Text>
+            <View style={styles.pickerContainer}>
+              <Picker selectedValue={form.phase} onValueChange={(value) => setForm((p) => ({ ...p, phase: value, block: '', lotNumber: '' }))}>
+                <Picker.Item label="Select phase" value="" />
+                {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                  <Picker.Item key={phase} label={`Phase ${phase}`} value={String(phase)} />
+                ))}
+              </Picker>
+            </View>
+            <Text style={styles.label}>Block</Text>
+            <View style={[styles.pickerContainer, !form.phase && styles.pickerDisabled]}>
+              <Picker selectedValue={form.block} enabled={!!form.phase} onValueChange={(value) => setForm((p) => ({ ...p, block: value, lotNumber: '' }))}>
+                <Picker.Item label={form.phase ? 'Select block' : 'Select phase first'} value="" />
+                {Array.from(new Set(lots.filter((lot) => String(lot.phase) === form.phase).map((lot) => lot.block))).sort((a, b) => a - b).map((block) => (
+                  <Picker.Item key={block} label={`Block ${block}`} value={String(block)} />
+                ))}
+              </Picker>
+            </View>
+            <Text style={styles.label}>Lot</Text>
+            <View style={[styles.pickerContainer, (!form.phase || !form.block) && styles.pickerDisabled]}>
+              <Picker selectedValue={form.lotNumber} enabled={!!form.phase && !!form.block} onValueChange={(value) => setForm((p) => ({ ...p, lotNumber: value }))}>
+                <Picker.Item label={form.block ? 'Select lot' : 'Select block first'} value="" />
+                {lots.filter((lot) => String(lot.phase) === form.phase && String(lot.block) === form.block).map((lot) => (
+                  <Picker.Item key={lot.lotId} label={`Lot ${lot.lotNumber}`} value={String(lot.lotNumber)} />
+                ))}
+              </Picker>
+            </View>
+            <Text style={styles.label}>Severity</Text>
+            <View style={styles.severityRow}>
+              {['low', 'medium', 'high', 'critical'].map((s) => (
+                <TouchableOpacity key={s} style={[styles.sevChip, form.severity === s && styles.sevChipActive]} onPress={() => setForm((p) => ({ ...p, severity: s }))}>
+                  <Text style={[styles.sevChipText, form.severity === s && styles.sevChipTextActive]}>{s.toUpperCase()}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={[styles.primaryBtn, styles.formSubmitBtn, processing && styles.disabled]} onPress={submit} disabled={processing}>
+              {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryText}>Submit Incident</Text>}
+            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Incident Logs</Text>
+          </View>
+        }
+        ListFooterComponent={
+          rows.length > 0 ? (
+            <View style={styles.paginationRow}>
+              <TouchableOpacity style={[styles.pageBtn, page === 0 && styles.disabled]} disabled={page === 0} onPress={() => setPage((p) => Math.max(0, p - 1))}>
+                <Text style={styles.pageText}>Previous</Text>
+              </TouchableOpacity>
+              <Text style={styles.pageInfo}>Page {page + 1} of {pageCount}</Text>
+              <TouchableOpacity style={[styles.pageBtn, page >= pageCount - 1 && styles.disabled]} disabled={page >= pageCount - 1} onPress={() => setPage((p) => Math.min(pageCount - 1, p + 1))}>
+                <Text style={styles.pageText}>Next</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="alert-circle-outline" size={64} color={themeColors.textSecondary} />
@@ -328,6 +403,8 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerIconButton: { padding: 8 },
   listContainer: { padding: 16, paddingBottom: 24 },
+  formCard: { backgroundColor: 'white', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },
+  sectionTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 8, marginTop: 4 },
   card: { backgroundColor: 'white', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary, flex: 1, minWidth: 0 },
@@ -361,7 +438,12 @@ const styles = StyleSheet.create({
   secondaryBtn: { flex: 1, backgroundColor: '#f1f5f9', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   secondaryText: { fontWeight: '900', color: themeColors.textSecondary },
   primaryBtn: { flex: 1, backgroundColor: themeColors.primary, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  formSubmitBtn: { flex: 0, marginTop: 14 },
   primaryText: { fontWeight: '900', color: 'white' },
+  paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
+  pageBtn: { backgroundColor: themeColors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
+  pageText: { color: 'white', fontWeight: '900' },
+  pageInfo: { color: themeColors.textSecondary, fontWeight: '800' },
   disabled: { opacity: 0.6 },
 });
 

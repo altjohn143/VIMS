@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import api from '../../utils/api';
 import { themeColors, shadows } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 
-const initialForm = { phase: '', area: '', checkpoint: '', notes: '' };
+const initialForm = { phase: '', area: '', checkpoint: '', notes: '', status: 'completed' };
 
 const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
@@ -29,6 +29,14 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [processing, setProcessing] = useState(false);
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 5;
+
+  const paginatedRows = useMemo(
+    () => rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rows]
+  );
+  const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
 
   const load = useCallback(async () => {
     try {
@@ -93,6 +101,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
         Alert.alert('Success', 'Patrol log submitted');
         setCreateOpen(false);
         setForm(initialForm);
+        setPage(0);
         load();
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to submit patrol log');
@@ -138,9 +147,6 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Patrol Logs</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.headerIconButton}>
-            <Ionicons name="add" size={22} color="white" />
-          </TouchableOpacity>
           <TouchableOpacity onPress={load} style={styles.headerIconButton}>
             <Ionicons name="refresh" size={22} color="white" />
           </TouchableOpacity>
@@ -149,11 +155,62 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={rows}
+        data={paginatedRows}
         renderItem={renderItem}
         keyExtractor={(item) => item?._id || String(Math.random())}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListHeaderComponent={
+          <View style={[styles.formCard, shadows.small]}>
+            <Text style={styles.sectionTitle}>Patrol Log Form</Text>
+            <Text style={styles.label}>Phase</Text>
+            <View style={styles.pickerContainer}>
+              <Picker selectedValue={form.phase} onValueChange={(value) => setForm((p) => ({ ...p, phase: value, area: value ? `Phase ${value}` : '', checkpoint: '' }))}>
+                <Picker.Item label="Select phase" value="" />
+                {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                  <Picker.Item key={phase} label={`Phase ${phase}`} value={String(phase)} />
+                ))}
+              </Picker>
+            </View>
+            <Text style={styles.label}>Area</Text>
+            <TextInput style={[styles.input, { backgroundColor: '#e2e8f0' }]} value={form.area} editable={false} placeholder="Select phase first" />
+            <Text style={styles.label}>Checkpoint</Text>
+            <View style={[styles.pickerContainer, !form.phase && styles.pickerDisabled]}>
+              <Picker selectedValue={form.checkpoint} enabled={!!form.phase} onValueChange={(value) => setForm((p) => ({ ...p, checkpoint: value }))}>
+                <Picker.Item label={form.phase ? 'Select checkpoint' : 'Select phase first'} value="" />
+                {lots.filter((lot) => String(lot.phase) === String(form.phase)).map((lot) => (
+                  <Picker.Item key={lot.lotId} label={`Block ${lot.block} - Lot ${lot.lotNumber}`} value={lot.lotId} />
+                ))}
+              </Picker>
+            </View>
+            <Text style={styles.label}>Notes</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={form.notes} onChangeText={(v) => setForm((p) => ({ ...p, notes: v }))} placeholder="Observations" multiline numberOfLines={4} textAlignVertical="top" />
+            <Text style={styles.label}>Status</Text>
+            <View style={styles.pickerContainer}>
+              <Picker selectedValue={form.status} onValueChange={(value) => setForm((p) => ({ ...p, status: value }))}>
+                <Picker.Item label="Completed" value="completed" />
+                <Picker.Item label="Issue Found" value="issue_found" />
+              </Picker>
+            </View>
+            <TouchableOpacity style={[styles.primaryBtn, styles.formSubmitBtn, processing && styles.disabled]} onPress={submit} disabled={processing}>
+              {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryText}>Submit Patrol Log</Text>}
+            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Patrol Logs</Text>
+          </View>
+        }
+        ListFooterComponent={
+          rows.length > 0 ? (
+            <View style={styles.paginationRow}>
+              <TouchableOpacity style={[styles.pageBtn, page === 0 && styles.disabled]} disabled={page === 0} onPress={() => setPage((p) => Math.max(0, p - 1))}>
+                <Text style={styles.pageText}>Previous</Text>
+              </TouchableOpacity>
+              <Text style={styles.pageInfo}>Page {page + 1} of {pageCount}</Text>
+              <TouchableOpacity style={[styles.pageBtn, page >= pageCount - 1 && styles.disabled]} disabled={page >= pageCount - 1} onPress={() => setPage((p) => Math.min(pageCount - 1, p + 1))}>
+                <Text style={styles.pageText}>Next</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="walk-outline" size={64} color={themeColors.textSecondary} />
@@ -261,6 +318,8 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerIconButton: { padding: 8 },
   listContainer: { padding: 16, paddingBottom: 24 },
+  formCard: { backgroundColor: 'white', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },
+  sectionTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 8, marginTop: 4 },
   card: { backgroundColor: 'white', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary, flex: 1, minWidth: 0 },
@@ -284,7 +343,12 @@ const styles = StyleSheet.create({
   secondaryBtn: { flex: 1, backgroundColor: '#f1f5f9', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   secondaryText: { fontWeight: '900', color: themeColors.textSecondary },
   primaryBtn: { flex: 1, backgroundColor: themeColors.primary, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  formSubmitBtn: { flex: 0, marginTop: 14 },
   primaryText: { fontWeight: '900', color: 'white' },
+  paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },
+  pageBtn: { backgroundColor: themeColors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
+  pageText: { color: 'white', fontWeight: '900' },
+  pageInfo: { color: themeColors.textSecondary, fontWeight: '800' },
   disabled: { opacity: 0.6 },
 });
 

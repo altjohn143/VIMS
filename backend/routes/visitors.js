@@ -796,6 +796,7 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
     
     const visitors = await Visitor.find(filter)
       .populate('residentId', 'firstName lastName houseNumber')
+      .populate('approvedBy', 'firstName lastName')
       .sort({ createdAt: -1 });
     
     res.json({

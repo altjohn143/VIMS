@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -205,6 +205,100 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     }
   };
 
+  const formatActivityDate = (dateString) => {
+    if (!dateString) return 'No timestamp';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy hh:mm a');
+    } catch {
+      return 'Invalid timestamp';
+    }
+  };
+
+  const recentActivities = useMemo(() => {
+    const now = new Date();
+    const activities = [];
+
+    visitors.forEach((visitor) => {
+      const name = visitor.visitorName || 'Visitor';
+      const residentName = `${visitor.residentId?.firstName || ''} ${visitor.residentId?.lastName || ''}`.trim();
+
+      if (visitor.actualEntry) {
+        activities.push({
+          message: `${name} entered`,
+          occurredAt: visitor.actualEntry,
+          source: 'Gate Scanner',
+          type: 'Entry',
+          icon: 'log-in'
+        });
+      }
+
+      if (visitor.actualExit) {
+        activities.push({
+          message: `${name} exited`,
+          occurredAt: visitor.actualExit,
+          source: 'Gate Scanner',
+          type: 'Exit',
+          icon: 'log-out'
+        });
+      }
+
+      if (visitor.residentEntryConfirmedAt) {
+        activities.push({
+          message: `${residentName || 'Resident'} confirmed ${name}'s arrival`,
+          occurredAt: visitor.residentEntryConfirmedAt,
+          source: 'Resident',
+          type: 'Confirmed',
+          icon: 'checkmark-circle'
+        });
+      }
+
+      if (visitor.residentDepartureConfirmedAt) {
+        activities.push({
+          message: `${residentName || 'Resident'} confirmed ${name}'s departure`,
+          occurredAt: visitor.residentDepartureConfirmedAt,
+          source: 'Resident',
+          type: 'Confirmed',
+          icon: 'checkmark-circle'
+        });
+      }
+
+      if (visitor.approvedAt) {
+        activities.push({
+          message: `${name} approved for visit`,
+          occurredAt: visitor.approvedAt,
+          source: visitor.approvedBy ? `${visitor.approvedBy.firstName || ''} ${visitor.approvedBy.lastName || ''}`.trim() || 'Security Officer' : 'Security Officer',
+          type: 'Approval',
+          icon: 'shield-checkmark'
+        });
+      }
+
+      if (visitor.expectedDeparture && !visitor.actualExit && new Date(visitor.expectedDeparture) < now) {
+        activities.push({
+          message: `QR code expired for ${name}`,
+          occurredAt: visitor.expectedDeparture,
+          source: 'System',
+          type: 'Expired',
+          icon: 'alert-circle'
+        });
+      }
+
+      if (visitor.createdAt) {
+        activities.push({
+          message: `${name} visitor request created`,
+          occurredAt: visitor.createdAt,
+          source: residentName || 'Resident',
+          type: 'Request',
+          icon: 'person-add'
+        });
+      }
+    });
+
+    return activities
+      .filter((activity) => activity.occurredAt && !Number.isNaN(new Date(activity.occurredAt).getTime()))
+      .sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt))
+      .slice(0, 6);
+  }, [visitors]);
+
   const renderVisitorCard = ({ item }) => {
     const status = getStatusChip(item.status, item);
     const canLogEntry = item.status === 'approved' && !item.actualEntry;
@@ -387,6 +481,31 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
           value={dateFilter}
           onChangeText={setDateFilter}
         />
+      </View>
+
+      <View style={[styles.activityCard, shadows.small]}>
+        <View style={styles.activityHeader}>
+          <Ionicons name="time-outline" size={20} color={themeColors.primary} />
+          <Text style={styles.activityTitle}>Recent Activity</Text>
+        </View>
+        {recentActivities.length > 0 ? (
+          recentActivities.map((activity, index) => (
+            <View key={`${activity.type}-${activity.occurredAt}-${index}`} style={styles.activityItem}>
+              <View style={styles.activityIcon}>
+                <Ionicons name={activity.icon} size={16} color="white" />
+              </View>
+              <View style={styles.activityBody}>
+                <Text style={styles.activityMessage}>{activity.message}</Text>
+                <Text style={styles.activityMeta}>{formatActivityDate(activity.occurredAt)} | {activity.source}</Text>
+              </View>
+              <View style={styles.activityBadge}>
+                <Text style={styles.activityBadgeText}>{activity.type}</Text>
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.activityEmpty}>No recent visitor activity</Text>
+        )}
       </View>
 
       <FlatList
@@ -808,6 +927,70 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
+  },
+  activityCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 16,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  activityTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: themeColors.textPrimary,
+    marginLeft: 8,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: themeColors.border,
+  },
+  activityIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: themeColors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  activityBody: {
+    flex: 1,
+  },
+  activityMessage: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: themeColors.textPrimary,
+  },
+  activityMeta: {
+    fontSize: 11,
+    color: themeColors.textSecondary,
+    marginTop: 2,
+  },
+  activityBadge: {
+    backgroundColor: themeColors.primary + '18',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginLeft: 8,
+  },
+  activityBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: themeColors.primary,
+  },
+  activityEmpty: {
+    color: themeColors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 12,
   },
   emptyContainer: {
     alignItems: 'center',

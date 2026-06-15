@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Container,
   Box,
@@ -757,13 +757,90 @@ const SecurityVisitorLogs = () => {
     }
   };
 
-  // Define recent activity
-  const recentActivities = [
-    { message: 'John Doe entered at 14:30', time: '2 min ago', user: 'Gate Scanner', type: 'Entry' },
-    { message: 'Jane Smith exited at 14:25', time: '7 min ago', user: 'Gate Scanner', type: 'Exit' },
-    { message: 'QR code expired for Visitor #123', time: '15 min ago', user: 'System', type: 'Expired' },
-    { message: 'New visitor approved by Security', time: '25 min ago', user: 'Security Officer', type: 'Approval' }
-  ];
+  const formatActivityDate = (dateString) => {
+    if (!dateString) return 'No timestamp';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Invalid timestamp';
+    return date.toLocaleString();
+  };
+
+  const recentActivities = useMemo(() => {
+    const now = new Date();
+    const activities = [];
+
+    visitors.forEach((visitor) => {
+      const name = visitor.visitorName || 'Visitor';
+      const residentName = `${visitor.residentId?.firstName || ''} ${visitor.residentId?.lastName || ''}`.trim();
+
+      if (visitor.actualEntry) {
+        activities.push({
+          message: `${name} entered at ${new Date(visitor.actualEntry).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+          occurredAt: visitor.actualEntry,
+          user: 'Gate Scanner',
+          type: 'Entry'
+        });
+      }
+
+      if (visitor.actualExit) {
+        activities.push({
+          message: `${name} exited at ${new Date(visitor.actualExit).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+          occurredAt: visitor.actualExit,
+          user: 'Gate Scanner',
+          type: 'Exit'
+        });
+      }
+
+      if (visitor.residentEntryConfirmedAt) {
+        activities.push({
+          message: `${residentName || 'Resident'} confirmed ${name}'s arrival`,
+          occurredAt: visitor.residentEntryConfirmedAt,
+          user: 'Resident',
+          type: 'Confirmed'
+        });
+      }
+
+      if (visitor.residentDepartureConfirmedAt) {
+        activities.push({
+          message: `${residentName || 'Resident'} confirmed ${name}'s departure`,
+          occurredAt: visitor.residentDepartureConfirmedAt,
+          user: 'Resident',
+          type: 'Confirmed'
+        });
+      }
+
+      if (visitor.approvedAt) {
+        activities.push({
+          message: `${name} approved for visit`,
+          occurredAt: visitor.approvedAt,
+          user: visitor.approvedBy ? `${visitor.approvedBy.firstName || ''} ${visitor.approvedBy.lastName || ''}`.trim() || 'Security Officer' : 'Security Officer',
+          type: 'Approval'
+        });
+      }
+
+      if (visitor.expectedDeparture && !visitor.actualExit && new Date(visitor.expectedDeparture) < now) {
+        activities.push({
+          message: `QR code expired for ${name}`,
+          occurredAt: visitor.expectedDeparture,
+          user: 'System',
+          type: 'Expired'
+        });
+      }
+
+      if (visitor.createdAt) {
+        activities.push({
+          message: `${name} visitor request created`,
+          occurredAt: visitor.createdAt,
+          user: residentName || 'Resident',
+          type: 'Request'
+        });
+      }
+    });
+
+    return activities
+      .filter((activity) => activity.occurredAt && !Number.isNaN(new Date(activity.occurredAt).getTime()))
+      .sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt))
+      .slice(0, 8);
+  }, [visitors]);
 
   // Redirect if not authorized
   if (!currentUser || currentUser.role !== 'security') {
@@ -1775,7 +1852,7 @@ const SecurityVisitorLogs = () => {
                   </ListItemAvatar>
                   <ListItemText
                     primary={update.message}
-                    secondary={`${update.time} • ${update.user}`}
+                    secondary={`${formatActivityDate(update.occurredAt)} | ${update.user}`}
                     primaryTypographyProps={{ 
                       variant: 'body2',
                       color: themeColors.textPrimary

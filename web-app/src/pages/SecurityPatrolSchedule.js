@@ -1,12 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
   Chip,
   Container,
+  Grid,
   MenuItem,
   Paper,
   Stack,
+  TablePagination,
   TextField,
   Typography,
   AppBar,
@@ -35,7 +37,14 @@ const SecurityPatrolSchedule = () => {
   const [rows, setRows] = useState([]);
   const [lots, setLots] = useState([]);
   const [form, setForm] = useState(initialForm);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const navigate = useNavigate();
+
+  const paginatedRows = useMemo(
+    () => rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rows, rowsPerPage]
+  );
 
   const load = useCallback(async () => {
     try {
@@ -72,6 +81,7 @@ const SecurityPatrolSchedule = () => {
       });
       toast.success('Patrol log submitted');
       setForm(initialForm);
+      setPage(0);
       load();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to save patrol log');
@@ -119,7 +129,7 @@ const SecurityPatrolSchedule = () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Paper
           sx={{
             mb: 3,
@@ -141,79 +151,85 @@ const SecurityPatrolSchedule = () => {
           </Typography>
         </Paper>
 
-        <Paper sx={{ p: 2.5, mb: 2, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
-          <Stack spacing={2}>
-            <TextField
-              select
-              label="Phase"
-              value={form.phase}
-              onChange={(e) => setForm((p) => ({
-                ...p,
-                phase: e.target.value,
-                area: e.target.value ? `Phase ${e.target.value}` : '',
-                checkpoint: ''
-              }))}
-            >
-              <MenuItem value="">Select phase</MenuItem>
-              {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
-                <MenuItem key={phase} value={phase}>{`Phase ${phase}`}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Area"
-              value={form.area}
-              disabled
-              helperText={form.phase ? `Patrol area set for Phase ${form.phase}` : 'Select a phase first'}
-            />
-            <TextField
-              select
-              label="Checkpoint"
-              value={form.checkpoint}
-              onChange={(e) => setForm((p) => ({ ...p, checkpoint: e.target.value }))}
-              disabled={!form.phase}
-            >
-              <MenuItem value="">Select checkpoint</MenuItem>
-              {lots
-                .filter((lot) => String(lot.phase) === String(form.phase))
-                .map((lot) => (
-                  <MenuItem key={lot.lotId} value={lot.lotId}>
-                    {`Block ${lot.block} - Lot ${lot.lotNumber}`}
-                  </MenuItem>
-                ))}
-            </TextField>
-            <TextField label="Notes" value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} multiline minRows={3} />
-            <TextField select label="Status" value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-              <MenuItem value="completed">Completed</MenuItem>
-              <MenuItem value="issue_found">Issue Found</MenuItem>
-            </TextField>
-            <Box>
-              <Button
-                variant="contained"
-                onClick={submit}
-                sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}
-              >
-                Submit Patrol Log
-              </Button>
-            </Box>
-          </Stack>
-        </Paper>
-
-        <Stack spacing={2}>
-          {rows.map((item) => (
-            <Paper key={item._id} sx={{ p: 2.2, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                <Box>
-                  <Typography sx={{ fontWeight: 700, color: themeColors.textPrimary }}>{item.area} - {item.checkpoint}</Typography>
-                  <Typography variant="body2" color="text.secondary">{item.notes || 'No notes'}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Officer: {item.officerId?.firstName || ''} {item.officerId?.lastName || ''} | {new Date(item.loggedAt || item.createdAt).toLocaleString()}
-                  </Typography>
-                </Box>
-                <Chip size="small" label={item.status} color={item.status === 'issue_found' ? 'warning' : 'success'} />
-              </Box>
+        <Grid container spacing={2.5} alignItems="flex-start">
+          <Grid item xs={12} md={5}>
+            <Paper sx={{ p: 2.5, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
+              <Typography sx={{ mb: 2, fontWeight: 800, color: themeColors.textPrimary }}>Patrol Log Form</Typography>
+              <Stack spacing={2}>
+                <TextField
+                  select
+                  label="Phase"
+                  value={form.phase}
+                  onChange={(e) => setForm((p) => ({
+                    ...p,
+                    phase: e.target.value,
+                    area: e.target.value ? `Phase ${e.target.value}` : '',
+                    checkpoint: ''
+                  }))}
+                >
+                  <MenuItem value="">Select phase</MenuItem>
+                  {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                    <MenuItem key={phase} value={phase}>{`Phase ${phase}`}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField label="Area" value={form.area} disabled helperText={form.phase ? `Patrol area set for Phase ${form.phase}` : 'Select a phase first'} />
+                <TextField select label="Checkpoint" value={form.checkpoint} onChange={(e) => setForm((p) => ({ ...p, checkpoint: e.target.value }))} disabled={!form.phase}>
+                  <MenuItem value="">Select checkpoint</MenuItem>
+                  {lots.filter((lot) => String(lot.phase) === String(form.phase)).map((lot) => (
+                    <MenuItem key={lot.lotId} value={lot.lotId}>{`Block ${lot.block} - Lot ${lot.lotNumber}`}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField label="Notes" value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} multiline minRows={3} />
+                <TextField select label="Status" value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="issue_found">Issue Found</MenuItem>
+                </TextField>
+                <Button variant="contained" onClick={submit} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
+                  Submit Patrol Log
+                </Button>
+              </Stack>
             </Paper>
-          ))}
-        </Stack>
+          </Grid>
+
+          <Grid item xs={12} md={7}>
+            <Paper sx={{ borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)', overflow: 'hidden' }}>
+              <Box sx={{ p: 2.5, borderBottom: `1px solid ${themeColors.border}` }}>
+                <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>Patrol Logs</Typography>
+                <Typography variant="body2" color="text.secondary">{rows.length} total logs</Typography>
+              </Box>
+              <Stack spacing={0}>
+                {paginatedRows.length === 0 ? (
+                  <Box sx={{ p: 3 }}><Typography color="text.secondary">No patrol logs yet.</Typography></Box>
+                ) : paginatedRows.map((item) => (
+                  <Box key={item._id} sx={{ p: 2.2, borderBottom: `1px solid ${themeColors.border}` }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography sx={{ fontWeight: 700, color: themeColors.textPrimary }}>{item.area} - {item.checkpoint}</Typography>
+                        <Typography variant="body2" color="text.secondary">{item.notes || 'No notes'}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Officer: {item.officerId?.firstName || ''} {item.officerId?.lastName || ''} | {new Date(item.loggedAt || item.createdAt).toLocaleString()}
+                        </Typography>
+                      </Box>
+                      <Chip size="small" label={item.status} color={item.status === 'issue_found' ? 'warning' : 'success'} />
+                    </Box>
+                  </Box>
+                ))}
+              </Stack>
+              <TablePagination
+                component="div"
+                count={rows.length}
+                page={page}
+                onPageChange={(event, nextPage) => setPage(nextPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(event) => {
+                  setRowsPerPage(parseInt(event.target.value, 10));
+                  setPage(0);
+                }}
+                rowsPerPageOptions={[5, 10, 25]}
+              />
+            </Paper>
+          </Grid>
+        </Grid>
       </Container>
     </Box>
   );

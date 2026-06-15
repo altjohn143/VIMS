@@ -1,12 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
   Chip,
   Container,
+  Grid,
   MenuItem,
   Paper,
   Stack,
+  TablePagination,
   TextField,
   Typography,
   AppBar,
@@ -42,7 +44,14 @@ const SecurityIncidents = () => {
   const [rows, setRows] = useState([]);
   const [lots, setLots] = useState([]);
   const [form, setForm] = useState(initialForm);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const navigate = useNavigate();
+
+  const paginatedRows = useMemo(
+    () => rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rows, rowsPerPage]
+  );
 
   const load = useCallback(async () => {
     try {
@@ -88,6 +97,7 @@ const SecurityIncidents = () => {
       await axios.post('/api/incidents', payload);
       toast.success('Incident reported');
       setForm(initialForm);
+      setPage(0);
       load();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to report incident');
@@ -145,7 +155,7 @@ const SecurityIncidents = () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         <Paper
           sx={{
             mb: 3,
@@ -167,85 +177,88 @@ const SecurityIncidents = () => {
           </Typography>
         </Paper>
 
-        <Paper sx={{ p: 2.5, mb: 2, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
-          <Stack spacing={2}>
-            <TextField label="Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} />
-            <TextField label="Description" value={form.description} multiline minRows={3} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
-            <TextField select label="Phase" value={form.phase} onChange={(e) => setForm((p) => ({ ...p, phase: e.target.value, block: '', lotNumber: '' }))}>
-              <MenuItem value="">Select phase</MenuItem>
-              {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
-                <MenuItem key={phase} value={String(phase)}>{`Phase ${phase}`}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              label="Block"
-              value={form.block}
-              disabled={!form.phase}
-              onChange={(e) => setForm((p) => ({ ...p, block: e.target.value, lotNumber: '' }))}
-            >
-              <MenuItem value="">Select block</MenuItem>
-              {Array.from(new Set(lots.filter((lot) => String(lot.phase) === form.phase).map((lot) => lot.block))).sort((a, b) => a - b).map((block) => (
-                <MenuItem key={block} value={String(block)}>{`Block ${block}`}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              label="Lot"
-              value={form.lotNumber}
-              disabled={!form.phase || !form.block}
-              onChange={(e) => setForm((p) => ({ ...p, lotNumber: e.target.value }))}
-            >
-              <MenuItem value="">Select lot</MenuItem>
-              {lots
-                .filter((lot) => String(lot.phase) === form.phase && String(lot.block) === form.block)
-                .map((lot) => (
-                  <MenuItem key={lot.lotId} value={String(lot.lotNumber)}>{`Lot ${lot.lotNumber}`}</MenuItem>
-                ))}
-            </TextField>
-            <TextField select label="Severity" value={form.severity} onChange={(e) => setForm((p) => ({ ...p, severity: e.target.value }))}>
-              <MenuItem value="low">Low</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="high">High</MenuItem>
-              <MenuItem value="critical">Critical</MenuItem>
-            </TextField>
-            <Box>
-              <Button
-                variant="contained"
-                onClick={createIncident}
-                sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}
-              >
-                Submit Incident
-              </Button>
-            </Box>
-          </Stack>
-        </Paper>
-
-        <Stack spacing={2}>
-          {rows.map((item) => (
-            <Paper key={item._id} sx={{ p: 2.2, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                <Box>
-                  <Typography sx={{ fontWeight: 700, color: themeColors.textPrimary }}>{item.title}</Typography>
-                  <Typography variant="body2" color="text.secondary">{item.description}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {item.location || 'No location'} | Reported by {item.reportedBy?.firstName || ''} {item.reportedBy?.lastName || ''} | {new Date(item.createdAt).toLocaleString()}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                  <Chip size="small" label={item.severity} color={item.severity === 'critical' ? 'error' : item.severity === 'high' ? 'warning' : 'default'} />
-                  <Chip size="small" label={item.status} />
-                  <Button size="small" onClick={() => setStatus(item._id, 'investigating')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
-                    Investigate
-                  </Button>
-                  <Button size="small" onClick={() => setStatus(item._id, 'resolved')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
-                    Resolve
-                  </Button>
-                </Box>
-              </Box>
+        <Grid container spacing={2.5} alignItems="flex-start">
+          <Grid item xs={12} md={5}>
+            <Paper sx={{ p: 2.5, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
+              <Typography sx={{ mb: 2, fontWeight: 800, color: themeColors.textPrimary }}>Incident Report Form</Typography>
+              <Stack spacing={2}>
+                <TextField label="Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} />
+                <TextField label="Description" value={form.description} multiline minRows={3} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
+                <TextField select label="Phase" value={form.phase} onChange={(e) => setForm((p) => ({ ...p, phase: e.target.value, block: '', lotNumber: '' }))}>
+                  <MenuItem value="">Select phase</MenuItem>
+                  {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                    <MenuItem key={phase} value={String(phase)}>{`Phase ${phase}`}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField select label="Block" value={form.block} disabled={!form.phase} onChange={(e) => setForm((p) => ({ ...p, block: e.target.value, lotNumber: '' }))}>
+                  <MenuItem value="">Select block</MenuItem>
+                  {Array.from(new Set(lots.filter((lot) => String(lot.phase) === form.phase).map((lot) => lot.block))).sort((a, b) => a - b).map((block) => (
+                    <MenuItem key={block} value={String(block)}>{`Block ${block}`}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField select label="Lot" value={form.lotNumber} disabled={!form.phase || !form.block} onChange={(e) => setForm((p) => ({ ...p, lotNumber: e.target.value }))}>
+                  <MenuItem value="">Select lot</MenuItem>
+                  {lots.filter((lot) => String(lot.phase) === form.phase && String(lot.block) === form.block).map((lot) => (
+                    <MenuItem key={lot.lotId} value={String(lot.lotNumber)}>{`Lot ${lot.lotNumber}`}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField select label="Severity" value={form.severity} onChange={(e) => setForm((p) => ({ ...p, severity: e.target.value }))}>
+                  <MenuItem value="low">Low</MenuItem>
+                  <MenuItem value="medium">Medium</MenuItem>
+                  <MenuItem value="high">High</MenuItem>
+                  <MenuItem value="critical">Critical</MenuItem>
+                </TextField>
+                <Button variant="contained" onClick={createIncident} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
+                  Submit Incident
+                </Button>
+              </Stack>
             </Paper>
-          ))}
-        </Stack>
+          </Grid>
+
+          <Grid item xs={12} md={7}>
+            <Paper sx={{ borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)', overflow: 'hidden' }}>
+              <Box sx={{ p: 2.5, borderBottom: `1px solid ${themeColors.border}` }}>
+                <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>Incident Logs</Typography>
+                <Typography variant="body2" color="text.secondary">{rows.length} total reports</Typography>
+              </Box>
+              <Stack spacing={0}>
+                {paginatedRows.length === 0 ? (
+                  <Box sx={{ p: 3 }}><Typography color="text.secondary">No incident reports yet.</Typography></Box>
+                ) : paginatedRows.map((item) => (
+                  <Box key={item._id} sx={{ p: 2.2, borderBottom: `1px solid ${themeColors.border}` }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography sx={{ fontWeight: 700, color: themeColors.textPrimary }}>{item.title}</Typography>
+                        <Typography variant="body2" color="text.secondary">{item.description}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {item.location || 'No location'} | Reported by {item.reportedBy?.firstName || ''} {item.reportedBy?.lastName || ''} | {new Date(item.createdAt).toLocaleString()}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Chip size="small" label={item.severity} color={item.severity === 'critical' ? 'error' : item.severity === 'high' ? 'warning' : 'default'} />
+                        <Chip size="small" label={item.status} />
+                        <Button size="small" onClick={() => setStatus(item._id, 'investigating')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Investigate</Button>
+                        <Button size="small" onClick={() => setStatus(item._id, 'resolved')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Resolve</Button>
+                      </Box>
+                    </Box>
+                  </Box>
+                ))}
+              </Stack>
+              <TablePagination
+                component="div"
+                count={rows.length}
+                page={page}
+                onPageChange={(event, nextPage) => setPage(nextPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(event) => {
+                  setRowsPerPage(parseInt(event.target.value, 10));
+                  setPage(0);
+                }}
+                rowsPerPageOptions={[5, 10, 25]}
+              />
+            </Paper>
+          </Grid>
+        </Grid>
       </Container>
     </Box>
   );

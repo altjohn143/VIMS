@@ -614,7 +614,7 @@ const Dashboard = () => {
           { title: 'Patrol Analytics', icon: <HistoryIcon />, link: '/dashboard/security/patrol-analytics' }
         ],
         supervision: [
-          { title: 'Pending Approvals', icon: <CheckCircleIcon />, link: '/dashboard/security/pending-approvals' },
+          { title: 'Visitor Approvals', icon: <CheckCircleIcon />, link: '/dashboard/security/visitor-approval' },
           { title: 'Incident Reports', icon: <AssignmentIcon />, link: '/dashboard/security/incidents' }
         ],
         visitors: [
@@ -719,7 +719,7 @@ const Dashboard = () => {
     'security/team-performance': <HeadOfficerTeamManagement view="performance" />,
     'security/personnel': <HeadOfficerTeamManagement view="team" />,
     'security/patrol-analytics': <HeadOfficerTeamManagement view="analytics" />,
-    'security/pending-approvals': <HeadOfficerTeamManagement view="approvals" />,
+    'security/pending-approvals': <SecurityVisitorApproval />,
     notifications: <Notifications />,
     'ai-assistant': <Chatbot />
   };

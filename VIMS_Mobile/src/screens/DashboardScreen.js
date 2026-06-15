@@ -32,6 +32,7 @@ const DashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({});
+  const [securityAnalytics, setSecurityAnalytics] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentActivity, setRecentActivity] = useState([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -63,6 +64,32 @@ const DashboardScreen = ({ navigation }) => {
   const userToShow = authUser || user;
 
   const formatPeso = (n) => Math.round(Number(n) || 0).toLocaleString('en-PH');
+
+  const getDateKey = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
+  const getDateLabel = (dateKey) => {
+    if (!dateKey) return 'N/A';
+    const [year, month, day] = dateKey.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const buildMiniSeries = (rows, dateField, valueFilter = () => true) => {
+    const counts = rows.reduce((acc, row) => {
+      const key = getDateKey(row?.[dateField] || row?.createdAt);
+      if (!key || !valueFilter(row)) return acc;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(counts)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-5)
+      .map(([date, value]) => ({ date, label: getDateLabel(date), value }));
+  };
 
   // Looping Pulse Animation for AI Assistant FAB
   useEffect(() => {
@@ -202,6 +229,7 @@ const DashboardScreen = ({ navigation }) => {
       }
 
       if (role === 'security') {
+        fetchSecurityAnalytics();
         // Check if head officer (supervisor)
         if (securityLevel === 'head-officer') {
           try {
@@ -228,6 +256,40 @@ const DashboardScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    }
+  };
+
+  const fetchSecurityAnalytics = async () => {
+    try {
+      const [visitorsResult, servicesResult, incidentsResult] = await Promise.allSettled([
+        api.get('/visitors'),
+        api.get('/service-requests'),
+        api.get('/incidents'),
+      ]);
+
+      const visitors = visitorsResult.status === 'fulfilled' && Array.isArray(visitorsResult.value.data?.data)
+        ? visitorsResult.value.data.data
+        : [];
+      const services = servicesResult.status === 'fulfilled' && Array.isArray(servicesResult.value.data?.data)
+        ? servicesResult.value.data.data
+        : [];
+      const incidents = incidentsResult.status === 'fulfilled' && Array.isArray(incidentsResult.value.data?.data)
+        ? incidentsResult.value.data.data
+        : [];
+
+      setSecurityAnalytics({
+        visitors: buildMiniSeries(visitors, 'createdAt'),
+        services: buildMiniSeries(services, 'createdAt'),
+        incidents: buildMiniSeries(incidents, 'createdAt'),
+        visitorStatus: {
+          pending: visitors.filter((item) => item.status === 'pending').length,
+          approved: visitors.filter((item) => item.status === 'approved').length,
+          active: visitors.filter((item) => item.status === 'active').length,
+          completed: visitors.filter((item) => item.status === 'completed').length,
+        },
+      });
+    } catch (error) {
+      console.warn('Unable to load security analytics:', error?.message);
     }
   };
 
@@ -704,6 +766,52 @@ const DashboardScreen = ({ navigation }) => {
           ))}
         </View>
 
+        {userToShow?.role === 'security' && securityAnalytics && (
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Security Analytics</Text>
+              <View style={styles.liveBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveBadgeText}>Live</Text>
+              </View>
+            </View>
+            {[
+              { title: 'Daily Visitor Activity', rows: securityAnalytics.visitors, color: '#16a34a' },
+              { title: 'Service Request Trends', rows: securityAnalytics.services, color: '#6366f1' },
+              { title: 'Incident Reports', rows: securityAnalytics.incidents, color: '#ef4444' },
+            ].map((chart) => {
+              const maxValue = Math.max(1, ...chart.rows.map((row) => row.value));
+              return (
+                <View key={chart.title} style={styles.analyticsBlock}>
+                  <Text style={styles.analyticsTitle}>{chart.title}</Text>
+                  {chart.rows.length === 0 ? (
+                    <Text style={styles.analyticsEmpty}>No records yet</Text>
+                  ) : chart.rows.map((row) => (
+                    <View key={`${chart.title}-${row.date}`} style={styles.analyticsRow}>
+                      <Text style={styles.analyticsDate}>{row.label}</Text>
+                      <View style={styles.analyticsBarTrack}>
+                        <View style={[styles.analyticsBarFill, { width: `${Math.max(8, (row.value / maxValue) * 100)}%`, backgroundColor: chart.color }]} />
+                      </View>
+                      <Text style={styles.analyticsValue}>{row.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              );
+            })}
+            <View style={styles.analyticsBlock}>
+              <Text style={styles.analyticsTitle}>Current Visitor Status</Text>
+              <View style={styles.statusGrid}>
+                {Object.entries(securityAnalytics.visitorStatus).map(([label, value]) => (
+                  <View key={label} style={styles.statusCell}>
+                    <Text style={styles.statusValue}>{value}</Text>
+                    <Text style={styles.statusLabel}>{label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* ── Recent Activity (notifications from API) ── */}
         <View style={styles.sectionCard}>
           <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('recentActivity')} activeOpacity={0.8}>
@@ -1049,6 +1157,23 @@ const styles = StyleSheet.create({
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#16a34a' },
   liveBadgeText: { fontSize: 10, fontWeight: '700', color: '#15803d' },
+  analyticsBlock: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderTopWidth: 0.5,
+    borderTopColor: '#f1f5f9',
+  },
+  analyticsTitle: { color: '#0f172a', fontSize: 13, fontWeight: '900', marginBottom: 8 },
+  analyticsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  analyticsDate: { width: 48, color: '#64748b', fontSize: 11, fontWeight: '700' },
+  analyticsBarTrack: { flex: 1, height: 8, borderRadius: 999, backgroundColor: '#e2e8f0', overflow: 'hidden' },
+  analyticsBarFill: { height: '100%', borderRadius: 999 },
+  analyticsValue: { width: 24, textAlign: 'right', color: '#0f172a', fontSize: 12, fontWeight: '900' },
+  analyticsEmpty: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+  statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statusCell: { flexGrow: 1, minWidth: '45%', backgroundColor: '#f8fafc', borderRadius: 12, padding: 10 },
+  statusValue: { color: '#166534', fontSize: 18, fontWeight: '900' },
+  statusLabel: { color: '#64748b', fontSize: 11, fontWeight: '800', textTransform: 'capitalize' },
   actionBody: { flex: 1, minWidth: 0 },
   actionTitle: { color: '#0f172a', fontSize: 13, fontWeight: '800' },
   actionSub: { color: '#94a3b8', fontSize: 11, marginTop: 1 },

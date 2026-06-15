@@ -39,6 +39,7 @@ const SecurityDashboardGraphs = () => {
   const [visitorData, setVisitorData] = useState([]);
   const [serviceData, setServiceData] = useState([]);
   const [incidentData, setIncidentData] = useState([]);
+  const [visitorStatusData, setVisitorStatusData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiReportOpen, setAiReportOpen] = useState(false);
   const [reportType, setReportType] = useState('visitors');
@@ -49,92 +50,120 @@ const SecurityDashboardGraphs = () => {
 
   useEffect(() => {
     loadGraphData();
+    // loadGraphData only uses stable module imports and local helper functions during initial dashboard hydration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const getDateKey = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getDateLabel = (dateKey) => {
+    const [year, month, day] = dateKey.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('default', { month: 'short', day: 'numeric' });
+  };
+
+  const incrementDay = (dateKey, days) => {
+    const [year, month, day] = dateKey.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + days);
+    return getDateKey(date);
+  };
+
+  const buildFallbackDateKeys = () => {
+    const todayKey = getDateKey(new Date());
+    return Array.from({ length: 7 }, (_, index) => incrementDay(todayKey, index - 6));
+  };
+
+  const buildDateKeys = (...collections) => {
+    const keys = collections
+      .flat()
+      .map((item) => getDateKey(item?.createdAt || item?.loggedAt || item?.occurredAt || item?.expectedArrival))
+      .filter(Boolean);
+
+    const uniqueKeys = [...new Set(keys)].sort();
+    if (uniqueKeys.length > 0) return uniqueKeys.slice(-7);
+    return buildFallbackDateKeys();
+  };
+
+  const buildStatusData = (visitors) => {
+    const statusLabels = {
+      pending: 'Pending',
+      approved: 'Approved',
+      active: 'Active',
+      completed: 'Completed',
+      rejected: 'Rejected',
+      cancelled: 'Cancelled'
+    };
+    const counts = visitors.reduce((acc, visitor) => {
+      const status = visitor.status || 'pending';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.entries(statusLabels)
+      .map(([status, label]) => ({ name: label, value: counts[status] || 0 }))
+      .filter((entry) => entry.value > 0);
+  };
 
   const loadGraphData = async () => {
     try {
       setLoading(true);
 
-      // Load visitor data for the last 7 days
-      const visitorPromises = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
+      const [visitorsResult, serviceResult, incidentsResult] = await Promise.allSettled([
+        axios.get('/api/visitors'),
+        axios.get('/api/service-requests'),
+        axios.get('/api/incidents')
+      ]);
 
-        visitorPromises.push(
-          axios.get(`/api/visitors/stats/daily?date=${dateStr}`)
-            .then(res => ({
-              date: date.toLocaleDateString('default', { month: 'short', day: 'numeric' }),
-              total: res.data?.data?.totalVisitors || 0,
-              approved: res.data?.data?.approvedVisitors || 0,
-              pending: res.data?.data?.pendingVisitors || 0
-            }))
-            .catch(() => ({
-              date: date.toLocaleDateString('default', { month: 'short', day: 'numeric' }),
-              total: 0,
-              approved: 0,
-              pending: 0
-            }))
-        );
-      }
+      const visitors = visitorsResult.status === 'fulfilled' && Array.isArray(visitorsResult.value.data?.data)
+        ? visitorsResult.value.data.data
+        : [];
+      const serviceRequests = serviceResult.status === 'fulfilled' && Array.isArray(serviceResult.value.data?.data)
+        ? serviceResult.value.data.data
+        : [];
+      const incidents = incidentsResult.status === 'fulfilled' && Array.isArray(incidentsResult.value.data?.data)
+        ? incidentsResult.value.data.data
+        : [];
+      const dateKeys = buildDateKeys(visitors, serviceRequests, incidents);
 
-      const visitorResults = await Promise.all(visitorPromises);
-      setVisitorData(visitorResults);
+      setVisitorData(dateKeys.map((dateKey) => {
+        const dailyVisitors = visitors.filter((visitor) => getDateKey(visitor.createdAt || visitor.expectedArrival) === dateKey);
+        return {
+          date: getDateLabel(dateKey),
+          total: dailyVisitors.length,
+          approved: dailyVisitors.filter((visitor) => ['approved', 'active', 'completed'].includes(visitor.status)).length,
+          pending: dailyVisitors.filter((visitor) => visitor.status === 'pending').length
+        };
+      }));
 
-      // Load service request data for the last 7 days
-      const servicePromises = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
+      setServiceData(dateKeys.map((dateKey) => {
+        const dailyRequests = serviceRequests.filter((request) => getDateKey(request.createdAt) === dateKey);
+        return {
+          date: getDateLabel(dateKey),
+          total: dailyRequests.length,
+          pending: dailyRequests.filter((request) => ['pending', 'under-review', 'assigned', 'in-progress'].includes(request.status)).length,
+          completed: dailyRequests.filter((request) => request.status === 'completed').length
+        };
+      }));
 
-        servicePromises.push(
-          axios.get(`/api/service-requests/stats/daily?date=${dateStr}`)
-            .then(res => ({
-              date: date.toLocaleDateString('default', { month: 'short', day: 'numeric' }),
-              total: res.data?.data?.totalRequests || 0,
-              pending: res.data?.data?.pendingRequests || 0,
-              completed: res.data?.data?.completedRequests || 0
-            }))
-            .catch(() => ({
-              date: date.toLocaleDateString('default', { month: 'short', day: 'numeric' }),
-              total: 0,
-              pending: 0,
-              completed: 0
-            }))
-        );
-      }
+      setIncidentData(dateKeys.map((dateKey) => {
+        const dailyIncidents = incidents.filter((incident) => getDateKey(incident.createdAt || incident.occurredAt) === dateKey);
+        return {
+          date: getDateLabel(dateKey),
+          total: dailyIncidents.length,
+          resolved: dailyIncidents.filter((incident) => incident.status === 'resolved').length,
+          pending: dailyIncidents.filter((incident) => incident.status !== 'resolved').length
+        };
+      }));
 
-      const serviceResults = await Promise.all(servicePromises);
-      setServiceData(serviceResults);
-
-      // Load incident data for the last 7 days
-      const incidentPromises = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-
-        incidentPromises.push(
-          axios.get(`/api/incidents/stats/daily?date=${dateStr}`)
-            .then(res => ({
-              date: date.toLocaleDateString('default', { month: 'short', day: 'numeric' }),
-              total: res.data?.data?.totalIncidents || 0,
-              resolved: res.data?.data?.resolvedIncidents || 0,
-              pending: res.data?.data?.pendingIncidents || 0
-            }))
-            .catch(() => ({
-              date: date.toLocaleDateString('default', { month: 'short', day: 'numeric' }),
-              total: 0,
-              resolved: 0,
-              pending: 0
-            }))
-        );
-      }
-
-      const incidentResults = await Promise.all(incidentPromises);
-      setIncidentData(incidentResults);
+      setVisitorStatusData(buildStatusData(visitors));
 
     } catch (error) {
       console.error('Error loading graph data:', error);
@@ -284,25 +313,17 @@ const SecurityDashboardGraphs = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={[
-                      { name: 'Approved', value: visitorData.reduce((sum, d) => sum + d.approved, 0) },
-                      { name: 'Pending', value: visitorData.reduce((sum, d) => sum + d.pending, 0) },
-                      { name: 'Rejected', value: Math.max(0, visitorData.reduce((sum, d) => sum + d.total - d.approved - d.pending, 0)) }
-                    ]}
+                    data={visitorStatusData.length ? visitorStatusData : [{ name: 'No Visitors', value: 1 }]}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) => visitorStatusData.length ? `${name} ${(percent * 100).toFixed(0)}%` : name}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {[
-                      { name: 'Approved', value: visitorData.reduce((sum, d) => sum + d.approved, 0) },
-                      { name: 'Pending', value: visitorData.reduce((sum, d) => sum + d.pending, 0) },
-                      { name: 'Rejected', value: Math.max(0, visitorData.reduce((sum, d) => sum + d.total - d.approved - d.pending, 0)) }
-                    ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {(visitorStatusData.length ? visitorStatusData : [{ name: 'No Visitors', value: 1 }]).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={visitorStatusData.length ? COLORS[index % COLORS.length] : '#e2e8f0'} />
                     ))}
                   </Pie>
                   <Tooltip />

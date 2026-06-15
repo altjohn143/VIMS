@@ -250,107 +250,118 @@ const AdminAnnouncements = () => {
           </CardContent>
         </Card>
 
-        <Card sx={{ mb: 3, borderRadius: '20px', boxShadow: '0 12px 26px rgba(15,23,42,0.06)', border: `1px solid ${themeColors.border}`, animation: 'fadeUpSoft 0.52s ease' }}>
-          <CardContent>
-            <Stack spacing={2}>
-              <TextField
-                label="Title"
-                value={form.title}
-                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                fullWidth
-              />
-              <TextField
-                label="Message"
-                value={form.body}
-                onChange={(e) => setForm((prev) => ({ ...prev, body: e.target.value }))}
-                multiline
-                minRows={4}
-                fullWidth
-                helperText={`${form.body.length}/500`}
-                inputProps={{ maxLength: 500 }}
-              />
-              <FormControl fullWidth>
-                <Select
-                  value={form.status}
-                  onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-                  displayEmpty
-                >
-                  <MenuItem value="published">Publish immediately</MenuItem>
-                  <MenuItem value="scheduled">Schedule for later</MenuItem>
-                  <MenuItem value="draft">Save as draft</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl fullWidth>
-                <Select
-                  value={form.category}
-                  onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
-                  displayEmpty
-                >
-                  {announcementCategories.map((category) => (
-                    <MenuItem key={category.value} value={category.value}>
-                      {category.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              {form.status === 'scheduled' && (
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DateTimePicker
-                    label="Schedule date & time"
-                    value={form.scheduledAt}
-                    onChange={(newValue) => setForm((prev) => ({ ...prev, scheduledAt: newValue }))}
-                    minDateTime={dayjs()}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        helperText: 'Select when to publish this announcement'
-                      }
-                    }}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(340px, 0.9fr) minmax(0, 1.5fr)' },
+            gap: 3,
+            alignItems: 'start'
+          }}
+        >
+          <Box>
+            <Card sx={{ borderRadius: '20px', boxShadow: '0 12px 26px rgba(15,23,42,0.06)', border: `1px solid ${themeColors.border}`, animation: 'fadeUpSoft 0.52s ease' }}>
+              <CardContent>
+                <Stack spacing={2}>
+                  <TextField
+                    label="Title"
+                    value={form.title}
+                    onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                    fullWidth
                   />
-                </LocalizationProvider>
-              )}
-              <Box>
-                <input
-                  accept="image/*"
-                  type="file"
-                  id="announcement-image-upload"
-                  style={{ display: 'none' }}
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      setForm(prev => ({ ...prev, image: file }));
-                      setImagePreview(URL.createObjectURL(file));
-                    } else {
-                      setForm(prev => ({ ...prev, image: null }));
-                      setImagePreview(null);
-                    }
-                  }}
-                />
-                <label htmlFor="announcement-image-upload">
-                  <Button
-                    variant="outlined"
-                    component="span"
-                    sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, mr: 2 }}
-                  >
-                    {form.image ? 'Change Image' : 'Add Image'}
-                  </Button>
-                </label>
-                {imagePreview && (
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    style={{ maxHeight: 80, borderRadius: 8, marginRight: 12, verticalAlign: 'middle' }}
+                  <TextField
+                    label="Message"
+                    value={form.body}
+                    onChange={(e) => setForm((prev) => ({ ...prev, body: e.target.value }))}
+                    multiline
+                    minRows={4}
+                    fullWidth
+                    helperText={`${form.body.length}/500`}
+                    inputProps={{ maxLength: 500 }}
                   />
-                )}
-                <Button variant="contained" onClick={createAnnouncement} disabled={saving} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800, px: 2.2, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
-                  {saving ? 'Saving...' : form.status === 'scheduled' ? 'Schedule Announcement' : form.status === 'draft' ? 'Save Draft' : 'Post Announcement'}
-                </Button>
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
+                  <FormControl fullWidth>
+                    <Select
+                      value={form.status}
+                      onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+                      displayEmpty
+                    >
+                      <MenuItem value="published">Publish immediately</MenuItem>
+                      <MenuItem value="scheduled">Schedule for later</MenuItem>
+                      <MenuItem value="draft">Save as draft</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControl fullWidth>
+                    <Select
+                      value={form.category}
+                      onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
+                      displayEmpty
+                    >
+                      {announcementCategories.map((category) => (
+                        <MenuItem key={category.value} value={category.value}>
+                          {category.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  {form.status === 'scheduled' && (
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <DateTimePicker
+                        label="Schedule date & time"
+                        value={form.scheduledAt}
+                        onChange={(newValue) => setForm((prev) => ({ ...prev, scheduledAt: newValue }))}
+                        minDateTime={dayjs()}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            helperText: 'Select when to publish this announcement'
+                          }
+                        }}
+                      />
+                    </LocalizationProvider>
+                  )}
+                  <Box>
+                    <input
+                      accept="image/*"
+                      type="file"
+                      id="announcement-image-upload"
+                      style={{ display: 'none' }}
+                      onChange={e => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setForm(prev => ({ ...prev, image: file }));
+                          setImagePreview(URL.createObjectURL(file));
+                        } else {
+                          setForm(prev => ({ ...prev, image: null }));
+                          setImagePreview(null);
+                        }
+                      }}
+                    />
+                    <label htmlFor="announcement-image-upload">
+                      <Button
+                        variant="outlined"
+                        component="span"
+                        sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, mr: 2 }}
+                      >
+                        {form.image ? 'Change Image' : 'Add Image'}
+                      </Button>
+                    </label>
+                    {imagePreview && (
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        style={{ maxHeight: 80, borderRadius: 8, marginRight: 12, verticalAlign: 'middle' }}
+                      />
+                    )}
+                    <Button variant="contained" onClick={createAnnouncement} disabled={saving} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800, px: 2.2, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
+                      {saving ? 'Saving...' : form.status === 'scheduled' ? 'Schedule Announcement' : form.status === 'draft' ? 'Save Draft' : 'Post Announcement'}
+                    </Button>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Box>
 
-        <Card sx={{ mb: 2, borderRadius: '20px', boxShadow: '0 12px 26px rgba(15,23,42,0.06)', border: `1px solid ${themeColors.border}`, animation: 'fadeUpSoft 0.58s ease' }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Card sx={{ mb: 2, borderRadius: '20px', boxShadow: '0 12px 26px rgba(15,23,42,0.06)', border: `1px solid ${themeColors.border}`, animation: 'fadeUpSoft 0.58s ease' }}>
           <CardContent>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between">
               <TextField
@@ -491,6 +502,8 @@ const AdminAnnouncements = () => {
             </Card>
           )}
         </Stack>
+          </Box>
+        </Box>
       </Container>
     </Box>
   );

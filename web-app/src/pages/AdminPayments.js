@@ -55,7 +55,8 @@ import {
   QrCode as QrCodeIcon,
   Image as ImageIcon,
   Close as CloseIcon,
-  ZoomIn as ZoomInIcon
+  ZoomIn as ZoomInIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -101,6 +102,7 @@ const AdminPayments = () => {
   const [duesAmountDraft, setDuesAmountDraft] = useState('');
   const [processing, setProcessing] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const [selectedDescriptionPayment, setSelectedDescriptionPayment] = useState(null);
   
   // Image viewer state
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -372,6 +374,11 @@ const AdminPayments = () => {
   const formatDate = (date) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-PH');
+  };
+
+  const getDescriptionPreview = (payment) => {
+    const text = payment?.description || 'No description';
+    return text.length > 45 ? `${text.slice(0, 45)}...` : text;
   };
 
   const getStatusChip = (status, dueDate) => {
@@ -780,9 +787,35 @@ const AdminPayments = () => {
                         {payment.residentId?.firstName} {payment.residentId?.lastName}
                       </TableCell>
                       <TableCell>{payment.residentId?.houseNumber || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{payment.description}</Typography>
-                        {payment.inclusions?.length > 0 && (
+                      <TableCell sx={{ minWidth: 170, maxWidth: 220 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            maxWidth: 190,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {getDescriptionPreview(payment)}
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="text"
+                          startIcon={<VisibilityIcon />}
+                          onClick={() => setSelectedDescriptionPayment(payment)}
+                          sx={{
+                            mt: 0.5,
+                            p: 0,
+                            minWidth: 0,
+                            textTransform: 'none',
+                            fontWeight: 700,
+                            color: themeColors.primary
+                          }}
+                        >
+                          View Details
+                        </Button>
+                        {false && payment.inclusions?.length > 0 && (
                           <Box sx={{ mt: 0.5 }}>
                             {payment.inclusions.map((item) => (
                               <Typography key={item} variant="caption" color="textSecondary" display="block">
@@ -791,7 +824,7 @@ const AdminPayments = () => {
                             ))}
                           </Box>
                         )}
-                        {payment.notes && (
+                        {false && payment.notes && (
                           <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
                             {payment.notes}
                           </Typography>
@@ -919,6 +952,69 @@ const AdminPayments = () => {
             }}
           />
         </Paper>
+
+        {/* Payment Description Details Dialog */}
+        <Dialog
+          open={Boolean(selectedDescriptionPayment)}
+          onClose={() => setSelectedDescriptionPayment(null)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: '18px' } }}
+        >
+          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+            Payment Details
+          </DialogTitle>
+          <DialogContent>
+            {selectedDescriptionPayment && (
+              <Box>
+                <Paper sx={{ p: 2, bgcolor: themeColors.background, borderRadius: 2, mb: 2 }}>
+                  <Typography><strong>Invoice:</strong> {selectedDescriptionPayment.invoiceNumber}</Typography>
+                  <Typography>
+                    <strong>Resident:</strong> {selectedDescriptionPayment.residentId?.firstName} {selectedDescriptionPayment.residentId?.lastName}
+                  </Typography>
+                  <Typography><strong>House:</strong> {selectedDescriptionPayment.residentId?.houseNumber || 'N/A'}</Typography>
+                  <Typography><strong>Amount:</strong> {formatCurrency(selectedDescriptionPayment.amount)}</Typography>
+                </Paper>
+
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75 }}>
+                  Description
+                </Typography>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mb: 2 }}>
+                  {selectedDescriptionPayment.description || 'No description'}
+                </Typography>
+
+                {selectedDescriptionPayment.inclusions?.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75 }}>
+                      Inclusions
+                    </Typography>
+                    {selectedDescriptionPayment.inclusions.map((item) => (
+                      <Typography key={item} variant="body2" color="textSecondary" sx={{ display: 'block' }}>
+                        - {item}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
+
+                {selectedDescriptionPayment.notes && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75 }}>
+                      Notes
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedDescriptionPayment.notes}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
+            <Button onClick={() => setSelectedDescriptionPayment(null)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Monthly Dues Amount Dialog */}
         <Dialog

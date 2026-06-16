@@ -136,6 +136,50 @@ router.get('/availability', protect, async (req, res) => {
   }
 });
 
+router.get('/public/schedules', async (req, res) => {
+  try {
+    const now = new Date();
+    const endWindow = new Date();
+    endWindow.setMonth(endWindow.getMonth() + 6);
+
+    const resources = await Resource.find({ isActive: true })
+      .select('type name description')
+      .sort({ type: 1, name: 1 });
+
+    const reservations = await Reservation.find({
+      status: { $in: ['pending', 'confirmed', 'borrowed'] },
+      startDate: { $lte: endWindow },
+      endDate: { $gte: now }
+    })
+      .select('items resourceType resourceName quantity startDate endDate status')
+      .sort({ startDate: 1 })
+      .limit(200);
+
+    const schedules = reservations.flatMap((reservation) =>
+      getReservationItems(reservation).map((item) => ({
+        reservationId: reservation._id,
+        resourceType: item.resourceType,
+        resourceName: item.resourceName,
+        quantity: item.quantity || 1,
+        startDate: reservation.startDate,
+        endDate: reservation.endDate,
+        status: reservation.status
+      }))
+    );
+
+    res.json({
+      success: true,
+      data: {
+        resources,
+        schedules
+      }
+    });
+  } catch (error) {
+    console.error('Get public reservation schedules error:', error.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch public reservation schedules' });
+  }
+});
+
 router.get('/', protect, async (req, res) => {
   try {
     let query;

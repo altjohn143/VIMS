@@ -176,6 +176,264 @@ const statCardStyles = [
   }
 ];
 
+const ResidentReservationCalendar = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadSchedules = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await axios.get('/api/reservations/public/schedules');
+        setSchedules(response.data?.data?.schedules || []);
+      } catch (err) {
+        setSchedules([]);
+        setError('Unable to load reservation schedules right now.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSchedules();
+  }, []);
+
+  const toDateKey = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const slotOverlapsDay = (slot, date) => {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    return new Date(slot.startDate) <= dayEnd && new Date(slot.endDate) >= dayStart;
+  };
+
+  const formatTimeRange = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
+  const formatStatus = (status) => {
+    if (status === 'pending') return 'Pending review';
+    if (status === 'borrowed') return 'In use';
+    return 'Reserved';
+  };
+
+  const scheduleKeys = new Set();
+  schedules.forEach((slot) => {
+    const cursor = new Date(slot.startDate);
+    cursor.setHours(0, 0, 0, 0);
+    const end = new Date(slot.endDate);
+    end.setHours(0, 0, 0, 0);
+    while (cursor <= end) {
+      scheduleKeys.add(toDateKey(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  });
+
+  const selectedSchedules = schedules
+    .filter((slot) => slotOverlapsDay(slot, selectedDate))
+    .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const calendarCells = [
+    ...Array.from({ length: firstDay }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, index) => new Date(year, month, index + 1))
+  ];
+
+  return (
+    <Paper
+      sx={{
+        borderRadius: '20px',
+        border: `1px solid ${themeColors.border}`,
+        boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+        overflow: 'hidden',
+        animation: 'slideUpSoft 0.68s ease'
+      }}
+    >
+      <Box sx={{ px: 2.5, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap', bgcolor: 'white' }}>
+        <Box>
+          <Typography sx={{ fontSize: '1.06rem', fontWeight: 900, color: themeColors.textPrimary }}>
+            Reservation Calendar
+          </Typography>
+          <Typography sx={{ color: themeColors.textSecondary, fontWeight: 600, fontSize: '0.86rem', mt: 0.3 }}>
+            See reserved equipment and venues before choosing your schedule.
+          </Typography>
+        </Box>
+        <Button
+          component={RouterLink}
+          to="/dashboard/reservations"
+          startIcon={<EventAvailableIcon />}
+          variant="contained"
+          sx={{
+            textTransform: 'none',
+            borderRadius: '14px',
+            fontWeight: 900,
+            bgcolor: themeColors.primary,
+            boxShadow: '0 10px 22px rgba(22,101,52,0.18)',
+            '&:hover': { bgcolor: themeColors.primaryDark }
+          }}
+        >
+          Make Reservation
+        </Button>
+      </Box>
+
+      <Divider />
+
+      <Box sx={{ p: { xs: 2, md: 2.5 }, bgcolor: '#f8fafc' }}>
+        {loading ? (
+          <Box sx={{ minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CircularProgress size={30} sx={{ color: themeColors.primary }} />
+          </Box>
+        ) : error ? (
+          <Typography sx={{ color: themeColors.error, fontWeight: 700 }}>{error}</Typography>
+        ) : (
+          <Grid container spacing={2.5}>
+            <Grid item xs={12} md={5}>
+              <Paper elevation={0} sx={{ p: 2, borderRadius: '16px', border: `1px solid ${themeColors.border}`, height: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                  <IconButton size="small" onClick={() => setCurrentDate(new Date(year, month - 1, 1))}>
+                    <ArrowOutwardIcon sx={{ transform: 'rotate(225deg)', color: themeColors.primary }} />
+                  </IconButton>
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>
+                    {currentDate.toLocaleString([], { month: 'long', year: 'numeric' })}
+                  </Typography>
+                  <IconButton size="small" onClick={() => setCurrentDate(new Date(year, month + 1, 1))}>
+                    <ArrowOutwardIcon sx={{ transform: 'rotate(45deg)', color: themeColors.primary }} />
+                  </IconButton>
+                </Box>
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 0.75 }}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <Typography key={day} sx={{ textAlign: 'center', color: themeColors.textSecondary, fontSize: '0.7rem', fontWeight: 900 }}>
+                      {day}
+                    </Typography>
+                  ))}
+                  {calendarCells.map((day, index) => {
+                    if (!day) return <Box key={`empty-${index}`} sx={{ minHeight: 42 }} />;
+                    const key = toDateKey(day);
+                    const selected = key === toDateKey(selectedDate);
+                    const reserved = scheduleKeys.has(key);
+                    return (
+                      <Box
+                        key={key}
+                        onClick={() => setSelectedDate(day)}
+                        sx={{
+                          minHeight: 42,
+                          borderRadius: '12px',
+                          border: `1px solid ${selected ? themeColors.primary : reserved ? '#fecaca' : themeColors.border}`,
+                          bgcolor: selected ? themeColors.primarySoft : reserved ? '#fef2f2' : '#ffffff',
+                          color: reserved ? '#991b1b' : themeColors.textPrimary,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 900,
+                          position: 'relative',
+                          transition: 'transform 0.16s ease, box-shadow 0.16s ease',
+                          '&:hover': {
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 8px 16px rgba(15,23,42,0.08)'
+                          }
+                        }}
+                      >
+                        {day.getDate()}
+                        {reserved && (
+                          <Box sx={{ position: 'absolute', bottom: 5, width: 5, height: 5, borderRadius: '50%', bgcolor: '#dc2626' }} />
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Box>
+
+                <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Chip size="small" label="Has reservation" sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 900 }} />
+                  <Chip size="small" label="Open day" sx={{ bgcolor: themeColors.primarySoft, color: themeColors.primary, fontWeight: 900 }} />
+                </Box>
+              </Paper>
+            </Grid>
+
+            <Grid item xs={12} md={7}>
+              <Paper elevation={0} sx={{ p: 2, borderRadius: '16px', border: `1px solid ${themeColors.border}`, height: '100%' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, alignItems: 'flex-start', flexWrap: 'wrap', mb: 2 }}>
+                  <Box>
+                    <Typography sx={{ color: themeColors.textPrimary, fontWeight: 900 }}>
+                      {selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+                    </Typography>
+                    <Typography sx={{ color: themeColors.textSecondary, fontWeight: 600, fontSize: '0.84rem' }}>
+                      {selectedSchedules.length ? 'Reserved times for this day' : 'No reserved time listed for this day'}
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={selectedSchedules.length ? `${selectedSchedules.length} reserved` : 'Open for reservation'}
+                    sx={{
+                      bgcolor: selectedSchedules.length ? '#fee2e2' : themeColors.primarySoft,
+                      color: selectedSchedules.length ? '#991b1b' : themeColors.primary,
+                      fontWeight: 900
+                    }}
+                  />
+                </Box>
+
+                {selectedSchedules.length === 0 ? (
+                  <Box sx={{ p: 2, borderRadius: '14px', bgcolor: '#ecfdf5', border: '1px solid #bbf7d0' }}>
+                    <Typography sx={{ color: themeColors.primary, fontWeight: 900 }}>
+                      This date is open for reservation.
+                    </Typography>
+                    <Typography sx={{ mt: 0.5, color: themeColors.textSecondary, fontWeight: 600, fontSize: '0.86rem' }}>
+                      Choose this date on the reservation form, then select your preferred venue or equipment.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'grid', gap: 1.2, maxHeight: 320, overflowY: 'auto', pr: 0.5 }}>
+                    {selectedSchedules.map((slot) => (
+                      <Paper
+                        key={`${slot.reservationId}-${slot.resourceName}-${slot.startDate}`}
+                        elevation={0}
+                        sx={{
+                          p: 1.5,
+                          borderRadius: '14px',
+                          border: `1px solid ${themeColors.border}`,
+                          bgcolor: '#ffffff'
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography sx={{ color: themeColors.textPrimary, fontWeight: 900 }}>
+                              {slot.resourceName}
+                            </Typography>
+                            <Typography sx={{ color: themeColors.textSecondary, fontWeight: 700, fontSize: '0.82rem' }}>
+                              {formatTimeRange(slot.startDate, slot.endDate)}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                            <Chip size="small" label={slot.resourceType} sx={{ textTransform: 'capitalize', fontWeight: 800 }} />
+                            <Chip size="small" label={formatStatus(slot.status)} sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 900 }} />
+                          </Box>
+                        </Box>
+                      </Paper>
+                    ))}
+                  </Box>
+                )}
+              </Paper>
+            </Grid>
+          </Grid>
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1828,6 +2086,12 @@ const Dashboard = () => {
                   </Grid>
                 </Paper>
               </Grid>
+
+              {user.role === 'resident' && (
+                <Grid item xs={12}>
+                  <ResidentReservationCalendar />
+                </Grid>
+              )}
 
               <Grid item xs={12}>
                 <Paper

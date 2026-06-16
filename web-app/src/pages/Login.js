@@ -197,6 +197,244 @@ const MiniCalendar = ({ currentDate, onPrevMonth, onNextMonth, compact = false, 
   );
 };
 
+const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) => {
+  const [loading, setLoading] = useState(true);
+  const [schedules, setSchedules] = useState([]);
+  const [resources, setResources] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadSchedules = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await fetch(`${API_URL}/reservations/public/schedules`);
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error || 'Unable to load schedules');
+        }
+        setSchedules(payload.data?.schedules || []);
+        setResources(payload.data?.resources || []);
+      } catch (err) {
+        setSchedules([]);
+        setResources([]);
+        setError('Reservation schedules are unavailable right now.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSchedules();
+  }, []);
+
+  const toDateKey = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const formatTimeRange = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const date = start.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    const startTime = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const endTime = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${date}, ${startTime} - ${endTime}`;
+  };
+
+  const statusLabel = (status) => {
+    if (status === 'pending') return 'Pending review';
+    if (status === 'borrowed') return 'In use';
+    return 'Reserved';
+  };
+
+  const slotOverlapsDay = (slot, date) => {
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    return new Date(slot.startDate) <= dayEnd && new Date(slot.endDate) >= dayStart;
+  };
+
+  const selectedKey = toDateKey(selectedDate);
+  const scheduleKeys = new Set();
+  schedules.forEach((slot) => {
+    const cursor = new Date(slot.startDate);
+    cursor.setHours(0, 0, 0, 0);
+    const end = new Date(slot.endDate);
+    end.setHours(0, 0, 0, 0);
+    while (cursor <= end) {
+      scheduleKeys.add(toDateKey(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  });
+  const selectedSchedules = schedules.filter((slot) => slotOverlapsDay(slot, selectedDate));
+  const upcomingSchedules = [...schedules].sort((a, b) => new Date(a.startDate) - new Date(b.startDate)).slice(0, 8);
+
+  const yr = currentDate.getFullYear();
+  const mo = currentDate.getMonth();
+  const first = new Date(yr, mo, 1).getDay();
+  const days = new Date(yr, mo + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < first; i++) cells.push(null);
+  for (let d = 1; d <= days; d++) cells.push(new Date(yr, mo, d));
+
+  return (
+    <Grid container spacing={3} alignItems="stretch">
+      <Grid item xs={12} md={5}>
+        <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: 2, border: '1px solid rgba(45,80,22,0.15)', height: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+            <IconButton size="small" onClick={onPrevMonth}>
+              <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
+            </IconButton>
+            <Typography sx={{ fontWeight: 900, color: T.primary }}>
+              {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </Typography>
+            <IconButton size="small" onClick={onNextMonth}>
+              <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
+            </IconButton>
+          </Box>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.75 }}>
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+              <Typography key={d} sx={{ textAlign: 'center', fontSize: '0.72rem', fontWeight: 900, color: '#64748b' }}>{d}</Typography>
+            ))}
+          </Box>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '5px' }}>
+            {cells.map((day, index) => {
+              if (!day) return <Box key={`empty-${index}`} />;
+              const key = toDateKey(day);
+              const hasReservation = scheduleKeys.has(key);
+              const selected = key === selectedKey;
+              return (
+                <Box
+                  key={key}
+                  onClick={() => setSelectedDate(day)}
+                  sx={{
+                    minHeight: 42,
+                    borderRadius: 2,
+                    cursor: 'pointer',
+                    border: `1px solid ${selected ? T.primary : hasReservation ? '#fecaca' : 'rgba(15,23,42,0.08)'}`,
+                    bgcolor: selected ? '#dcfce7' : hasReservation ? '#fff1f2' : '#f8fafc',
+                    color: hasReservation ? '#991b1b' : '#0f172a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    fontWeight: 900,
+                    '&:hover': { transform: 'translateY(-1px)', boxShadow: '0 8px 18px rgba(15,23,42,0.10)' },
+                    transition: 'all 0.16s ease'
+                  }}
+                >
+                  {day.getDate()}
+                  {hasReservation && <Box sx={{ position: 'absolute', bottom: 5, width: 5, height: 5, borderRadius: '50%', bgcolor: '#dc2626' }} />}
+                </Box>
+              );
+            })}
+          </Box>
+
+          <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Chip size="small" label="Reserved" sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 900 }} />
+            <Chip size="small" label="Open" sx={{ bgcolor: '#dcfce7', color: T.primary, fontWeight: 900 }} />
+          </Box>
+        </Box>
+      </Grid>
+
+      <Grid item xs={12} md={7}>
+        <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: { xs: 2, md: 2.5 }, border: '1px solid rgba(45,80,22,0.15)', minHeight: 365 }}>
+          {loading ? (
+            <Box sx={{ minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CircularProgress size={28} sx={{ color: T.primary }} />
+            </Box>
+          ) : error ? (
+            <Alert severity="warning" sx={{ borderRadius: 2 }}>{error}</Alert>
+          ) : (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+                <Box>
+                  <Typography sx={{ color: '#0f172a', fontSize: '1.1rem', fontWeight: 900 }}>
+                    {selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </Typography>
+                  <Typography sx={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>
+                    {selectedSchedules.length > 0 ? 'Reserved schedules for this day' : 'No reservations posted for this day'}
+                  </Typography>
+                </Box>
+                <Chip
+                  label={selectedSchedules.length > 0 ? `${selectedSchedules.length} reserved` : 'Open for reservation'}
+                  sx={{ bgcolor: selectedSchedules.length > 0 ? '#fee2e2' : '#dcfce7', color: selectedSchedules.length > 0 ? '#991b1b' : T.primary, fontWeight: 900 }}
+                />
+              </Box>
+
+              {selectedSchedules.length > 0 ? (
+                <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+                  {selectedSchedules.map((slot) => (
+                    <Grid item xs={12} sm={6} key={`${slot.reservationId}-${slot.resourceName}`}>
+                      <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid rgba(15,23,42,0.08)', bgcolor: '#f8fafc' }}>
+                        <CardContent sx={{ p: 1.75, '&:last-child': { pb: 1.75 } }}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.75 }}>
+                            <TimeIcon sx={{ color: T.primary, fontSize: 18 }} />
+                            <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: '0.92rem' }}>
+                              {slot.resourceName}
+                            </Typography>
+                          </Box>
+                          <Typography sx={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>
+                            {formatTimeRange(slot.startDate, slot.endDate)}
+                          </Typography>
+                          <Box sx={{ mt: 1, display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                            <Chip size="small" label={slot.resourceType} sx={{ height: 24, textTransform: 'capitalize', fontWeight: 800 }} />
+                            <Chip size="small" label={statusLabel(slot.status)} sx={{ height: 24, bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 800 }} />
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Alert severity="success" sx={{ borderRadius: 2, mb: 2.5 }}>
+                  Venues and equipment with no listed time on this day are open for reservation.
+                </Alert>
+              )}
+
+              <Typography sx={{ color: T.primary, fontWeight: 900, fontSize: '0.9rem', mb: 1 }}>
+                Upcoming reserved times
+              </Typography>
+              {upcomingSchedules.length === 0 ? (
+                <Typography sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.86rem' }}>
+                  All listed resources are open for reservation.
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'grid', gap: 1 }}>
+                  {upcomingSchedules.map((slot) => (
+                    <Box key={`${slot.reservationId}-${slot.resourceName}-${slot.startDate}`} sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, alignItems: 'center', p: 1.1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid rgba(15,23,42,0.06)' }}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: '0.86rem' }} noWrap>
+                          {slot.resourceName}
+                        </Typography>
+                        <Typography sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.76rem' }}>
+                          {formatTimeRange(slot.startDate, slot.endDate)}
+                        </Typography>
+                      </Box>
+                      <Chip size="small" label={statusLabel(slot.status)} sx={{ bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 900, flexShrink: 0 }} />
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
+              {resources.length > 0 && (
+                <Typography sx={{ mt: 2, color: '#64748b', fontWeight: 700, fontSize: '0.78rem' }}>
+                  Public schedule covers {resources.length} reservable venue/equipment item{resources.length === 1 ? '' : 's'}.
+                </Typography>
+              )}
+            </>
+          )}
+        </Box>
+      </Grid>
+    </Grid>
+  );
+};
+
 const ANNOUNCEMENTS = [
   { id: 1, category: 'Security', date: 'March 10, 2026', title: 'Enhanced Gate Security Protocol Starting April 2026', body: 'Effective April 1, 2026, all visitors must present a valid government-issued ID and be registered in our VIMS visitor portal before entry. Homeowners are requested to pre-register expected visitors through the resident portal. QR code stickers will also be distributed for faster vehicle entry.', color: '#ef4444' },
   { id: 2, category: 'Maintenance', date: 'March 8, 2026', title: 'Scheduled Water Service Interruption – March 15, 2026', body: 'Water service will be temporarily interrupted on March 15, 2026 from 8:00 AM to 5:00 PM due to scheduled maintenance of the main water line on Casimiro Street. All residents are advised to store sufficient water. We apologize for the inconvenience.', color: '#f59e0b' },
@@ -667,6 +905,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           {navItem('OFFICIALS', () => scrollTo(officialsRef))}
           {navItem('CONTACT', () => scrollTo(contactRef))}
           {navItem('ABOUT US', () => scrollTo(aboutRef))}
+          {navItem('SCHEDULE', () => scrollTo(calendarSectionRef))}
 
           {/* Calendar */}
           <Box ref={calendarRef} sx={{ position: 'relative' }}>
@@ -718,6 +957,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             { label: 'Officials', key: 'officials' },
             { label: 'Contact', key: 'contact' },
             { label: 'About Us', key: 'about' },
+            { label: 'Schedule', key: 'calendar' },
           ].map((i) => (
             <ListItemButton
               key={i.key}
@@ -1225,25 +1465,23 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           This is a temporary development preview, and these links are not for public use. Publish your site to secure sharing or use an invite link.
         </Box>
 
-        {/* Calendar (inline) */}
+        {/* Reservation Schedule (inline) */}
         <Box ref={calendarSectionRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: T.bg }}>
           <Container maxWidth="lg">
             <Reveal>
               <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
-                Calendar
+                Reservation Schedule
               </Typography>
               <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
-                Quick view of the current month.
+                View reserved venues and equipment by date and time. Days without listed reservations are open for reservation.
               </Typography>
             </Reveal>
-            <Reveal delayMs={80} sx={{ maxWidth: 420 }}>
-              <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: 2, border: '1px solid rgba(45,80,22,0.15)' }}>
-                <MiniCalendar
-                  currentDate={currentDate}
-                  onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-                  onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-                />
-              </Box>
+            <Reveal delayMs={80}>
+              <PublicReservationSchedule
+                currentDate={currentDate}
+                onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+                onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+              />
             </Reveal>
           </Container>
         </Box>

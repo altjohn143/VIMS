@@ -133,70 +133,6 @@ const Reveal = ({ children, sx = {}, delayMs = 0 }) => {
   );
 };
 
-const MiniCalendar = ({ currentDate, onPrevMonth, onNextMonth, compact = false, showFooter = false, onClose }) => {
-  const yr = currentDate.getFullYear();
-  const mo = currentDate.getMonth();
-  const first = new Date(yr, mo, 1).getDay();
-  const days = new Date(yr, mo + 1, 0).getDate();
-  const td = new Date();
-
-  const cells = [];
-  for (let i = 0; i < first; i++) cells.push(<Box key={`e${i}`} />);
-  for (let d = 1; d <= days; d++) {
-    const isT = d === td.getDate() && mo === td.getMonth() && yr === td.getFullYear();
-    cells.push(
-      <Box
-        key={d}
-        sx={{
-          textAlign: 'center',
-          py: compact ? '5px' : '8px',
-          borderRadius: '50%',
-          backgroundColor: isT ? T.primary : 'transparent',
-          color: isT ? 'white' : '#333',
-          fontSize: compact ? '0.78rem' : '0.85rem',
-          fontWeight: isT ? (compact ? 700 : 800) : (compact ? 400 : 500),
-          cursor: compact ? 'pointer' : 'default',
-          '&:hover': { backgroundColor: isT ? T.dark : '#e8f5e9' },
-        }}
-      >
-        {d}
-      </Box>
-    );
-  }
-
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-        <IconButton size="small" onClick={onPrevMonth}>
-          <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
-        </IconButton>
-        <Typography sx={{ fontWeight: compact ? 700 : 800, color: T.primary, fontSize: compact ? '0.9rem' : '1rem' }}>
-          {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-        </Typography>
-        <IconButton size="small" onClick={onNextMonth}>
-          <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
-        </IconButton>
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
-        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
-          <Typography key={d} sx={{ textAlign: 'center', fontSize: compact ? '0.68rem' : '0.72rem', fontWeight: compact ? 700 : 800, color: '#888' }}>{d}</Typography>
-        ))}
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
-        {cells}
-      </Box>
-      {showFooter && (
-        <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography sx={{ fontSize: '0.72rem', color: '#888' }}>
-            Today: {new Date().toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}
-          </Typography>
-          <Button size="small" onClick={onClose} sx={{ color: T.primary, fontSize: '0.72rem', textTransform: 'none', fontWeight: 600 }}>Close</Button>
-        </Box>
-      )}
-    </Box>
-  );
-};
-
 const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) => {
   const [loading, setLoading] = useState(true);
   const [schedules, setSchedules] = useState([]);
@@ -455,6 +391,117 @@ const OFFICIALS = [
   { name: 'Patricia V. Lim', position: 'IT & Systems Coordinator', description: 'Manages the Village Information Management System (VIMS), resident portal, and all digital infrastructure of the community.', avatar: 'PL' },
 ];
 
+const PRIVACY_SECTIONS = [
+  {
+    title: 'Introduction',
+    body: [
+      'Westville Casimiro Homes respects your privacy and recognizes the need to protect personal data entrusted to the community and to the Village Information Management System (VIMS). This Privacy Policy is guided by the Data Privacy Act of 2012, its Implementing Rules and Regulations, issuances of the National Privacy Commission, and other applicable Philippine laws.',
+      'Personal data may include personal information, sensitive personal information, and other information that can reasonably identify a resident, visitor, employee, supplier, or other individual who interacts with the community.'
+    ]
+  },
+  {
+    title: 'Residents and Non-Residents',
+    body: [
+      'We collect and use personal data when it is reasonable and necessary to manage community services, resident records, reservations, visitor access, service requests, payments, announcements, and other HOA-related processes.',
+      'We may process information such as name, address, contact details, account records, lot or household information, vehicle details, reservation requests, visitor logs, payment transactions, service concerns, and communication preferences.'
+    ]
+  },
+  {
+    title: 'Employees, Security Personnel, and Suppliers',
+    body: [
+      'For employees, security personnel, contractors, and suppliers, we may process data needed for evaluation, onboarding, work coordination, payroll or payment processing, audit, compliance, accreditation, procurement, and other administrative functions.',
+      'Collected information may include contact details, employment or supplier records, government registration documents, identification details, attendance or assignment records, and documents required by law or community policy.'
+    ]
+  },
+  {
+    title: 'How We Collect Data',
+    body: [
+      'We collect data when you register for VIMS, submit forms, request services, reserve venues or equipment, manage visitors, make payments, contact the administration, apply for access passes, or provide documents directly to the HOA office or authorized personnel.',
+      'Some data may also be generated through system activity, security logs, transaction records, and communications made through official community channels.'
+    ]
+  },
+  {
+    title: 'Disclosure and Protection',
+    body: [
+      'Personal data may be shared only with authorized officers, employees, service providers, contractors, consultants, government authorities, or other parties who need the information to provide services, comply with legal obligations, protect community property, respond to emergencies, or support legitimate HOA operations.',
+      'We apply reasonable organizational, technical, and physical safeguards to protect personal data against unauthorized access, disclosure, misuse, alteration, loss, or destruction.'
+    ]
+  },
+  {
+    title: 'Children and Minors',
+    body: [
+      'We are careful when handling personal data involving children and minors. When information about minors is required for community access, visitor management, emergency coordination, or resident services, it should be provided by a parent, guardian, or authorized adult.'
+    ]
+  },
+  {
+    title: 'Your Rights',
+    body: [
+      'You may request access to your personal data, ask for corrections, object to processing, withdraw consent where allowed, request deletion when applicable, or raise concerns about how your data is handled, subject to legal, contractual, and community policy limitations.',
+      'For privacy concerns, you may contact the Westville Casimiro Homes administration through the Contact Us section or visit the HOA office. You may also lodge complaints with the National Privacy Commission through its official channels.'
+    ]
+  }
+];
+
+const PrivacyPolicySection = () => (
+  <Grid container spacing={3}>
+    <Grid item xs={12} md={4}>
+      <Paper
+        sx={{
+          p: { xs: 2.5, md: 3 },
+          borderRadius: 3,
+          height: '100%',
+          bgcolor: T.primary,
+          color: 'white',
+          boxShadow: '0 12px 32px rgba(15,90,42,0.18)'
+        }}
+      >
+        <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.accent, mb: 1 }}>
+          Data Privacy
+        </Typography>
+        <Typography sx={{ fontSize: { xs: '1.65rem', md: '2rem' }, fontWeight: 950, lineHeight: 1.08, mb: 2 }}>
+          Privacy Policy
+        </Typography>
+        <Typography sx={{ color: 'rgba(255,255,255,0.78)', fontWeight: 600, lineHeight: 1.75, fontSize: '0.9rem' }}>
+          This policy explains how Westville Casimiro Homes and VIMS collect, use, protect, and manage personal data for community operations.
+        </Typography>
+        <Divider sx={{ my: 2.5, borderColor: 'rgba(255,255,255,0.18)' }} />
+        <Typography sx={{ color: 'rgba(255,255,255,0.70)', fontSize: '0.78rem', lineHeight: 1.7 }}>
+          Last updated: {new Date().getFullYear()}<br />
+          Based on Philippine data privacy principles.
+        </Typography>
+      </Paper>
+    </Grid>
+
+    <Grid item xs={12} md={8}>
+      <Paper
+        sx={{
+          p: { xs: 2.5, md: 3 },
+          borderRadius: 3,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+          border: '1px solid rgba(45,80,22,0.12)'
+        }}
+      >
+        <Grid container spacing={2.25}>
+          {PRIVACY_SECTIONS.map((section) => (
+            <Grid item xs={12} key={section.title}>
+              <Box sx={{ pb: 2, borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
+                <Typography sx={{ color: T.primary, fontWeight: 900, fontSize: '1rem', mb: 1 }}>
+                  {section.title}
+                </Typography>
+                {section.body.map((paragraph) => (
+                  <Typography key={paragraph} sx={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.75, mb: 1 }}>
+                    {paragraph}
+                  </Typography>
+                ))}
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
+    </Grid>
+  </Grid>
+);
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAGE: CONTACT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -684,9 +731,7 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
 // LANDING PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
-  const [showCalendar, setShowCalendar] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const calendarRef = useRef(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const homeRef = useRef(null);
   const announcementRef = useRef(null);
@@ -694,12 +739,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   const contactRef = useRef(null);
   const aboutRef = useRef(null);
   const calendarSectionRef = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => { if (calendarRef.current && !calendarRef.current.contains(e.target)) setShowCalendar(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  const privacyRef = useRef(null);
 
   const scrollTo = (ref) => {
     const el = ref?.current;
@@ -722,6 +762,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       case 'contact': scrollTo(contactRef); break;
       case 'about': scrollTo(aboutRef); break;
       case 'calendar': scrollTo(calendarSectionRef); break;
+      case 'privacy': scrollTo(privacyRef); break;
       default: break;
     }
   };
@@ -906,27 +947,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           {navItem('CONTACT', () => scrollTo(contactRef))}
           {navItem('ABOUT US', () => scrollTo(aboutRef))}
           {navItem('SCHEDULE', () => scrollTo(calendarSectionRef))}
-
-          {/* Calendar */}
-          <Box ref={calendarRef} sx={{ position: 'relative' }}>
-            <Typography onClick={() => setShowCalendar(!showCalendar)}
-              sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', cursor: 'pointer', '&:hover': { color: T.accent }, transition: 'color 0.2s' }}>
-              CALENDAR
-            </Typography>
-
-            {showCalendar && (
-              <Box sx={{ position: 'absolute', top: '160%', right: 0, width: 280, backgroundColor: 'white', borderRadius: 2, boxShadow: '0 8px 32px rgba(0,0,0,0.25)', p: 2, zIndex: 999, border: '1px solid rgba(45,80,22,0.15)' }}>
-                <MiniCalendar
-                  currentDate={currentDate}
-                  compact
-                  showFooter
-                  onClose={() => setShowCalendar(false)}
-                  onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-                  onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-                />
-              </Box>
-            )}
-          </Box>
+          {navItem('PRIVACY POLICY', () => scrollTo(privacyRef))}
         </Box>
       </Box>
 
@@ -958,6 +979,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             { label: 'Contact', key: 'contact' },
             { label: 'About Us', key: 'about' },
             { label: 'Schedule', key: 'calendar' },
+            { label: 'Privacy Policy', key: 'privacy' },
           ].map((i) => (
             <ListItemButton
               key={i.key}
@@ -1482,6 +1504,23 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                 onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
                 onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
               />
+            </Reveal>
+          </Container>
+        </Box>
+
+        {/* Privacy Policy */}
+        <Box ref={privacyRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
+          <Container maxWidth="lg">
+            <Reveal>
+              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
+                Privacy Policy
+              </Typography>
+              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+                Learn how Westville Casimiro Homes and VIMS handle personal data for residents, visitors, personnel, and community partners.
+              </Typography>
+            </Reveal>
+            <Reveal delayMs={80}>
+              <PrivacyPolicySection />
             </Reveal>
           </Container>
         </Box>

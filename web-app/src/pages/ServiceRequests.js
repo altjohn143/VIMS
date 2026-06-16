@@ -643,12 +643,57 @@ const ServiceRequests = () => {
   const getStatusStep = (status) => {
     switch(status) {
       case 'pending': return 0;
+      case 'under-review': return 0;
       case 'assigned': return 1;
       case 'in-progress': return 2;
       case 'completed': return 3;
       default: return 0;
     }
   };
+
+  const getTimelineEvents = (request) => {
+    if (!request) return [];
+    return [
+      { key: 'submitted', label: 'Submitted', at: request.createdAt, done: true },
+      { key: 'reviewed', label: 'Under Review', at: request.reviewedAt, done: ['under-review', 'assigned', 'in-progress', 'completed'].includes(request.status) || !!request.reviewedAt },
+      { key: 'assigned', label: 'Assigned', at: request.assignedAt, done: ['assigned', 'in-progress', 'completed'].includes(request.status) || !!request.assignedAt },
+      { key: 'progress', label: 'In Progress', at: request.status === 'in-progress' ? request.updatedAt : null, done: ['in-progress', 'completed'].includes(request.status) },
+      { key: 'completed', label: request.status === 'cancelled' ? 'Cancelled' : 'Completed', at: request.completedAt || request.cancelledAt, done: ['completed', 'cancelled', 'rejected'].includes(request.status), danger: ['cancelled', 'rejected'].includes(request.status) }
+    ];
+  };
+
+  const renderProgressTimeline = (request) => (
+    <Box sx={{ display: 'grid', gap: 1.2, mt: 2 }}>
+      {getTimelineEvents(request).map((event) => (
+        <Box key={event.key} sx={{ display: 'flex', gap: 1.4, alignItems: 'flex-start' }}>
+          <Box
+            sx={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              bgcolor: event.done ? (event.danger ? themeColors.error : themeColors.primary) : '#e2e8f0',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              mt: 0.2
+            }}
+          >
+            <CheckCircleIcon sx={{ fontSize: 16 }} />
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontWeight: 800, color: event.done ? themeColors.textPrimary : themeColors.textSecondary, fontSize: '0.9rem' }}>
+              {event.label}
+            </Typography>
+            <Typography sx={{ color: themeColors.textSecondary, fontSize: '0.78rem', fontWeight: 600 }}>
+              {event.at ? formatDate(event.at) : event.done ? 'Updated recently' : 'Waiting'}
+            </Typography>
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
 
   const tabCounts = useMemo(() => {
     return {
@@ -1767,6 +1812,9 @@ const ServiceRequests = () => {
                     </Grid>
                   )}
                   <Grid item xs={12}>
+                    <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: themeColors.textPrimary, fontWeight: 700 }}>
+                      Progress Timeline
+                    </Typography>
                     <Stepper 
                       activeStep={getStatusStep(selectedRequest.status)} 
                       sx={{ mt: 3 }}
@@ -1809,6 +1857,7 @@ const ServiceRequests = () => {
                         </Step>
                       ))}
                     </Stepper>
+                    {renderProgressTimeline(selectedRequest)}
                   </Grid>
                 </Grid>
               </Box>

@@ -36,10 +36,17 @@ const SecurityQrScannerScreen = () => {
       const response = await api.post('/visitors/scan-action', { scanValue: data });
       if (response.data?.success) {
         const action = response.data?.data?.action;
+        const nextAction = response.data?.data?.nextAction;
         const visitor = response.data?.data?.visitor;
         setLastResult({
           action,
+          nextAction,
           visitorName: visitor?.visitorName || 'Visitor',
+          residentName: visitor?.residentId
+            ? `${visitor.residentId.firstName || ''} ${visitor.residentId.lastName || ''}`.trim()
+            : 'Resident',
+          houseNumber: visitor?.residentId?.houseNumber || 'N/A',
+          status: visitor?.qrStatus || visitor?.status || 'Processed',
           at: new Date().toISOString(),
         });
         Alert.alert(
@@ -60,6 +67,12 @@ const SecurityQrScannerScreen = () => {
     if (action === 'entry_logged') return 'Entry logged';
     if (action === 'exit_logged') return 'Exit logged';
     return 'Processed';
+  };
+
+  const formatNextAction = (nextAction) => {
+    if (nextAction === 'resident_confirmation') return 'Ask resident to confirm arrival/departure in the app.';
+    if (nextAction === 'completed') return 'Pass completed. No further gate action needed.';
+    return 'Ready for next scan.';
   };
 
   return (
@@ -108,9 +121,21 @@ const SecurityQrScannerScreen = () => {
 
       {lastResult ? (
         <View style={styles.resultCard}>
-          <Text style={styles.resultTitle}>Last Scan</Text>
-          <Text style={styles.resultText}>{lastResult.visitorName}</Text>
-          <Text style={styles.resultText}>{formatAction(lastResult.action)}</Text>
+          <View style={styles.resultHeader}>
+            <Ionicons
+              name={lastResult.action === 'exit_logged' ? 'log-out-outline' : 'log-in-outline'}
+              size={22}
+              color="#bbf7d0"
+            />
+            <Text style={styles.resultTitle}>Last Scan</Text>
+          </View>
+          <Text style={styles.resultName}>{lastResult.visitorName}</Text>
+          <Text style={styles.resultText}>Resident: {lastResult.residentName}</Text>
+          <Text style={styles.resultText}>House: {lastResult.houseNumber}</Text>
+          <View style={styles.statusPill}>
+            <Text style={styles.statusPillText}>{formatAction(lastResult.action)} • {lastResult.status}</Text>
+          </View>
+          <Text style={styles.nextActionText}>{formatNextAction(lastResult.nextAction)}</Text>
         </View>
       ) : null}
     </View>
@@ -211,15 +236,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#166534',
   },
+  resultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
   resultTitle: {
     color: '#bbf7d0',
     fontSize: 14,
     fontWeight: '700',
+  },
+  resultName: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '800',
     marginBottom: 6,
   },
   resultText: {
     color: 'white',
     fontSize: 13,
+    marginBottom: 4,
+  },
+  statusPill: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#166534',
+  },
+  statusPillText: {
+    color: '#dcfce7',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  nextActionText: {
+    color: '#bbf7d0',
+    fontSize: 12,
+    marginTop: 10,
+    lineHeight: 18,
   },
 });
 

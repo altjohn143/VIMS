@@ -158,6 +158,33 @@ const userSchema = new mongoose.Schema({
   profilePhoto: {
     type: String,
     default: ''
+  },
+
+  pushTokens: [{
+    token: {
+      type: String,
+      required: true
+    },
+    platform: {
+      type: String,
+      enum: ['ios', 'android', 'web', 'unknown'],
+      default: 'unknown'
+    },
+    deviceName: {
+      type: String,
+      default: ''
+    },
+    lastSeenAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+
+  notificationPreferences: {
+    pushEnabled: {
+      type: Boolean,
+      default: true
+    }
   }
 
   ,

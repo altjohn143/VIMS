@@ -841,7 +841,7 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
       return res.json({
         success: true,
         message: 'Visitor entry logged via QR scan',
-        data: { visitor, action: 'entry_logged' }
+        data: { visitor, action: 'entry_logged', nextAction: 'resident_confirmation' }
       });
     }
 
@@ -871,7 +871,7 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
       return res.json({
         success: true,
         message: 'Visitor exit logged via QR scan',
-        data: { visitor, action: 'exit_logged' }
+        data: { visitor, action: 'exit_logged', nextAction: 'completed' }
       });
     }
 

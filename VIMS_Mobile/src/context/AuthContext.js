@@ -2,6 +2,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../utils/api';
+import { registerForPushNotifications, unregisterPushToken } from '../utils/notifications';
 
 const AuthContext = createContext({});
 
@@ -33,6 +34,17 @@ export const AuthProvider = ({ children }) => {
     return normalizedUser;
   };
 
+  const syncPushToken = async () => {
+    try {
+      const result = await registerForPushNotifications();
+      if (result.success && result.token) {
+        await AsyncStorage.setItem('pushToken', result.token);
+      }
+    } catch (error) {
+      console.log('Push notification registration skipped:', error?.message || error);
+    }
+  };
+
   const loadStoredData = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -48,6 +60,7 @@ export const AuthProvider = ({ children }) => {
         if (response.data?.success && response.data?.user) {
           await persistUser(response.data.user, storedUser);
         }
+        syncPushToken();
       }
     } catch (error) {
       console.error('Error loading stored data:', error);
@@ -81,6 +94,7 @@ export const AuthProvider = ({ children }) => {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         const normalizedUser = await persistUser(user);
         setIsAuthenticated(true);
+        syncPushToken();
         
         return { success: true, user: normalizedUser };
       } else {
@@ -136,8 +150,13 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      const pushToken = await AsyncStorage.getItem('pushToken');
+      if (pushToken) {
+        await unregisterPushToken(pushToken).catch(() => null);
+      }
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('pushToken');
       delete api.defaults.headers.common['Authorization'];
       setUser(null);
       setIsAuthenticated(false);

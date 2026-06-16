@@ -29,7 +29,10 @@ import {
   CircularProgress,
   AppBar,
   Toolbar,
-  Avatar
+  Avatar,
+  Tabs,
+  Tab,
+  InputAdornment
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -39,7 +42,9 @@ import {
   EventAvailable as EventAvailableIcon,
   Build as BuildIcon,
   MeetingRoom as MeetingRoomIcon,
-  ReportProblemOutlined as ReportProblemOutlinedIcon
+  ReportProblemOutlined as ReportProblemOutlinedIcon,
+  Search as SearchIcon,
+  FilterAlt as FilterIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -48,6 +53,9 @@ const AdminReservations = () => {
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [resourceTypeFilter, setResourceTypeFilter] = useState('all');
 
   const [resourceFormData, setResourceFormData] = useState({
     type: 'venue',
@@ -70,6 +78,28 @@ const AdminReservations = () => {
       ).length,
     };
   }, [reservations]);
+
+  const filteredReservations = useMemo(() => {
+    const now = new Date();
+    const query = searchQuery.trim().toLowerCase();
+
+    return reservations.filter((reservation) => {
+      const isOverdue = new Date(reservation.endDate) < now && !['returned', 'checked_out', 'cancelled'].includes(reservation.status);
+      if (activeTab === 'overdue' && !isOverdue) return false;
+      if (activeTab !== 'all' && activeTab !== 'overdue' && reservation.status !== activeTab) return false;
+
+      const type = getReservationType(reservation);
+      if (resourceTypeFilter !== 'all' && type !== resourceTypeFilter) return false;
+
+      if (!query) return true;
+      const reservedBy = `${reservation.reservedBy?.firstName || ''} ${reservation.reservedBy?.lastName || ''}`.toLowerCase();
+      const resourceTitle = getReservationTitle(reservation).toLowerCase();
+      const description = (reservation.description || '').toLowerCase();
+      const itemText = (reservation.items || []).map((item) => `${item.resourceName} ${item.resourceType}`).join(' ').toLowerCase();
+
+      return [reservedBy, resourceTitle, description, itemText, reservation.status].some((text) => text.includes(query));
+    });
+  }, [activeTab, reservations, resourceTypeFilter, searchQuery]);
 
   useEffect(() => {
     fetchReservations();
@@ -140,27 +170,27 @@ const AdminReservations = () => {
     }
   };
 
-  const getResourceIcon = (type) => {
+  function getResourceIcon(type) {
     if (type === 'venue') return <MeetingRoomIcon />;
     if (type === 'equipment') return <BuildIcon />;
     return <MeetingRoomIcon />;
-  };
+  }
 
-  const getReservationType = (reservation) => {
+  function getReservationType(reservation) {
     const items = reservation.items || [];
     if (items.length === 0) {
       return reservation.resourceType || 'unknown';
     }
     const uniqueTypes = [...new Set(items.map((item) => item.resourceType))];
     return uniqueTypes.length === 1 ? uniqueTypes[0] : 'mixed';
-  };
+  }
 
-  const getReservationTitle = (reservation) => {
+  function getReservationTitle(reservation) {
     if (!reservation.items || reservation.items.length === 0) {
       return reservation.resourceName || 'Unknown resource';
     }
     return `${reservation.items.length} item${reservation.items.length > 1 ? 's' : ''}`;
-  };
+  }
 
   const renderReservationItems = (reservation) => {
     if (!reservation.items || reservation.items.length === 0) {
@@ -328,7 +358,63 @@ const AdminReservations = () => {
           </Box>
         </Paper>
 
-        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+        <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: '18px' }}>
+          <Box sx={{ px: 2.5, pt: 2, pb: 1.5, display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            <TextField
+              size="small"
+              placeholder="Search resource, resident, status..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{ minWidth: { xs: '100%', md: 320 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                )
+              }}
+            />
+            <FormControl size="small" sx={{ minWidth: 170 }}>
+              <InputLabel>Resource Type</InputLabel>
+              <Select
+                value={resourceTypeFilter}
+                label="Resource Type"
+                onChange={(e) => setResourceTypeFilter(e.target.value)}
+                startAdornment={<FilterIcon sx={{ color: '#64748b', mr: 0.5, fontSize: 18 }} />}
+              >
+                <MenuItem value="all">All Types</MenuItem>
+                <MenuItem value="venue">Venues</MenuItem>
+                <MenuItem value="equipment">Equipment</MenuItem>
+                <MenuItem value="mixed">Mixed</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+
+          <Tabs
+            value={activeTab}
+            onChange={(e, value) => setActiveTab(value)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              px: 2,
+              borderTop: '1px solid rgba(15,23,42,0.06)',
+              borderBottom: '1px solid rgba(15,23,42,0.06)'
+            }}
+          >
+            <Tab value="all" label={`All (${stats.total})`} />
+            <Tab value="pending" label={`Pending (${stats.pending})`} />
+            <Tab value="confirmed" label={`Confirmed (${stats.confirmed})`} />
+            <Tab value="borrowed" label={`Borrowed (${stats.borrowed})`} />
+            <Tab value="returned" label={`Returned (${stats.returned})`} />
+            <Tab value="checked_out" label={`Checked Out (${stats.checkedOut})`} />
+            <Tab value="cancelled" label={`Cancelled (${stats.cancelled})`} />
+            <Tab value="overdue" label={`Overdue (${stats.overdue})`} />
+          </Tabs>
+
+          <Box sx={{ px: 2.5, py: 1.5, color: '#64748b', fontWeight: 700, fontSize: '0.85rem' }}>
+            Showing {filteredReservations.length} of {reservations.length} reservation request{reservations.length === 1 ? '' : 's'}
+          </Box>
+
           <TableContainer sx={{ maxHeight: 600 }}>
             <Table stickyHeader>
               <TableHead>
@@ -343,7 +429,13 @@ const AdminReservations = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {reservations.map((reservation) => {
+                {filteredReservations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 6, color: '#64748b', fontWeight: 700 }}>
+                      No reservation requests match the current filters.
+                    </TableCell>
+                  </TableRow>
+                ) : filteredReservations.map((reservation) => {
                   const isOverdue = new Date(reservation.endDate) < new Date() && !['returned', 'checked_out', 'cancelled'].includes(reservation.status);
                   const displayStatus = isOverdue ? 'Overdue' : formatStatusLabel(reservation.status);
                   const statusColor = isOverdue ? 'error' : getStatusColor(reservation.status);

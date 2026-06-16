@@ -620,6 +620,55 @@ useEffect(() => {
     );
   }, []);
 
+  const getTimelineEvents = (request) => {
+    if (!request) return [];
+    return [
+      { key: 'submitted', label: 'Submitted', at: request.createdAt, done: true },
+      { key: 'reviewed', label: 'Reviewed', at: request.reviewedAt, done: ['under-review', 'assigned', 'in-progress', 'completed'].includes(request.status) || !!request.reviewedAt },
+      { key: 'assigned', label: 'Assigned', at: request.assignedAt, done: ['assigned', 'in-progress', 'completed'].includes(request.status) || !!request.assignedAt },
+      { key: 'progress', label: 'In Progress', at: request.status === 'in-progress' ? request.updatedAt : null, done: ['in-progress', 'completed'].includes(request.status) },
+      { key: 'completed', label: request.status === 'cancelled' ? 'Cancelled' : 'Completed', at: request.completedAt || request.cancelledAt, done: ['completed', 'cancelled', 'rejected'].includes(request.status), danger: ['cancelled', 'rejected'].includes(request.status) }
+    ];
+  };
+
+  const renderProgressTimeline = (request) => (
+    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, borderColor: themeColors.border }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: themeColors.textPrimary }}>
+        Progress Timeline
+      </Typography>
+      <Box sx={{ display: 'grid', gap: 1.2 }}>
+        {getTimelineEvents(request).map((event) => (
+          <Box key={event.key} sx={{ display: 'flex', gap: 1.4, alignItems: 'flex-start' }}>
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                bgcolor: event.done ? (event.danger ? themeColors.error : themeColors.primary) : '#e2e8f0',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                mt: 0.2
+              }}
+            >
+              <CheckCircleIcon sx={{ fontSize: 16 }} />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 800, color: event.done ? themeColors.textPrimary : themeColors.textSecondary, fontSize: '0.9rem' }}>
+                {event.label}
+              </Typography>
+              <Typography sx={{ color: themeColors.textSecondary, fontSize: '0.78rem', fontWeight: 600 }}>
+                {event.at ? formatDate(event.at) : event.done ? 'Updated recently' : 'Waiting'}
+              </Typography>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    </Paper>
+  );
+
   const tabCounts = useMemo(() => {
     return {
       pending: requests.filter(r => r.status === 'pending').length,
@@ -1786,6 +1835,10 @@ useEffect(() => {
                       )}
                     </Grid>
                   </Paper>
+                </Grid>
+
+                <Grid item xs={12}>
+                  {renderProgressTimeline(selectedRequest)}
                 </Grid>
 
                 {/* Assignment Section */}

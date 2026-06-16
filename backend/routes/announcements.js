@@ -90,6 +90,27 @@ router.get('/archived', protect, authorize('admin'), async (req, res) => {
 
 const ALLOWED_ANNOUNCEMENT_CATEGORIES = ['general', 'monthlyCollection'];
 
+// Public homepage feed. Keep this limited to published, non-archived fields.
+router.get('/public', async (req, res) => {
+  try {
+    const now = new Date();
+    const rows = await Announcement.find({
+      isArchived: false,
+      $or: [
+        { status: 'published' },
+        { status: 'scheduled', scheduledAt: { $lte: now } }
+      ]
+    })
+      .select('title body category image publishedAt scheduledAt createdAt')
+      .sort({ publishedAt: -1, createdAt: -1 })
+      .limit(12);
+
+    res.json({ success: true, count: rows.length, data: rows.map((row) => withImageUrl(req, row)) });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to load public announcements' });
+  }
+});
+
 // Update announcement
 router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {

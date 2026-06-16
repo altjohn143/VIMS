@@ -138,6 +138,7 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
   const [schedules, setSchedules] = useState([]);
   const [resources, setResources] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [resourceFilter, setResourceFilter] = useState('all');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -194,8 +195,11 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
   };
 
   const selectedKey = toDateKey(selectedDate);
+  const filteredSchedules = resourceFilter === 'all'
+    ? schedules
+    : schedules.filter((slot) => slot.resourceType === resourceFilter);
   const scheduleKeys = new Set();
-  schedules.forEach((slot) => {
+  filteredSchedules.forEach((slot) => {
     const cursor = new Date(slot.startDate);
     cursor.setHours(0, 0, 0, 0);
     const end = new Date(slot.endDate);
@@ -205,8 +209,8 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
       cursor.setDate(cursor.getDate() + 1);
     }
   });
-  const selectedSchedules = schedules.filter((slot) => slotOverlapsDay(slot, selectedDate));
-  const upcomingSchedules = [...schedules].sort((a, b) => new Date(a.startDate) - new Date(b.startDate)).slice(0, 8);
+  const selectedSchedules = filteredSchedules.filter((slot) => slotOverlapsDay(slot, selectedDate));
+  const upcomingSchedules = [...filteredSchedules].sort((a, b) => new Date(a.startDate) - new Date(b.startDate)).slice(0, 8);
 
   const yr = currentDate.getFullYear();
   const mo = currentDate.getMonth();
@@ -220,6 +224,26 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
     <Grid container spacing={3} alignItems="stretch">
       <Grid item xs={12} md={5}>
         <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: 2, border: '1px solid rgba(45,80,22,0.15)', height: '100%' }}>
+          <Box sx={{ mb: 1.5, display: 'flex', gap: 0.8, flexWrap: 'wrap' }}>
+            {[
+              { value: 'all', label: 'All' },
+              { value: 'venue', label: 'Venues' },
+              { value: 'equipment', label: 'Equipment' }
+            ].map((option) => (
+              <Chip
+                key={option.value}
+                label={option.label}
+                onClick={() => setResourceFilter(option.value)}
+                sx={{
+                  bgcolor: resourceFilter === option.value ? T.primary : '#f1f5f9',
+                  color: resourceFilter === option.value ? 'white' : '#334155',
+                  fontWeight: 900,
+                  cursor: 'pointer'
+                }}
+              />
+            ))}
+          </Box>
+
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
             <IconButton size="small" onClick={onPrevMonth}>
               <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
@@ -294,7 +318,7 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
                     {selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
                   </Typography>
                   <Typography sx={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>
-                    {selectedSchedules.length > 0 ? 'Reserved schedules for this day' : 'No reservations posted for this day'}
+                    {selectedSchedules.length > 0 ? 'Reserved schedules for this day' : `No ${resourceFilter === 'all' ? '' : resourceFilter} reservations posted for this day`}
                   </Typography>
                 </Box>
                 <Chip
@@ -329,7 +353,7 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
                 </Grid>
               ) : (
                 <Alert severity="success" sx={{ borderRadius: 2, mb: 2.5 }}>
-                  Venues and equipment with no listed time on this day are open for reservation.
+                  {resourceFilter === 'all' ? 'Venues and equipment' : resourceFilter === 'venue' ? 'Venues' : 'Equipment'} with no listed time on this day are open for reservation.
                 </Alert>
               )}
 
@@ -338,7 +362,7 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
               </Typography>
               {upcomingSchedules.length === 0 ? (
                 <Typography sx={{ color: '#64748b', fontWeight: 700, fontSize: '0.86rem' }}>
-                  All listed resources are open for reservation.
+                  No upcoming {resourceFilter === 'all' ? 'resource' : resourceFilter} reservations are listed.
                 </Typography>
               ) : (
                 <Box sx={{ display: 'grid', gap: 1 }}>
@@ -379,6 +403,16 @@ const ANNOUNCEMENTS = [
   { id: 5, category: 'Event', date: 'February 20, 2026', title: 'Westville Summer Sports Fest – April 12–13, 2026', body: 'Get ready for our annual Summer Sports Fest! Events include basketball, volleyball, badminton, and swimming competitions. Registration is open from March 1–31, 2026. Contact the HOA office or message our official Facebook page to register your team. Prizes await the winners!', color: '#8b5cf6' },
   { id: 6, category: 'Advisory', date: 'February 15, 2026', title: 'Reminder: No Loud Noise After 10:00 PM', body: 'As a reminder to all residents, the community noise ordinance prohibits loud music, parties, and other disruptive activities after 10:00 PM on weekdays and 11:00 PM on weekends. Violations may result in fines as stipulated in the Deed of Restrictions. Thank you for your cooperation.', color: '#64748b' },
 ];
+
+const getAnnouncementCategory = (category) => {
+  if (category === 'monthlyCollection') return 'Finance';
+  return 'Community';
+};
+
+const getAnnouncementColor = (category) => {
+  if (category === 'monthlyCollection') return '#0ea5e9';
+  return T.light;
+};
 
 const OFFICIALS = [
   { name: 'Eduardo M. Santos', position: 'HOA President', description: 'Leads the Homeowners Association in promoting community welfare, overseeing governance, and representing residents in all official matters.', avatar: 'ES' },
@@ -733,6 +767,8 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
 const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [publicAnnouncements, setPublicAnnouncements] = useState([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
   const homeRef = useRef(null);
   const announcementRef = useRef(null);
   const officialsRef = useRef(null);
@@ -740,6 +776,41 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   const aboutRef = useRef(null);
   const calendarSectionRef = useRef(null);
   const privacyRef = useRef(null);
+
+  useEffect(() => {
+    const loadPublicAnnouncements = async () => {
+      setAnnouncementsLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/announcements/public`);
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error || 'Unable to load announcements');
+        }
+        const rows = (payload.data || []).map((item) => ({
+          id: item._id || item.id,
+          category: getAnnouncementCategory(item.category),
+          date: new Date(item.publishedAt || item.scheduledAt || item.createdAt || Date.now()).toLocaleDateString([], {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          title: item.title,
+          body: item.body,
+          color: getAnnouncementColor(item.category),
+          imageUrl: item.imageUrl
+        }));
+        setPublicAnnouncements(rows);
+      } catch (error) {
+        setPublicAnnouncements([]);
+      } finally {
+        setAnnouncementsLoading(false);
+      }
+    };
+
+    loadPublicAnnouncements();
+  }, []);
+
+  const visibleAnnouncements = publicAnnouncements.length > 0 ? publicAnnouncements : ANNOUNCEMENTS;
 
   const scrollTo = (ref) => {
     const el = ref?.current;
@@ -1321,7 +1392,16 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             <Grid container spacing={2.5}>
 
 
-              {ANNOUNCEMENTS.slice(0, 2).map((ann) => (
+              {announcementsLoading ? (
+                <Grid item xs={12} md={4}>
+                  <Card sx={{ borderRadius: 3, boxShadow: '0 12px 32px rgba(15,23,42,0.10)' }}>
+                    <CardContent sx={{ p: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <CircularProgress size={22} sx={{ color: T.primary }} />
+                      <Typography sx={{ color: '#475569', fontWeight: 800 }}>Loading announcements...</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ) : visibleAnnouncements.slice(0, 2).map((ann) => (
                 <Grid item xs={12} md={4} key={ann.id}>
                   <Card
                     onClick={() => scrollTo(announcementRef)}
@@ -1335,6 +1415,9 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                       '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 18px 44px rgba(15,23,42,0.16)' },
                     }}
                   >
+                    {ann.imageUrl && (
+                      <Box component="img" src={ann.imageUrl} alt={ann.title} sx={{ width: '100%', height: 130, objectFit: 'cover' }} />
+                    )}
                     <CardContent sx={{ p: 2.5 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.25 }}>
                         <Chip
@@ -1393,10 +1476,20 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               </Typography>
             </Reveal>
             <Grid container spacing={3}>
-              {ANNOUNCEMENTS.slice(0, 4).map((ann, idx) => (
+              {announcementsLoading ? (
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 3, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <CircularProgress size={24} sx={{ color: T.primary }} />
+                    <Typography sx={{ color: '#475569', fontWeight: 800 }}>Loading announcements...</Typography>
+                  </Paper>
+                </Grid>
+              ) : visibleAnnouncements.slice(0, 4).map((ann, idx) => (
                 <Grid item xs={12} md={6} key={ann.id}>
                   <Reveal delayMs={idx * 80}>
                     <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', borderLeft: `5px solid ${ann.color}` }}>
+                      {ann.imageUrl && (
+                        <Box component="img" src={ann.imageUrl} alt={ann.title} sx={{ width: '100%', height: 170, objectFit: 'cover' }} />
+                      )}
                       <CardContent sx={{ p: 3 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                           <Chip label={ann.category} size="small" sx={{ backgroundColor: ann.color + '20', color: ann.color, fontWeight: 700, fontSize: '0.7rem' }} />

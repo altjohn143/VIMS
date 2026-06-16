@@ -117,6 +117,7 @@ const Reservations = () => {
   const [resources, setResources] = useState({ venue: [], equipment: [] });
   const [availability, setAvailability] = useState([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityFilter, setAvailabilityFilter] = useState('all');
 
   const [formData, setFormData] = useState({
     description: '',
@@ -432,6 +433,11 @@ const Reservations = () => {
     );
   };
 
+  const getFilteredAvailability = () => {
+    if (availabilityFilter === 'all') return availability;
+    return availability.filter((slot) => slot.resourceType === availabilityFilter);
+  };
+
   const formatDateTime = (date) => new Date(date).toLocaleString([], {
     month: 'short',
     day: 'numeric',
@@ -457,7 +463,7 @@ const Reservations = () => {
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
-    return availability.some((slot) => rangesOverlap(dayStart, dayEnd, slot.startDate, slot.endDate));
+    return getFilteredAvailability().some((slot) => rangesOverlap(dayStart, dayEnd, slot.startDate, slot.endDate));
   };
 
   const isDateInSelectedRange = (date) => {
@@ -1330,7 +1336,25 @@ const Reservations = () => {
                         Red dates already have reservations for the selected resource.
                       </Typography>
                     </Box>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                      {[
+                        { value: 'all', label: 'All' },
+                        { value: 'venue', label: 'Venues' },
+                        { value: 'equipment', label: 'Equipment' }
+                      ].map((option) => (
+                        <Chip
+                          key={option.value}
+                          size="small"
+                          label={option.label}
+                          onClick={() => setAvailabilityFilter(option.value)}
+                          sx={{
+                            bgcolor: availabilityFilter === option.value ? themeColors.primary : '#f1f5f9',
+                            color: availabilityFilter === option.value ? 'white' : themeColors.textPrimary,
+                            fontWeight: 900,
+                            cursor: 'pointer'
+                          }}
+                        />
+                      ))}
                       <Chip size="small" label="Selected" sx={{ bgcolor: '#dcfce7', color: themeColors.primary, fontWeight: 800 }} />
                       <Chip size="small" label="Reserved" sx={{ bgcolor: '#fee2e2', color: '#b91c1c', fontWeight: 800 }} />
                     </Stack>
@@ -1387,23 +1411,46 @@ const Reservations = () => {
                           <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
                             <CircularProgress size={26} sx={{ color: themeColors.primary }} />
                           </Box>
-                        ) : availability.length === 0 ? (
+                        ) : getFilteredAvailability().length === 0 ? (
                           <Alert severity="success" sx={{ borderRadius: '12px' }}>
-                            No reserved schedules found for the selected resource in the next 6 months.
+                            No reserved {availabilityFilter === 'all' ? 'schedules' : availabilityFilter} found for the selected resource in the next 6 months.
                           </Alert>
                         ) : (
                           <Stack spacing={1}>
                             {getSelectedScheduleConflicts().length > 0 && (
                               <Alert severity="error" sx={{ borderRadius: '12px' }}>
-                                The selected date and time overlaps with an existing reservation.
+                                The selected date and time overlaps with {getSelectedScheduleConflicts().length} existing reservation{getSelectedScheduleConflicts().length === 1 ? '' : 's'}.
                               </Alert>
+                            )}
+                            {getSelectedScheduleConflicts().length > 0 && (
+                              <Stack spacing={1}>
+                                {getSelectedScheduleConflicts().map((slot) => (
+                                  <Paper
+                                    key={`conflict-${slot.reservationId}-${slot.resourceName}-${slot.startDate}`}
+                                    elevation={0}
+                                    sx={{
+                                      p: 1.25,
+                                      borderRadius: '12px',
+                                      border: '1px solid #fecaca',
+                                      bgcolor: '#fff1f2'
+                                    }}
+                                  >
+                                    <Typography sx={{ color: '#991b1b', fontWeight: 900, fontSize: '0.85rem' }}>
+                                      Conflict: {slot.resourceName}
+                                    </Typography>
+                                    <Typography sx={{ color: '#7f1d1d', fontSize: '0.76rem', fontWeight: 700 }}>
+                                      {formatDateTime(slot.startDate)} - {formatDateTime(slot.endDate)}
+                                    </Typography>
+                                  </Paper>
+                                ))}
+                              </Stack>
                             )}
                             <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>
                               Reserved schedules
                             </Typography>
                             <Box sx={{ maxHeight: 220, overflowY: 'auto', pr: 0.5 }}>
                               <Stack spacing={1}>
-                                {availability.slice(0, 8).map((slot) => (
+                                {getFilteredAvailability().slice(0, 8).map((slot) => (
                                   <Paper
                                     key={`${slot.reservationId}-${slot.resourceName}-${slot.startDate}`}
                                     elevation={0}
@@ -1420,6 +1467,12 @@ const Reservations = () => {
                                     <Typography sx={{ color: themeColors.textSecondary, fontSize: '0.78rem', fontWeight: 700 }}>
                                       {formatDateTime(slot.startDate)} - {formatDateTime(slot.endDate)}
                                     </Typography>
+                                    <Box sx={{ mt: 0.8, display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                                      <Chip size="small" label={slot.resourceType} sx={{ height: 22, textTransform: 'capitalize', fontWeight: 800 }} />
+                                      {rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate) && (
+                                        <Chip size="small" label="Overlaps selected time" sx={{ height: 22, bgcolor: '#fee2e2', color: '#991b1b', fontWeight: 900 }} />
+                                      )}
+                                    </Box>
                                   </Paper>
                                 ))}
                               </Stack>

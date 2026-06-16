@@ -180,6 +180,7 @@ const ResidentReservationCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [schedules, setSchedules] = useState([]);
+  const [resourceFilter, setResourceFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -227,8 +228,12 @@ const ResidentReservationCalendar = () => {
     return 'Reserved';
   };
 
+  const filteredSchedules = resourceFilter === 'all'
+    ? schedules
+    : schedules.filter((slot) => slot.resourceType === resourceFilter);
+
   const scheduleKeys = new Set();
-  schedules.forEach((slot) => {
+  filteredSchedules.forEach((slot) => {
     const cursor = new Date(slot.startDate);
     cursor.setHours(0, 0, 0, 0);
     const end = new Date(slot.endDate);
@@ -239,7 +244,7 @@ const ResidentReservationCalendar = () => {
     }
   });
 
-  const selectedSchedules = schedules
+  const selectedSchedules = filteredSchedules
     .filter((slot) => slotOverlapsDay(slot, selectedDate))
     .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
@@ -302,6 +307,26 @@ const ResidentReservationCalendar = () => {
           <Grid container spacing={2.5}>
             <Grid item xs={12} md={5}>
               <Paper elevation={0} sx={{ p: 2, borderRadius: '16px', border: `1px solid ${themeColors.border}`, height: '100%' }}>
+                <Box sx={{ mb: 1.5, display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                  {[
+                    { value: 'all', label: 'All' },
+                    { value: 'venue', label: 'Venues' },
+                    { value: 'equipment', label: 'Equipment' }
+                  ].map((option) => (
+                    <Chip
+                      key={option.value}
+                      label={option.label}
+                      onClick={() => setResourceFilter(option.value)}
+                      sx={{
+                        bgcolor: resourceFilter === option.value ? themeColors.primary : '#f1f5f9',
+                        color: resourceFilter === option.value ? 'white' : themeColors.textPrimary,
+                        fontWeight: 900,
+                        cursor: 'pointer'
+                      }}
+                    />
+                  ))}
+                </Box>
+
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                   <IconButton size="small" onClick={() => setCurrentDate(new Date(year, month - 1, 1))}>
                     <ArrowOutwardIcon sx={{ transform: 'rotate(225deg)', color: themeColors.primary }} />
@@ -372,7 +397,7 @@ const ResidentReservationCalendar = () => {
                       {selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
                     </Typography>
                     <Typography sx={{ color: themeColors.textSecondary, fontWeight: 600, fontSize: '0.84rem' }}>
-                      {selectedSchedules.length ? 'Reserved times for this day' : 'No reserved time listed for this day'}
+                      {selectedSchedules.length ? 'Reserved times for this day' : `No reserved ${resourceFilter === 'all' ? 'time' : resourceFilter} listed for this day`}
                     </Typography>
                   </Box>
                   <Chip
@@ -391,7 +416,7 @@ const ResidentReservationCalendar = () => {
                       This date is open for reservation.
                     </Typography>
                     <Typography sx={{ mt: 0.5, color: themeColors.textSecondary, fontWeight: 600, fontSize: '0.86rem' }}>
-                      Choose this date on the reservation form, then select your preferred venue or equipment.
+                      Choose this date on the reservation form, then select your preferred {resourceFilter === 'all' ? 'venue or equipment' : resourceFilter}.
                     </Typography>
                   </Box>
                 ) : (

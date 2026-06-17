@@ -31,7 +31,6 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import axios from '../config/axios';
 import mapImage from '../assets/lotbettermap.jpg';
-import { LOT_POSITION_OVERRIDES } from './PublicLotMap';
 
 const themeColors = {
   primary: '#166534',
@@ -55,10 +54,6 @@ const STATUS_CONFIG = {
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
-const getLotKey = (lot) => {
-  if (!lot) return '';
-  return `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`;
-};
 
 const normalizeLot = (lot) => {
   const rawBlock = Number(lot.block);
@@ -86,21 +81,7 @@ const getSavedPosition = (lot) => {
   return { left, top, width, height, rotate, source: 'saved' };
 };
 
-const getFallbackPosition = (lot) => {
-  if (!lot) return null;
-  const fallback = LOT_POSITION_OVERRIDES[getLotKey(lot)];
-  if (!fallback?.absolute) return null;
-  return {
-    left: Number(fallback.mapLeft) || 0,
-    top: Number(fallback.mapTop) || 0,
-    width: Number(fallback.mapWidth) || 1.5,
-    height: Number(fallback.mapHeight) || 2.5,
-    rotate: Number(fallback.rotate) || 0,
-    source: 'fallback'
-  };
-};
-
-const getDisplayPosition = (lot) => getSavedPosition(lot) || getFallbackPosition(lot);
+const getDisplayPosition = (lot) => getSavedPosition(lot);
 
 const AdminLotMapEditor = () => {
   const navigate = useNavigate();
@@ -151,8 +132,7 @@ const AdminLotMapEditor = () => {
       .filter((lot) => statusFilter === 'all' || lot.status === statusFilter)
       .filter((lot) => {
         if (positionFilter === 'saved') return Boolean(getSavedPosition(lot));
-        if (positionFilter === 'fallback') return !getSavedPosition(lot) && Boolean(getFallbackPosition(lot));
-        if (positionFilter === 'unmapped') return !getSavedPosition(lot) && !getFallbackPosition(lot);
+        if (positionFilter === 'unmapped') return !getSavedPosition(lot);
         return true;
       })
       .filter((lot) => {
@@ -426,7 +406,7 @@ const AdminLotMapEditor = () => {
   };
 
   const positionedCount = lots.filter((lot) => getSavedPosition(lot)).length;
-  const fallbackCount = lots.filter((lot) => !getSavedPosition(lot) && getFallbackPosition(lot)).length;
+  const unmappedCount = lots.filter((lot) => !getSavedPosition(lot)).length;
 
   if (loading) {
     return (
@@ -469,12 +449,12 @@ const AdminLotMapEditor = () => {
                 <Box>
                   <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>Map Canvas</Typography>
                   <Typography variant="body2" sx={{ color: themeColors.textSecondary }}>
-                    Click the map to place the selected lot. Drag a square to fine-tune its saved position.
+                    Click the map to place the selected lot. Only saved editor positions appear on the public map.
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Chip label={`${positionedCount} saved`} size="small" sx={{ bgcolor: `${themeColors.success}18`, color: themeColors.success, fontWeight: 700 }} />
-                  <Chip label={`${fallbackCount} fallback`} size="small" sx={{ bgcolor: `${themeColors.info}18`, color: themeColors.info, fontWeight: 700 }} />
+                  <Chip label={`${unmappedCount} unmapped`} size="small" sx={{ bgcolor: `${themeColors.info}18`, color: themeColors.info, fontWeight: 700 }} />
                   <Button size="small" variant={showGrid ? 'contained' : 'outlined'} onClick={() => setShowGrid((value) => !value)} sx={{ textTransform: 'none', fontWeight: 700 }}>
                     Grid
                   </Button>
@@ -519,7 +499,7 @@ const AdminLotMapEditor = () => {
                   const isSaved = Boolean(getSavedPosition(lot));
 
                   return (
-                    <Tooltip key={lot.lotId} title={`${lot.lotId} · ${isSaved ? 'Saved' : 'Fallback'}`} arrow>
+                    <Tooltip key={lot.lotId} title={`${lot.lotId} · ${isSaved ? 'Saved' : 'Draft'}`} arrow>
                       <Box
                         onPointerDown={(event) => startDrag(event, lot)}
                         onClick={(event) => {
@@ -580,7 +560,6 @@ const AdminLotMapEditor = () => {
                     <Select value={positionFilter} label="Map Position" onChange={(event) => setPositionFilter(event.target.value)}>
                       <MenuItem value="all">All lots</MenuItem>
                       <MenuItem value="saved">Saved only</MenuItem>
-                      <MenuItem value="fallback">Fallback only</MenuItem>
                       <MenuItem value="unmapped">Unmapped only</MenuItem>
                     </Select>
                   </FormControl>
@@ -620,7 +599,7 @@ const AdminLotMapEditor = () => {
                     </Box>
                     <Chip
                       size="small"
-                      label={selectedPosition.source === 'saved' ? 'Saved' : selectedPosition.source === 'fallback' ? 'Fallback' : 'Draft'}
+                      label={selectedPosition.source === 'saved' ? 'Saved' : 'Draft'}
                       sx={{ fontWeight: 700 }}
                     />
                   </Box>

@@ -158,6 +158,110 @@ router.get('/history/:lotId', protect, authorize('admin', 'security'), async (re
   }
 });
 
+// Admin: Save public map overlay position for a lot
+router.put('/:lotId/map-position', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { left, top, width, height, rotate = 0, shape = 'rectangle' } = req.body;
+    const numbers = {
+      left: Number(left),
+      top: Number(top),
+      width: Number(width),
+      height: Number(height),
+      rotate: Number(rotate)
+    };
+
+    if (
+      !Number.isFinite(numbers.left) ||
+      !Number.isFinite(numbers.top) ||
+      !Number.isFinite(numbers.width) ||
+      !Number.isFinite(numbers.height) ||
+      !Number.isFinite(numbers.rotate)
+    ) {
+      return res.status(400).json({ success: false, error: 'Map position values must be valid numbers' });
+    }
+
+    if (
+      numbers.left < 0 ||
+      numbers.left > 100 ||
+      numbers.top < 0 ||
+      numbers.top > 100 ||
+      numbers.width <= 0 ||
+      numbers.width > 20 ||
+      numbers.height <= 0 ||
+      numbers.height > 20 ||
+      numbers.rotate < -180 ||
+      numbers.rotate > 180
+    ) {
+      return res.status(400).json({ success: false, error: 'Map position values are outside the allowed range' });
+    }
+
+    if (shape !== 'rectangle') {
+      return res.status(400).json({ success: false, error: 'Invalid map shape' });
+    }
+
+    const lot = await Lot.findOne({ lotId: req.params.lotId });
+    if (!lot) {
+      return res.status(404).json({ success: false, error: 'Lot not found' });
+    }
+
+    lot.mapPosition = {
+      isPositioned: true,
+      left: numbers.left,
+      top: numbers.top,
+      width: numbers.width,
+      height: numbers.height,
+      rotate: numbers.rotate,
+      shape,
+      updatedBy: req.user._id,
+      updatedAt: new Date()
+    };
+
+    await lot.save();
+
+    res.json({
+      success: true,
+      message: `Map position saved for ${lot.lotId}`,
+      data: lot
+    });
+  } catch (error) {
+    console.error('Save lot map position error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Admin: Clear public map overlay position for a lot
+router.delete('/:lotId/map-position', protect, authorize('admin'), async (req, res) => {
+  try {
+    const lot = await Lot.findOne({ lotId: req.params.lotId });
+    if (!lot) {
+      return res.status(404).json({ success: false, error: 'Lot not found' });
+    }
+
+    lot.mapPosition = {
+      isPositioned: false,
+      left: null,
+      top: null,
+      width: null,
+      height: null,
+      rotate: 0,
+      shape: 'rectangle',
+      updatedBy: req.user._id,
+      updatedAt: new Date()
+    };
+
+    await lot.save();
+
+    res.json({
+      success: true,
+      message: `Map position cleared for ${lot.lotId}`,
+      data: lot
+    });
+  } catch (error) {
+    console.error('Clear lot map position error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Check if a specific lot is available
 router.get('/check/:block/:lot', async (req, res) => {
   try {

@@ -64,7 +64,38 @@ const STATUS_CONFIG = {
 
 
 const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
-const LOT_POSITION_OVERRIDES = {
+const getLotMapKey = (lot) => `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`;
+const getSavedMapPosition = (lot) => {
+  const pos = lot.mapPosition;
+  if (!pos?.isPositioned) return null;
+
+  const left = Number(pos.left);
+  const top = Number(pos.top);
+  const width = Number(pos.width);
+  const height = Number(pos.height);
+  const rotate = Number(pos.rotate) || 0;
+
+  if (![left, top, width, height].every(Number.isFinite) || width <= 0 || height <= 0) {
+    return null;
+  }
+
+  return {
+    absolute: true,
+    mapLeft: left,
+    mapTop: top,
+    mapWidth: width,
+    mapHeight: height,
+    rotate,
+    shape: pos.shape || 'rectangle',
+    source: 'saved'
+  };
+};
+
+const getLotMapPosition = (lot) => (
+  getSavedMapPosition(lot) || LOT_POSITION_OVERRIDES[getLotMapKey(lot)] || null
+);
+
+export const LOT_POSITION_OVERRIDES = {
   '2-1-1': {
     absolute: true,
     mapLeft: 19.81,
@@ -1917,6 +1948,7 @@ const generateLotsFromAPI = (apiLots) => {
     const rawBlock = Number(lot.block);
     return {
       id: lot.lotId,
+      lotId: lot.lotId,
       phase: Number(lot.phase) || 1,
       block: rawBlock,
       phaseBlock: getPhaseBlock(rawBlock),
@@ -1929,6 +1961,7 @@ const generateLotsFromAPI = (apiLots) => {
       features: lot.features || [],
       photoSeed: lot.photoSeed || 0,
       occupiedBy: lot.occupiedBy,
+      mapPosition: lot.mapPosition || null,
     };
   });
 };
@@ -2495,7 +2528,7 @@ const PublicLotMap = () => {
   }, [allLots, filterStatus, search]);
 
   const absoluteOverrides = useMemo(() => phaseFilteredLots.filter((lot) => {
-    const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
+    const override = getLotMapPosition(lot);
     return override?.absolute;
   }), [phaseFilteredLots]);
 
@@ -2784,13 +2817,13 @@ const PublicLotMap = () => {
 
               {absoluteOverrides.map((lot) => {
                 const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
-                const override = LOT_POSITION_OVERRIDES[`${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`];
+                const override = getLotMapPosition(lot);
                 if (!override) return null;
 
                 const centerLeft = (override.mapLeft || 0) + ((override.mapWidth || 0) / 2);
                 const centerTop = (override.mapTop || 0) + ((override.mapHeight || 0) / 2);
-                const lotKey = `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`;
-                const svgShape = LOT_SVG_SHAPES[lotKey];
+                const lotKey = getLotMapKey(lot);
+                const svgShape = override.source === 'saved' ? null : LOT_SVG_SHAPES[lotKey];
                 const renderRotation = svgShape ? 0 : (override.rotate || 0);
 
                 if (svgShape) {

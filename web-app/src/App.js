@@ -127,6 +127,7 @@ function App() {
             <Route path="/admin/report-schedules" element={<AdminRoute><Navigate to="/dashboard/admin/reservations" replace /></AdminRoute>} />
             <Route path="/admin/announcements" element={<AdminRoute><Navigate to="/dashboard/admin/announcements" replace /></AdminRoute>} />
             <Route path="/admin/lot-management" element={<AdminRoute><Navigate to="/dashboard/admin/lot-management" replace /></AdminRoute>} />
+            <Route path="/admin/lot-map-editor" element={<AdminRoute><Navigate to="/dashboard/admin/lot-map-editor" replace /></AdminRoute>} />
 
             {/* NEW ARCHIVE ROUTES */}
             <Route path="/admin/archived-users" element={<AdminRoute><Navigate to="/dashboard/admin/archived-users" replace /></AdminRoute>} />

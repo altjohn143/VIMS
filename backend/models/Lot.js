@@ -58,6 +58,56 @@ const lotSchema = new mongoose.Schema({
   photoSeed: {
     type: Number,
     default: 0
+  },
+  mapPosition: {
+    isPositioned: {
+      type: Boolean,
+      default: false
+    },
+    left: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: null
+    },
+    top: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: null
+    },
+    width: {
+      type: Number,
+      min: 0.1,
+      max: 20,
+      default: null
+    },
+    height: {
+      type: Number,
+      min: 0.1,
+      max: 20,
+      default: null
+    },
+    rotate: {
+      type: Number,
+      min: -180,
+      max: 180,
+      default: 0
+    },
+    shape: {
+      type: String,
+      enum: ['rectangle'],
+      default: 'rectangle'
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    updatedAt: {
+      type: Date,
+      default: null
+    }
   }
 }, {
   timestamps: true

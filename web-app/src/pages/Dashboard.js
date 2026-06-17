@@ -69,6 +69,7 @@ import {
   Apartment as ApartmentIcon,
   EventAvailable as EventAvailableIcon,
   Analytics as AnalyticsIcon,
+  Map as MapIcon,
   SupervisorAccount as SupervisorAccountIcon
 } from '@mui/icons-material';
 import axios from 'axios';
@@ -92,6 +93,7 @@ import AdminPayments from './AdminPayments';
 import AdminAnnouncements from './AdminAnnouncements';
 import AdminVisitorReports from './AdminVisitorReports';
 import AdminLotManagement from './AdminLotManagement';
+import AdminLotMapEditor from './AdminLotMapEditor';
 import AdminVerificationQueue from './AdminVerificationQueue';
 import ArchivedUsers from './ArchivedUsers';
 import ArchivedAnnouncements from './ArchivedAnnouncements';
@@ -834,7 +836,10 @@ const Dashboard = () => {
         finance: [
           { title: 'Payment Management', icon: <ReceiptIcon />, link: '/dashboard/admin/payments' }
         ],
-        'lot-management': [{ title: 'Lot Management', icon: <ApartmentIcon />, link: '/dashboard/admin/lot-management' }],
+        'lot-management': [
+          { title: 'Lot Management', icon: <ApartmentIcon />, link: '/dashboard/admin/lot-management' },
+          { title: 'Lot Map Editor', icon: <MapIcon />, link: '/dashboard/admin/lot-map-editor' }
+        ],
         announcements: [{ title: 'Create Announcements', icon: <AnnouncementIcon />, link: '/dashboard/admin/announcements' }],
         settings: [
           { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' }
@@ -946,6 +951,7 @@ const Dashboard = () => {
       'admin/visitor-reports': 'Visitor Reports',
       'admin/report-schedules': 'Reservation Requests',
       'admin/lot-management': 'Lot Management',
+      'admin/lot-map-editor': 'Lot Map Editor',
       'admin/archived-users': 'Archived Users',
       'admin/archived-announcements': 'Archived Announcements',
       'admin/archived-service-requests': 'Archived Service Requests',
@@ -984,6 +990,7 @@ const Dashboard = () => {
     'admin/visitor-reports': <AdminVisitorReports />,
     'admin/report-schedules': <AdminReservations />,
     'admin/lot-management': <AdminLotManagement />,
+    'admin/lot-map-editor': <AdminLotMapEditor />,
     'admin/archived-users': <ArchivedUsers />,
     'admin/archived-announcements': <ArchivedAnnouncements />,
     'admin/archived-service-requests': <ArchivedServiceRequests />,

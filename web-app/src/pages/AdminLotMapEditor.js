@@ -55,7 +55,10 @@ const STATUS_CONFIG = {
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
-const getLotKey = (lot) => `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`;
+const getLotKey = (lot) => {
+  if (!lot) return '';
+  return `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}`;
+};
 
 const normalizeLot = (lot) => {
   const rawBlock = Number(lot.block);
@@ -84,6 +87,7 @@ const getSavedPosition = (lot) => {
 };
 
 const getFallbackPosition = (lot) => {
+  if (!lot) return null;
   const fallback = LOT_POSITION_OVERRIDES[getLotKey(lot)];
   if (!fallback?.absolute) return null;
   return {

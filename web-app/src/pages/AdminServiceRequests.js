@@ -19,6 +19,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Avatar,
   AppBar,
@@ -99,6 +100,8 @@ const AdminServiceRequests = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Emergency categories that require immediate security response
   const emergencyCategories = useMemo(() => ['security'], []);
@@ -267,6 +270,21 @@ useEffect(() => {
     setFilteredRequests(filtered);
   }
 }, [requests, activeTab, categoryFilter, priorityFilter, searchQuery]);
+
+useEffect(() => {
+  setPage(0);
+}, [activeTab, categoryFilter, priorityFilter, searchQuery]);
+
+useEffect(() => {
+  if (page > 0 && page * rowsPerPage >= filteredRequests.length) {
+    setPage(Math.max(0, Math.ceil(filteredRequests.length / rowsPerPage) - 1));
+  }
+}, [filteredRequests.length, page, rowsPerPage]);
+
+const paginatedRequests = useMemo(
+  () => filteredRequests.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+  [filteredRequests, page, rowsPerPage]
+);
 
   const fetchAllRequests = useCallback(async () => {
     setFetching(true);
@@ -1230,6 +1248,7 @@ useEffect(() => {
               )}
             </Box>
           ) : (
+            <>
             <TableContainer sx={{ borderRadius: 2.5, border: `1px solid ${themeColors.border}` }}>
               <Table>
                 <TableHead>
@@ -1253,7 +1272,7 @@ useEffect(() => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredRequests.map((request) => (
+                  {paginatedRequests.map((request) => (
                     <TableRow 
                       key={request._id} 
                       hover
@@ -1415,6 +1434,19 @@ useEffect(() => {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredRequests.length}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 25]}
+            />
+            </>
           )}
         </Paper>
 

@@ -9,6 +9,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Button,
   Chip,
@@ -67,6 +68,8 @@ const AdminApprovals = () => {
   const [idModalOpen, setIdModalOpen] = useState(false);
   const [idImages, setIdImages] = useState({ front: null, back: null, selfie: null });
   const [idLoading, setIdLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -107,6 +110,14 @@ const AdminApprovals = () => {
     
     checkAuthAndFetch();
   }, [getCurrentUser, navigate, fetchPendingApprovals]); // Added all dependencies
+
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= pendingUsers.length) {
+      setPage(Math.max(0, Math.ceil(pendingUsers.length / rowsPerPage) - 1));
+    }
+  }, [page, pendingUsers.length, rowsPerPage]);
+
+  const paginatedPendingUsers = pendingUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const getVerificationLabel = (status) => {
     const labels = {
@@ -381,7 +392,7 @@ const AdminApprovals = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {pendingUsers.map((user) => (
+                {paginatedPendingUsers.map((user) => (
                   <TableRow 
                     key={user._id}
                     sx={{ 
@@ -511,6 +522,18 @@ const AdminApprovals = () => {
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              component="div"
+              count={pendingUsers.length}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 25]}
+            />
           </TableContainer>
         )}
       </Container>

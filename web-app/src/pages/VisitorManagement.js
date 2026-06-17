@@ -21,6 +21,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Avatar,
   AppBar,
@@ -85,6 +86,8 @@ const VisitorManagement = () => {
   const [confirmingVisitorId, setConfirmingVisitorId] = useState(null);
   const [confirmingArrival, setConfirmingArrival] = useState(false);
   const [confirmError, setConfirmError] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     visitorName: '',
     visitorPhone: '',
@@ -640,7 +643,7 @@ const VisitorManagement = () => {
     setSelectedTab(newValue);
   };
 
-  const getFilteredVisitors = () => {
+  const filteredVisitors = useMemo(() => {
     if (historyMode) {
       return allVisitors;
     }
@@ -655,7 +658,21 @@ const VisitorManagement = () => {
       default:
         return visitors;
     }
-  };
+  }, [allVisitors, historyMode, selectedTab, visitors]);
+  const paginatedVisitors = useMemo(
+    () => filteredVisitors.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredVisitors, page, rowsPerPage]
+  );
+
+  useEffect(() => {
+    setPage(0);
+  }, [historyMode, selectedTab]);
+
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= filteredVisitors.length) {
+      setPage(Math.max(0, Math.ceil(filteredVisitors.length / rowsPerPage) - 1));
+    }
+  }, [filteredVisitors.length, page, rowsPerPage]);
 
   return (
     <Box
@@ -1046,11 +1063,11 @@ const VisitorManagement = () => {
         }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
             <Typography variant="h6" sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
-              {historyMode ? 'All Visitor Passes' : 'My Visitor Passes'} ({getFilteredVisitors().length})
+              {historyMode ? 'All Visitor Passes' : 'My Visitor Passes'} ({filteredVisitors.length})
             </Typography>
           </Box>
 
-          {getFilteredVisitors().length === 0 ? (
+          {filteredVisitors.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>
               {historyMode ? (
                 <>
@@ -1108,6 +1125,7 @@ const VisitorManagement = () => {
               )}
             </Box>
           ) : (
+            <>
             <TableContainer>
               <Table>
                 <TableHead>
@@ -1125,7 +1143,7 @@ const VisitorManagement = () => {
                 </TableHead>
 
                 <TableBody>
-                  {getFilteredVisitors().map((visitor) => {
+                  {paginatedVisitors.map((visitor) => {
                     const expired = isQRExpired(visitor);
                     const left = isVisitorLeft(visitor);
                     const qrValid = isQRValid(visitor);
@@ -1323,6 +1341,19 @@ const VisitorManagement = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredVisitors.length}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 25]}
+            />
+            </>
           )}
         </Paper>
 

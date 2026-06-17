@@ -11,6 +11,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Paper,
   Chip,
@@ -58,6 +59,8 @@ const ArchivedUsers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [restoreDialog, setRestoreDialog] = useState({ open: false, user: null });
   const [restoring, setRestoring] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     loadArchivedUsers();
@@ -115,6 +118,17 @@ const ArchivedUsers = () => {
   const filteredUsers = users.filter(user =>
     `${user.firstName} ${user.lastName} ${user.email}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const paginatedUsers = filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= filteredUsers.length) {
+      setPage(Math.max(0, Math.ceil(filteredUsers.length / rowsPerPage) - 1));
+    }
+  }, [filteredUsers.length, page, rowsPerPage]);
 
   if (loading) {
     return (
@@ -166,6 +180,7 @@ const ArchivedUsers = () => {
               {users.length === 0 ? 'No archived users found.' : 'No users match your search.'}
             </Alert>
           ) : (
+            <>
             <TableContainer component={Paper} sx={{ borderRadius: '12px', border: `1px solid ${themeColors.border}` }}>
               <Table>
                 <TableHead>
@@ -179,7 +194,7 @@ const ArchivedUsers = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredUsers.map((user) => (
+                  {paginatedUsers.map((user) => (
                     <TableRow key={user._id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -241,6 +256,19 @@ const ArchivedUsers = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredUsers.length}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 25]}
+            />
+            </>
           )}
         </CardContent>
       </Card>

@@ -17,6 +17,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   AppBar,
   Toolbar,
@@ -70,6 +71,8 @@ const AdminVisitorReports = () => {
   const [endDate, setEndDate] = useState('');
   const [reportType, setReportType] = useState('all');
   const [exporting, setExporting] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const fetchReportData = useCallback(async () => {
     setLoading(true);
@@ -111,6 +114,18 @@ const AdminVisitorReports = () => {
   useEffect(() => {
     fetchReportData();
   }, [fetchReportData]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [startDate, endDate, reportType]);
+
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= recentVisitors.length) {
+      setPage(Math.max(0, Math.ceil(recentVisitors.length / rowsPerPage) - 1));
+    }
+  }, [page, recentVisitors.length, rowsPerPage]);
+
+  const paginatedRecentVisitors = recentVisitors.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const handleExport = async () => {
     setExporting(true);
@@ -594,7 +609,7 @@ const AdminVisitorReports = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    recentVisitors.map((visitor) => (
+                    paginatedRecentVisitors.map((visitor) => (
                       <TableRow
                         key={visitor._id}
                         sx={{
@@ -634,6 +649,20 @@ const AdminVisitorReports = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            {recentVisitors.length > 0 && (
+              <TablePagination
+                component="div"
+                count={recentVisitors.length}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(event) => {
+                  setRowsPerPage(parseInt(event.target.value, 10));
+                  setPage(0);
+                }}
+                rowsPerPageOptions={[5, 10, 25]}
+              />
+            )}
           </CardContent>
         </Card>
       </Container>

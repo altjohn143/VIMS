@@ -11,6 +11,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Paper,
   Chip,
@@ -56,6 +57,8 @@ const ArchivedServiceRequests = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [restoreDialog, setRestoreDialog] = useState({ open: false, serviceRequest: null });
   const [restoring, setRestoring] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     loadArchivedServiceRequests();
@@ -109,6 +112,17 @@ const ArchivedServiceRequests = () => {
     serviceRequest.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (serviceRequest.createdBy && `${serviceRequest.createdBy.firstName} ${serviceRequest.createdBy.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+  const paginatedServiceRequests = filteredServiceRequests.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= filteredServiceRequests.length) {
+      setPage(Math.max(0, Math.ceil(filteredServiceRequests.length / rowsPerPage) - 1));
+    }
+  }, [filteredServiceRequests.length, page, rowsPerPage]);
 
   if (loading) {
     return (
@@ -160,6 +174,7 @@ const ArchivedServiceRequests = () => {
               {serviceRequests.length === 0 ? 'No archived service requests found.' : 'No service requests match your search.'}
             </Alert>
           ) : (
+            <>
             <TableContainer component={Paper} sx={{ borderRadius: '12px', border: `1px solid ${themeColors.border}` }}>
               <Table>
                 <TableHead>
@@ -174,7 +189,7 @@ const ArchivedServiceRequests = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredServiceRequests.map((serviceRequest) => (
+                  {paginatedServiceRequests.map((serviceRequest) => (
                     <TableRow key={serviceRequest._id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -255,6 +270,19 @@ const ArchivedServiceRequests = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredServiceRequests.length}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 25]}
+            />
+            </>
           )}
         </CardContent>
       </Card>

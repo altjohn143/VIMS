@@ -9,6 +9,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Button,
   Chip,
@@ -92,6 +93,8 @@ const AdminUserManagement = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [approvalFilter, setApprovalFilter] = useState('all');
   const [activeTab, setActiveTab] = useState(0);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [stats, setStats] = useState({
     total: 0,
     residents: 0,
@@ -316,6 +319,18 @@ const AdminUserManagement = () => {
   useEffect(() => {
     filterUsers(users, searchQuery, roleFilter, statusFilter, approvalFilter, activeTab);
   }, [searchQuery, roleFilter, statusFilter, approvalFilter, activeTab, users, filterUsers]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery, roleFilter, statusFilter, approvalFilter, activeTab]);
+
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= filteredUsers.length) {
+      setPage(Math.max(0, Math.ceil(filteredUsers.length / rowsPerPage) - 1));
+    }
+  }, [filteredUsers.length, page, rowsPerPage]);
+
+  const paginatedUsers = filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   // Initial fetch
   useEffect(() => {
@@ -1090,7 +1105,7 @@ const AdminUserManagement = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user) => (
+                  paginatedUsers.map((user) => (
                     <TableRow key={user._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1268,6 +1283,18 @@ const AdminUserManagement = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={filteredUsers.length}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[5, 10, 25]}
+          />
         </Paper>
 
         {/* User Details Dialog */}

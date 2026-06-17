@@ -11,6 +11,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Paper,
   Chip,
@@ -56,6 +57,8 @@ const ArchivedAnnouncements = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [restoreDialog, setRestoreDialog] = useState({ open: false, announcement: null });
   const [restoring, setRestoring] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     loadArchivedAnnouncements();
@@ -105,6 +108,17 @@ const ArchivedAnnouncements = () => {
     announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     announcement.body.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const paginatedAnnouncements = filteredAnnouncements.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= filteredAnnouncements.length) {
+      setPage(Math.max(0, Math.ceil(filteredAnnouncements.length / rowsPerPage) - 1));
+    }
+  }, [filteredAnnouncements.length, page, rowsPerPage]);
 
   if (loading) {
     return (
@@ -156,6 +170,7 @@ const ArchivedAnnouncements = () => {
               {announcements.length === 0 ? 'No archived announcements found.' : 'No announcements match your search.'}
             </Alert>
           ) : (
+            <>
             <TableContainer component={Paper} sx={{ borderRadius: '12px', border: `1px solid ${themeColors.border}` }}>
               <Table>
                 <TableHead>
@@ -169,7 +184,7 @@ const ArchivedAnnouncements = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredAnnouncements.map((announcement) => (
+                  {paginatedAnnouncements.map((announcement) => (
                     <TableRow key={announcement._id} hover>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -234,6 +249,19 @@ const ArchivedAnnouncements = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredAnnouncements.length}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 25]}
+            />
+            </>
           )}
         </CardContent>
       </Card>

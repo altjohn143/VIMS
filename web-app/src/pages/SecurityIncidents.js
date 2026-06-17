@@ -8,7 +8,13 @@ import {
   MenuItem,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
   TablePagination,
+  TableRow,
   TextField,
   Typography,
   AppBar,
@@ -221,29 +227,53 @@ const SecurityIncidents = () => {
                 <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>Incident Logs</Typography>
                 <Typography variant="body2" color="text.secondary">{rows.length} total reports</Typography>
               </Box>
-              <Stack spacing={0}>
-                {paginatedRows.length === 0 ? (
-                  <Box sx={{ p: 3 }}><Typography color="text.secondary">No incident reports yet.</Typography></Box>
-                ) : paginatedRows.map((item) => (
-                  <Box key={item._id} sx={{ p: 2.2, borderBottom: `1px solid ${themeColors.border}` }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography sx={{ fontWeight: 700, color: themeColors.textPrimary }}>{item.title}</Typography>
-                        <Typography variant="body2" color="text.secondary">{item.description}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {item.location || 'No location'} | Reported by {item.reportedBy?.firstName || ''} {item.reportedBy?.lastName || ''} | {new Date(item.createdAt).toLocaleString()}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                        <Chip size="small" label={item.severity} color={item.severity === 'critical' ? 'error' : item.severity === 'high' ? 'warning' : 'default'} />
-                        <Chip size="small" label={item.status} />
-                        <Button size="small" onClick={() => setStatus(item._id, 'investigating')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Investigate</Button>
-                        <Button size="small" onClick={() => setStatus(item._id, 'resolved')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Resolve</Button>
-                      </Box>
-                    </Box>
-                  </Box>
-                ))}
-              </Stack>
+              <TableContainer>
+                <Table>
+                  <TableHead sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Incident</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Location / Reporter</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Severity</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Reported</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} sx={{ py: 4 }}>
+                          <Typography color="text.secondary">No incident reports yet.</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedRows.map((item) => (
+                      <TableRow key={item._id} hover>
+                        <TableCell sx={{ minWidth: 220 }}>
+                          <Typography sx={{ fontWeight: 700, color: themeColors.textPrimary }}>{item.title}</Typography>
+                          <Typography variant="body2" color="text.secondary">{item.description}</Typography>
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 180 }}>
+                          <Typography variant="body2">{item.location || 'No location'}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {item.reportedBy?.firstName || ''} {item.reportedBy?.lastName || ''}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip size="small" label={item.severity} color={item.severity === 'critical' ? 'error' : item.severity === 'high' ? 'warning' : 'default'} />
+                        </TableCell>
+                        <TableCell>
+                          <Chip size="small" label={item.status} />
+                        </TableCell>
+                        <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
+                        <TableCell align="right">
+                          <Button size="small" onClick={() => setStatus(item._id, 'investigating')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Investigate</Button>
+                          <Button size="small" onClick={() => setStatus(item._id, 'resolved')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Resolve</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
               <TablePagination
                 component="div"
                 count={rows.length}

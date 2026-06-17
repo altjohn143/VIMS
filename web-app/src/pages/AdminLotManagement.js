@@ -9,6 +9,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Button,
   Chip,
@@ -63,6 +64,8 @@ const AdminLotManagement = () => {
   const [blockFilter, setBlockFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [stats, setStats] = useState({
     total: 0,
     vacant: 0,
@@ -130,6 +133,12 @@ const AdminLotManagement = () => {
 
     setFilteredLots(filtered);
   }, [lots, searchQuery, phaseFilter, blockFilter, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery, phaseFilter, blockFilter, statusFilter, typeFilter]);
+
+  const paginatedLots = filteredLots.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   useEffect(() => {
     fetchLots();
@@ -471,7 +480,7 @@ const AdminLotManagement = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredLots.map((lot) => (
+                {paginatedLots.map((lot) => (
                   <TableRow key={lot._id} hover>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -525,6 +534,21 @@ const AdminLotManagement = () => {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {filteredLots.length > 0 && (
+            <TablePagination
+              component="div"
+              count={filteredLots.length}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[5, 10, 25]}
+            />
+          )}
 
           {filteredLots.length === 0 && (
             <Box sx={{ p: 4, textAlign: 'center' }}>

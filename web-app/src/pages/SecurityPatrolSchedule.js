@@ -8,7 +8,13 @@ import {
   MenuItem,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
   TablePagination,
+  TableRow,
   TextField,
   Typography,
   AppBar,
@@ -197,24 +203,45 @@ const SecurityPatrolSchedule = () => {
                 <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>Patrol Logs</Typography>
                 <Typography variant="body2" color="text.secondary">{rows.length} total logs</Typography>
               </Box>
-              <Stack spacing={0}>
-                {paginatedRows.length === 0 ? (
-                  <Box sx={{ p: 3 }}><Typography color="text.secondary">No patrol logs yet.</Typography></Box>
-                ) : paginatedRows.map((item) => (
-                  <Box key={item._id} sx={{ p: 2.2, borderBottom: `1px solid ${themeColors.border}` }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography sx={{ fontWeight: 700, color: themeColors.textPrimary }}>{item.area} - {item.checkpoint}</Typography>
-                        <Typography variant="body2" color="text.secondary">{item.notes || 'No notes'}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Officer: {item.officerId?.firstName || ''} {item.officerId?.lastName || ''} | {new Date(item.loggedAt || item.createdAt).toLocaleString()}
-                        </Typography>
-                      </Box>
-                      <Chip size="small" label={item.status} color={item.status === 'issue_found' ? 'warning' : 'success'} />
-                    </Box>
-                  </Box>
-                ))}
-              </Stack>
+              <TableContainer>
+                <Table>
+                  <TableHead sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Checkpoint</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Officer</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Logged</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} sx={{ py: 4 }}>
+                          <Typography color="text.secondary">No patrol logs yet.</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : paginatedRows.map((item) => (
+                      <TableRow key={item._id} hover>
+                        <TableCell sx={{ minWidth: 190 }}>
+                          <Typography sx={{ fontWeight: 700, color: themeColors.textPrimary }}>{item.area}</Typography>
+                          <Typography variant="caption" color="text.secondary">{item.checkpoint}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          {item.officerId?.firstName || ''} {item.officerId?.lastName || ''}
+                        </TableCell>
+                        <TableCell>
+                          <Chip size="small" label={item.status} color={item.status === 'issue_found' ? 'warning' : 'success'} />
+                        </TableCell>
+                        <TableCell>{new Date(item.loggedAt || item.createdAt).toLocaleString()}</TableCell>
+                        <TableCell sx={{ minWidth: 220 }}>
+                          <Typography variant="body2" color="text.secondary">{item.notes || 'No notes'}</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
               <TablePagination
                 component="div"
                 count={rows.length}

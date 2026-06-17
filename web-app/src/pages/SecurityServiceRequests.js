@@ -21,6 +21,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Toolbar,
@@ -62,6 +63,8 @@ const SecurityServiceRequests = () => {
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const load = useCallback(async () => {
     try {
@@ -93,6 +96,17 @@ const SecurityServiceRequests = () => {
     const haystack = `${item.title || ''} ${item.description || ''} ${item.residentId?.firstName || ''} ${item.residentId?.lastName || ''}`.toLowerCase();
     return haystack.includes(query.toLowerCase());
   });
+  const paginatedRows = filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  useEffect(() => {
+    setPage(0);
+  }, [activeTab, priority, category, query]);
+
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= filteredRows.length) {
+      setPage(Math.max(0, Math.ceil(filteredRows.length / rowsPerPage) - 1));
+    }
+  }, [filteredRows.length, page, rowsPerPage]);
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -271,7 +285,7 @@ const SecurityServiceRequests = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredRows.map((item) => (
+              {paginatedRows.map((item) => (
                 <TableRow key={item._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}>
                   <TableCell>
                     <Typography sx={{ fontWeight: 700 }}>{item.title}</Typography>
@@ -306,6 +320,21 @@ const SecurityServiceRequests = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {filteredRows.length > 0 && (
+          <TablePagination
+            component="div"
+            count={filteredRows.length}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[5, 10, 25]}
+          />
+        )}
 
         {filteredRows.length === 0 && (
           <Paper sx={{ p: 3, borderRadius: '20px', border: `1px solid ${themeColors.border}` }}>

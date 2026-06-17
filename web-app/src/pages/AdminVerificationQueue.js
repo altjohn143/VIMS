@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container, Box, Typography, Paper, Table, TableHead, TableRow, TableCell, TableBody,
   Button, Chip, FormControl, InputLabel, Select, MenuItem, AppBar, Toolbar, IconButton, Tooltip,
+  TablePagination,
   Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress
 } from '@mui/material';
 import {
@@ -38,6 +39,8 @@ const AdminVerificationQueue = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImages, setPreviewImages] = useState({ front: null, back: null, selfie: null });
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const navigate = useNavigate();
 
   const load = useCallback(async () => {
@@ -50,6 +53,18 @@ const AdminVerificationQueue = () => {
   }, [status]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [status]);
+
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= rows.length) {
+      setPage(Math.max(0, Math.ceil(rows.length / rowsPerPage) - 1));
+    }
+  }, [page, rows.length, rowsPerPage]);
+
+  const paginatedRows = rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const approve = async (id) => {
     await axios.put(`/api/verifications/admin/${id}/approve`, { reviewNotes: 'Approved by admin' });
@@ -217,7 +232,7 @@ const AdminVerificationQueue = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((r) => (
+              {paginatedRows.map((r) => (
                 <TableRow key={r._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}>
                   <TableCell>
                     {r.displayResidentName
@@ -272,6 +287,18 @@ const AdminVerificationQueue = () => {
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            component="div"
+            count={rows.length}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[5, 10, 25]}
+          />
         </Paper>
       </Container>
 

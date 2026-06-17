@@ -9,6 +9,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Button,
   Chip,
@@ -56,6 +57,8 @@ const AdminReservations = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [resourceTypeFilter, setResourceTypeFilter] = useState('all');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [resourceFormData, setResourceFormData] = useState({
     type: 'venue',
@@ -100,6 +103,15 @@ const AdminReservations = () => {
       return [reservedBy, resourceTitle, description, itemText, reservation.status].some((text) => text.includes(query));
     });
   }, [activeTab, reservations, resourceTypeFilter, searchQuery]);
+
+  const paginatedReservations = useMemo(
+    () => filteredReservations.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredReservations, page, rowsPerPage]
+  );
+
+  useEffect(() => {
+    setPage(0);
+  }, [activeTab, resourceTypeFilter, searchQuery]);
 
   useEffect(() => {
     fetchReservations();
@@ -435,7 +447,7 @@ const AdminReservations = () => {
                       No reservation requests match the current filters.
                     </TableCell>
                   </TableRow>
-                ) : filteredReservations.map((reservation) => {
+                ) : paginatedReservations.map((reservation) => {
                   const isOverdue = new Date(reservation.endDate) < new Date() && !['returned', 'checked_out', 'cancelled'].includes(reservation.status);
                   const displayStatus = isOverdue ? 'Overdue' : formatStatusLabel(reservation.status);
                   const statusColor = isOverdue ? 'error' : getStatusColor(reservation.status);
@@ -548,6 +560,18 @@ const AdminReservations = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={filteredReservations.length}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(parseInt(event.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[5, 10, 25]}
+          />
         </Paper>
 
         {/* Add Resource Dialog */}

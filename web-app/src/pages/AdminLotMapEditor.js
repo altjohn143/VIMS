@@ -23,6 +23,8 @@ import {
 import {
   ArrowBack as ArrowBackIcon,
   DeleteOutline as ClearIcon,
+  FileDownload as ExportIcon,
+  FileUpload as ImportIcon,
   Map as MapIcon,
   Refresh as RefreshIcon,
   Save as SaveIcon
@@ -86,6 +88,7 @@ const getDisplayPosition = (lot) => getSavedPosition(lot);
 const AdminLotMapEditor = () => {
   const navigate = useNavigate();
   const mapRef = useRef(null);
+  const importInputRef = useRef(null);
   const dragRef = useRef(null);
   const [lots, setLots] = useState([]);
   const [selectedPhase, setSelectedPhase] = useState(1);
@@ -405,6 +408,63 @@ const AdminLotMapEditor = () => {
     }
   };
 
+  const exportMapData = async () => {
+    try {
+      setSaving(true);
+      const response = await axios.get('/api/lots/map-data/export', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `VIMS_Lot_Map_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Lot map backup exported');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to export lot map data');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const importMapData = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      const lotCount = Array.isArray(payload?.lots) ? payload.lots.length : 0;
+      if (!lotCount) {
+        toast.error('Backup file has no lots to import');
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Import ${lotCount} lots from this backup? Existing lots with the same Lot ID will be updated.`
+      );
+      if (!confirmed) return;
+
+      setSaving(true);
+      const response = await axios.post('/api/lots/map-data/import', payload);
+      const result = response.data?.data;
+      toast.success(`Imported ${result?.total || lotCount} lots`);
+      setDraftPosition(null);
+      setUndoStack([]);
+      setRedoStack([]);
+      await loadLots();
+    } catch (error) {
+      const message = error instanceof SyntaxError
+        ? 'Invalid JSON backup file'
+        : error.response?.data?.error || 'Failed to import lot map data';
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const positionedCount = lots.filter((lot) => getSavedPosition(lot)).length;
   const unmappedCount = lots.filter((lot) => !getSavedPosition(lot)).length;
 
@@ -435,6 +495,19 @@ const AdminLotMapEditor = () => {
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 800 }}>
             Public Lot Map Editor
           </Typography>
+          <Button startIcon={<ExportIcon />} disabled={saving} onClick={exportMapData} sx={{ textTransform: 'none', fontWeight: 700 }}>
+            Export
+          </Button>
+          <Button startIcon={<ImportIcon />} disabled={saving} onClick={() => importInputRef.current?.click()} sx={{ textTransform: 'none', fontWeight: 700 }}>
+            Import
+          </Button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={importMapData}
+            style={{ display: 'none' }}
+          />
           <Button startIcon={<RefreshIcon />} onClick={loadLots} sx={{ textTransform: 'none', fontWeight: 700 }}>
             Refresh
           </Button>

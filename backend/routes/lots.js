@@ -290,6 +290,177 @@ router.delete('/:lotId', protect, authorize('admin'), async (req, res) => {
   }
 });
 
+const normalizeMapPosition = (mapPosition, userId = null) => {
+  if (!mapPosition?.isPositioned) {
+    return {
+      isPositioned: false,
+      left: null,
+      top: null,
+      width: null,
+      height: null,
+      rotate: 0,
+      shape: 'rectangle',
+      updatedBy: userId,
+      updatedAt: new Date()
+    };
+  }
+
+  const left = Number(mapPosition.left);
+  const top = Number(mapPosition.top);
+  const width = Number(mapPosition.width);
+  const height = Number(mapPosition.height);
+  const rotate = Number(mapPosition.rotate) || 0;
+
+  if (
+    !Number.isFinite(left) ||
+    !Number.isFinite(top) ||
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    left < 0 ||
+    left > 100 ||
+    top < 0 ||
+    top > 100 ||
+    width <= 0 ||
+    width > 20 ||
+    height <= 0 ||
+    height > 20 ||
+    rotate < -180 ||
+    rotate > 180
+  ) {
+    throw new Error('Invalid map position values in backup file');
+  }
+
+  return {
+    isPositioned: true,
+    left,
+    top,
+    width,
+    height,
+    rotate,
+    shape: 'rectangle',
+    updatedBy: userId,
+    updatedAt: new Date()
+  };
+};
+
+const normalizeBackupLot = (lot, userId = null) => {
+  const phase = Number(lot.phase);
+  const block = Number(lot.block);
+  const lotNumber = Number(lot.lotNumber);
+  const sqm = Number(lot.sqm);
+
+  if (!lot.lotId || !Number.isFinite(phase) || !Number.isFinite(block) || !Number.isFinite(lotNumber) || !Number.isFinite(sqm)) {
+    throw new Error('Backup file has a lot with missing required fields');
+  }
+
+  return {
+    phase,
+    block,
+    lotId: String(lot.lotId),
+    lotNumber,
+    status: ['vacant', 'occupied', 'reserved'].includes(lot.status) ? lot.status : 'vacant',
+    type: lot.type || 'Single Family',
+    sqm,
+    price: lot.price === null || lot.price === undefined || lot.price === '' ? null : Number(lot.price),
+    address: lot.address || `Phase ${phase} - Block ${block} - Lot ${lotNumber}`,
+    features: Array.isArray(lot.features) ? lot.features.filter(Boolean).map(String) : [],
+    photoSeed: Number(lot.photoSeed) || 0,
+    mapPosition: normalizeMapPosition(lot.mapPosition, userId)
+  };
+};
+
+// Admin: Export restorable public lot map data as JSON
+router.get('/map-data/export', protect, authorize('admin'), async (req, res) => {
+  try {
+    const lots = await Lot.find()
+      .sort({ phase: 1, block: 1, lotNumber: 1 })
+      .lean();
+
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      source: 'VIMS public lot map editor',
+      count: lots.length,
+      lots: lots.map((lot) => ({
+        lotId: lot.lotId,
+        phase: lot.phase,
+        block: lot.block,
+        lotNumber: lot.lotNumber,
+        status: lot.status,
+        type: lot.type,
+        sqm: lot.sqm,
+        price: lot.price,
+        address: lot.address,
+        features: lot.features || [],
+        photoSeed: lot.photoSeed || 0,
+        mapPosition: {
+          isPositioned: Boolean(lot.mapPosition?.isPositioned),
+          left: lot.mapPosition?.left ?? null,
+          top: lot.mapPosition?.top ?? null,
+          width: lot.mapPosition?.width ?? null,
+          height: lot.mapPosition?.height ?? null,
+          rotate: lot.mapPosition?.rotate || 0,
+          shape: lot.mapPosition?.shape || 'rectangle'
+        }
+      }))
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="VIMS_Lot_Map_Backup_${new Date().toISOString().split('T')[0]}.json"`);
+    res.json(payload);
+  } catch (error) {
+    console.error('Export lot map data error:', error);
+    res.status(500).json({ success: false, error: 'Failed to export lot map data' });
+  }
+});
+
+// Admin: Import restorable public lot map data JSON
+router.post('/map-data/import', protect, authorize('admin'), async (req, res) => {
+  try {
+    const backupLots = Array.isArray(req.body?.lots) ? req.body.lots : null;
+    if (!backupLots || !backupLots.length) {
+      return res.status(400).json({ success: false, error: 'Backup file must contain a lots array' });
+    }
+
+    let created = 0;
+    let updated = 0;
+    let positioned = 0;
+
+    for (const rawLot of backupLots) {
+      const lotData = normalizeBackupLot(rawLot, req.user._id);
+      if (lotData.mapPosition.isPositioned) positioned++;
+
+      const existing = await Lot.findOne({ lotId: lotData.lotId });
+      if (existing) {
+        Object.assign(existing, lotData);
+        if (lotData.status !== 'occupied') {
+          existing.occupiedBy = null;
+          existing.occupiedAt = null;
+        }
+        await existing.save();
+        updated++;
+      } else {
+        await Lot.create(lotData);
+        created++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Imported ${backupLots.length} lots`,
+      data: {
+        total: backupLots.length,
+        created,
+        updated,
+        positioned
+      }
+    });
+  } catch (error) {
+    console.error('Import lot map data error:', error);
+    res.status(400).json({ success: false, error: error.message || 'Failed to import lot map data' });
+  }
+});
+
 // Check if a specific lot is available
 router.get('/check/:block/:lot', async (req, res) => {
   try {

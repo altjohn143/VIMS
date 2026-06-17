@@ -116,7 +116,6 @@ const AdminLotMapEditor = () => {
   const [showGrid, setShowGrid] = useState(false);
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
-  const [rowPlacement, setRowPlacement] = useState({ active: false, start: null });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -213,73 +212,10 @@ const AdminLotMapEditor = () => {
     };
   };
 
-  const saveLotPosition = async (lot, position) => {
-    const response = await axios.put(`/api/lots/${lot.lotId}/map-position`, {
-      left: position.left,
-      top: position.top,
-      width: position.width,
-      height: position.height,
-      rotate: position.rotate,
-      shape: 'rectangle'
-    });
-    return normalizeLot(response.data.data);
-  };
-
-  const applyBulkRowPlacement = async (endPoint) => {
-    if (!selectedLot || !rowPlacement.start) return;
-
-    const rowLots = phaseLots
-      .filter((lot) => lot.phaseBlock === selectedLot.phaseBlock && lot.lotNumber >= selectedLot.lotNumber)
-      .sort((a, b) => a.lotNumber - b.lotNumber);
-
-    if (rowLots.length < 2) {
-      toast.error('Need at least two lots in the selected block to place a row');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      const count = rowLots.length;
-      const updates = [];
-      for (let index = 0; index < count; index += 1) {
-        const t = count === 1 ? 0 : index / (count - 1);
-        const centerX = rowPlacement.start.x + (endPoint.x - rowPlacement.start.x) * t;
-        const centerY = rowPlacement.start.y + (endPoint.y - rowPlacement.start.y) * t;
-        const position = {
-          left: centerX - selectedPosition.width / 2,
-          top: centerY - selectedPosition.height / 2,
-          width: selectedPosition.width,
-          height: selectedPosition.height,
-          rotate: selectedPosition.rotate,
-        };
-        updates.push(await saveLotPosition(rowLots[index], position));
-      }
-
-      setLots((current) => current.map((lot) => updates.find((updated) => updated.lotId === lot.lotId) || lot));
-      setRowPlacement({ active: false, start: null });
-      setDraftPosition(null);
-      toast.success(`Placed and saved ${updates.length} lots in this row`);
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to place row');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const placeSelectedLot = async (event) => {
     if (!selectedLot || dragRef.current?.dragging) return;
     const point = getPercentPoint(event);
     if (!point) return;
-
-    if (rowPlacement.active) {
-      if (!rowPlacement.start) {
-        setRowPlacement({ active: true, start: point });
-        toast.success('Row start set. Click the row end point.');
-      } else {
-        await applyBulkRowPlacement(point);
-      }
-      return;
-    }
 
     updateDraft({
       left: point.x - selectedPosition.width / 2,
@@ -458,6 +394,37 @@ const AdminLotMapEditor = () => {
     }
   };
 
+  const removeLot = async () => {
+    if (!selectedLot) return;
+
+    const confirmed = window.confirm(
+      `Remove ${selectedLot.lotId} permanently? This deletes the lot record and removes it from the public map.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setSaving(true);
+      await axios.delete(`/api/lots/${selectedLot.lotId}`);
+      setLots((current) => {
+        const remaining = current.filter((lot) => lot.lotId !== selectedLot.lotId);
+        const nextLot = remaining
+          .filter((lot) => lot.phase === selectedLot.phase)
+          .sort((a, b) => a.phaseBlock - b.phaseBlock || a.lotNumber - b.lotNumber)[0] || remaining[0];
+        setSelectedLotId(nextLot?.lotId || '');
+        setSelectedPhase(nextLot?.phase || selectedPhase);
+        return remaining;
+      });
+      setDraftPosition(null);
+      setUndoStack([]);
+      setRedoStack([]);
+      toast.success('Lot removed');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to remove lot');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const positionedCount = lots.filter((lot) => getSavedPosition(lot)).length;
   const fallbackCount = lots.filter((lot) => !getSavedPosition(lot) && getFallbackPosition(lot)).length;
 
@@ -544,24 +511,6 @@ const AdminLotMapEditor = () => {
                     }}
                   />
                 )}
-                {rowPlacement.start && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      left: `${rowPlacement.start.x}%`,
-                      top: `${rowPlacement.start.y}%`,
-                      width: 12,
-                      height: 12,
-                      borderRadius: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      bgcolor: themeColors.info,
-                      border: '2px solid #fff',
-                      pointerEvents: 'none',
-                      boxShadow: '0 0 0 3px rgba(14,165,233,0.25)'
-                    }}
-                  />
-                )}
-
                 {phaseLots.map((lot) => {
                   const status = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
                   const isSelected = lot.lotId === selectedLot?.lotId;
@@ -716,14 +665,6 @@ const AdminLotMapEditor = () => {
                       Duplicate Next
                     </Button>
                     <Button
-                      variant={rowPlacement.active ? 'contained' : 'outlined'}
-                      disabled={saving}
-                      onClick={() => setRowPlacement((current) => current.active ? { active: false, start: null } : { active: true, start: null })}
-                      sx={{ textTransform: 'none', fontWeight: 800 }}
-                    >
-                      {rowPlacement.active ? 'Cancel Row' : 'Place Row'}
-                    </Button>
-                    <Button
                       variant="contained"
                       startIcon={<SaveIcon />}
                       disabled={saving}
@@ -734,6 +675,9 @@ const AdminLotMapEditor = () => {
                     </Button>
                     <Button variant="outlined" startIcon={<ClearIcon />} disabled={saving} color="error" onClick={clearPosition} sx={{ textTransform: 'none', fontWeight: 800 }}>
                       Clear
+                    </Button>
+                    <Button variant="contained" disabled={saving} color="error" onClick={removeLot} sx={{ gridColumn: '1 / -1', textTransform: 'none', fontWeight: 800 }}>
+                      Remove Lot
                     </Button>
                   </Box>
                 </>

@@ -18,6 +18,7 @@ import {
   FullscreenExit as FullscreenExitIcon,
   PlayArrow as PlayIcon,
   Pause as PauseIcon,
+  MyLocation as ResetViewIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import mapImage from '../assets/lotbettermap.jpg';
@@ -2319,16 +2320,29 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
 
   return (
     <Box sx={{
-      position: 'fixed', right: 0, top: 0, bottom: 0,
-      width: { xs: '100vw', sm: 360 }, zIndex: 300,
+      position: 'fixed',
+      right: 0,
+      left: { xs: 0, sm: 'auto' },
+      top: { xs: 'auto', sm: 0 },
+      bottom: 0,
+      width: { xs: '100vw', sm: 360 },
+      maxHeight: { xs: '82vh', sm: 'none' },
+      zIndex: 300,
       background: 'linear-gradient(170deg, #0d2205 0%, #1a3a0a 100%)',
       borderLeft: '1px solid rgba(255,255,255,0.1)',
+      borderTop: { xs: '1px solid rgba(255,255,255,0.12)', sm: 0 },
+      borderTopLeftRadius: { xs: 18, sm: 0 },
+      borderTopRightRadius: { xs: 18, sm: 0 },
       boxShadow: '-12px 0 50px rgba(0,0,0,0.55)',
       display: 'flex', flexDirection: 'column',
-      animation: 'slideIn 0.22s ease',
+      animation: { xs: 'slideUp 0.22s ease', sm: 'slideIn 0.22s ease' },
       '@keyframes slideIn': {
         from: { transform: 'translateX(100%)' },
         to:   { transform: 'translateX(0)' },
+      },
+      '@keyframes slideUp': {
+        from: { transform: 'translateY(100%)' },
+        to: { transform: 'translateY(0)' },
       },
     }}>
       {/* Preview image */}
@@ -2475,9 +2489,15 @@ const PublicLotMap = () => {
   const [selectedLot, setSelectedLot] = useState(null);
   const [tourLot, setTourLot] = useState(null);
   const [mapZoom, setMapZoom] = useState(17);
+  const [mapPan, setMapPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [hoverPreview, setHoverPreview] = useState(null);
+  const [highlightedLotId, setHighlightedLotId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPhase, setSelectedPhase] = useState(1);
+  const mapCanvasRef = useRef(null);
+  const panStartRef = useRef(null);
 
   // Fetch lots from API
   useEffect(() => {
@@ -2528,15 +2548,91 @@ const PublicLotMap = () => {
     });
   }, [allLots, filterStatus, search, selectedPhase]);
 
+  const selectedPhaseLots = useMemo(
+    () => allLots.filter((lot) => Number(lot.phase) === Number(selectedPhase)),
+    [allLots, selectedPhase]
+  );
+
+  const phaseStats = useMemo(() => ({
+    vacant: selectedPhaseLots.filter(l => l.status === 'vacant').length,
+    occupied: selectedPhaseLots.filter(l => l.status === 'occupied').length,
+    reserved: selectedPhaseLots.filter(l => l.status === 'reserved').length,
+    total: selectedPhaseLots.length,
+  }), [selectedPhaseLots]);
+
   useEffect(() => {
-    setSelectedLot(null);
-    setTourLot(null);
-  }, [selectedPhase]);
+    setSelectedLot((current) => (current && Number(current.phase) === Number(selectedPhase) ? current : null));
+    setTourLot((current) => (current && Number(current.phase) === Number(selectedPhase) ? current : null));
+    setHighlightedLotId((current) => {
+      const highlighted = allLots.find((lot) => lot.id === current);
+      return highlighted && Number(highlighted.phase) === Number(selectedPhase) ? current : '';
+    });
+  }, [allLots, selectedPhase]);
+
+  useEffect(() => {
+    const query = search.trim().toLowerCase();
+    if (!query || query.length < 2) {
+      setHighlightedLotId('');
+      return;
+    }
+
+    const found = allLots.find((lot) => (
+      String(lot.lotId || lot.id).toLowerCase() === query ||
+      `p${lot.phase}-b${lot.phaseBlock}-l${lot.lotNumber}`.toLowerCase() === query ||
+      `${lot.phase}-${lot.phaseBlock}-${lot.lotNumber}` === query
+    ));
+
+    if (!found) return;
+    setSelectedPhase(found.phase);
+    setSelectedLot(found);
+    setHighlightedLotId(found.id);
+
+    const position = getLotMapPosition(found);
+    const rect = mapCanvasRef.current?.getBoundingClientRect();
+    if (position && rect) {
+      const centerLeft = (position.mapLeft || 0) + ((position.mapWidth || 0) / 2);
+      const centerTop = (position.mapTop || 0) + ((position.mapHeight || 0) / 2);
+      setMapPan({
+        x: ((50 - centerLeft) / 100) * rect.width,
+        y: ((50 - centerTop) / 100) * rect.height,
+      });
+    }
+  }, [allLots, search]);
 
   const absoluteOverrides = useMemo(() => phaseFilteredLots.filter((lot) => {
     const override = getLotMapPosition(lot);
     return override?.absolute;
   }), [phaseFilteredLots]);
+
+  const resetMapView = () => {
+    setMapZoom(17);
+    setMapPan({ x: 0, y: 0 });
+    setHighlightedLotId('');
+  };
+
+  const startPan = (event) => {
+    if (event.target.closest('[data-lot-overlay="true"]')) return;
+    setIsPanning(true);
+    panStartRef.current = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      x: mapPan.x,
+      y: mapPan.y,
+    };
+  };
+
+  const movePan = (event) => {
+    if (!isPanning || !panStartRef.current) return;
+    setMapPan({
+      x: panStartRef.current.x + event.clientX - panStartRef.current.pointerX,
+      y: panStartRef.current.y + event.clientY - panStartRef.current.pointerY,
+    });
+  };
+
+  const endPan = () => {
+    setIsPanning(false);
+    panStartRef.current = null;
+  };
 
   const handleRegister = (lot) => {
     const l = lot || selectedLot;
@@ -2713,7 +2809,7 @@ const PublicLotMap = () => {
         backgroundColor: 'rgba(15,23,42,0.82)',
       }}>
         <Typography sx={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.68rem', mr: 0.5 }}>
-          {stats.total} total lots
+          Phase {selectedPhase}: {phaseStats.total} lots
         </Typography>
         {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
           <Box key={key} onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
@@ -2733,10 +2829,26 @@ const PublicLotMap = () => {
               color: cfg.color, fontSize: '0.7rem', fontWeight: 700,
               backgroundColor: cfg.color + '20', px: 0.65, borderRadius: 3,
             }}>
-              {stats[key]}
+              {phaseStats[key]}
             </Typography>
           </Box>
         ))}
+        <Button
+          size="small"
+          variant={filterStatus === 'vacant' ? 'contained' : 'outlined'}
+          onClick={() => setFilterStatus(filterStatus === 'vacant' ? 'all' : 'vacant')}
+          sx={{
+            borderRadius: 5,
+            textTransform: 'none',
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            color: filterStatus === 'vacant' ? 'white' : '#60a5fa',
+            borderColor: 'rgba(96,165,250,0.45)',
+            backgroundColor: filterStatus === 'vacant' ? '#2563eb' : 'rgba(59,130,246,0.08)',
+          }}
+        >
+          Available only
+        </Button>
         <Box sx={{ ml: 'auto', display: 'flex', gap: 0.8 }}>
           <IconButton size="small"
             onClick={() => setMapZoom(z => Math.min(19, z + 1))}
@@ -2747,6 +2859,11 @@ const PublicLotMap = () => {
             onClick={() => setMapZoom(z => Math.max(14, z - 1))}
             sx={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1.5 }}>
             <ZoomOutIcon fontSize="small" />
+          </IconButton>
+          <IconButton size="small"
+            onClick={resetMapView}
+            sx={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1.5 }}>
+            <ResetViewIcon fontSize="small" />
           </IconButton>
         </Box>
       </Box>
@@ -2806,14 +2923,31 @@ const PublicLotMap = () => {
           </Box>
 
           {/* Blocks */}
-          <Box sx={{ position: 'relative', height: 740, borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <Box sx={{
+          <Box
+            onPointerDown={startPan}
+            onPointerMove={movePan}
+            onPointerUp={endPan}
+            onPointerLeave={() => {
+              endPan();
+              setHoverPreview(null);
+            }}
+            sx={{
+              position: 'relative',
+              height: 740,
+              borderRadius: 3,
+              overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.12)',
+              cursor: isPanning ? 'grabbing' : 'grab',
+            }}
+          >
+            <Box ref={mapCanvasRef} sx={{
               position: 'relative',
               width: '100%',
               aspectRatio: '1536 / 1024',
               overflow: 'hidden',
-              transform: `scale(${0.78 + (mapZoom - 14) * 0.12})`,
+              transform: `translate(${mapPan.x}px, ${mapPan.y}px) scale(${0.78 + (mapZoom - 14) * 0.12})`,
               transformOrigin: 'top center',
+              transition: isPanning ? 'none' : 'transform 0.16s ease',
             }}>
               <Box component="img"
                 src={mapImage}
@@ -2831,15 +2965,27 @@ const PublicLotMap = () => {
                 const lotKey = getLotMapKey(lot);
                 const svgShape = override.source === 'saved' ? null : LOT_SVG_SHAPES[lotKey];
                 const renderRotation = svgShape ? 0 : (override.rotate || 0);
+                const isFocused = selectedLot?.id === lot.id || highlightedLotId === lot.id;
+                const showHoverPreview = (event) => {
+                  setHoverPreview({ lot, x: event.clientX, y: event.clientY });
+                };
 
                 if (svgShape) {
                 const SvgComponent = svgShape.component;
                   return (
                     <Box
                       key={`abs-${lot.id}`}
+                      data-lot-overlay="true"
                       component={SvgComponent || 'svg'}
                       {...(!SvgComponent ? { viewBox: svgShape.viewBox } : {})}
-                      onClick={() => setSelectedLot(lot)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedLot(lot);
+                        setHighlightedLotId(lot.id);
+                      }}
+                      onMouseEnter={showHoverPreview}
+                      onMouseMove={showHoverPreview}
+                      onMouseLeave={() => setHoverPreview(null)}
                       title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
                       sx={{
                         position: 'absolute',
@@ -2851,10 +2997,15 @@ const PublicLotMap = () => {
                         transformOrigin: 'center center',
                         cursor: 'pointer',
                         transition: '0.15s ease',
+                        animation: isFocused ? 'lotPulse 1.4s ease-in-out infinite' : 'none',
+                        '@keyframes lotPulse': {
+                          '0%, 100%': { filter: `drop-shadow(0 0 2px ${cfg.color}66)` },
+                          '50%': { filter: `drop-shadow(0 0 10px ${cfg.color})` },
+                        },
                         '& path, & rect': {
                           fill: `${cfg.color}18`,
                           stroke: cfg.border,
-                          strokeWidth: '0.8',
+                          strokeWidth: isFocused ? '1.4' : '0.8',
                           transition: 'all 0.15s ease',
                         },
                         '&:hover path, &:hover rect': {
@@ -2880,7 +3031,15 @@ const PublicLotMap = () => {
                 return (
                   <Box
                     key={`abs-${lot.id}`}
-                    onClick={() => setSelectedLot(lot)}
+                    data-lot-overlay="true"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedLot(lot);
+                      setHighlightedLotId(lot.id);
+                    }}
+                    onMouseEnter={showHoverPreview}
+                    onMouseMove={showHoverPreview}
+                    onMouseLeave={() => setHoverPreview(null)}
                     title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
                     sx={{
                       position: 'absolute',
@@ -2892,12 +3051,17 @@ const PublicLotMap = () => {
                       transformOrigin: 'center center',
                       cursor: 'pointer',
                       borderRadius: '3px',
-                      border: `1px solid ${cfg.border}`,
+                      border: `${isFocused ? 2 : 1}px solid ${isFocused ? '#fff' : cfg.border}`,
                       backgroundColor: `${cfg.color}18`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       transition: '0.15s ease',
+                      animation: isFocused ? 'lotBoxPulse 1.4s ease-in-out infinite' : 'none',
+                      '@keyframes lotBoxPulse': {
+                        '0%, 100%': { boxShadow: `0 0 0 1px ${cfg.color}66` },
+                        '50%': { boxShadow: `0 0 0 4px ${cfg.color}55` },
+                      },
                       '&:hover': {
                         boxShadow: `0 0 0 2px ${cfg.color}44`,
                         backgroundColor: `${cfg.color}11`,
@@ -2913,6 +3077,38 @@ const PublicLotMap = () => {
                 Casimiro Westville Homes Map
               </Typography>
             </Box>
+
+            {hoverPreview && (
+              <Box
+                sx={{
+                  position: 'fixed',
+                  left: Math.min(hoverPreview.x + 14, window.innerWidth - 240),
+                  top: Math.min(hoverPreview.y + 14, window.innerHeight - 150),
+                  zIndex: 500,
+                  width: 220,
+                  p: 1.4,
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(15,23,42,0.94)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  boxShadow: '0 14px 34px rgba(0,0,0,0.35)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.82rem' }}>
+                  {hoverPreview.lot.id}
+                </Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.62)', fontSize: '0.68rem' }}>
+                  Phase {hoverPreview.lot.phase} · Block {hoverPreview.lot.phaseBlock} · Lot {hoverPreview.lot.lotNumber}
+                </Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.66rem', mt: 0.5 }}>
+                  {hoverPreview.lot.type} · {hoverPreview.lot.sqm} sqm
+                </Typography>
+                <Typography sx={{ color: (STATUS_CONFIG[hoverPreview.lot.status] || STATUS_CONFIG.vacant).color, fontWeight: 800, fontSize: '0.7rem', mt: 0.5 }}>
+                  {(STATUS_CONFIG[hoverPreview.lot.status] || STATUS_CONFIG.vacant).label}
+                  {hoverPreview.lot.price ? ` · ₱${hoverPreview.lot.price.toLocaleString()}` : ''}
+                </Typography>
+              </Box>
+            )}
           </Box>
 
           <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>

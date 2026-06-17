@@ -111,7 +111,12 @@ const AdminLotMapEditor = () => {
   const [selectedLotId, setSelectedLotId] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [positionFilter, setPositionFilter] = useState('all');
   const [draftPosition, setDraftPosition] = useState(null);
+  const [showGrid, setShowGrid] = useState(false);
+  const [undoStack, setUndoStack] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
+  const [rowPlacement, setRowPlacement] = useState({ active: false, start: null });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -146,23 +151,31 @@ const AdminLotMapEditor = () => {
       .filter((lot) => lot.phase === Number(selectedPhase))
       .filter((lot) => statusFilter === 'all' || lot.status === statusFilter)
       .filter((lot) => {
+        if (positionFilter === 'saved') return Boolean(getSavedPosition(lot));
+        if (positionFilter === 'fallback') return !getSavedPosition(lot) && Boolean(getFallbackPosition(lot));
+        if (positionFilter === 'unmapped') return !getSavedPosition(lot) && !getFallbackPosition(lot);
+        return true;
+      })
+      .filter((lot) => {
         if (!query) return true;
         return [lot.lotId, lot.address, lot.status, lot.type, `block ${lot.phaseBlock}`, `lot ${lot.lotNumber}`]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(query));
       })
       .sort((a, b) => a.phaseBlock - b.phaseBlock || a.lotNumber - b.lotNumber);
-  }, [lots, search, selectedPhase, statusFilter]);
+  }, [lots, positionFilter, search, selectedPhase, statusFilter]);
 
   const selectedLot = lots.find((lot) => lot.lotId === selectedLotId) || phaseLots[0] || null;
-  const selectedPosition = draftPosition || getDisplayPosition(selectedLot) || {
-    left: 48,
-    top: 48,
-    width: 1.6,
-    height: 2.4,
-    rotate: 0,
-    source: 'new'
-  };
+  const selectedPosition = useMemo(() => (
+    draftPosition || getDisplayPosition(selectedLot) || {
+      left: 48,
+      top: 48,
+      width: 1.6,
+      height: 2.4,
+      rotate: 0,
+      source: 'new'
+    }
+  ), [draftPosition, selectedLot]);
 
   useEffect(() => {
     if (selectedLot && selectedLot.phase !== Number(selectedPhase)) {
@@ -170,7 +183,13 @@ const AdminLotMapEditor = () => {
     }
   }, [selectedLot, selectedPhase]);
 
-  const updateDraft = (updates) => {
+  const pushHistory = useCallback(() => {
+    setUndoStack((current) => [...current.slice(-19), selectedPosition]);
+    setRedoStack([]);
+  }, [selectedPosition]);
+
+  const updateDraft = (updates, track = true) => {
+    if (track) pushHistory();
     setDraftPosition((current) => {
       const base = current || selectedPosition;
       const next = { ...base, ...updates, source: 'draft' };
@@ -194,10 +213,74 @@ const AdminLotMapEditor = () => {
     };
   };
 
-  const placeSelectedLot = (event) => {
+  const saveLotPosition = async (lot, position) => {
+    const response = await axios.put(`/api/lots/${lot.lotId}/map-position`, {
+      left: position.left,
+      top: position.top,
+      width: position.width,
+      height: position.height,
+      rotate: position.rotate,
+      shape: 'rectangle'
+    });
+    return normalizeLot(response.data.data);
+  };
+
+  const applyBulkRowPlacement = async (endPoint) => {
+    if (!selectedLot || !rowPlacement.start) return;
+
+    const rowLots = phaseLots
+      .filter((lot) => lot.phaseBlock === selectedLot.phaseBlock && lot.lotNumber >= selectedLot.lotNumber)
+      .sort((a, b) => a.lotNumber - b.lotNumber);
+
+    if (rowLots.length < 2) {
+      toast.error('Need at least two lots in the selected block to place a row');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const count = rowLots.length;
+      const updates = [];
+      for (let index = 0; index < count; index += 1) {
+        const t = count === 1 ? 0 : index / (count - 1);
+        const centerX = rowPlacement.start.x + (endPoint.x - rowPlacement.start.x) * t;
+        const centerY = rowPlacement.start.y + (endPoint.y - rowPlacement.start.y) * t;
+        const position = {
+          left: centerX - selectedPosition.width / 2,
+          top: centerY - selectedPosition.height / 2,
+          width: selectedPosition.width,
+          height: selectedPosition.height,
+          rotate: selectedPosition.rotate,
+        };
+        updates.push(await saveLotPosition(rowLots[index], position));
+      }
+
+      setLots((current) => current.map((lot) => updates.find((updated) => updated.lotId === lot.lotId) || lot));
+      setRowPlacement({ active: false, start: null });
+      setDraftPosition(null);
+      toast.success(`Placed and saved ${updates.length} lots in this row`);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to place row');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const placeSelectedLot = async (event) => {
     if (!selectedLot || dragRef.current?.dragging) return;
     const point = getPercentPoint(event);
     if (!point) return;
+
+    if (rowPlacement.active) {
+      if (!rowPlacement.start) {
+        setRowPlacement({ active: true, start: point });
+        toast.success('Row start set. Click the row end point.');
+      } else {
+        await applyBulkRowPlacement(point);
+      }
+      return;
+    }
+
     updateDraft({
       left: point.x - selectedPosition.width / 2,
       top: point.y - selectedPosition.height / 2
@@ -206,6 +289,7 @@ const AdminLotMapEditor = () => {
 
   const startDrag = (event, lot) => {
     event.stopPropagation();
+    pushHistory();
     setSelectedLotId(lot.lotId);
     const position = lot.lotId === selectedLotId ? selectedPosition : getDisplayPosition(lot);
     if (!position) return;
@@ -228,7 +312,7 @@ const AdminLotMapEditor = () => {
       updateDraft({
         left: point.x - dragRef.current.offsetX,
         top: point.y - dragRef.current.offsetY
-      });
+      }, false);
     };
 
     const handleUp = () => {
@@ -260,6 +344,77 @@ const AdminLotMapEditor = () => {
     setSelectedLotId(firstLot?.lotId || '');
     setDraftPosition(null);
   };
+
+  const undoDraft = () => {
+    setUndoStack((current) => {
+      if (!current.length) return current;
+      const previous = current[current.length - 1];
+      setRedoStack((redo) => [selectedPosition, ...redo].slice(0, 20));
+      setDraftPosition(previous);
+      return current.slice(0, -1);
+    });
+  };
+
+  const redoDraft = () => {
+    setRedoStack((current) => {
+      if (!current.length) return current;
+      const next = current[0];
+      setUndoStack((undo) => [...undo.slice(-19), selectedPosition]);
+      setDraftPosition(next);
+      return current.slice(1);
+    });
+  };
+
+  const duplicateNextLot = () => {
+    if (!selectedLot) return;
+    const ordered = lots
+      .filter((lot) => lot.phase === selectedLot.phase && lot.phaseBlock === selectedLot.phaseBlock)
+      .sort((a, b) => a.lotNumber - b.lotNumber);
+    const index = ordered.findIndex((lot) => lot.lotId === selectedLot.lotId);
+    const nextLot = ordered[index + 1];
+    if (!nextLot) {
+      toast.error('No next lot in this block');
+      return;
+    }
+
+    const nextPosition = {
+      ...selectedPosition,
+      left: clamp(selectedPosition.left + selectedPosition.width + 0.25, 0, 100 - selectedPosition.width),
+      source: 'draft'
+    };
+    setSelectedLotId(nextLot.lotId);
+    setDraftPosition(nextPosition);
+    toast.success(`Duplicated placement to ${nextLot.lotId}`);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (!selectedLot || event.target.closest('input, textarea, [role="combobox"]')) return;
+      const step = event.shiftKey ? 0.5 : 0.1;
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        updateDraft({ left: selectedPosition.left - step });
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        updateDraft({ left: selectedPosition.left + step });
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        updateDraft({ top: selectedPosition.top - step });
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        updateDraft({ top: selectedPosition.top + step });
+      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        undoDraft();
+      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+        event.preventDefault();
+        redoDraft();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 
   const savePosition = async () => {
     if (!selectedLot) return;
@@ -353,6 +508,9 @@ const AdminLotMapEditor = () => {
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Chip label={`${positionedCount} saved`} size="small" sx={{ bgcolor: `${themeColors.success}18`, color: themeColors.success, fontWeight: 700 }} />
                   <Chip label={`${fallbackCount} fallback`} size="small" sx={{ bgcolor: `${themeColors.info}18`, color: themeColors.info, fontWeight: 700 }} />
+                  <Button size="small" variant={showGrid ? 'contained' : 'outlined'} onClick={() => setShowGrid((value) => !value)} sx={{ textTransform: 'none', fontWeight: 700 }}>
+                    Grid
+                  </Button>
                 </Box>
               </Box>
 
@@ -372,6 +530,37 @@ const AdminLotMapEditor = () => {
                 }}
               >
                 <Box component="img" src={mapImage} alt="Lot map editor" sx={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                {showGrid && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      pointerEvents: 'none',
+                      backgroundImage: `
+                        linear-gradient(rgba(255,255,255,0.16) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.16) 1px, transparent 1px)
+                      `,
+                      backgroundSize: '5% 5%',
+                    }}
+                  />
+                )}
+                {rowPlacement.start && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      left: `${rowPlacement.start.x}%`,
+                      top: `${rowPlacement.start.y}%`,
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      bgcolor: themeColors.info,
+                      border: '2px solid #fff',
+                      pointerEvents: 'none',
+                      boxShadow: '0 0 0 3px rgba(14,165,233,0.25)'
+                    }}
+                  />
+                )}
 
                 {phaseLots.map((lot) => {
                   const status = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
@@ -433,6 +622,17 @@ const AdminLotMapEditor = () => {
                       <MenuItem value="vacant">Vacant</MenuItem>
                       <MenuItem value="occupied">Occupied</MenuItem>
                       <MenuItem value="reserved">Reserved</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Map Position</InputLabel>
+                    <Select value={positionFilter} label="Map Position" onChange={(event) => setPositionFilter(event.target.value)}>
+                      <MenuItem value="all">All lots</MenuItem>
+                      <MenuItem value="saved">Saved only</MenuItem>
+                      <MenuItem value="fallback">Fallback only</MenuItem>
+                      <MenuItem value="unmapped">Unmapped only</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -506,6 +706,23 @@ const AdminLotMapEditor = () => {
                   ))}
 
                   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mt: 2 }}>
+                    <Button variant="outlined" disabled={!undoStack.length} onClick={undoDraft} sx={{ textTransform: 'none', fontWeight: 800 }}>
+                      Undo
+                    </Button>
+                    <Button variant="outlined" disabled={!redoStack.length} onClick={redoDraft} sx={{ textTransform: 'none', fontWeight: 800 }}>
+                      Redo
+                    </Button>
+                    <Button variant="outlined" onClick={duplicateNextLot} sx={{ textTransform: 'none', fontWeight: 800 }}>
+                      Duplicate Next
+                    </Button>
+                    <Button
+                      variant={rowPlacement.active ? 'contained' : 'outlined'}
+                      disabled={saving}
+                      onClick={() => setRowPlacement((current) => current.active ? { active: false, start: null } : { active: true, start: null })}
+                      sx={{ textTransform: 'none', fontWeight: 800 }}
+                    >
+                      {rowPlacement.active ? 'Cancel Row' : 'Place Row'}
+                    </Button>
                     <Button
                       variant="contained"
                       startIcon={<SaveIcon />}

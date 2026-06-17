@@ -2514,6 +2514,7 @@ const PublicLotMap = () => {
     const s = search.toLowerCase();
 
     return allLots.filter((lot) => {
+      const matchesPhase = Number(lot.phase) === Number(selectedPhase);
       const matchesStatus = filterStatus === 'all' || lot.status === filterStatus;
       const matchesSearch =
         !s ||
@@ -2523,9 +2524,14 @@ const PublicLotMap = () => {
         String(lot.block).toLowerCase().includes(s) ||
         String(lot.lotNumber).toLowerCase().includes(s);
 
-      return matchesStatus && matchesSearch;
+      return matchesPhase && matchesStatus && matchesSearch;
     });
-  }, [allLots, filterStatus, search]);
+  }, [allLots, filterStatus, search, selectedPhase]);
+
+  useEffect(() => {
+    setSelectedLot(null);
+    setTourLot(null);
+  }, [selectedPhase]);
 
   const absoluteOverrides = useMemo(() => phaseFilteredLots.filter((lot) => {
     const override = getLotMapPosition(lot);

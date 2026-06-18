@@ -217,6 +217,7 @@ const AdminLotMapEditor = () => {
     if (!point) return;
     dragRef.current = {
       dragging: true,
+      moved: false,
       lotId: lot.lotId,
       offsetX: point.x - position.left,
       offsetY: point.y - position.top
@@ -228,6 +229,7 @@ const AdminLotMapEditor = () => {
       if (!dragRef.current?.dragging) return;
       const point = getPercentPoint(event);
       if (!point) return;
+      dragRef.current.moved = true;
       updateDraft({
         left: point.x - dragRef.current.offsetX,
         top: point.y - dragRef.current.offsetY
@@ -377,32 +379,25 @@ const AdminLotMapEditor = () => {
     }
   };
 
-  const removeLot = async () => {
+  const removeSquare = async () => {
     if (!selectedLot) return;
 
     const confirmed = window.confirm(
-      `Remove ${selectedLot.lotId} permanently? This deletes the lot record and removes it from the public map.`
+      `Remove the ${selectedLot.lotId} square from the map? The lot record will remain in the database.`
     );
     if (!confirmed) return;
 
     try {
       setSaving(true);
-      await axios.delete(`/api/lots/${selectedLot.lotId}`);
-      setLots((current) => {
-        const remaining = current.filter((lot) => lot.lotId !== selectedLot.lotId);
-        const nextLot = remaining
-          .filter((lot) => lot.phase === selectedLot.phase)
-          .sort((a, b) => a.phaseBlock - b.phaseBlock || a.lotNumber - b.lotNumber)[0] || remaining[0];
-        setSelectedLotId(nextLot?.lotId || '');
-        setSelectedPhase(nextLot?.phase || selectedPhase);
-        return remaining;
-      });
+      const response = await axios.delete(`/api/lots/${encodeURIComponent(selectedLot.lotId)}/map-position`);
+      const updated = normalizeLot(response.data.data);
+      setLots((current) => current.map((lot) => (lot.lotId === updated.lotId ? updated : lot)));
       setDraftPosition(null);
       setUndoStack([]);
       setRedoStack([]);
-      toast.success('Lot removed');
+      toast.success(`${selectedLot.lotId} square removed; lot record retained`);
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to remove lot');
+      toast.error(error.response?.data?.error || error.message || 'Failed to remove square');
     } finally {
       setSaving(false);
     }
@@ -577,6 +572,10 @@ const AdminLotMapEditor = () => {
                         onPointerDown={(event) => startDrag(event, lot)}
                         onClick={(event) => {
                           event.stopPropagation();
+                          if (dragRef.current?.lotId === lot.lotId && dragRef.current.moved) {
+                            dragRef.current.moved = false;
+                            return;
+                          }
                           handleSelectLot(lot);
                         }}
                         sx={{
@@ -728,8 +727,8 @@ const AdminLotMapEditor = () => {
                     <Button variant="outlined" startIcon={<ClearIcon />} disabled={saving} color="error" onClick={clearPosition} sx={{ textTransform: 'none', fontWeight: 800 }}>
                       Clear
                     </Button>
-                    <Button variant="contained" disabled={saving} color="error" onClick={removeLot} sx={{ gridColumn: '1 / -1', textTransform: 'none', fontWeight: 800 }}>
-                      Remove Lot
+                    <Button variant="contained" disabled={saving} color="error" onClick={removeSquare} sx={{ gridColumn: '1 / -1', textTransform: 'none', fontWeight: 800 }}>
+                      Remove Square
                     </Button>
                   </Box>
                 </>

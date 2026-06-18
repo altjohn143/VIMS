@@ -262,34 +262,6 @@ router.delete('/:lotId/map-position', protect, authorize('admin'), async (req, r
   }
 });
 
-// Admin: Permanently remove a lot record
-router.delete('/:lotId', protect, authorize('admin'), async (req, res) => {
-  try {
-    const lot = await Lot.findOne({ lotId: req.params.lotId });
-    if (!lot) {
-      return res.status(404).json({ success: false, error: 'Lot not found' });
-    }
-
-    if (lot.status === 'occupied' || lot.occupiedBy) {
-      return res.status(400).json({
-        success: false,
-        error: 'Occupied lots cannot be removed. Mark the lot vacant first.'
-      });
-    }
-
-    await Lot.deleteOne({ _id: lot._id });
-
-    res.json({
-      success: true,
-      message: `Lot ${lot.lotId} removed successfully`,
-      data: { lotId: lot.lotId }
-    });
-  } catch (error) {
-    console.error('Remove lot error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 const normalizeMapPosition = (mapPosition, userId = null) => {
   if (!mapPosition?.isPositioned) {
     return {

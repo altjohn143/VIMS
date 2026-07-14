@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import villageLogo from '../assets/village-logo.png';
@@ -129,6 +129,7 @@ const themeColors = {
 const APPBAR_HEIGHT = 72;
 const SIDEBAR_WIDTH = 260;
 const MINI_SIDEBAR_WIDTH = 82;
+const LOT_MAP_EDITOR_SEQUENCE = 'ADMIN';
 
 const screenFade = {
   '@keyframes screenFadeIn': {
@@ -478,6 +479,8 @@ const Dashboard = () => {
   const [liveStats, setLiveStats] = useState({});
   const [notificationAnchor, setNotificationAnchor] = useState(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [lotMapEditorNavVisible, setLotMapEditorNavVisible] = useState(false);
+  const lotMapEditorSequenceRef = useRef('');
   const { logout, getCurrentUser } = useAuth();
 
   // Live Monthly Collection state and logic for resident dashboard
@@ -549,6 +552,32 @@ const Dashboard = () => {
       setSidebarOpen(true);
     }
   }, [isMobile]);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') {
+      lotMapEditorSequenceRef.current = '';
+      setLotMapEditorNavVisible(false);
+      return undefined;
+    }
+
+    const handleAdminKeySequence = (event) => {
+      if (lotMapEditorNavVisible || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key.length !== 1 || !/^[a-z]$/i.test(event.key)) return;
+
+      const nextSequence = `${lotMapEditorSequenceRef.current}${event.key.toUpperCase()}`
+        .slice(-LOT_MAP_EDITOR_SEQUENCE.length);
+      lotMapEditorSequenceRef.current = nextSequence;
+
+      if (nextSequence === LOT_MAP_EDITOR_SEQUENCE) {
+        setLotMapEditorNavVisible(true);
+        setExpandedSections((prev) => ({ ...prev, 'lot-management': true }));
+        if (isMobile) setSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleAdminKeySequence);
+    return () => window.removeEventListener('keydown', handleAdminKeySequence);
+  }, [user?.role, lotMapEditorNavVisible, isMobile]);
 
   const buildProfilePhotoUrl = (photo) => {
     if (!photo) return null;
@@ -918,6 +947,15 @@ const Dashboard = () => {
 
   const configRole = isHeadOfficer ? 'headOfficer' : user.role;
   const config = roleConfig[configRole] || roleConfig.resident;
+  const visibleFeatures = Object.fromEntries(
+    Object.entries(config.features).map(([section, items]) => [
+      section,
+      user?.role === 'admin' && !lotMapEditorNavVisible
+        ? items.filter((item) => item.link !== '/dashboard/admin/lot-map-editor')
+        : items
+    ]).filter(([, items]) => items.length > 0)
+  );
+  const navConfig = { ...config, features: visibleFeatures };
   const panelLabel = config.panelLabel || 'Panel';
 
   const getActivePageKey = () => {
@@ -1015,7 +1053,7 @@ const Dashboard = () => {
     ...(activePageContent ? [{ label: activePageLabel, link: location.pathname }] : [])
   ];
 
-  const dashboardShortcutCards = Object.entries(config.features)
+  const dashboardShortcutCards = Object.entries(navConfig.features)
     .filter(([section]) => section !== 'dashboard')
     .slice(0, 6)
     .map(([section, items]) => ({
@@ -1312,7 +1350,7 @@ const Dashboard = () => {
         }}
       >
         <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          {Object.entries(config.features).map(([section, items]) => {
+          {Object.entries(navConfig.features).map(([section, items]) => {
             const currentIcon = getSectionIcon(section, items);
             const sectionLabel = getSectionLabel(section);
             const hasChildren = items.length > 1;

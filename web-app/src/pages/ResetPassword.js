@@ -26,6 +26,9 @@ const themeColors = {
   textSecondary: '#64748b'
 };
 
+const isStrongPassword = (password) =>
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,128}$/.test(password);
+
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -66,8 +69,8 @@ const ResetPassword = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (!isStrongPassword(formData.password)) {
+      setError('Password must be 12-128 characters and contain uppercase, lowercase, number, and special character');
       return;
     }
 

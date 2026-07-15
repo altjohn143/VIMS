@@ -31,6 +31,8 @@ const phoneSchema = Joi.string().pattern(/^\+?[\d\s\-\(\)]+$/).max(20);
 
 const LOGIN_LIMIT_WINDOW_MINUTES = Number(process.env.LOGIN_LIMIT_WINDOW_MINUTES || 15);
 const LOGIN_LIMIT_MAX_ATTEMPTS = Number(process.env.LOGIN_LIMIT_MAX_ATTEMPTS || 10);
+const FORGOT_PASSWORD_LIMIT_WINDOW_MINUTES = Number(process.env.FORGOT_PASSWORD_LIMIT_WINDOW_MINUTES || 15);
+const FORGOT_PASSWORD_LIMIT_MAX_ATTEMPTS = Number(process.env.FORGOT_PASSWORD_LIMIT_MAX_ATTEMPTS || 5);
 
 const loginLimiter = rateLimit({
   windowMs: LOGIN_LIMIT_WINDOW_MINUTES * 60 * 1000,
@@ -42,6 +44,19 @@ const loginLimiter = rateLimit({
     error: `Too many login attempts. Please try again in ${LOGIN_LIMIT_WINDOW_MINUTES} minutes.`
   }
 });
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: FORGOT_PASSWORD_LIMIT_WINDOW_MINUTES * 60 * 1000,
+  limit: FORGOT_PASSWORD_LIMIT_MAX_ATTEMPTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: `Too many password reset requests. Please try again in ${FORGOT_PASSWORD_LIMIT_WINDOW_MINUTES} minutes.`
+  }
+});
+
+const hashResetToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const profilePhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -773,49 +788,57 @@ router.get('/me', protect, async (req, res) => {
 });
 
 // Forgot password request
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     
-    console.log('🔐 Forgot password request received for:', email);
+    console.log('Forgot password request received');
     
     if (!email) {
-      console.log('❌ No email provided');
+      console.log('No email provided');
       return res.status(400).json({
         success: false,
         error: 'Email is required'
       });
     }
     
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const { error: emailError, value: normalizedEmail } = emailSchema.validate(email);
+    if (emailError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format'
+      });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
     
     if (!user) {
-      console.log('ℹ️ User not found for email:', email);
+      console.log('Password reset requested for unregistered email');
       return res.json({
         success: true,
         message: 'If your email is registered, you will receive a password reset link.'
       });
     }
     
-    console.log('✅ User found:', user.firstName, user.lastName);
+    console.log('Password reset requested for registered user');
     
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const resetTokenHash = hashResetToken(resetToken);
+    const resetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     
-    // Save token to user
-    user.resetPasswordToken = resetToken;
+    // Save only the token hash. The raw token is sent once by email.
+    user.resetPasswordToken = resetTokenHash;
     user.resetPasswordExpires = resetTokenExpiry;
     await user.save();
     
-    console.log('🔑 Reset token generated and saved');
+    console.log('Reset token generated and saved');
     
     // Send email
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-    console.log('📧 Reset URL:', resetUrl);
     
     try {
-      console.log('📤 Attempting to send email via Resend...');
+      console.log('Attempting to send password reset email via Resend');
       await resend.emails.send({
         //from: 'VIMS System <noreply@vims-system.com>',
         from: 'VIMS System <noreply@casimiro-westville-homes-vims.online>',
@@ -835,9 +858,9 @@ router.post('/forgot-password', async (req, res) => {
         `
       });
       
-      console.log('✅ Password reset email sent successfully to:', email);
+      console.log('Password reset email sent successfully');
     } catch (emailError) {
-      console.error('❌ Failed to send reset email:', emailError);
+      console.error('Failed to send reset email:', emailError);
       // Don't fail the request, just log it
     }
     
@@ -847,7 +870,7 @@ router.post('/forgot-password', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Forgot password error:', error);
+    console.error('Forgot password error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to process request'
@@ -876,16 +899,26 @@ router.post('/reset-password', async (req, res) => {
       });
     }
 
+    const resetTokenHash = hashResetToken(token);
+
     // Find user with valid token
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: resetTokenHash,
       resetPasswordExpires: { $gt: Date.now() }
-    }).select('+previousPasswords');
+    }).select('+password +previousPasswords');
 
     if (!user) {
       return res.status(400).json({
         success: false,
         error: 'Invalid or expired reset token'
+      });
+    }
+
+    const matchesCurrentPassword = await bcrypt.compare(newPassword, user.password);
+    if (matchesCurrentPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password cannot be the same as your current password'
       });
     }
 

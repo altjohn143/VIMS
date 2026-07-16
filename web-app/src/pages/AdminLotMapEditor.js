@@ -33,6 +33,12 @@ import {
   SelectAll as SelectAllIcon,
   Visibility as PreviewIcon,
   WarningAmber as WarningIcon,
+  Add as AddIcon,
+  Remove as RemoveIcon,
+  KeyboardArrowUp as ArrowUpIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  KeyboardArrowLeft as ArrowLeftIcon,
+  KeyboardArrowRight as ArrowRightIcon,
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon
 } from '@mui/icons-material';
@@ -425,6 +431,21 @@ const AdminLotMapEditor = () => {
     toast.success(`Duplicated placement to ${nextLot.lotId}`);
   };
 
+  const nudgeSelected = (axis, amount) => {
+    if (!selectedLot || previewMode) return;
+    updateDraft({ [axis]: selectedPosition[axis] + amount });
+  };
+
+  const resizeSelected = (axis, amount) => {
+    if (!selectedLot || previewMode) return;
+    updateDraft({ [axis]: selectedPosition[axis] + amount });
+  };
+
+  const rotateSelected = (amount) => {
+    if (!selectedLot || previewMode) return;
+    updateDraft({ rotate: selectedPosition.rotate + amount });
+  };
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (!selectedLot || event.target.closest('input, textarea, [role="combobox"]')) return;
@@ -791,8 +812,8 @@ const AdminLotMapEditor = () => {
                     }}
                   />
                 )}
-                {phaseLots.map((lot) => {
-                  const status = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
+                  {phaseLots.map((lot) => {
+                    const status = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
                   const isSelected = lot.lotId === selectedLot?.lotId;
                   const isMultiSelected = selectedSet.has(lot.lotId);
                   const hasOverlap = overlapLotIds.has(lot.lotId);
@@ -831,9 +852,93 @@ const AdminLotMapEditor = () => {
                           }
                         }}
                       />
-                    </Tooltip>
-                  );
-                })}
+                      </Tooltip>
+                    );
+                  })}
+                  {selectedLot && !previewMode && selectedPosition && (
+                    <Box
+                      onClick={(event) => event.stopPropagation()}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      sx={{
+                        position: 'absolute',
+                        left: `${clamp(selectedPosition.left + selectedPosition.width + 0.7, 0, 82)}%`,
+                        top: `${clamp(selectedPosition.top - 1.2, 0, 82)}%`,
+                        zIndex: 6,
+                        width: 210,
+                        p: 1,
+                        borderRadius: 2,
+                        bgcolor: 'rgba(255,255,255,0.96)',
+                        border: `1px solid ${themeColors.border}`,
+                        boxShadow: '0 14px 36px rgba(15,23,42,0.22)',
+                        backdropFilter: 'blur(8px)'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.8 }}>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 900, color: themeColors.textPrimary }}>
+                          {selectedLot.lotId}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={draftPositions[selectedLot.lotId] ? 'Draft' : 'Saved'}
+                          sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800 }}
+                        />
+                      </Box>
+
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '32px 32px 32px', justifyContent: 'center', gap: 0.4, mb: 0.8 }}>
+                        <Box />
+                        <Tooltip title="Move up">
+                          <IconButton size="small" onClick={() => nudgeSelected('top', -0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowUpIcon fontSize="small" /></IconButton>
+                        </Tooltip>
+                        <Box />
+                        <Tooltip title="Move left">
+                          <IconButton size="small" onClick={() => nudgeSelected('left', -0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowLeftIcon fontSize="small" /></IconButton>
+                        </Tooltip>
+                        <Tooltip title="Move down">
+                          <IconButton size="small" onClick={() => nudgeSelected('top', 0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowDownIcon fontSize="small" /></IconButton>
+                        </Tooltip>
+                        <Tooltip title="Move right">
+                          <IconButton size="small" onClick={() => nudgeSelected('left', 0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowRightIcon fontSize="small" /></IconButton>
+                        </Tooltip>
+                      </Box>
+
+                      {[
+                        ['Width', 'width', `${selectedPosition.width.toFixed(2)}%`],
+                        ['Height', 'height', `${selectedPosition.height.toFixed(2)}%`],
+                        ['Rotate', 'rotate', `${Math.round(selectedPosition.rotate || 0)} deg`]
+                      ].map(([label, key, value]) => (
+                        <Box key={key} sx={{ display: 'grid', gridTemplateColumns: '52px 28px 1fr 28px', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                          <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: themeColors.textSecondary }}>{label}</Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => key === 'rotate' ? rotateSelected(-5) : resizeSelected(key, -0.1)}
+                            sx={{ width: 26, height: 26, border: `1px solid ${themeColors.border}` }}
+                          >
+                            <RemoveIcon sx={{ fontSize: 15 }} />
+                          </IconButton>
+                          <Typography sx={{ fontSize: '0.68rem', fontWeight: 900, textAlign: 'center', color: themeColors.textPrimary }}>{value}</Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => key === 'rotate' ? rotateSelected(5) : resizeSelected(key, 0.1)}
+                            sx={{ width: 26, height: 26, border: `1px solid ${themeColors.border}` }}
+                          >
+                            <AddIcon sx={{ fontSize: 15 }} />
+                          </IconButton>
+                        </Box>
+                      ))}
+
+                      <Button
+                        fullWidth
+                        size="small"
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        disabled={saving}
+                        onClick={savePosition}
+                        sx={{ mt: 0.5, textTransform: 'none', fontWeight: 900, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}
+                      >
+                        Save Lot
+                      </Button>
+                    </Box>
+                  )}
                 </Box>
               </Box>
             </Paper>

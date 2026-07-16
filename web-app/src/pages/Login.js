@@ -1576,10 +1576,6 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           </Reveal>
         </Box>
 
-        <Box sx={{ backgroundColor: '#0b5d91', color: 'white', px: { xs: 2, md: 6 }, py: 1, fontSize: '0.72rem', fontWeight: 700 }}>
-          This is a temporary development preview, and these links are not for public use. Publish your site to secure sharing or use an invite link.
-        </Box>
-
         {/* Reservation Schedule (inline) */}
         <Box ref={calendarSectionRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: T.bg }}>
           <Container maxWidth="lg">

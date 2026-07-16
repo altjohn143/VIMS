@@ -7,6 +7,7 @@ import {
   CircularProgress,
   Container,
   Divider,
+  FormControlLabel,
   FormControl,
   Grid,
   IconButton,
@@ -15,6 +16,7 @@ import {
   Paper,
   Select,
   Slider,
+  Switch,
   TextField,
   Toolbar,
   Tooltip,
@@ -27,7 +29,12 @@ import {
   FileUpload as ImportIcon,
   Map as MapIcon,
   Refresh as RefreshIcon,
-  Save as SaveIcon
+  Save as SaveIcon,
+  SelectAll as SelectAllIcon,
+  Visibility as PreviewIcon,
+  WarningAmber as WarningIcon,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -56,6 +63,21 @@ const STATUS_CONFIG = {
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
+const DEFAULT_POSITION = {
+  left: 48,
+  top: 48,
+  width: 1.6,
+  height: 2.4,
+  rotate: 0,
+  source: 'new'
+};
+
+const DIRECTIONS = {
+  right: { label: 'Right', x: 1, y: 0 },
+  left: { label: 'Left', x: -1, y: 0 },
+  down: { label: 'Down', x: 0, y: 1 },
+  up: { label: 'Up', x: 0, y: -1 }
+};
 
 const normalizeLot = (lot) => {
   const rawBlock = Number(lot.block);
@@ -85,6 +107,26 @@ const getSavedPosition = (lot) => {
 
 const getDisplayPosition = (lot) => getSavedPosition(lot);
 
+const normalizePosition = (position) => {
+  const width = clamp(Number(position.width) || DEFAULT_POSITION.width, 0.1, 20);
+  const height = clamp(Number(position.height) || DEFAULT_POSITION.height, 0.1, 20);
+  return {
+    ...position,
+    width,
+    height,
+    left: clamp(Number(position.left) || 0, 0, 100 - width),
+    top: clamp(Number(position.top) || 0, 0, 100 - height),
+    rotate: clamp(Number(position.rotate) || 0, -180, 180)
+  };
+};
+
+const positionsOverlap = (a, b) => (
+  a.left < b.left + b.width &&
+  a.left + a.width > b.left &&
+  a.top < b.top + b.height &&
+  a.top + a.height > b.top
+);
+
 const AdminLotMapEditor = () => {
   const navigate = useNavigate();
   const mapRef = useRef(null);
@@ -93,11 +135,24 @@ const AdminLotMapEditor = () => {
   const [lots, setLots] = useState([]);
   const [selectedPhase, setSelectedPhase] = useState(1);
   const [selectedLotId, setSelectedLotId] = useState('');
+  const [selectedLotIds, setSelectedLotIds] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [positionFilter, setPositionFilter] = useState('all');
-  const [draftPosition, setDraftPosition] = useState(null);
+  const [draftPositions, setDraftPositions] = useState({});
   const [showGrid, setShowGrid] = useState(false);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const [snapSize, setSnapSize] = useState(0.5);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [previewMode, setPreviewMode] = useState(false);
+  const [wizard, setWizard] = useState({
+    block: '',
+    startLotId: '',
+    count: 10,
+    direction: 'right',
+    spacing: 0.25
+  });
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -111,6 +166,7 @@ const AdminLotMapEditor = () => {
       setLots(rows);
       if (rows.length) {
         setSelectedLotId((current) => current || rows[0].lotId);
+        setSelectedLotIds((current) => current.length ? current : [rows[0].lotId]);
         setSelectedPhase((current) => current || rows[0].phase || 1);
       }
     } catch (error) {
@@ -148,16 +204,42 @@ const AdminLotMapEditor = () => {
   }, [lots, positionFilter, search, selectedPhase, statusFilter]);
 
   const selectedLot = lots.find((lot) => lot.lotId === selectedLotId) || phaseLots[0] || null;
+  const getCurrentPosition = useCallback((lot) => {
+    if (!lot) return null;
+    return draftPositions[lot.lotId] || getDisplayPosition(lot);
+  }, [draftPositions]);
   const selectedPosition = useMemo(() => (
-    draftPosition || getDisplayPosition(selectedLot) || {
-      left: 48,
-      top: 48,
-      width: 1.6,
-      height: 2.4,
-      rotate: 0,
-      source: 'new'
+    getCurrentPosition(selectedLot) || DEFAULT_POSITION
+  ), [getCurrentPosition, selectedLot]);
+  const draftCount = Object.keys(draftPositions).length;
+  const hasUnsavedChanges = draftCount > 0;
+  const selectedSet = useMemo(() => new Set(selectedLotIds), [selectedLotIds]);
+  const phaseBlocks = useMemo(() => (
+    Array.from(new Set(phaseLots.map((lot) => lot.phaseBlock))).sort((a, b) => a - b)
+  ), [phaseLots]);
+  const wizardLots = useMemo(() => {
+    if (!wizard.block) return phaseLots;
+    return phaseLots.filter((lot) => lot.phaseBlock === Number(wizard.block));
+  }, [phaseLots, wizard.block]);
+  const overlapPairs = useMemo(() => {
+    const positioned = phaseLots
+      .map((lot) => ({ lot, position: getCurrentPosition(lot) }))
+      .filter((item) => item.position);
+    const pairs = [];
+    for (let i = 0; i < positioned.length; i += 1) {
+      for (let j = i + 1; j < positioned.length; j += 1) {
+        if (positionsOverlap(positioned[i].position, positioned[j].position)) {
+          pairs.push(`${positioned[i].lot.lotId} / ${positioned[j].lot.lotId}`);
+        }
+      }
     }
-  ), [draftPosition, selectedLot]);
+    return pairs;
+  }, [getCurrentPosition, phaseLots]);
+  const overlapLotIds = useMemo(() => {
+    const ids = new Set();
+    overlapPairs.forEach((pair) => pair.split(' / ').forEach((id) => ids.add(id)));
+    return ids;
+  }, [overlapPairs]);
 
   useEffect(() => {
     if (selectedLot && selectedLot.phase !== Number(selectedPhase)) {
@@ -166,32 +248,42 @@ const AdminLotMapEditor = () => {
   }, [selectedLot, selectedPhase]);
 
   const pushHistory = useCallback(() => {
-    setUndoStack((current) => [...current.slice(-19), selectedPosition]);
+    setUndoStack((current) => [...current.slice(-19), draftPositions]);
     setRedoStack([]);
-  }, [selectedPosition]);
+  }, [draftPositions]);
 
   const updateDraft = (updates, track = true) => {
+    if (!selectedLot) return;
     if (track) pushHistory();
-    setDraftPosition((current) => {
-      const base = current || selectedPosition;
-      const next = { ...base, ...updates, source: 'draft' };
-      return {
-        ...next,
-        left: clamp(Number(next.left) || 0, 0, 100 - (Number(next.width) || 1)),
-        top: clamp(Number(next.top) || 0, 0, 100 - (Number(next.height) || 1)),
-        width: clamp(Number(next.width) || 1, 0.1, 20),
-        height: clamp(Number(next.height) || 1, 0.1, 20),
-        rotate: clamp(Number(next.rotate) || 0, -180, 180)
-      };
+    setDraftPositions((current) => {
+      const base = current[selectedLot.lotId] || selectedPosition;
+      const nextUpdates = { ...updates };
+      if (Object.prototype.hasOwnProperty.call(nextUpdates, 'left')) nextUpdates.left = snap(nextUpdates.left);
+      if (Object.prototype.hasOwnProperty.call(nextUpdates, 'top')) nextUpdates.top = snap(nextUpdates.top);
+      const next = normalizePosition({ ...base, ...nextUpdates, source: 'draft' });
+      return { ...current, [selectedLot.lotId]: next };
     });
+  };
+
+  const setLotDraft = (lotId, position) => {
+    setDraftPositions((current) => ({
+      ...current,
+      [lotId]: normalizePosition({ ...position, source: 'draft' })
+    }));
+  };
+
+  const snap = (value) => {
+    if (!snapEnabled) return value;
+    const size = Number(snapSize) || 0.5;
+    return Math.round(value / size) * size;
   };
 
   const getPercentPoint = (event) => {
     const rect = mapRef.current?.getBoundingClientRect();
     if (!rect) return null;
     return {
-      x: clamp(((event.clientX - rect.left) / rect.width) * 100, 0, 100),
-      y: clamp(((event.clientY - rect.top) / rect.height) * 100, 0, 100)
+      x: clamp((((event.clientX - rect.left - pan.x) / zoom) / rect.width) * 100, 0, 100),
+      y: clamp((((event.clientY - rect.top - pan.y) / zoom) / rect.height) * 100, 0, 100)
     };
   };
 
@@ -201,8 +293,8 @@ const AdminLotMapEditor = () => {
     if (!point) return;
 
     updateDraft({
-      left: point.x - selectedPosition.width / 2,
-      top: point.y - selectedPosition.height / 2
+      left: snap(point.x - selectedPosition.width / 2),
+      top: snap(point.y - selectedPosition.height / 2)
     });
   };
 
@@ -210,15 +302,27 @@ const AdminLotMapEditor = () => {
     event.stopPropagation();
     pushHistory();
     setSelectedLotId(lot.lotId);
-    const position = lot.lotId === selectedLotId ? selectedPosition : getDisplayPosition(lot);
+    if (!event.shiftKey && !selectedSet.has(lot.lotId)) {
+      setSelectedLotIds([lot.lotId]);
+    }
+    const position = lot.lotId === selectedLotId ? selectedPosition : getCurrentPosition(lot);
     if (!position) return;
-    setDraftPosition(position);
+    setLotDraft(lot.lotId, position);
     const point = getPercentPoint(event);
     if (!point) return;
     dragRef.current = {
       dragging: true,
       moved: false,
       lotId: lot.lotId,
+      groupLotIds: selectedSet.has(lot.lotId) ? [...selectedSet] : [lot.lotId],
+      startPositions: Object.fromEntries(
+        (selectedSet.has(lot.lotId) ? [...selectedSet] : [lot.lotId])
+          .map((id) => {
+            const row = lots.find((item) => item.lotId === id);
+            return [id, getCurrentPosition(row) || DEFAULT_POSITION];
+          })
+      ),
+      startPoint: point,
       offsetX: point.x - position.left,
       offsetY: point.y - position.top
     };
@@ -230,10 +334,30 @@ const AdminLotMapEditor = () => {
       const point = getPercentPoint(event);
       if (!point) return;
       dragRef.current.moved = true;
-      updateDraft({
-        left: point.x - dragRef.current.offsetX,
-        top: point.y - dragRef.current.offsetY
-      }, false);
+      const groupLotIds = dragRef.current.groupLotIds || [dragRef.current.lotId];
+      if (groupLotIds.length > 1) {
+        const deltaX = point.x - dragRef.current.startPoint.x;
+        const deltaY = point.y - dragRef.current.startPoint.y;
+        setDraftPositions((current) => {
+          const next = { ...current };
+          groupLotIds.forEach((lotId) => {
+            const start = dragRef.current.startPositions[lotId];
+            if (!start) return;
+            next[lotId] = normalizePosition({
+              ...start,
+              left: snap(start.left + deltaX),
+              top: snap(start.top + deltaY),
+              source: 'draft'
+            });
+          });
+          return next;
+        });
+      } else {
+        updateDraft({
+          left: snap(point.x - dragRef.current.offsetX),
+          top: snap(point.y - dragRef.current.offsetY)
+        }, false);
+      }
     };
 
     const handleUp = () => {
@@ -250,10 +374,14 @@ const AdminLotMapEditor = () => {
     };
   });
 
-  const handleSelectLot = (lot) => {
+  const handleSelectLot = (lot, append = false) => {
     setSelectedLotId(lot.lotId);
     setSelectedPhase(lot.phase);
-    setDraftPosition(null);
+    setSelectedLotIds((current) => {
+      if (!append) return [lot.lotId];
+      if (current.includes(lot.lotId)) return current.filter((id) => id !== lot.lotId);
+      return [...current, lot.lotId];
+    });
   };
 
   const handlePhaseChange = (phase) => {
@@ -263,15 +391,15 @@ const AdminLotMapEditor = () => {
       .sort((a, b) => a.phaseBlock - b.phaseBlock || a.lotNumber - b.lotNumber)[0];
     setSelectedPhase(nextPhase);
     setSelectedLotId(firstLot?.lotId || '');
-    setDraftPosition(null);
+    setSelectedLotIds(firstLot ? [firstLot.lotId] : []);
   };
 
   const undoDraft = () => {
     setUndoStack((current) => {
       if (!current.length) return current;
       const previous = current[current.length - 1];
-      setRedoStack((redo) => [selectedPosition, ...redo].slice(0, 20));
-      setDraftPosition(previous);
+      setRedoStack((redo) => [draftPositions, ...redo].slice(0, 20));
+      setDraftPositions(previous);
       return current.slice(0, -1);
     });
   };
@@ -280,8 +408,8 @@ const AdminLotMapEditor = () => {
     setRedoStack((current) => {
       if (!current.length) return current;
       const next = current[0];
-      setUndoStack((undo) => [...undo.slice(-19), selectedPosition]);
-      setDraftPosition(next);
+      setUndoStack((undo) => [...undo.slice(-19), draftPositions]);
+      setDraftPositions(next);
       return current.slice(1);
     });
   };
@@ -300,11 +428,12 @@ const AdminLotMapEditor = () => {
 
     const nextPosition = {
       ...selectedPosition,
-      left: clamp(selectedPosition.left + selectedPosition.width + 0.25, 0, 100 - selectedPosition.width),
+      left: snap(clamp(selectedPosition.left + selectedPosition.width + 0.25, 0, 100 - selectedPosition.width)),
       source: 'draft'
     };
     setSelectedLotId(nextLot.lotId);
-    setDraftPosition(nextPosition);
+    setSelectedLotIds([nextLot.lotId]);
+    setLotDraft(nextLot.lotId, nextPosition);
     toast.success(`Duplicated placement to ${nextLot.lotId}`);
   };
 
@@ -353,10 +482,44 @@ const AdminLotMapEditor = () => {
       const response = await axios.put(`/api/lots/${selectedLot.lotId}/map-position`, payload);
       const updated = normalizeLot(response.data.data);
       setLots((current) => current.map((lot) => (lot.lotId === updated.lotId ? updated : lot)));
-      setDraftPosition(null);
+      setDraftPositions((current) => {
+        const next = { ...current };
+        delete next[selectedLot.lotId];
+        return next;
+      });
       toast.success('Map position saved');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to save map position');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveAllDrafts = async () => {
+    const entries = Object.entries(draftPositions);
+    if (!entries.length) {
+      toast('No draft positions to save');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const responses = await Promise.all(entries.map(([lotId, position]) => axios.put(`/api/lots/${encodeURIComponent(lotId)}/map-position`, {
+        left: position.left,
+        top: position.top,
+        width: position.width,
+        height: position.height,
+        rotate: position.rotate,
+        shape: 'rectangle'
+      })));
+      const updatedLots = responses.map((response) => normalizeLot(response.data.data));
+      setLots((current) => current.map((lot) => updatedLots.find((updated) => updated.lotId === lot.lotId) || lot));
+      setDraftPositions({});
+      setUndoStack([]);
+      setRedoStack([]);
+      toast.success(`Saved ${updatedLots.length} map position${updatedLots.length === 1 ? '' : 's'}`);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to save all draft positions');
     } finally {
       setSaving(false);
     }
@@ -370,7 +533,11 @@ const AdminLotMapEditor = () => {
       const response = await axios.delete(`/api/lots/${selectedLot.lotId}/map-position`);
       const updated = normalizeLot(response.data.data);
       setLots((current) => current.map((lot) => (lot.lotId === updated.lotId ? updated : lot)));
-      setDraftPosition(null);
+      setDraftPositions((current) => {
+        const next = { ...current };
+        delete next[selectedLot.lotId];
+        return next;
+      });
       toast.success('Saved map position cleared');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to clear map position');
@@ -392,7 +559,11 @@ const AdminLotMapEditor = () => {
       const response = await axios.delete(`/api/lots/${encodeURIComponent(selectedLot.lotId)}/map-position`);
       const updated = normalizeLot(response.data.data);
       setLots((current) => current.map((lot) => (lot.lotId === updated.lotId ? updated : lot)));
-      setDraftPosition(null);
+      setDraftPositions((current) => {
+        const next = { ...current };
+        delete next[selectedLot.lotId];
+        return next;
+      });
       setUndoStack([]);
       setRedoStack([]);
       toast.success(`${selectedLot.lotId} square removed; lot record retained`);
@@ -446,7 +617,7 @@ const AdminLotMapEditor = () => {
       const response = await axios.post('/api/lots/map-data/import', payload);
       const result = response.data?.data;
       toast.success(`Imported ${result?.total || lotCount} lots`);
-      setDraftPosition(null);
+      setDraftPositions({});
       setUndoStack([]);
       setRedoStack([]);
       await loadLots();
@@ -458,6 +629,72 @@ const AdminLotMapEditor = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const selectAllVisible = () => {
+    setSelectedLotIds(phaseLots.map((lot) => lot.lotId));
+    if (phaseLots[0]) setSelectedLotId(phaseLots[0].lotId);
+  };
+
+  const clearSelection = () => {
+    setSelectedLotIds(selectedLot ? [selectedLot.lotId] : []);
+  };
+
+  const applyBlockWizard = () => {
+    if (!wizard.startLotId || !selectedLot) {
+      toast.error('Choose a starting lot first');
+      return;
+    }
+
+    const startLot = lots.find((lot) => lot.lotId === wizard.startLotId);
+    const startPosition = getCurrentPosition(startLot) || (startLot?.lotId === selectedLot?.lotId ? selectedPosition : null);
+    if (!startLot || !startPosition) {
+      toast.error('Starting lot has no placement to copy');
+      return;
+    }
+
+    const direction = DIRECTIONS[wizard.direction] || DIRECTIONS.right;
+    const ordered = wizardLots
+      .filter((lot) => lot.lotNumber >= startLot.lotNumber)
+      .sort((a, b) => a.lotNumber - b.lotNumber)
+      .slice(0, Number(wizard.count) || 1);
+
+    if (!ordered.length) {
+      toast.error('No lots found for this wizard setup');
+      return;
+    }
+
+    pushHistory();
+    setDraftPositions((current) => {
+      const next = { ...current };
+      ordered.forEach((lot, index) => {
+        next[lot.lotId] = normalizePosition({
+          ...startPosition,
+          left: snap(startPosition.left + direction.x * index * (startPosition.width + Number(wizard.spacing || 0))),
+          top: snap(startPosition.top + direction.y * index * (startPosition.height + Number(wizard.spacing || 0))),
+          source: 'draft'
+        });
+      });
+      return next;
+    });
+    setSelectedLotIds(ordered.map((lot) => lot.lotId));
+    setSelectedLotId(ordered[0].lotId);
+    toast.success(`Created ${ordered.length} draft placement${ordered.length === 1 ? '' : 's'}`);
+  };
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return undefined;
+    const warnBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const navigateBack = () => {
+    if (hasUnsavedChanges && !window.confirm('You have unsaved lot map changes. Leave without saving?')) return;
+    navigate('/dashboard/admin/lot-management');
   };
 
   const positionedCount = lots.filter((lot) => getSavedPosition(lot)).length;
@@ -483,13 +720,16 @@ const AdminLotMapEditor = () => {
         }}
       >
         <Toolbar>
-          <IconButton onClick={() => navigate('/dashboard/admin/lot-management')} sx={{ mr: 1.5, color: themeColors.primary }}>
+          <IconButton onClick={navigateBack} sx={{ mr: 1.5, color: themeColors.primary }}>
             <ArrowBackIcon />
           </IconButton>
           <MapIcon sx={{ mr: 1.5, color: themeColors.primary }} />
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 800 }}>
             Public Lot Map Editor
           </Typography>
+          <Button startIcon={<SaveIcon />} disabled={saving || !draftCount} onClick={saveAllDrafts} sx={{ textTransform: 'none', fontWeight: 700 }}>
+            Save All {draftCount ? `(${draftCount})` : ''}
+          </Button>
           <Button startIcon={<ExportIcon />} disabled={saving} onClick={exportMapData} sx={{ textTransform: 'none', fontWeight: 700 }}>
             Export
           </Button>
@@ -523,15 +763,52 @@ const AdminLotMapEditor = () => {
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Chip label={`${positionedCount} saved`} size="small" sx={{ bgcolor: `${themeColors.success}18`, color: themeColors.success, fontWeight: 700 }} />
                   <Chip label={`${unmappedCount} unmapped`} size="small" sx={{ bgcolor: `${themeColors.info}18`, color: themeColors.info, fontWeight: 700 }} />
-                  <Button size="small" variant={showGrid ? 'contained' : 'outlined'} onClick={() => setShowGrid((value) => !value)} sx={{ textTransform: 'none', fontWeight: 700 }}>
+                  <Chip label={`${draftCount} draft${draftCount === 1 ? '' : 's'}`} size="small" sx={{ bgcolor: `${themeColors.warning}18`, color: themeColors.warning, fontWeight: 700 }} />
+                  {overlapPairs.length > 0 && (
+                    <Tooltip title={overlapPairs.slice(0, 8).join(', ')} arrow>
+                      <Chip icon={<WarningIcon />} label={`${overlapPairs.length} overlap${overlapPairs.length === 1 ? '' : 's'}`} size="small" color="error" sx={{ fontWeight: 700 }} />
+                    </Tooltip>
+                  )}
+                  <Button size="small" variant={showGrid ? 'contained' : 'outlined'} disabled={previewMode} onClick={() => setShowGrid((value) => !value)} sx={{ textTransform: 'none', fontWeight: 700 }}>
                     Grid
                   </Button>
+                  <Button size="small" variant={previewMode ? 'contained' : 'outlined'} startIcon={<PreviewIcon />} onClick={() => setPreviewMode((value) => !value)} sx={{ textTransform: 'none', fontWeight: 700 }}>
+                    Preview
+                  </Button>
+                  <Tooltip title="Zoom out">
+                    <span>
+                      <IconButton size="small" disabled={zoom <= 0.75} onClick={() => setZoom((value) => clamp(Number((value - 0.25).toFixed(2)), 0.75, 3))}>
+                        <ZoomOutIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Chip label={`${Math.round(zoom * 100)}%`} size="small" sx={{ fontWeight: 700 }} />
+                  <Tooltip title="Zoom in">
+                    <span>
+                      <IconButton size="small" disabled={zoom >= 3} onClick={() => setZoom((value) => clamp(Number((value + 0.25).toFixed(2)), 0.75, 3))}>
+                        <ZoomInIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Button size="small" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} sx={{ textTransform: 'none', fontWeight: 700 }}>
+                    Reset View
+                  </Button>
+                  {[
+                    ['Left', -40, 0],
+                    ['Up', 0, -40],
+                    ['Down', 0, 40],
+                    ['Right', 40, 0]
+                  ].map(([label, x, y]) => (
+                    <Button key={label} size="small" disabled={zoom <= 1} onClick={() => setPan((current) => ({ x: current.x + x, y: current.y + y }))} sx={{ minWidth: 32, px: 0.8, fontWeight: 900 }}>
+                      {label}
+                    </Button>
+                  ))}
                 </Box>
               </Box>
 
               <Box
                 ref={mapRef}
-                onClick={placeSelectedLot}
+                onClick={previewMode ? undefined : placeSelectedLot}
                 sx={{
                   position: 'relative',
                   width: '100%',
@@ -540,12 +817,21 @@ const AdminLotMapEditor = () => {
                   borderRadius: '14px',
                   border: `1px solid ${themeColors.border}`,
                   backgroundColor: '#0f172a',
-                  cursor: selectedLot ? 'crosshair' : 'default',
+                  cursor: previewMode ? 'default' : selectedLot ? 'crosshair' : 'default',
                   userSelect: 'none'
                 }}
               >
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                    transformOrigin: '0 0',
+                    transition: dragRef.current?.dragging ? 'none' : 'transform 0.16s ease'
+                  }}
+                >
                 <Box component="img" src={mapImage} alt="Lot map editor" sx={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
-                {showGrid && (
+                {showGrid && !previewMode && (
                   <Box
                     sx={{
                       position: 'absolute',
@@ -555,28 +841,31 @@ const AdminLotMapEditor = () => {
                         linear-gradient(rgba(255,255,255,0.16) 1px, transparent 1px),
                         linear-gradient(90deg, rgba(255,255,255,0.16) 1px, transparent 1px)
                       `,
-                      backgroundSize: '5% 5%',
+                      backgroundSize: `${snapSize * 2}% ${snapSize * 2}%`,
                     }}
                   />
                 )}
                 {phaseLots.map((lot) => {
                   const status = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
                   const isSelected = lot.lotId === selectedLot?.lotId;
-                  const position = isSelected ? selectedPosition : getDisplayPosition(lot);
+                  const isMultiSelected = selectedSet.has(lot.lotId);
+                  const hasOverlap = overlapLotIds.has(lot.lotId);
+                  const position = previewMode ? getSavedPosition(lot) : getCurrentPosition(lot);
                   if (!position) return null;
                   const isSaved = Boolean(getSavedPosition(lot));
 
                   return (
                     <Tooltip key={lot.lotId} title={`${lot.lotId} · ${isSaved ? 'Saved' : 'Draft'}`} arrow>
                       <Box
-                        onPointerDown={(event) => startDrag(event, lot)}
+                        onPointerDown={previewMode ? undefined : (event) => startDrag(event, lot)}
                         onClick={(event) => {
                           event.stopPropagation();
+                          if (previewMode) return;
                           if (dragRef.current?.lotId === lot.lotId && dragRef.current.moved) {
                             dragRef.current.moved = false;
                             return;
                           }
-                          handleSelectLot(lot);
+                          handleSelectLot(lot, event.shiftKey);
                         }}
                         sx={{
                           position: 'absolute',
@@ -586,10 +875,10 @@ const AdminLotMapEditor = () => {
                           height: `${position.height}%`,
                           transform: `translate(-50%, -50%) rotate(${position.rotate || 0}deg)`,
                           borderRadius: '3px',
-                          border: isSelected ? '2px solid #ffffff' : `1px solid ${status.border}`,
-                          boxShadow: isSelected ? `0 0 0 3px ${themeColors.info}` : 'none',
+                          border: hasOverlap ? '2px solid #f97316' : (isSelected || isMultiSelected) ? '2px solid #ffffff' : `1px solid ${status.border}`,
+                          boxShadow: hasOverlap ? '0 0 0 3px rgba(249,115,22,0.45)' : (isSelected || isMultiSelected) ? `0 0 0 3px ${themeColors.info}` : 'none',
                           backgroundColor: `${status.color}${isSaved ? '35' : '18'}`,
-                          cursor: 'grab',
+                          cursor: previewMode ? 'pointer' : 'grab',
                           transition: dragRef.current?.dragging ? 'none' : '0.12s ease',
                           '&:hover': {
                             backgroundColor: `${status.color}44`
@@ -599,6 +888,7 @@ const AdminLotMapEditor = () => {
                     </Tooltip>
                   );
                 })}
+                </Box>
               </Box>
             </Paper>
           </Grid>
@@ -647,7 +937,7 @@ const AdminLotMapEditor = () => {
                       label="Selected Lot"
                       onChange={(event) => {
                         setSelectedLotId(event.target.value);
-                        setDraftPosition(null);
+                        setSelectedLotIds([event.target.value]);
                       }}
                     >
                       {phaseLots.map((lot) => (
@@ -658,7 +948,99 @@ const AdminLotMapEditor = () => {
                     </Select>
                   </FormControl>
                 </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Button size="small" startIcon={<SelectAllIcon />} variant="outlined" onClick={selectAllVisible} sx={{ textTransform: 'none', fontWeight: 800 }}>
+                      Select Visible
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={clearSelection} sx={{ textTransform: 'none', fontWeight: 800 }}>
+                      Single Select
+                    </Button>
+                    <Chip size="small" label={`${selectedLotIds.length || 1} selected`} sx={{ fontWeight: 700 }} />
+                  </Box>
+                </Grid>
               </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography sx={{ fontWeight: 800, mb: 1 }}>Editor Assist</Typography>
+              <Grid container spacing={1.5}>
+                <Grid item xs={7}>
+                  <FormControlLabel
+                    control={<Switch checked={snapEnabled} onChange={(event) => setSnapEnabled(event.target.checked)} />}
+                    label="Snap to grid"
+                  />
+                </Grid>
+                <Grid item xs={5}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Snap</InputLabel>
+                    <Select value={snapSize} label="Snap" onChange={(event) => setSnapSize(Number(event.target.value))}>
+                      <MenuItem value={0.25}>0.25%</MenuItem>
+                      <MenuItem value={0.5}>0.5%</MenuItem>
+                      <MenuItem value={1}>1%</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <Button fullWidth variant="contained" disabled={saving || !draftCount} onClick={saveAllDrafts} sx={{ textTransform: 'none', fontWeight: 900, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
+                    Save All Drafts {draftCount ? `(${draftCount})` : ''}
+                  </Button>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography sx={{ fontWeight: 800, mb: 1 }}>Block Layout Wizard</Typography>
+              <Grid container spacing={1.5}>
+                <Grid item xs={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Block</InputLabel>
+                    <Select value={wizard.block} label="Block" onChange={(event) => setWizard((current) => ({ ...current, block: event.target.value, startLotId: '' }))}>
+                      <MenuItem value="">Any</MenuItem>
+                      {phaseBlocks.map((block) => <MenuItem key={block} value={block}>Block {block}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Direction</InputLabel>
+                    <Select value={wizard.direction} label="Direction" onChange={(event) => setWizard((current) => ({ ...current, direction: event.target.value }))}>
+                      {Object.entries(DIRECTIONS).map(([key, direction]) => <MenuItem key={key} value={key}>{direction.label}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Start Lot</InputLabel>
+                    <Select value={wizard.startLotId} label="Start Lot" onChange={(event) => setWizard((current) => ({ ...current, startLotId: event.target.value }))}>
+                      {wizardLots.map((lot) => <MenuItem key={lot.lotId} value={lot.lotId}>{lot.lotId} - Lot {lot.lotNumber}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField fullWidth size="small" type="number" label="Count" value={wizard.count} inputProps={{ min: 1, max: 50 }} onChange={(event) => setWizard((current) => ({ ...current, count: Number(event.target.value) }))} />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField fullWidth size="small" type="number" label="Spacing %" value={wizard.spacing} inputProps={{ min: 0, max: 5, step: 0.05 }} onChange={(event) => setWizard((current) => ({ ...current, spacing: Number(event.target.value) }))} />
+                </Grid>
+                <Grid item xs={12}>
+                  <Button fullWidth variant="outlined" onClick={applyBlockWizard} sx={{ textTransform: 'none', fontWeight: 900 }}>
+                    Generate Draft Row
+                  </Button>
+                </Grid>
+              </Grid>
+
+              {overlapPairs.length > 0 && (
+                <>
+                  <Divider sx={{ my: 2 }} />
+                  <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: '#fff7ed', border: '1px solid #fed7aa' }}>
+                    <Typography sx={{ fontWeight: 900, color: '#c2410c', mb: 0.5 }}>Overlap Detection</Typography>
+                    <Typography variant="caption" sx={{ color: '#9a3412' }}>
+                      {overlapPairs.slice(0, 5).join(', ')}{overlapPairs.length > 5 ? `, +${overlapPairs.length - 5} more` : ''}
+                    </Typography>
+                  </Box>
+                </>
+              )}
 
               <Divider sx={{ my: 2 }} />
 

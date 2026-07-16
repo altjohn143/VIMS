@@ -32,7 +32,6 @@ import {
   Save as SaveIcon,
   SelectAll as SelectAllIcon,
   Visibility as PreviewIcon,
-  WarningAmber as WarningIcon,
   Add as AddIcon,
   Remove as RemoveIcon,
   KeyboardArrowUp as ArrowUpIcon,
@@ -119,13 +118,6 @@ const normalizePosition = (position) => {
   };
 };
 
-const positionsOverlap = (a, b) => (
-  a.left < b.left + b.width &&
-  a.left + a.width > b.left &&
-  a.top < b.top + b.height &&
-  a.top + a.height > b.top
-);
-
 const AdminLotMapEditor = () => {
   const navigate = useNavigate();
   const mapRef = useRef(null);
@@ -145,6 +137,7 @@ const AdminLotMapEditor = () => {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [previewMode, setPreviewMode] = useState(false);
+  const [isMapPadCollapsed, setIsMapPadCollapsed] = useState(false);
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -206,26 +199,6 @@ const AdminLotMapEditor = () => {
   const draftCount = Object.keys(draftPositions).length;
   const hasUnsavedChanges = draftCount > 0;
   const selectedSet = useMemo(() => new Set(selectedLotIds), [selectedLotIds]);
-  const overlapPairs = useMemo(() => {
-    const positioned = phaseLots
-      .map((lot) => ({ lot, position: getCurrentPosition(lot) }))
-      .filter((item) => item.position);
-    const pairs = [];
-    for (let i = 0; i < positioned.length; i += 1) {
-      for (let j = i + 1; j < positioned.length; j += 1) {
-        if (positionsOverlap(positioned[i].position, positioned[j].position)) {
-          pairs.push(`${positioned[i].lot.lotId} / ${positioned[j].lot.lotId}`);
-        }
-      }
-    }
-    return pairs;
-  }, [getCurrentPosition, phaseLots]);
-  const overlapLotIds = useMemo(() => {
-    const ids = new Set();
-    overlapPairs.forEach((pair) => pair.split(' / ').forEach((id) => ids.add(id)));
-    return ids;
-  }, [overlapPairs]);
-
   useEffect(() => {
     if (selectedLot && selectedPhase !== 'all' && selectedLot.phase !== Number(selectedPhase)) {
       setSelectedPhase(selectedLot.phase);
@@ -731,11 +704,6 @@ const AdminLotMapEditor = () => {
                   <Chip label={`${positionedCount} saved`} size="small" sx={{ bgcolor: `${themeColors.success}18`, color: themeColors.success, fontWeight: 700 }} />
                   <Chip label={`${unmappedCount} unmapped`} size="small" sx={{ bgcolor: `${themeColors.info}18`, color: themeColors.info, fontWeight: 700 }} />
                   <Chip label={`${draftCount} draft${draftCount === 1 ? '' : 's'}`} size="small" sx={{ bgcolor: `${themeColors.warning}18`, color: themeColors.warning, fontWeight: 700 }} />
-                  {overlapPairs.length > 0 && (
-                    <Tooltip title={overlapPairs.slice(0, 8).join(', ')} arrow>
-                      <Chip icon={<WarningIcon />} label={`${overlapPairs.length} overlap${overlapPairs.length === 1 ? '' : 's'}`} size="small" color="error" sx={{ fontWeight: 700 }} />
-                    </Tooltip>
-                  )}
                   <Button size="small" variant={showGrid ? 'contained' : 'outlined'} disabled={previewMode} onClick={() => setShowGrid((value) => !value)} sx={{ textTransform: 'none', fontWeight: 700 }}>
                     Grid
                   </Button>
@@ -812,11 +780,10 @@ const AdminLotMapEditor = () => {
                     }}
                   />
                 )}
-                  {phaseLots.map((lot) => {
+                {phaseLots.map((lot) => {
                     const status = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
                   const isSelected = lot.lotId === selectedLot?.lotId;
                   const isMultiSelected = selectedSet.has(lot.lotId);
-                  const hasOverlap = overlapLotIds.has(lot.lotId);
                   const position = previewMode ? getSavedPosition(lot) : getCurrentPosition(lot);
                   if (!position) return null;
                   const isSaved = Boolean(getSavedPosition(lot));
@@ -842,8 +809,8 @@ const AdminLotMapEditor = () => {
                           height: `${position.height}%`,
                           transform: `translate(-50%, -50%) rotate(${position.rotate || 0}deg)`,
                           borderRadius: '3px',
-                          border: hasOverlap ? '2px solid #f97316' : (isSelected || isMultiSelected) ? '2px solid #ffffff' : `1px solid ${status.border}`,
-                          boxShadow: hasOverlap ? '0 0 0 3px rgba(249,115,22,0.45)' : (isSelected || isMultiSelected) ? `0 0 0 3px ${themeColors.info}` : 'none',
+                          border: (isSelected || isMultiSelected) ? '2px solid #ffffff' : `1px solid ${status.border}`,
+                          boxShadow: (isSelected || isMultiSelected) ? `0 0 0 3px ${themeColors.info}` : 'none',
                           backgroundColor: `${status.color}${isSaved ? '35' : '18'}`,
                           cursor: previewMode ? 'pointer' : 'grab',
                           transition: dragRef.current?.dragging ? 'none' : '0.12s ease',
@@ -853,93 +820,117 @@ const AdminLotMapEditor = () => {
                         }}
                       />
                       </Tooltip>
-                    );
-                  })}
-                  {selectedLot && !previewMode && selectedPosition && (
-                    <Box
-                      onClick={(event) => event.stopPropagation()}
-                      onPointerDown={(event) => event.stopPropagation()}
-                      sx={{
-                        position: 'absolute',
-                        left: `${clamp(selectedPosition.left + selectedPosition.width + 0.7, 0, 82)}%`,
-                        top: `${clamp(selectedPosition.top - 1.2, 0, 82)}%`,
-                        zIndex: 6,
-                        width: 210,
-                        p: 1,
-                        borderRadius: 2,
-                        bgcolor: 'rgba(255,255,255,0.96)',
-                        border: `1px solid ${themeColors.border}`,
-                        boxShadow: '0 14px 36px rgba(15,23,42,0.22)',
-                        backdropFilter: 'blur(8px)'
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.8 }}>
-                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 900, color: themeColors.textPrimary }}>
+                  );
+                })}
+                </Box>
+                {selectedLot && !previewMode && selectedPosition && (
+                  <Box
+                    onClick={(event) => event.stopPropagation()}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                    }}
+                    sx={{
+                      position: 'absolute',
+                      top: 12,
+                      right: 12,
+                      zIndex: 10,
+                      width: isMapPadCollapsed ? 190 : 220,
+                      p: 1,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255,255,255,0.97)',
+                      border: `1px solid ${themeColors.border}`,
+                      boxShadow: '0 14px 36px rgba(15,23,42,0.24)',
+                      backdropFilter: 'blur(8px)'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: isMapPadCollapsed ? 0 : 0.8 }}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontSize: '0.78rem', fontWeight: 900, color: themeColors.textPrimary, lineHeight: 1.1 }}>
                           {selectedLot.lotId}
                         </Typography>
+                        {!isMapPadCollapsed && (
+                          <Typography sx={{ fontSize: '0.64rem', fontWeight: 800, color: themeColors.textSecondary }}>
+                            Map quick edit
+                          </Typography>
+                        )}
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Chip
                           size="small"
                           label={draftPositions[selectedLot.lotId] ? 'Draft' : 'Saved'}
                           sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800 }}
                         />
-                      </Box>
-
-                      <Box sx={{ display: 'grid', gridTemplateColumns: '32px 32px 32px', justifyContent: 'center', gap: 0.4, mb: 0.8 }}>
-                        <Box />
-                        <Tooltip title="Move up">
-                          <IconButton size="small" onClick={() => nudgeSelected('top', -0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowUpIcon fontSize="small" /></IconButton>
-                        </Tooltip>
-                        <Box />
-                        <Tooltip title="Move left">
-                          <IconButton size="small" onClick={() => nudgeSelected('left', -0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowLeftIcon fontSize="small" /></IconButton>
-                        </Tooltip>
-                        <Tooltip title="Move down">
-                          <IconButton size="small" onClick={() => nudgeSelected('top', 0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowDownIcon fontSize="small" /></IconButton>
-                        </Tooltip>
-                        <Tooltip title="Move right">
-                          <IconButton size="small" onClick={() => nudgeSelected('left', 0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowRightIcon fontSize="small" /></IconButton>
+                        <Tooltip title={isMapPadCollapsed ? 'Expand controls' : 'Minimize controls'}>
+                          <IconButton size="small" onClick={() => setIsMapPadCollapsed((value) => !value)}>
+                            {isMapPadCollapsed ? <AddIcon sx={{ fontSize: 16 }} /> : <RemoveIcon sx={{ fontSize: 16 }} />}
+                          </IconButton>
                         </Tooltip>
                       </Box>
-
-                      {[
-                        ['Width', 'width', `${selectedPosition.width.toFixed(2)}%`],
-                        ['Height', 'height', `${selectedPosition.height.toFixed(2)}%`],
-                        ['Rotate', 'rotate', `${Math.round(selectedPosition.rotate || 0)} deg`]
-                      ].map(([label, key, value]) => (
-                        <Box key={key} sx={{ display: 'grid', gridTemplateColumns: '52px 28px 1fr 28px', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                          <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: themeColors.textSecondary }}>{label}</Typography>
-                          <IconButton
-                            size="small"
-                            onClick={() => key === 'rotate' ? rotateSelected(-5) : resizeSelected(key, -0.1)}
-                            sx={{ width: 26, height: 26, border: `1px solid ${themeColors.border}` }}
-                          >
-                            <RemoveIcon sx={{ fontSize: 15 }} />
-                          </IconButton>
-                          <Typography sx={{ fontSize: '0.68rem', fontWeight: 900, textAlign: 'center', color: themeColors.textPrimary }}>{value}</Typography>
-                          <IconButton
-                            size="small"
-                            onClick={() => key === 'rotate' ? rotateSelected(5) : resizeSelected(key, 0.1)}
-                            sx={{ width: 26, height: 26, border: `1px solid ${themeColors.border}` }}
-                          >
-                            <AddIcon sx={{ fontSize: 15 }} />
-                          </IconButton>
-                        </Box>
-                      ))}
-
-                      <Button
-                        fullWidth
-                        size="small"
-                        variant="contained"
-                        startIcon={<SaveIcon />}
-                        disabled={saving}
-                        onClick={savePosition}
-                        sx={{ mt: 0.5, textTransform: 'none', fontWeight: 900, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}
-                      >
-                        Save Lot
-                      </Button>
                     </Box>
-                  )}
-                </Box>
+
+                    {!isMapPadCollapsed && (
+                      <>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '34px 34px 34px', justifyContent: 'center', gap: 0.45, mb: 0.9 }}>
+                          <Box />
+                          <Tooltip title="Move up">
+                            <IconButton size="small" onClick={() => nudgeSelected('top', -0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowUpIcon fontSize="small" /></IconButton>
+                          </Tooltip>
+                          <Box />
+                          <Tooltip title="Move left">
+                            <IconButton size="small" onClick={() => nudgeSelected('left', -0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowLeftIcon fontSize="small" /></IconButton>
+                          </Tooltip>
+                          <Tooltip title="Move down">
+                            <IconButton size="small" onClick={() => nudgeSelected('top', 0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowDownIcon fontSize="small" /></IconButton>
+                          </Tooltip>
+                          <Tooltip title="Move right">
+                            <IconButton size="small" onClick={() => nudgeSelected('left', 0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowRightIcon fontSize="small" /></IconButton>
+                          </Tooltip>
+                        </Box>
+
+                        {[
+                          ['Width', 'width', `${selectedPosition.width.toFixed(2)}%`],
+                          ['Height', 'height', `${selectedPosition.height.toFixed(2)}%`],
+                          ['Rotate', 'rotate', `${Math.round(selectedPosition.rotate || 0)} deg`]
+                        ].map(([label, key, value]) => (
+                          <Box key={key} sx={{ display: 'grid', gridTemplateColumns: '52px 28px 1fr 28px', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                            <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: themeColors.textSecondary }}>{label}</Typography>
+                            <IconButton
+                              size="small"
+                              onClick={() => key === 'rotate' ? rotateSelected(-5) : resizeSelected(key, -0.1)}
+                              sx={{ width: 26, height: 26, border: `1px solid ${themeColors.border}` }}
+                            >
+                              <RemoveIcon sx={{ fontSize: 15 }} />
+                            </IconButton>
+                            <Typography sx={{ fontSize: '0.68rem', fontWeight: 900, textAlign: 'center', color: themeColors.textPrimary }}>{value}</Typography>
+                            <IconButton
+                              size="small"
+                              onClick={() => key === 'rotate' ? rotateSelected(5) : resizeSelected(key, 0.1)}
+                              sx={{ width: 26, height: 26, border: `1px solid ${themeColors.border}` }}
+                            >
+                              <AddIcon sx={{ fontSize: 15 }} />
+                            </IconButton>
+                          </Box>
+                        ))}
+
+                        <Button
+                          fullWidth
+                          size="small"
+                          variant="contained"
+                          startIcon={<SaveIcon />}
+                          disabled={saving}
+                          onClick={savePosition}
+                          sx={{ mt: 0.5, textTransform: 'none', fontWeight: 900, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}
+                        >
+                          Save Lot
+                        </Button>
+                      </>
+                    )}
+                  </Box>
+                )}
               </Box>
             </Paper>
           </Grid>
@@ -1039,18 +1030,6 @@ const AdminLotMapEditor = () => {
                   </Button>
                 </Grid>
               </Grid>
-
-              {overlapPairs.length > 0 && (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: '#fff7ed', border: '1px solid #fed7aa' }}>
-                    <Typography sx={{ fontWeight: 900, color: '#c2410c', mb: 0.5 }}>Overlap Detection</Typography>
-                    <Typography variant="caption" sx={{ color: '#9a3412' }}>
-                      {overlapPairs.slice(0, 5).join(', ')}{overlapPairs.length > 5 ? `, +${overlapPairs.length - 5} more` : ''}
-                    </Typography>
-                  </Box>
-                </>
-              )}
 
               <Divider sx={{ my: 2 }} />
 

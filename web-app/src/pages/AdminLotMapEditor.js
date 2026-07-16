@@ -404,9 +404,10 @@ const AdminLotMapEditor = () => {
     toast.success(`Duplicated placement to ${nextLot.lotId}`);
   };
 
-  const nudgeSelected = (axis, amount) => {
+  const nudgeSelected = (axis, direction) => {
     if (!selectedLot || previewMode) return;
-    updateDraft({ [axis]: selectedPosition[axis] + amount });
+    const step = snapEnabled ? (Number(snapSize) || 0.5) : 0.25;
+    updateDraft({ [axis]: selectedPosition[axis] + direction * step });
   };
 
   const resizeSelected = (axis, amount) => {
@@ -422,7 +423,7 @@ const AdminLotMapEditor = () => {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (!selectedLot || event.target.closest('input, textarea, [role="combobox"]')) return;
-      const step = event.shiftKey ? 0.5 : 0.1;
+      const step = event.shiftKey ? 0.5 : (snapEnabled ? (Number(snapSize) || 0.5) : 0.1);
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
         updateDraft({ left: selectedPosition.left - step });
@@ -877,17 +878,17 @@ const AdminLotMapEditor = () => {
                         <Box sx={{ display: 'grid', gridTemplateColumns: '34px 34px 34px', justifyContent: 'center', gap: 0.45, mb: 0.9 }}>
                           <Box />
                           <Tooltip title="Move up">
-                            <IconButton size="small" onClick={() => nudgeSelected('top', -0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowUpIcon fontSize="small" /></IconButton>
+                            <IconButton size="small" onClick={() => nudgeSelected('top', -1)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowUpIcon fontSize="small" /></IconButton>
                           </Tooltip>
                           <Box />
                           <Tooltip title="Move left">
-                            <IconButton size="small" onClick={() => nudgeSelected('left', -0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowLeftIcon fontSize="small" /></IconButton>
+                            <IconButton size="small" onClick={() => nudgeSelected('left', -1)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowLeftIcon fontSize="small" /></IconButton>
                           </Tooltip>
                           <Tooltip title="Move down">
-                            <IconButton size="small" onClick={() => nudgeSelected('top', 0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowDownIcon fontSize="small" /></IconButton>
+                            <IconButton size="small" onClick={() => nudgeSelected('top', 1)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowDownIcon fontSize="small" /></IconButton>
                           </Tooltip>
                           <Tooltip title="Move right">
-                            <IconButton size="small" onClick={() => nudgeSelected('left', 0.25)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowRightIcon fontSize="small" /></IconButton>
+                            <IconButton size="small" onClick={() => nudgeSelected('left', 1)} sx={{ border: `1px solid ${themeColors.border}` }}><ArrowRightIcon fontSize="small" /></IconButton>
                           </Tooltip>
                         </Box>
 

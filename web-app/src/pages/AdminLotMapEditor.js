@@ -406,8 +406,17 @@ const AdminLotMapEditor = () => {
 
   const nudgeSelected = (axis, direction) => {
     if (!selectedLot || previewMode) return;
-    const step = snapEnabled ? (Number(snapSize) || 0.5) : 0.25;
-    updateDraft({ [axis]: selectedPosition[axis] + direction * step });
+    if (!snapEnabled) {
+      updateDraft({ [axis]: selectedPosition[axis] + direction * 0.25 });
+      return;
+    }
+
+    const size = Number(snapSize) || 0.5;
+    const current = Number(selectedPosition[axis]) || 0;
+    const next = direction < 0
+      ? Math.floor((current - 0.0001) / size) * size
+      : Math.ceil((current + 0.0001) / size) * size;
+    updateDraft({ [axis]: next });
   };
 
   const resizeSelected = (axis, amount) => {

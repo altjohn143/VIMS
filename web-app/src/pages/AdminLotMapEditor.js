@@ -72,13 +72,6 @@ const DEFAULT_POSITION = {
   source: 'new'
 };
 
-const DIRECTIONS = {
-  right: { label: 'Right', x: 1, y: 0 },
-  left: { label: 'Left', x: -1, y: 0 },
-  down: { label: 'Down', x: 0, y: 1 },
-  up: { label: 'Up', x: 0, y: -1 }
-};
-
 const normalizeLot = (lot) => {
   const rawBlock = Number(lot.block);
   return {
@@ -133,7 +126,7 @@ const AdminLotMapEditor = () => {
   const importInputRef = useRef(null);
   const dragRef = useRef(null);
   const [lots, setLots] = useState([]);
-  const [selectedPhase, setSelectedPhase] = useState(1);
+  const [selectedPhase, setSelectedPhase] = useState('all');
   const [selectedLotId, setSelectedLotId] = useState('');
   const [selectedLotIds, setSelectedLotIds] = useState([]);
   const [search, setSearch] = useState('');
@@ -146,13 +139,6 @@ const AdminLotMapEditor = () => {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [previewMode, setPreviewMode] = useState(false);
-  const [wizard, setWizard] = useState({
-    block: '',
-    startLotId: '',
-    count: 10,
-    direction: 'right',
-    spacing: 0.25
-  });
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -167,7 +153,7 @@ const AdminLotMapEditor = () => {
       if (rows.length) {
         setSelectedLotId((current) => current || rows[0].lotId);
         setSelectedLotIds((current) => current.length ? current : [rows[0].lotId]);
-        setSelectedPhase((current) => current || rows[0].phase || 1);
+        setSelectedPhase((current) => current || 'all');
       }
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to load lots');
@@ -187,7 +173,7 @@ const AdminLotMapEditor = () => {
   const phaseLots = useMemo(() => {
     const query = search.trim().toLowerCase();
     return lots
-      .filter((lot) => lot.phase === Number(selectedPhase))
+      .filter((lot) => selectedPhase === 'all' || lot.phase === Number(selectedPhase))
       .filter((lot) => statusFilter === 'all' || lot.status === statusFilter)
       .filter((lot) => {
         if (positionFilter === 'saved') return Boolean(getSavedPosition(lot));
@@ -200,7 +186,7 @@ const AdminLotMapEditor = () => {
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(query));
       })
-      .sort((a, b) => a.phaseBlock - b.phaseBlock || a.lotNumber - b.lotNumber);
+      .sort((a, b) => a.phase - b.phase || a.phaseBlock - b.phaseBlock || a.lotNumber - b.lotNumber);
   }, [lots, positionFilter, search, selectedPhase, statusFilter]);
 
   const selectedLot = lots.find((lot) => lot.lotId === selectedLotId) || phaseLots[0] || null;
@@ -214,13 +200,6 @@ const AdminLotMapEditor = () => {
   const draftCount = Object.keys(draftPositions).length;
   const hasUnsavedChanges = draftCount > 0;
   const selectedSet = useMemo(() => new Set(selectedLotIds), [selectedLotIds]);
-  const phaseBlocks = useMemo(() => (
-    Array.from(new Set(phaseLots.map((lot) => lot.phaseBlock))).sort((a, b) => a - b)
-  ), [phaseLots]);
-  const wizardLots = useMemo(() => {
-    if (!wizard.block) return phaseLots;
-    return phaseLots.filter((lot) => lot.phaseBlock === Number(wizard.block));
-  }, [phaseLots, wizard.block]);
   const overlapPairs = useMemo(() => {
     const positioned = phaseLots
       .map((lot) => ({ lot, position: getCurrentPosition(lot) }))
@@ -242,7 +221,7 @@ const AdminLotMapEditor = () => {
   }, [overlapPairs]);
 
   useEffect(() => {
-    if (selectedLot && selectedLot.phase !== Number(selectedPhase)) {
+    if (selectedLot && selectedPhase !== 'all' && selectedLot.phase !== Number(selectedPhase)) {
       setSelectedPhase(selectedLot.phase);
     }
   }, [selectedLot, selectedPhase]);
@@ -385,6 +364,15 @@ const AdminLotMapEditor = () => {
   };
 
   const handlePhaseChange = (phase) => {
+    if (phase === 'all') {
+      const firstLot = lots
+        .sort((a, b) => a.phase - b.phase || a.phaseBlock - b.phaseBlock || a.lotNumber - b.lotNumber)[0];
+      setSelectedPhase('all');
+      setSelectedLotId(firstLot?.lotId || '');
+      setSelectedLotIds(firstLot ? [firstLot.lotId] : []);
+      return;
+    }
+
     const nextPhase = Number(phase);
     const firstLot = lots
       .filter((lot) => lot.phase === nextPhase)
@@ -640,48 +628,6 @@ const AdminLotMapEditor = () => {
     setSelectedLotIds(selectedLot ? [selectedLot.lotId] : []);
   };
 
-  const applyBlockWizard = () => {
-    if (!wizard.startLotId || !selectedLot) {
-      toast.error('Choose a starting lot first');
-      return;
-    }
-
-    const startLot = lots.find((lot) => lot.lotId === wizard.startLotId);
-    const startPosition = getCurrentPosition(startLot) || (startLot?.lotId === selectedLot?.lotId ? selectedPosition : null);
-    if (!startLot || !startPosition) {
-      toast.error('Starting lot has no placement to copy');
-      return;
-    }
-
-    const direction = DIRECTIONS[wizard.direction] || DIRECTIONS.right;
-    const ordered = wizardLots
-      .filter((lot) => lot.lotNumber >= startLot.lotNumber)
-      .sort((a, b) => a.lotNumber - b.lotNumber)
-      .slice(0, Number(wizard.count) || 1);
-
-    if (!ordered.length) {
-      toast.error('No lots found for this wizard setup');
-      return;
-    }
-
-    pushHistory();
-    setDraftPositions((current) => {
-      const next = { ...current };
-      ordered.forEach((lot, index) => {
-        next[lot.lotId] = normalizePosition({
-          ...startPosition,
-          left: snap(startPosition.left + direction.x * index * (startPosition.width + Number(wizard.spacing || 0))),
-          top: snap(startPosition.top + direction.y * index * (startPosition.height + Number(wizard.spacing || 0))),
-          source: 'draft'
-        });
-      });
-      return next;
-    });
-    setSelectedLotIds(ordered.map((lot) => lot.lotId));
-    setSelectedLotId(ordered[0].lotId);
-    toast.success(`Created ${ordered.length} draft placement${ordered.length === 1 ? '' : 's'}`);
-  };
-
   useEffect(() => {
     if (!hasUnsavedChanges) return undefined;
     const warnBeforeUnload = (event) => {
@@ -899,8 +845,9 @@ const AdminLotMapEditor = () => {
               <Grid container spacing={1.5}>
                 <Grid item xs={6}>
                   <FormControl fullWidth size="small">
-                    <InputLabel>Phase</InputLabel>
-                    <Select value={selectedPhase} label="Phase" onChange={(event) => handlePhaseChange(event.target.value)}>
+                    <InputLabel>View</InputLabel>
+                    <Select value={selectedPhase} label="View" onChange={(event) => handlePhaseChange(event.target.value)}>
+                      <MenuItem value="all">All Phases</MenuItem>
                       {phases.map((phase) => <MenuItem key={phase} value={phase}>Phase {phase}</MenuItem>)}
                     </Select>
                   </FormControl>
@@ -942,7 +889,7 @@ const AdminLotMapEditor = () => {
                     >
                       {phaseLots.map((lot) => (
                         <MenuItem key={lot.lotId} value={lot.lotId}>
-                          {lot.lotId} · Block {lot.phaseBlock} Lot {lot.lotNumber}
+                          {lot.lotId} - Phase {lot.phase} - Block {lot.phaseBlock} Lot {lot.lotNumber}
                         </MenuItem>
                       ))}
                     </Select>
@@ -984,48 +931,6 @@ const AdminLotMapEditor = () => {
                 <Grid item xs={12}>
                   <Button fullWidth variant="contained" disabled={saving || !draftCount} onClick={saveAllDrafts} sx={{ textTransform: 'none', fontWeight: 900, bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
                     Save All Drafts {draftCount ? `(${draftCount})` : ''}
-                  </Button>
-                </Grid>
-              </Grid>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Typography sx={{ fontWeight: 800, mb: 1 }}>Block Layout Wizard</Typography>
-              <Grid container spacing={1.5}>
-                <Grid item xs={6}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Block</InputLabel>
-                    <Select value={wizard.block} label="Block" onChange={(event) => setWizard((current) => ({ ...current, block: event.target.value, startLotId: '' }))}>
-                      <MenuItem value="">Any</MenuItem>
-                      {phaseBlocks.map((block) => <MenuItem key={block} value={block}>Block {block}</MenuItem>)}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={6}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Direction</InputLabel>
-                    <Select value={wizard.direction} label="Direction" onChange={(event) => setWizard((current) => ({ ...current, direction: event.target.value }))}>
-                      {Object.entries(DIRECTIONS).map(([key, direction]) => <MenuItem key={key} value={key}>{direction.label}</MenuItem>)}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Start Lot</InputLabel>
-                    <Select value={wizard.startLotId} label="Start Lot" onChange={(event) => setWizard((current) => ({ ...current, startLotId: event.target.value }))}>
-                      {wizardLots.map((lot) => <MenuItem key={lot.lotId} value={lot.lotId}>{lot.lotId} - Lot {lot.lotNumber}</MenuItem>)}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField fullWidth size="small" type="number" label="Count" value={wizard.count} inputProps={{ min: 1, max: 50 }} onChange={(event) => setWizard((current) => ({ ...current, count: Number(event.target.value) }))} />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField fullWidth size="small" type="number" label="Spacing %" value={wizard.spacing} inputProps={{ min: 0, max: 5, step: 0.05 }} onChange={(event) => setWizard((current) => ({ ...current, spacing: Number(event.target.value) }))} />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button fullWidth variant="outlined" onClick={applyBlockWizard} sx={{ textTransform: 'none', fontWeight: 900 }}>
-                    Generate Draft Row
                   </Button>
                 </Grid>
               </Grid>
@@ -1126,3 +1031,4 @@ const AdminLotMapEditor = () => {
 };
 
 export default AdminLotMapEditor;
+

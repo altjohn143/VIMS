@@ -67,7 +67,9 @@ const STATUS_CONFIG = {
 };
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
+// Blocks are stored per phase (Phase 2 can now contain Blocks 1-13).
+// The previous modulo-5 conversion incorrectly displayed Blocks 6 and 11 as Block 1.
+const getPhaseBlock = (rawBlock) => Number(rawBlock);
 const DEFAULT_POSITION = {
   left: 48,
   top: 48,

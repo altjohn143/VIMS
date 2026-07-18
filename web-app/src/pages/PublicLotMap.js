@@ -64,7 +64,8 @@ const STATUS_CONFIG = {
 };
 
 
-const getPhaseBlock = (rawBlock) => ((Number(rawBlock) - 1) % 5) + 1;
+// Block numbers are phase-local and must not be folded into a 1-5 range.
+const getPhaseBlock = (rawBlock) => Number(rawBlock);
 const getSavedMapPosition = (lot) => {
   const pos = lot.mapPosition;
   if (!pos?.isPositioned) return null;

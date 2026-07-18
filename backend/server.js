@@ -175,19 +175,21 @@ async function initializeLots() {
     const seed = (phase, block, lot) => (phase * 127 + block * 31 + lot * 17) % 100;
     
     const existingCount = await Lot.countDocuments();
-    if (existingCount === 0) {
-      console.log('📦 Initializing lots in database...');
-      let created = 0;
+    // Reconcile on every startup so schema expansions also reach existing databases.
+    console.log('📦 Checking lot inventory...');
+    let created = 0;
       
-      // 5 Phases × 5 Blocks × 20 Lots = 500 total lots
+      // Phase 2 has 13 blocks; all other phases have 5. Every block has 20 lots.
       for (let phase = 1; phase <= 5; phase++) {
-        for (let blockNum = 1; blockNum <= 5; blockNum++) {
-          const block = (phase - 1) * 5 + blockNum; // Maps to blocks 1-25
+        const blockCount = phase === 2 ? 13 : 5;
+        for (let block = 1; block <= blockCount; block++) {
           for (let lotNum = 1; lotNum <= 20; lotNum++) {
             const s = seed(phase, block, lotNum);
             const lotId = `P${phase}-B${block}-L${lotNum}`;
             const sqm = LOT_SIZES[lotNum % LOT_SIZES.length];
             
+            if (await Lot.exists({ lotId })) continue;
+
             const lot = new Lot({
               phase,
               lotId,
@@ -206,10 +208,7 @@ async function initializeLots() {
           }
         }
       }
-      console.log(`✅ Initialized ${created} lots in database`);
-    } else {
-      console.log(`📊 Database already has ${existingCount} lots`);
-    }
+    console.log(created > 0 ? `✅ Added ${created} missing lots` : `📊 Lot inventory is up to date (${existingCount} lots)`);
   } catch (error) {
     console.error('Initialize lots error:', error);
   }

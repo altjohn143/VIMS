@@ -14,9 +14,10 @@ router.post('/generate', async (req, res) => {
     
     let created = 0;
     
-    // Phase 1-5: Each phase has 5 blocks and 100 lots total (20 lots per block)
+    // Phase 2 has 13 blocks; all other phases have 5. Every block has 20 lots.
     for (let phase = 1; phase <= 5; phase++) {
-      for (let block = 1; block <= 5; block++) {
+      const blockCount = phase === 2 ? 13 : 5;
+      for (let block = 1; block <= blockCount; block++) {
         for (let lotNum = 1; lotNum <= 20; lotNum++) {
           const s = seed(phase, block, lotNum);
           const lotId = `P${phase}-B${block}-L${lotNum}`;

@@ -1226,40 +1226,11 @@ const Register = () => {
                   </Alert>
                 ) : (
                   <>
-                    <FormControl fullWidth error={!!errors.selectedLot}>
-                      <InputLabel sx={{ color: themeColors.textSecondary }}>Choose a lot</InputLabel>
-                      <Select
-                        name="selectedLot"
-                        value={formData.selectedLot}
-                        onChange={handleChange}
-                        label="Choose a lot"
-                        required
-                        sx={{
-                          borderRadius: 2,
-                          backgroundColor: '#f8faf5',
-                          '& .MuiOutlinedInput-notchedOutline': {
-                            borderColor: themeColors.border
-                          },
-                          '&:hover .MuiOutlinedInput-notchedOutline': {
-                            borderColor: themeColors.primary
-                          }
-                        }}
-                      >
-                        <MenuItem value="" disabled>Select an available lot</MenuItem>
-                        {availableLots.map((lot) => (
-                          <MenuItem key={lot.lotId} value={lot.lotId}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                              <span>
-                                <strong>{lot.lotId}</strong> - {lot.type}
-                              </span>
-                              <span style={{ color: themeColors.textSecondary }}>
-                                {lot.sqm} sqm
-                              </span>
-                            </Box>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                    <Button fullWidth variant="outlined" startIcon={<MapIcon />}
+                      onClick={() => setMapDrawerOpen(true)}
+                      sx={{ py: 1.5, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>
+                      {formData.selectedLot ? 'Change lot on the map' : 'Open lot map to select your lot'}
+                    </Button>
                     
                     {errors.selectedLot && (
                       <Typography variant="caption" sx={{ color: themeColors.error, mt: 0.5, display: 'block' }}>

@@ -109,7 +109,6 @@ const RegisterScreen = ({ navigation, route }) => {
   const [availability, setAvailability] = useState({ email: null, phone: null });
   const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
   const [showMapModal, setShowMapModal] = useState(false);
-  const [showLotDropdown, setShowLotDropdown] = useState(false);
   const [showCountryCodeDropdown, setShowCountryCodeDropdown] = useState(false);
 
   // OCR (backend-based)
@@ -256,7 +255,6 @@ const RegisterScreen = ({ navigation, route }) => {
     if (lot.status === 'vacant') {
       setFormData(prev => ({ ...prev, selectedLot: lot.lotId, address: lot.address }));
       setSelectedLotDetails(lot);
-      setShowLotDropdown(false);
       setShowMapModal(false);
       Alert.alert('Lot Selected', `You selected Lot ${lot.lotId} (${lot.sqm} sqm, ${lot.type})`);
     } else {
@@ -1468,22 +1466,17 @@ const RegisterScreen = ({ navigation, route }) => {
             </View>
           ) : (
             <>
-              <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowLotDropdown(true)}>
+              <TouchableOpacity style={styles.mapButton} onPress={() => setShowMapModal(true)}>
                 <View style={styles.dropdownLeft}>
-                  <Ionicons name="home" size={20} color={themeColors.textSecondary} />
-                  <Text style={styles.dropdownText}>
-                    {formData.selectedLot ? `${formData.selectedLot} - ${selectedLotDetails?.type || ''}` : `Select a lot (${availableLots.length} available)`}
+                  <Ionicons name="map" size={20} color={themeColors.primary} />
+                  <Text style={styles.mapButtonText}>
+                    {formData.selectedLot ? 'Change lot on the map' : 'Open lot map to select your lot'}
                   </Text>
                 </View>
-                <Ionicons name="chevron-down" size={20} color={themeColors.textSecondary} />
+                <Ionicons name="chevron-forward" size={20} color={themeColors.primary} />
               </TouchableOpacity>
               
               {errors.selectedLot && <Text style={styles.errorText}>{errors.selectedLot}</Text>}
-              
-              <TouchableOpacity style={styles.mapButton} onPress={() => setShowMapModal(true)}>
-                <Ionicons name="map" size={20} color={themeColors.primary} />
-                <Text style={styles.mapButtonText}>View Interactive Lot Map</Text>
-              </TouchableOpacity>
               
               {selectedLotDetails && (
                 <View style={styles.selectedLotCard}>
@@ -1558,34 +1551,6 @@ const RegisterScreen = ({ navigation, route }) => {
                   {formData.countryCode === item.code && (
                     <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
                   )}
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Lot Dropdown Modal */}
-      <Modal visible={showLotDropdown} animationType="slide" transparent onRequestClose={() => setShowLotDropdown(false)}>
-        <View style={styles.dropdownOverlay}>
-          <View style={styles.dropdownModal}>
-            <View style={styles.dropdownModalHeader}>
-              <Text style={styles.dropdownModalTitle}>Select a Lot ({availableLots.length} available)</Text>
-              <TouchableOpacity onPress={() => setShowLotDropdown(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
-            </View>
-            <FlatList
-              data={availableLots}
-              keyExtractor={(item) => item.lotId}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={[styles.lotOption, formData.selectedLot === item.lotId && styles.lotOptionSelected]} onPress={() => handleLotSelect(item)}>
-                  <View style={styles.lotOptionLeft}>
-                    <Text style={styles.lotOptionId}>{item.lotId}</Text>
-                    <Text style={styles.lotOptionType}>{item.type}</Text>
-                  </View>
-                  <View style={styles.lotOptionRight}>
-                    <Text style={styles.lotOptionSqm}>{item.sqm} sqm</Text>
-                    {formData.selectedLot === item.lotId && <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />}
-                  </View>
                 </TouchableOpacity>
               )}
             />

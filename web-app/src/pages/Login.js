@@ -771,6 +771,7 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
 const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [showDeferredContent, setShowDeferredContent] = useState(false);
   const [publicAnnouncements, setPublicAnnouncements] = useState([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
   const homeRef = useRef(null);
@@ -780,8 +781,11 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   const aboutRef = useRef(null);
   const calendarSectionRef = useRef(null);
   const privacyRef = useRef(null);
+  const deferredContentTriggerRef = useRef(null);
 
   useEffect(() => {
+    if (!showDeferredContent) return undefined;
+
     const loadPublicAnnouncements = async () => {
       setAnnouncementsLoading(true);
       try {
@@ -812,14 +816,41 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
     };
 
     loadPublicAnnouncements();
-  }, []);
+    return undefined;
+  }, [showDeferredContent]);
+
+  useEffect(() => {
+    if (showDeferredContent || !deferredContentTriggerRef.current) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShowDeferredContent(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '240px 0px' }
+    );
+
+    observer.observe(deferredContentTriggerRef.current);
+    return () => observer.disconnect();
+  }, [showDeferredContent]);
 
   const visibleAnnouncements = publicAnnouncements.length > 0 ? publicAnnouncements : ANNOUNCEMENTS;
 
   const scrollTo = (ref) => {
     const el = ref?.current;
-    if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    setShowDeferredContent(true);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        ref?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
   };
 
   const navItem = (label, onClick) => (
@@ -1310,6 +1341,9 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             </Button>
           </Box>
 
+          <Box ref={deferredContentTriggerRef} aria-hidden="true" sx={{ height: 1 }} />
+          {showDeferredContent && (
+          <>
           <Box sx={{ ...deferredSectionSx, mt: { xs: 5, md: 6 }, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 3, md: 3.5 }, background: 'linear-gradient(135deg, #1f5f33 0%, #2f7a43 100%)' }}>
             <Grid container spacing={2} justifyContent="center">
               {[
@@ -1464,10 +1498,13 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               ))}
             </Grid>
           </Box>
+          </>
+          )}
         </Box>
       </Box>
 
       {/* CONTENT SECTIONS (scrollable) */}
+      {showDeferredContent && (
       <Box sx={{ backgroundColor: T.bg }}>
         {/* Announcements */}
         <Box ref={announcementRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 } }}>
@@ -1621,6 +1658,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
         <PageFooter />
       </Box>
+      )}
     </Box>
   );
 };

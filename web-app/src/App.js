@@ -1,5 +1,5 @@
 // src/App.js - Complete updated file with all routes
-import React, { useEffect } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider, createTheme } from '@mui/material';
@@ -7,16 +7,16 @@ import { Container, CircularProgress } from '@mui/material';
 import './config/axios';
 
 import Login from './pages/Login';
-import Register from './pages/Register';
-import ResetPassword from './pages/ResetPassword';
-import Dashboard from './pages/Dashboard';
-import PublicLotMap from './pages/PublicLotMap';
-import PendingApproval from './pages/PendingApproval';
-import PaymentRedirect from './pages/PaymentRedirect';
-import PaymentSuccess from './pages/PaymentSuccess';
-import PaymentCancelled from './pages/PaymentCancelled';
-
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+const Register = lazy(() => import('./pages/Register'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const PublicLotMap = lazy(() => import('./pages/PublicLotMap'));
+const PendingApproval = lazy(() => import('./pages/PendingApproval'));
+const PaymentRedirect = lazy(() => import('./pages/PaymentRedirect'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
+const PaymentCancelled = lazy(() => import('./pages/PaymentCancelled'));
 
 const theme = createTheme({
   palette: {
@@ -50,59 +50,16 @@ const SecurityRoute = ({ children }) => <ProtectedRoute requiredRole="security">
 const ResidentRoute = ({ children }) => <ProtectedRoute requiredRole="resident">{children}</ProtectedRoute>;
 
 function App() {
-  useEffect(() => {
-    const removeAllAriaHidden = () => {
-      document.querySelectorAll('[aria-hidden="true"]').forEach(el => el.removeAttribute('aria-hidden'));
-    };
-    removeAllAriaHidden();
-    const observer = new MutationObserver((mutations) => {
-      let shouldRemove = false;
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'aria-hidden') {
-          if (mutation.target.getAttribute('aria-hidden') === 'true') shouldRemove = true;
-        }
-      });
-      if (shouldRemove) removeAllAriaHidden();
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['aria-hidden'], subtree: true });
-    const interval = setInterval(removeAllAriaHidden, 500);
-    return () => { observer.disconnect(); clearInterval(interval); };
-  }, []);
-
-  // Ensure images are lazy-loaded by default to reduce initial bundle impact
-  useEffect(() => {
-    const setLazy = (img) => {
-      try {
-        if (img && img.tagName === 'IMG' && !img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
-      } catch (e) {}
-    };
-
-    // Set existing images
-    document.querySelectorAll('img').forEach(setLazy);
-
-    // Observe new images added to the DOM
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((m) => {
-        if (m.type === 'childList') {
-          m.addedNodes.forEach((node) => {
-            if (node.nodeType === 1) {
-              if (node.tagName === 'IMG') setLazy(node);
-              node.querySelectorAll && node.querySelectorAll('img').forEach(setLazy);
-            }
-          });
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <ThemeProvider theme={theme}>
       <AuthProvider>
         <Router>
           <Toaster position="top-right" />
+          <Suspense fallback={
+            <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+              <CircularProgress aria-label="Loading page" />
+            </Container>
+          }>
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
@@ -164,6 +121,7 @@ function App() {
             <Route path="/" element={<Navigate to="/login" />} />
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
+          </Suspense>
         </Router>
       </AuthProvider>
     </ThemeProvider>

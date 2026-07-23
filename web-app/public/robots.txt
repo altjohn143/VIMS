@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://casimiro-westville-homes-vims.online/sitemap.xml

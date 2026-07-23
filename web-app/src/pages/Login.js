@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import villageLogo from '../assets/village-logo.png';
-import bgImage from '../assets/Westville.png';
-import heroBg from '../assets/roof.png';
+import villageLogo from '../assets/village-logo-96.webp';
+import bgImage from '../assets/Westville.webp';
 import { useAuth } from '../context/AuthContext';
 import {
   Container, Box, TextField, Button, Typography, Paper,
@@ -35,6 +34,11 @@ const T = {
 };
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
+const heroBg = '/hero-roof.webp';
+const deferredSectionSx = {
+  contentVisibility: 'auto',
+  containIntrinsicSize: '1px 800px',
+};
 
 const noRedErrorFieldSx = {
   '& .MuiFormLabel-root.Mui-error': { color: '#475569' },
@@ -45,9 +49,9 @@ const noRedErrorFieldSx = {
 };
 
 const ROLES = [
-  { key: 'admin', label: 'ADMIN', description: 'Manages the system, resident records, and community information.', icon: <AdminIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/admin.png' },
-  { key: 'resident', label: 'RESIDENT', description: 'Access personal information, community updates, and services.', icon: <HomeIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/resident.png' },
-  { key: 'security', label: 'SECURITY', description: 'Monitors entries and helps keep the community safe.', icon: <ShieldIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/security.png' },
+  { key: 'admin', label: 'ADMIN', description: 'Manages the system, resident records, and community information.', icon: <AdminIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/admin-640.webp' },
+  { key: 'resident', label: 'RESIDENT', description: 'Access personal information, community updates, and services.', icon: <HomeIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/resident-640.webp' },
+  { key: 'security', label: 'SECURITY', description: 'Monitors entries and helps keep the community safe.', icon: <ShieldIcon sx={{ fontSize: 40, color: T.primary }} />, bgImage: '/images/security-640.webp' },
 ];
 
 
@@ -82,14 +86,14 @@ const PageFooter = () => (
       ].map((col) => (
         <Grid item xs={6} md={3} key={col.title}>
           <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', mb: 1.5 }}>{col.title}</Typography>
-          {col.links.map((l) => <Typography key={l} sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', mb: 0.8, cursor: 'pointer', '&:hover': { color: T.accent } }}>{l}</Typography>)}
+          {col.links.map((l) => <Typography key={l} sx={{ color: 'rgba(255,255,255,0.82)', fontSize: '0.78rem', mb: 0.8, cursor: 'pointer', '&:hover': { color: 'white' } }}>{l}</Typography>)}
         </Grid>
       ))}
     </Grid>
     <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid rgba(255,255,255,0.15)', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-      <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.75rem' }}>© {new Date().getFullYear()} Westville Casimiro Homes. All rights reserved.</Typography>
+      <Typography sx={{ color: 'rgba(255,255,255,0.78)', fontSize: '0.75rem' }}>© {new Date().getFullYear()} Westville Casimiro Homes. All rights reserved.</Typography>
       <Box sx={{ display: 'flex', gap: 3 }}>
-        {['Privacy Policy', 'Terms and Conditions', 'Sitemap'].map((i) => <Typography key={i} sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.75rem', cursor: 'pointer', '&:hover': { color: 'white' } }}>{i}</Typography>)}
+        {['Privacy Policy', 'Terms and Conditions', 'Sitemap'].map((i) => <Typography key={i} sx={{ color: 'rgba(255,255,255,0.78)', fontSize: '0.75rem', cursor: 'pointer', '&:hover': { color: 'white' } }}>{i}</Typography>)}
       </Box>
     </Box>
   </Box>
@@ -245,13 +249,13 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-            <IconButton size="small" onClick={onPrevMonth}>
+            <IconButton size="small" onClick={onPrevMonth} aria-label="Previous month">
               <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
             </IconButton>
             <Typography sx={{ fontWeight: 900, color: T.primary }}>
               {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
             </Typography>
-            <IconButton size="small" onClick={onNextMonth}>
+            <IconButton size="small" onClick={onNextMonth} aria-label="Next month">
               <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
             </IconButton>
           </Box>
@@ -396,8 +400,8 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
 };
 
 const ANNOUNCEMENTS = [
-  { id: 1, category: 'Security', date: 'March 10, 2026', title: 'Enhanced Gate Security Protocol Starting April 2026', body: 'Effective April 1, 2026, all visitors must present a valid government-issued ID and be registered in our VIMS visitor portal before entry. Homeowners are requested to pre-register expected visitors through the resident portal. QR code stickers will also be distributed for faster vehicle entry.', color: '#ef4444' },
-  { id: 2, category: 'Maintenance', date: 'March 8, 2026', title: 'Scheduled Water Service Interruption – March 15, 2026', body: 'Water service will be temporarily interrupted on March 15, 2026 from 8:00 AM to 5:00 PM due to scheduled maintenance of the main water line on Casimiro Street. All residents are advised to store sufficient water. We apologize for the inconvenience.', color: '#f59e0b' },
+  { id: 1, category: 'Security', date: 'March 10, 2026', title: 'Enhanced Gate Security Protocol Starting April 2026', body: 'Effective April 1, 2026, all visitors must present a valid government-issued ID and be registered in our VIMS visitor portal before entry. Homeowners are requested to pre-register expected visitors through the resident portal. QR code stickers will also be distributed for faster vehicle entry.', color: '#b91c1c' },
+  { id: 2, category: 'Maintenance', date: 'March 8, 2026', title: 'Scheduled Water Service Interruption – March 15, 2026', body: 'Water service will be temporarily interrupted on March 15, 2026 from 8:00 AM to 5:00 PM due to scheduled maintenance of the main water line on Casimiro Street. All residents are advised to store sufficient water. We apologize for the inconvenience.', color: '#92400e' },
   { id: 3, category: 'Community', date: 'March 5, 2026', title: 'Westville Clean-Up Drive – March 22, 2026', body: 'Join us for our quarterly community clean-up drive on March 22, 2026 at 7:00 AM. Meet at the main clubhouse. Gloves, garbage bags, and refreshments will be provided. All residents and their families are encouraged to participate. Let us keep our community clean and beautiful!', color: T.light },
   { id: 4, category: 'HOA', date: 'February 28, 2026', title: 'HOA General Assembly – April 5, 2026', body: 'The Homeowners Association General Assembly will be held on April 5, 2026 at 3:00 PM at the Westville Clubhouse. Topics include annual financial report, proposed community improvements, and election of new board members. All homeowners are strongly encouraged to attend.', color: '#3b82f6' },
   { id: 5, category: 'Event', date: 'February 20, 2026', title: 'Westville Summer Sports Fest – April 12–13, 2026', body: 'Get ready for our annual Summer Sports Fest! Events include basketball, volleyball, badminton, and swimming competitions. Registration is open from March 1–31, 2026. Contact the HOA office or message our official Facebook page to register your team. Prizes await the winners!', color: '#8b5cf6' },
@@ -410,8 +414,8 @@ const getAnnouncementCategory = (category) => {
 };
 
 const getAnnouncementColor = (category) => {
-  if (category === 'monthlyCollection') return '#0ea5e9';
-  return T.light;
+  if (category === 'monthlyCollection') return '#0369a1';
+  return '#237a35';
 };
 
 const OFFICIALS = [
@@ -670,7 +674,7 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
       <Container maxWidth="lg">
         <Grid container spacing={6} alignItems="center">
           <Grid item xs={12} md={6}>
-            <Box component="img" src='/images/vision.png' alt="Vision" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
+            <Box component="img" src="/images/vision.webp" alt="Casimiro Westville Homes community vision" loading="lazy" decoding="async" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
           </Grid>
           <Grid item xs={12} md={6}>
             <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: T.primary, mb: 3, textTransform: 'uppercase' }}>VISION</Typography>
@@ -693,7 +697,7 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
             <Typography sx={{ color: '#333', lineHeight: 1.8 }}>We continuously innovate through our Village Information Management System (VIMS), ensuring transparent governance, efficient visitor management, and accessible resident services.</Typography>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box component="img" src='/images/mission.png' alt="Mission" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
+            <Box component="img" src="/images/mission.webp" alt="Casimiro Westville Homes community mission" loading="lazy" decoding="async" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
           </Grid>
         </Grid>
       </Container>
@@ -705,14 +709,14 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
         <Typography sx={{ textAlign: 'center', fontSize: '2rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 6 }}>OUR CORE VALUES</Typography>
         <Grid container spacing={4}>
           {[
-            { title: 'Community', desc: 'We foster a strong sense of belonging, nurturing relationships and building a vibrant, inclusive neighborhood for all residents.', img: '/images/hoa1.png' },
-            { title: 'Safety & Security', desc: 'We prioritize every resident\'s safety through 24/7 security, controlled access, and vigilant community monitoring.', img: '/images/hoa2.png' },
-            { title: 'Sustainability', desc: 'We are committed to green living — maintaining clean surroundings, preserving green spaces, and promoting eco-friendly practices.', img: '/images/hoa3.png' },
-            { title: 'Transparency', desc: 'We uphold honest communication with all homeowners, ensuring fair governance and accessible community information.', img: '/images/hoa4.png' },
+            { title: 'Community', desc: 'We foster a strong sense of belonging, nurturing relationships and building a vibrant, inclusive neighborhood for all residents.', img: '/images/hoa1-420.webp' },
+            { title: 'Safety & Security', desc: 'We prioritize every resident\'s safety through 24/7 security, controlled access, and vigilant community monitoring.', img: '/images/hoa2-420.webp' },
+            { title: 'Sustainability', desc: 'We are committed to green living — maintaining clean surroundings, preserving green spaces, and promoting eco-friendly practices.', img: '/images/hoa3-420.webp' },
+            { title: 'Transparency', desc: 'We uphold honest communication with all homeowners, ensuring fair governance and accessible community information.', img: '/images/hoa4-420.webp' },
           ].map((val) => (
             <Grid item xs={12} sm={6} md={3} key={val.title}>
               <Box sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 6px 24px rgba(0,0,0,0.1)', backgroundColor: 'white', height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-6px)' } }}>
-                <Box component="img" src={val.img} alt={val.title} sx={{ width: '100%', height: 180, objectFit: 'cover' }} />
+                <Box component="img" src={val.img} alt={val.title} loading="lazy" decoding="async" sx={{ width: '100%', height: 180, objectFit: 'cover' }} />
                 <Box sx={{ p: 3 }}>
                   <Typography sx={{ fontWeight: 800, color: T.primary, fontSize: '1.05rem', mb: 1 }}>{val.title}</Typography>
                   <Typography sx={{ color: '#555', fontSize: '0.85rem', lineHeight: 1.6 }}>{val.desc}</Typography>
@@ -997,6 +1001,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           </Button>
           <IconButton
             onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation menu"
             sx={{
               color: 'white',
               bgcolor: 'rgba(255,255,255,0.08)',
@@ -1207,7 +1212,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       >
         <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
           <Box sx={{ textAlign: 'center', mb: 3.5, animation: 'fadeUpSoft 0.8s ease' }}>
-            <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            <Typography sx={{ color: '#237a35', fontWeight: 900, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
               Community Portal
             </Typography>
             <Typography sx={{ color: T.primary, fontWeight: 900, fontSize: { xs: '1.35rem', md: '1.65rem' }, mt: 0.8 }}>
@@ -1305,7 +1310,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             </Button>
           </Box>
 
-          <Box sx={{ mt: { xs: 5, md: 6 }, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 3, md: 3.5 }, background: 'linear-gradient(135deg, #1f5f33 0%, #2f7a43 100%)' }}>
+          <Box sx={{ ...deferredSectionSx, mt: { xs: 5, md: 6 }, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 3, md: 3.5 }, background: 'linear-gradient(135deg, #1f5f33 0%, #2f7a43 100%)' }}>
             <Grid container spacing={2} justifyContent="center">
               {[
                 { k: '200+', l: 'TOTAL LOTS', icon: <MapIcon sx={{ fontSize: 16 }} /> },
@@ -1326,10 +1331,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             </Grid>
           </Box>
 
-          <Box sx={{ mt: 0, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 4, md: 5 }, backgroundColor: '#d9e8b6' }}>
+          <Box sx={{ ...deferredSectionSx, mt: 0, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 4, md: 5 }, backgroundColor: '#d9e8b6' }}>
             <Grid container spacing={3} alignItems="center">
               <Grid item xs={12} md={6}>
-                <Typography sx={{ color: '#9bb558', fontWeight: 900, fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                <Typography sx={{ color: '#4d5f16', fontWeight: 900, fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                   What we offer
                 </Typography>
                 <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: { xs: '1.75rem', md: '2rem' }, lineHeight: 1.05, mt: 1 }}>
@@ -1360,20 +1365,20 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
               <Grid item xs={12} md={6}>
                 <Box sx={{ maxWidth: 430, ml: { xs: 0, md: 'auto' } }}>
-                  <Box component="img" src='/images/hoa4.png' alt="Model house" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
+                  <Box component="img" src="/images/hoa4-640.webp" alt="Westville model house" loading="lazy" decoding="async" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
                   <Box sx={{ mt: 1.3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.1 }}>
-                    <Box component="img" src='/images/hoa1.png' alt="Park" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
-                    <Box component="img" src='/images/hoa2.png' alt="Community homes" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                    <Box component="img" src="/images/hoa1-640.webp" alt="Westville community park" loading="lazy" decoding="async" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
+                    <Box component="img" src="/images/hoa2-640.webp" alt="Westville community homes" loading="lazy" decoding="async" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
                   </Box>
                 </Box>
               </Grid>
             </Grid>
           </Box>
 
-          <Box sx={{ mt: { xs: 5, md: 7 } }}>
+          <Box sx={{ ...deferredSectionSx, mt: { xs: 5, md: 7 } }}>
             <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2, mb: 2 }}>
               <Box>
-                <Typography sx={{ color: T.accent, fontWeight: 900, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                <Typography sx={{ color: '#237a35', fontWeight: 900, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                   Stay informed
                 </Typography>
                 <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: { xs: '1.25rem', md: '1.45rem' }, mt: 0.8 }}>
@@ -1416,7 +1421,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                     }}
                   >
                     {ann.imageUrl && (
-                      <Box component="img" src={ann.imageUrl} alt={ann.title} sx={{ width: '100%', height: 130, objectFit: 'cover' }} />
+                      <Box component="img" src={ann.imageUrl} alt={ann.title} loading="lazy" decoding="async" sx={{ width: '100%', height: 130, objectFit: 'cover' }} />
                     )}
                     <CardContent sx={{ p: 2.5 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.25 }}>
@@ -1465,7 +1470,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       {/* CONTENT SECTIONS (scrollable) */}
       <Box sx={{ backgroundColor: T.bg }}>
         {/* Announcements */}
-        <Box ref={announcementRef} sx={{ py: { xs: 6, md: 10 } }}>
+        <Box ref={announcementRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 } }}>
           <Container maxWidth="lg">
             <Reveal>
               <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
@@ -1488,7 +1493,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                   <Reveal delayMs={idx * 80}>
                     <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', borderLeft: `5px solid ${ann.color}` }}>
                       {ann.imageUrl && (
-                        <Box component="img" src={ann.imageUrl} alt={ann.title} sx={{ width: '100%', height: 170, objectFit: 'cover' }} />
+                        <Box component="img" src={ann.imageUrl} alt={ann.title} loading="lazy" decoding="async" sx={{ width: '100%', height: 170, objectFit: 'cover' }} />
                       )}
                       <CardContent sx={{ p: 3 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -1507,7 +1512,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Officials */}
-        <Box ref={officialsRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
+        <Box ref={officialsRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
           <Container maxWidth="lg">
             <Reveal>
               <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
@@ -1543,7 +1548,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Contact */}
-        <Box ref={contactRef} sx={{ py: { xs: 6, md: 10 } }}>
+        <Box ref={contactRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 } }}>
           <Container maxWidth="lg">
             <Reveal>
               <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
@@ -1560,7 +1565,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* About */}
-        <Box ref={aboutRef} sx={{ backgroundColor: '#fff' }}>
+        <Box ref={aboutRef} sx={{ ...deferredSectionSx, backgroundColor: '#fff' }}>
           <Container maxWidth="lg" sx={{ pt: { xs: 6, md: 10 } }}>
             <Reveal>
               <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
@@ -1577,7 +1582,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Reservation Schedule (inline) */}
-        <Box ref={calendarSectionRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: T.bg }}>
+        <Box ref={calendarSectionRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, backgroundColor: T.bg }}>
           <Container maxWidth="lg">
             <Reveal>
               <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
@@ -1598,7 +1603,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Privacy Policy */}
-        <Box ref={privacyRef} sx={{ py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
+        <Box ref={privacyRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
           <Container maxWidth="lg">
             <Reveal>
               <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
@@ -2108,6 +2113,7 @@ const Login = () => {
                         <InputAdornment position="end">
                           <IconButton
                             onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
                             edge="end"
                             size="small"
                             sx={{ color: 'rgba(255,255,255,0.68)', '&:hover': { color: hubColors.lime }, '&:active': { transform: 'scale(0.96)' }, transition: 'all 0.15s ease' }}

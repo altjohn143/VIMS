@@ -20,7 +20,6 @@ import {
   MenuItem,
   Card,
   CardContent,
-  Chip,
   Checkbox,
   FormControlLabel,
   Dialog,
@@ -47,8 +46,7 @@ import {
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-// Import the LotMap component
-import LotSelectionMap from '../components/LotSelectionMap';
+import RegistrationLotMap from '../components/RegistrationLotMap';
 import ImagePreview from '../components/ImagePreview';
 
 // Country codes data
@@ -154,7 +152,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [availability, setAvailability] = useState({ email: null, phone: null });
   const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
-  const [mapViewMode, setMapViewMode] = useState('all');
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -330,8 +327,6 @@ const Register = () => {
     setSelectedLotDetails(lot);
     toast.success(`Lot ${lot.lotId} selected!`);
   };
-
-  const mapLots = mapViewMode === 'available' ? availableLots : allLots;
 
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1227,43 +1222,23 @@ const Register = () => {
                         py: 1.5,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
                         gap: 1,
-                        flexWrap: 'wrap',
                         borderBottom: `1px solid ${themeColors.border}`,
                         backgroundColor: '#fff'
                       }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <MapIcon sx={{ color: themeColors.primary }} />
                           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                            Interactive Lot Map
+                            Actual Lot Map
                           </Typography>
                         </Box>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Chip
-                            label="Available Only"
-                            onClick={() => setMapViewMode('available')}
-                            color={mapViewMode === 'available' ? 'primary' : 'default'}
-                            size="small"
-                            sx={{ cursor: 'pointer' }}
-                          />
-                          <Chip
-                            label="All Lots"
-                            onClick={() => setMapViewMode('all')}
-                            color={mapViewMode === 'all' ? 'primary' : 'default'}
-                            size="small"
-                            sx={{ cursor: 'pointer' }}
-                          />
-                        </Box>
                       </Box>
-                      <Box sx={{ maxHeight: { xs: 620, md: 760 }, overflow: 'auto' }}>
-                        <LotSelectionMap
-                          lots={mapLots}
-                          selectedLotId={formData.selectedLot}
-                          onSelectLot={handleLotSelectFromMap}
-                          themeColors={themeColors}
-                        />
-                      </Box>
+                      <RegistrationLotMap
+                        lots={allLots}
+                        selectedLotId={formData.selectedLot}
+                        onSelectLot={handleLotSelectFromMap}
+                        themeColors={themeColors}
+                      />
                     </Paper>
                     
                     {errors.selectedLot && (

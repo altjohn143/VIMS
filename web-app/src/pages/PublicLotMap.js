@@ -647,7 +647,7 @@ const PublicLotMap = () => {
   const [highlightedLotId, setHighlightedLotId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedPhase, setSelectedPhase] = useState(1);
+  const [selectedPhase, setSelectedPhase] = useState('all');
   const mapCanvasRef = useRef(null);
   const panStartRef = useRef(null);
 
@@ -686,7 +686,7 @@ const PublicLotMap = () => {
     const s = search.toLowerCase();
 
     return allLots.filter((lot) => {
-      const matchesPhase = Number(lot.phase) === Number(selectedPhase);
+      const matchesPhase = selectedPhase === 'all' || Number(lot.phase) === Number(selectedPhase);
       const matchesStatus = filterStatus === 'all' || lot.status === filterStatus;
       const matchesSearch =
         !s ||
@@ -701,7 +701,9 @@ const PublicLotMap = () => {
   }, [allLots, filterStatus, search, selectedPhase]);
 
   const selectedPhaseLots = useMemo(
-    () => allLots.filter((lot) => Number(lot.phase) === Number(selectedPhase)),
+    () => selectedPhase === 'all'
+      ? allLots
+      : allLots.filter((lot) => Number(lot.phase) === Number(selectedPhase)),
     [allLots, selectedPhase]
   );
 
@@ -713,11 +715,17 @@ const PublicLotMap = () => {
   }), [selectedPhaseLots]);
 
   useEffect(() => {
-    setSelectedLot((current) => (current && Number(current.phase) === Number(selectedPhase) ? current : null));
-    setTourLot((current) => (current && Number(current.phase) === Number(selectedPhase) ? current : null));
+    setSelectedLot((current) => (
+      current && (selectedPhase === 'all' || Number(current.phase) === Number(selectedPhase)) ? current : null
+    ));
+    setTourLot((current) => (
+      current && (selectedPhase === 'all' || Number(current.phase) === Number(selectedPhase)) ? current : null
+    ));
     setHighlightedLotId((current) => {
       const highlighted = allLots.find((lot) => lot.id === current);
-      return highlighted && Number(highlighted.phase) === Number(selectedPhase) ? current : '';
+      return highlighted && (
+        selectedPhase === 'all' || Number(highlighted.phase) === Number(selectedPhase)
+      ) ? current : '';
     });
   }, [allLots, selectedPhase]);
 
@@ -924,8 +932,25 @@ const PublicLotMap = () => {
           backgroundColor: 'rgba(15,23,42,0.85)',
         }}>
           <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', mr: 1 }}>
-            PHASE:
+            VIEW:
           </Typography>
+          <Button
+            onClick={() => setSelectedPhase('all')}
+            variant={selectedPhase === 'all' ? 'contained' : 'outlined'}
+            size="small"
+            sx={{
+              minWidth: 88,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              backgroundColor: selectedPhase === 'all' ? '#3b82f6' : 'transparent',
+              borderColor: selectedPhase === 'all' ? '#3b82f6' : 'rgba(255,255,255,0.25)',
+              color: selectedPhase === 'all' ? 'white' : 'rgba(255,255,255,0.75)',
+            }}
+          >
+            All Phases
+          </Button>
           {phases.map(phase => (
             <Button
               key={phase}
@@ -961,7 +986,7 @@ const PublicLotMap = () => {
         backgroundColor: 'rgba(15,23,42,0.82)',
       }}>
         <Typography sx={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.68rem', mr: 0.5 }}>
-          Phase {selectedPhase}: {phaseStats.total} lots
+          {selectedPhase === 'all' ? 'All phases' : `Phase ${selectedPhase}`}: {phaseStats.total} lots
         </Typography>
         {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
           <Box key={key} onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
@@ -1058,7 +1083,7 @@ const PublicLotMap = () => {
               letterSpacing: '0.1em',
               textTransform: 'uppercase'
             }}>
-              PHASE {selectedPhase}
+              {selectedPhase === 'all' ? 'ALL PHASES' : `PHASE ${selectedPhase}`}
             </Typography>
           </Box>
 

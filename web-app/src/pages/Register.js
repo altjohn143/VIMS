@@ -21,7 +21,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Drawer,
   Checkbox,
   FormControlLabel,
   Dialog,
@@ -42,7 +41,6 @@ import {
   LocationOn as LocationIcon,
   Info as InfoIcon,
   Map as MapIcon,
-  Close as CloseIcon,
   PhotoCamera as PhotoCameraIcon,
   Image as ImageIcon
 } from '@mui/icons-material';
@@ -156,7 +154,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [availability, setAvailability] = useState({ email: null, phone: null });
   const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
-  const [mapDrawerOpen, setMapDrawerOpen] = useState(false);
   const [mapViewMode, setMapViewMode] = useState('all');
 
   const navigate = useNavigate();
@@ -331,7 +328,6 @@ const Register = () => {
 
     setFormData(prev => ({ ...prev, selectedLot: lot.lotId, address: lot.address }));
     setSelectedLotDetails(lot);
-    setMapDrawerOpen(false);
     toast.success(`Lot ${lot.lotId} selected!`);
   };
 
@@ -1201,18 +1197,9 @@ const Register = () => {
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
                     Select Your Lot
                   </Typography>
-                  <Button
-                    size="small"
-                    startIcon={<MapIcon />}
-                    onClick={() => setMapDrawerOpen(true)}
-                    sx={{
-                      color: themeColors.primary,
-                      textTransform: 'none',
-                      '&:hover': { backgroundColor: themeColors.primary + '08' }
-                    }}
-                  >
-                    View Map
-                  </Button>
+                  <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
+                    Choose any green vacant lot
+                  </Typography>
                 </Box>
                 
                 {loadingLots ? (
@@ -1226,11 +1213,58 @@ const Register = () => {
                   </Alert>
                 ) : (
                   <>
-                    <Button fullWidth variant="outlined" startIcon={<MapIcon />}
-                      onClick={() => setMapDrawerOpen(true)}
-                      sx={{ py: 1.5, borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>
-                      {formData.selectedLot ? 'Change lot on the map' : 'Open lot map to select your lot'}
-                    </Button>
+                    <Paper
+                      variant="outlined"
+                      sx={{
+                        borderRadius: 3,
+                        overflow: 'hidden',
+                        borderColor: themeColors.primary + '35',
+                        backgroundColor: '#f8fafc'
+                      }}
+                    >
+                      <Box sx={{
+                        px: 2,
+                        py: 1.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 1,
+                        flexWrap: 'wrap',
+                        borderBottom: `1px solid ${themeColors.border}`,
+                        backgroundColor: '#fff'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <MapIcon sx={{ color: themeColors.primary }} />
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            Interactive Lot Map
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Chip
+                            label="Available Only"
+                            onClick={() => setMapViewMode('available')}
+                            color={mapViewMode === 'available' ? 'primary' : 'default'}
+                            size="small"
+                            sx={{ cursor: 'pointer' }}
+                          />
+                          <Chip
+                            label="All Lots"
+                            onClick={() => setMapViewMode('all')}
+                            color={mapViewMode === 'all' ? 'primary' : 'default'}
+                            size="small"
+                            sx={{ cursor: 'pointer' }}
+                          />
+                        </Box>
+                      </Box>
+                      <Box sx={{ maxHeight: { xs: 620, md: 760 }, overflow: 'auto' }}>
+                        <LotSelectionMap
+                          lots={mapLots}
+                          selectedLotId={formData.selectedLot}
+                          onSelectLot={handleLotSelectFromMap}
+                          themeColors={themeColors}
+                        />
+                      </Box>
+                    </Paper>
                     
                     {errors.selectedLot && (
                       <Typography variant="caption" sx={{ color: themeColors.error, mt: 0.5, display: 'block' }}>
@@ -1285,7 +1319,7 @@ const Register = () => {
                       icon={<InfoIcon />}
                     >
                       <Typography variant="caption">
-                        Click "View Map" to see the interactive lot map and choose your lot visually.
+                        Use the interactive map above to choose your lot visually.
                         Once you register, your selected lot will be reserved pending admin approval.
                       </Typography>
                     </Alert>
@@ -2000,83 +2034,6 @@ const Register = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Map Drawer - Shows the interactive lot map */}
-      <Drawer
-        anchor="right"
-        open={mapDrawerOpen}
-        onClose={() => setMapDrawerOpen(false)}
-        PaperProps={{
-          sx: {
-            width: { xs: '100%', sm: '80%', md: '70%', lg: '60%' },
-            maxWidth: '1000px',
-            borderRadius: { xs: 0, sm: '16px 0 0 16px' },
-            overflow: 'hidden'
-          }
-        }}
-      >
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          {/* Drawer Header */}
-          <Box sx={{
-            p: 2,
-            backgroundColor: themeColors.primary,
-            color: 'white',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <MapIcon />
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Select Your Lot from the Map
-              </Typography>
-            </Box>
-            <IconButton onClick={() => setMapDrawerOpen(false)} sx={{ color: 'white' }}>
-              <CloseIcon />
-            </IconButton>
-          </Box>
-
-          {/* View Toggle */}
-          <Box sx={{ p: 2, borderBottom: `1px solid ${themeColors.border}`, display: 'flex', gap: 2 }}>
-            <Chip
-              label="Available Lots Only"
-              onClick={() => setMapViewMode('available')}
-              color={mapViewMode === 'available' ? 'primary' : 'default'}
-              sx={{ cursor: 'pointer' }}
-            />
-            <Chip
-              label="All Lots"
-              onClick={() => setMapViewMode('all')}
-              color={mapViewMode === 'all' ? 'primary' : 'default'}
-              sx={{ cursor: 'pointer' }}
-            />
-          </Box>
-
-          {/* Lot Selection Map Component */}
-          <Box sx={{ flex: 1, overflow: 'auto' }}>
-            <LotSelectionMap
-              lots={mapLots}
-              selectedLotId={formData.selectedLot}
-              onSelectLot={handleLotSelectFromMap}
-              themeColors={themeColors}
-            />
-          </Box>
-
-          {/* Footer with instruction */}
-          <Box sx={{
-            p: 2,
-            borderTop: `1px solid ${themeColors.border}`,
-            backgroundColor: themeColors.background,
-            textAlign: 'center'
-          }}>
-            <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
-            Click on any <span style={{ color: themeColors.success, fontWeight: 'bold' }}>green (vacant)</span> lot to select it for registration.
-            {mapViewMode === 'available'
-              ? ' Only available lots are shown.'
-              : ' Non-vacant lots are visible but disabled for selection.'}
-            </Typography>
-          </Box>
-        </Box>
-      </Drawer>
     </Box>
   );
 };

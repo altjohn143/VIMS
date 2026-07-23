@@ -20,7 +20,6 @@ import { useAuth } from '../../context/AuthContext';
 import { themeColors, shadows } from '../../utils/theme';
 import api, { getProtectedImageDataUrl } from '../../utils/api';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
 
 const AdminPaymentsScreen = ({ navigation }) => {
   const [payments, setPayments] = useState([]);

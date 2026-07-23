@@ -17,7 +17,7 @@ import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
 
 const SecurityVisitorLogsScreen = ({ navigation }) => {

@@ -3,6 +3,7 @@
     "name": "VIMS Mobile",
     "slug": "vims-mobile-7euufkub27o94cpv6tbz",
     "version": "1.0.0",
+    "jsEngine": "jsc",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {

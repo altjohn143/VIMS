@@ -63,6 +63,9 @@ const STATUS_CONFIG = {
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
 };
 
+const MAP_FIT_ZOOM = 14;
+const getMapScale = (zoom) => 0.7 + (zoom - MAP_FIT_ZOOM) * 0.12;
+
 
 // Block numbers are phase-local and must not be folded into a 1-5 range.
 const getPhaseBlock = (rawBlock) => Number(rawBlock);
@@ -640,7 +643,7 @@ const PublicLotMap = () => {
   const [search, setSearch] = useState('');
   const [selectedLot, setSelectedLot] = useState(null);
   const [tourLot, setTourLot] = useState(null);
-  const [mapZoom, setMapZoom] = useState(17);
+  const [mapZoom, setMapZoom] = useState(MAP_FIT_ZOOM);
   const [mapPan, setMapPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [hoverPreview, setHoverPreview] = useState(null);
@@ -765,7 +768,7 @@ const PublicLotMap = () => {
   }), [phaseFilteredLots]);
 
   const resetMapView = () => {
-    setMapZoom(17);
+    setMapZoom(MAP_FIT_ZOOM);
     setMapPan({ x: 0, y: 0 });
     setHighlightedLotId('');
   };
@@ -1122,7 +1125,7 @@ const PublicLotMap = () => {
               width: '100%',
               aspectRatio: '1536 / 1024',
               overflow: 'hidden',
-              transform: `translate(${mapPan.x}px, ${mapPan.y}px) scale(${0.78 + (mapZoom - 14) * 0.12})`,
+              transform: `translate(${mapPan.x}px, ${mapPan.y}px) scale(${getMapScale(mapZoom)})`,
               transformOrigin: 'top center',
               transition: isPanning ? 'none' : 'transform 0.16s ease',
             }}>

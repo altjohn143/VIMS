@@ -64,7 +64,7 @@ const STATUS_CONFIG = {
 };
 
 const MAP_FIT_ZOOM = 14;
-const getMapScale = (zoom) => 0.7 + (zoom - MAP_FIT_ZOOM) * 0.12;
+const getMapScale = (zoom) => 1 + (zoom - MAP_FIT_ZOOM) * 0.12;
 
 
 // Block numbers are phase-local and must not be folded into a 1-5 range.
@@ -1118,15 +1118,19 @@ const PublicLotMap = () => {
               overflow: 'hidden',
               border: '1px solid rgba(255,255,255,0.12)',
               cursor: isPanning ? 'grabbing' : 'grab',
+              display: 'flex',
+              justifyContent: 'center',
             }}
           >
             <Box ref={mapCanvasRef} sx={{
               position: 'relative',
-              width: '100%',
+              height: '100%',
+              width: 'auto',
+              flex: '0 0 auto',
               aspectRatio: '1536 / 1024',
               overflow: 'hidden',
               transform: `translate(${mapPan.x}px, ${mapPan.y}px) scale(${getMapScale(mapZoom)})`,
-              transformOrigin: 'top center',
+              transformOrigin: 'center center',
               transition: isPanning ? 'none' : 'transform 0.16s ease',
             }}>
               <Box component="img"

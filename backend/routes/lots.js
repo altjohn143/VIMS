@@ -59,9 +59,12 @@ router.post('/generate', async (req, res) => {
 // Get all available (vacant) lots
 router.get('/available', async (req, res) => {
   try {
-    const lots = await Lot.find({ status: 'vacant' })
+    const lots = await Lot.find({
+      status: 'vacant',
+      'mapPosition.isPositioned': true
+    })
       .sort({ phase: 1, block: 1, lotNumber: 1 })
-      .select('lotId block lotNumber type sqm price address phase');
+      .select('lotId block lotNumber type sqm price address phase status mapPosition');
     
     res.json({
       success: true,

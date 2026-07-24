@@ -188,7 +188,10 @@ const parseBooleanField = (value) => {
 };
 
 const getFallbackLots = async () => {
-  const lots = await Lot.find({ status: 'vacant' })
+  const lots = await Lot.find({
+    status: 'vacant',
+    'mapPosition.isPositioned': true
+  })
     .select('lotId block lotNumber type sqm price status')
     .sort({ block: 1, lotNumber: 1 })
     .limit(10);
@@ -253,7 +256,11 @@ router.post('/check-availability', async (req, res) => {
         if (!foundLot) {
           return res.json({ success: true, available: false, error: 'Invalid lot number' });
         }
-        return res.json({ success: true, available: foundLot.status === 'vacant', lotDetails: foundLot });
+        return res.json({
+          success: true,
+          available: foundLot.status === 'vacant' && foundLot.mapPosition?.isPositioned === true,
+          lotDetails: foundLot
+        });
       default:
         return res.status(400).json({
           success: false,
@@ -419,6 +426,15 @@ router.post('/register', registerUpload.fields([
         return res.status(400).json({
           success: false,
           error: 'This lot is no longer available. Please select another lot.',
+          fallbackLots
+        });
+      }
+
+      if (lot.mapPosition?.isPositioned !== true) {
+        const fallbackLots = await getFallbackLots();
+        return res.status(400).json({
+          success: false,
+          error: 'This lot is not currently available on the map. Please select another lot.',
           fallbackLots
         });
       }

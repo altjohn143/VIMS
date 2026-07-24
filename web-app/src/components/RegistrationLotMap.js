@@ -80,7 +80,7 @@ const RegistrationLotMap = ({ lots = [], selectedLotId, onSelectLot, themeColors
 
   const handleSelection = (lotId) => {
     const lot = lots.find((candidate) => candidate.lotId === lotId);
-    if (lot?.status === 'vacant') onSelectLot(lot);
+    if (lot?.status === 'vacant' && getPosition(lot)) onSelectLot(lot);
   };
 
   return (

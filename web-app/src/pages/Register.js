@@ -161,7 +161,7 @@ const Register = () => {
     try {
       const response = await axios.get('/api/lots');
       if (response.data.success) {
-        setAllLots(response.data.data);
+        setAllLots(response.data.data.filter((lot) => lot.mapPosition?.isPositioned === true));
       }
     } catch (error) {
       console.error('Error fetching all lots:', error);

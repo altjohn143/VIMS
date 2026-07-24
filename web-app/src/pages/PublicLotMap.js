@@ -96,6 +96,7 @@ const getSavedMapPosition = (lot) => {
 };
 
 const getLotMapPosition = (lot) => getSavedMapPosition(lot);
+const isLotPlacedOnMap = (lot) => Boolean(getLotMapPosition(lot));
 
 const generateLotsFromAPI = (apiLots) => {
   if (!apiLots || apiLots.length === 0) return [];
@@ -662,7 +663,7 @@ const PublicLotMap = () => {
         setError(null);
         const response = await axios.get('/api/lots');
         if (response.data.success) {
-          const lots = generateLotsFromAPI(response.data.data);
+          const lots = generateLotsFromAPI(response.data.data).filter(isLotPlacedOnMap);
           setAllLots(lots);
         } else {
           setError('Failed to load lots data');

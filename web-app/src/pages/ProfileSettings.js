@@ -247,7 +247,12 @@ const ProfileSettings = () => {
         if (data.success) {
           userData = data.data;
           setUser(userData);
-          setProfilePhoto(userData.profilePhotoUrl || (userData.profilePhoto ? `${backendBaseUrl}/uploads/profile-photos/${userData.profilePhoto}` : null) || null);
+          setProfilePhoto(userData.profilePhotoUrl ||
+            (userData.profilePhoto?.startsWith('http')
+              ? userData.profilePhoto
+              : userData.profilePhoto
+                ? `${backendBaseUrl}/uploads/profile-photos/${userData.profilePhoto}`
+                : null));
           setFormData({
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
@@ -368,10 +373,18 @@ const ProfileSettings = () => {
         const updatedUser = {
           ...(user || {}),
           profilePhoto: updatedProfilePhoto,
-          profilePhotoUrl: updatedProfileUrl || (updatedProfilePhoto ? `${backendBaseUrl}/uploads/profile-photos/${updatedProfilePhoto}` : null)
+          profilePhotoUrl: updatedProfileUrl || (updatedProfilePhoto?.startsWith('http')
+            ? updatedProfilePhoto
+            : updatedProfilePhoto
+              ? `${backendBaseUrl}/uploads/profile-photos/${updatedProfilePhoto}`
+              : null)
         };
 
-        const finalProfilePhoto = updatedProfileUrl || (updatedProfilePhoto ? `${backendBaseUrl}/uploads/profile-photos/${updatedProfilePhoto}` : previewUrl);
+        const finalProfilePhoto = updatedProfileUrl || (updatedProfilePhoto?.startsWith('http')
+          ? updatedProfilePhoto
+          : updatedProfilePhoto
+            ? `${backendBaseUrl}/uploads/profile-photos/${updatedProfilePhoto}`
+            : previewUrl);
         setProfilePhoto(finalProfilePhoto);
         setUser(updatedUser);
         if (updateUser) {

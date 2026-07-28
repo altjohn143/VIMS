@@ -159,6 +159,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  profilePhotoPublicId: {
+    type: String,
+    default: '',
+    select: false
+  },
 
   pushTokens: [{
     token: {

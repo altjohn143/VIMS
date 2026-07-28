@@ -18,6 +18,7 @@ const { protect } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
+const { uploadImagePath } = require('../services/cloudinaryService');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -254,6 +255,7 @@ const generateToken = (user) => {
 
 const buildProfilePhotoUrl = (req, filename) => {
   if (!filename) return null;
+  if (/^https?:\/\//i.test(filename)) return filename;
   return `${req.protocol}://${req.get('host')}/uploads/profile-photos/${filename}`;
 };
 
@@ -616,6 +618,19 @@ router.post('/register', registerUpload.fields([
       ...userData,
       password: '[HIDDEN]'
     });
+
+    // Replace the temporary local filename with a permanent Cloudinary URL.
+    if (profilePhotoFile) {
+      try {
+        const uploadedPhoto = await uploadImagePath(profilePhotoFile.path, {
+          folder: 'vims/profiles'
+        });
+        userData.profilePhoto = uploadedPhoto.secure_url;
+        userData.profilePhotoPublicId = uploadedPhoto.public_id;
+      } finally {
+        fs.promises.unlink(profilePhotoFile.path).catch(() => {});
+      }
+    }
 
     // Create user
     const user = await User.create(userData);

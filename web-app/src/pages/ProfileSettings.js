@@ -352,6 +352,7 @@ const ProfileSettings = () => {
     }
 
     let previewUrl = null;
+    const previousProfilePhoto = profilePhoto;
     try {
       setUploadingPhoto(true);
       previewUrl = URL.createObjectURL(file);
@@ -401,8 +402,10 @@ const ProfileSettings = () => {
         toast.success('Profile photo updated successfully');
       }
     } catch (error) {
+      setProfilePhoto(previousProfilePhoto);
       toast.error(error.response?.data?.error || 'Failed to upload profile photo');
     } finally {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
       setUploadingPhoto(false);
     }
   };

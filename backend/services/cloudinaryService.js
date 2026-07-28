@@ -1,6 +1,21 @@
 const { v2: cloudinary } = require('cloudinary');
 
-cloudinary.config({ secure: true });
+const explicitConfig = {
+  secure: true,
+  ...(process.env.CLOUDINARY_CLOUD_NAME && {
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME
+  }),
+  ...(process.env.CLOUDINARY_API_KEY && {
+    api_key: process.env.CLOUDINARY_API_KEY
+  }),
+  ...(process.env.CLOUDINARY_API_SECRET && {
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  })
+};
+
+// CLOUDINARY_URL is read automatically by the SDK. These explicit fields add
+// support for the three separate environment variables used in Render.
+cloudinary.config(explicitConfig);
 
 const ensureConfigured = () => {
   const config = cloudinary.config();

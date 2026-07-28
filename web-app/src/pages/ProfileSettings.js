@@ -626,7 +626,7 @@ const ProfileSettings = () => {
       newErrors.newPassword = 'New password is required';
     } else if (passwordData.newPassword.length < 12) {
       newErrors.newPassword = 'Password must be at least 12 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(passwordData.newPassword)) {
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(passwordData.newPassword)) {
       newErrors.newPassword = 'Password must contain uppercase, lowercase, number, and special character';
     }
 

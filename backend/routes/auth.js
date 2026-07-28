@@ -26,7 +26,7 @@ const emailSchema = Joi.string().email().lowercase().trim().max(254);
 const passwordSchema = Joi.string()
   .min(12)
   .max(128)
-  .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+  .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/)
   .message('Password must be at least 12 characters and contain uppercase, lowercase, number, and special character');
 const phoneSchema = Joi.string().pattern(/^\+?[\d\s\-\(\)]+$/).max(20);
 

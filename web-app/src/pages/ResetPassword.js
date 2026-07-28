@@ -27,7 +27,7 @@ const themeColors = {
 };
 
 const isStrongPassword = (password) =>
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,128}$/.test(password);
+  /^(?=.{12,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(password);
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();

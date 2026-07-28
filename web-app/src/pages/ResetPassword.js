@@ -40,17 +40,42 @@ const ResetPassword = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [token, setToken] = useState('');
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const tokenFromUrl = searchParams.get('token');
-    if (!tokenFromUrl) {
-      setError('Invalid reset link. Please request a new password reset.');
+    const emailFromUrl = searchParams.get('email');
+    if (tokenFromUrl) setToken(tokenFromUrl);
+    if (emailFromUrl) setEmail(emailFromUrl);
+  }, [searchParams]);
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!email || !/^\d{6}$/.test(otp)) {
+      setError('Enter your email and the six-digit verification code.');
       return;
     }
-    setToken(tokenFromUrl);
-  }, [searchParams]);
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${API_URL}/auth/forgot-password/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase(), code: otp })
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Invalid verification code');
+      setToken(data.resetToken);
+      setMessage('Email verified. Set your new password below.');
+    } catch (err) {
+      setError(err.message || 'Unable to verify code.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -134,23 +159,24 @@ const ResetPassword = () => {
           >
             <LockResetIcon sx={{ fontSize: 48, color: themeColors.primary, mb: 2 }} />
             <Typography variant="h5" sx={{ mb: 2, color: themeColors.textPrimary }}>
-              Invalid Reset Link
+              Verify Reset Code
             </Typography>
             <Typography variant="body1" sx={{ mb: 3, color: themeColors.textSecondary }}>
-              This password reset link is invalid or has expired. Please request a new password reset.
+              Enter the six-digit code sent to your registered email.
             </Typography>
-            <Button
-              variant="contained"
-              onClick={() => navigate('/login')}
-              sx={{
-                backgroundColor: themeColors.primary,
-                borderRadius: 2,
-                px: 4,
-                py: 1.5,
-              }}
-            >
-              Back to Login
-            </Button>
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            <Box component="form" onSubmit={handleVerifyOtp}>
+              <TextField fullWidth label="Email" value={email}
+                onChange={(e) => setEmail(e.target.value)} sx={{ mb: 2 }} />
+              <TextField fullWidth label="Verification code" value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                inputProps={{ inputMode: 'numeric', maxLength: 6 }} sx={{ mb: 2 }} />
+              <Button type="submit" fullWidth variant="contained" disabled={loading}
+                sx={{ backgroundColor: themeColors.primary, borderRadius: 2, py: 1.5, mb: 1 }}>
+                {loading ? <CircularProgress size={22} color="inherit" /> : 'Verify Code'}
+              </Button>
+              <Button fullWidth onClick={() => navigate('/login')}>Back to Login</Button>
+            </Box>
           </Paper>
         </Container>
       </Box>

@@ -152,6 +152,10 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [availability, setAvailability] = useState({ email: null, phone: null });
   const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
+  const [emailOtpOpen, setEmailOtpOpen] = useState(false);
+  const [emailOtp, setEmailOtp] = useState('');
+  const [emailOtpLoading, setEmailOtpLoading] = useState(false);
+  const [emailVerificationToken, setEmailVerificationToken] = useState('');
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -498,6 +502,23 @@ const Register = () => {
       return;
     }
 
+    if (!emailVerificationToken) {
+      setEmailOtpLoading(true);
+      try {
+        await axios.post('/api/auth/registration-otp/request', {
+          email: formData.email.trim().toLowerCase(),
+          firstName: formData.firstName.trim()
+        });
+        setEmailOtpOpen(true);
+        toast.success('A verification code was sent to your email.');
+      } catch (error) {
+        toast.error(error.response?.data?.error || 'Unable to send verification code');
+      } finally {
+        setEmailOtpLoading(false);
+      }
+      return;
+    }
+
     setLoading(true);
 
     // Create FormData for multipart upload
@@ -513,6 +534,7 @@ const Register = () => {
       formDataToSend.append('dateOfBirth', formData.dateOfBirth);
     }
     formDataToSend.append('email', formData.email.trim());
+    formDataToSend.append('emailVerificationToken', emailVerificationToken);
     formDataToSend.append('phone', formData.phone);
     formDataToSend.append('password', formData.password);
     formDataToSend.append('address', formData.address.trim());
@@ -634,6 +656,28 @@ const Register = () => {
       }));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const verifyRegistrationOtp = async () => {
+    if (!/^\d{6}$/.test(emailOtp)) {
+      toast.error('Enter the six-digit code from your email.');
+      return;
+    }
+    setEmailOtpLoading(true);
+    try {
+      const response = await axios.post('/api/auth/registration-otp/verify', {
+        email: formData.email.trim().toLowerCase(),
+        code: emailOtp
+      });
+      setEmailVerificationToken(response.data.verificationToken);
+      setEmailOtpOpen(false);
+      setEmailOtp('');
+      toast.success('Email verified. Click Register again to finish.');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Invalid verification code');
+    } finally {
+      setEmailOtpLoading(false);
     }
   };
 
@@ -2005,6 +2049,29 @@ const Register = () => {
             sx={{ textTransform: 'none' }}
           >
             Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={emailOtpOpen} onClose={() => !emailOtpLoading && setEmailOtpOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Verify your email</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Enter the six-digit code sent to {formData.email}.
+          </Alert>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Verification code"
+            value={emailOtp}
+            onChange={(event) => setEmailOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEmailOtpOpen(false)} disabled={emailOtpLoading}>Cancel</Button>
+          <Button variant="contained" onClick={verifyRegistrationOtp} disabled={emailOtpLoading}>
+            {emailOtpLoading ? <CircularProgress size={20} /> : 'Verify'}
           </Button>
         </DialogActions>
       </Dialog>

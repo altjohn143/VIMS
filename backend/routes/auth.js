@@ -11,6 +11,7 @@ const fs = require('fs');
 const Joi = require('joi');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const EmailOtp = require('../models/EmailOtp');
 const Lot = require('../models/Lot');
 const IdentityVerification = require('../models/IdentityVerification');
 const { protect } = require('../middleware/auth');
@@ -57,6 +58,93 @@ const forgotPasswordLimiter = rateLimit({
 });
 
 const hashResetToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 10);
+const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
+const OTP_FROM_EMAIL = process.env.RESEND_FROM_EMAIL ||
+  'VIMS System <noreply@casimiro-westville-homes-vims.online>';
+const hashOtp = (email, purpose, code) =>
+  crypto.createHmac('sha256', process.env.OTP_HASH_SECRET || process.env.JWT_SECRET)
+    .update(`${email}:${purpose}:${code}`)
+    .digest('hex');
+const createOtpGrant = (email, purpose, userId = null) => jwt.sign(
+  { email, purpose, userId, type: 'email_otp_grant' },
+  process.env.JWT_SECRET,
+  { expiresIn: '10m', issuer: 'vims-backend', audience: 'vims-frontend' }
+);
+const verifyOtpGrant = (token, email, purpose, userId = null) => {
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET, {
+      issuer: 'vims-backend',
+      audience: 'vims-frontend'
+    });
+    return payload.type === 'email_otp_grant' && payload.purpose === purpose &&
+      payload.email === email && (!userId || String(payload.userId) === String(userId));
+  } catch (_) {
+    return false;
+  }
+};
+
+const sendOtp = async ({ email, purpose, firstName = 'Resident' }) => {
+  const code = crypto.randomInt(100000, 1000000).toString();
+  await EmailOtp.findOneAndUpdate(
+    { email, purpose },
+    {
+      codeHash: hashOtp(email, purpose, code),
+      attempts: 0,
+      expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000)
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+  const purposeText = {
+    registration: 'verify your email address',
+    password_reset: 'reset your password',
+    password_change: 'change your password'
+  }[purpose];
+  try {
+    const result = await resend.emails.send({
+      from: OTP_FROM_EMAIL,
+      to: email,
+      subject: `Your VIMS verification code: ${code}`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1e293b">
+        <h2 style="color:#2e6b2e">VIMS Email Verification</h2>
+        <p>Hello ${firstName},</p><p>Use this code to ${purposeText}:</p>
+        <div style="font-size:32px;font-weight:700;letter-spacing:8px;padding:18px;background:#f1f5f9;border-radius:10px;text-align:center">${code}</div>
+        <p>This code expires in ${OTP_EXPIRY_MINUTES} minutes and can only be used once.</p>
+        <p>If you did not request this code, you can safely ignore this email.</p></div>`
+    });
+    if (result?.error) throw new Error(result.error.message || 'Resend rejected the email');
+  } catch (error) {
+    await EmailOtp.deleteOne({ email, purpose });
+    throw error;
+  }
+};
+
+const verifyOtp = async ({ email, purpose, code }) => {
+  const record = await EmailOtp.findOne({ email, purpose }).select('+codeHash');
+  if (!record || record.expiresAt <= new Date()) return { valid: false, error: 'Invalid or expired code' };
+  if (record.attempts >= OTP_MAX_ATTEMPTS) {
+    await EmailOtp.deleteOne({ _id: record._id });
+    return { valid: false, error: 'Too many incorrect attempts. Request a new code.' };
+  }
+  const suppliedHash = hashOtp(email, purpose, String(code));
+  const matches = suppliedHash.length === record.codeHash.length &&
+    crypto.timingSafeEqual(Buffer.from(suppliedHash), Buffer.from(record.codeHash));
+  if (!matches) {
+    record.attempts += 1;
+    await record.save();
+    return { valid: false, error: 'Invalid or expired code' };
+  }
+  await EmailOtp.deleteOne({ _id: record._id });
+  return { valid: true };
+};
+
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many OTP requests. Please try again in 15 minutes.' }
+});
 
 const profilePhotoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -198,6 +286,32 @@ const getFallbackLots = async () => {
   return lots;
 };
 
+router.post('/registration-otp/request', otpLimiter, async (req, res) => {
+  try {
+    const { error, value: email } = emailSchema.validate(req.body?.email);
+    if (error) return res.status(400).json({ success: false, error: 'Invalid email address' });
+    if (await User.exists({ email })) {
+      return res.status(409).json({ success: false, error: 'An account already uses this email' });
+    }
+    await sendOtp({ email, purpose: 'registration', firstName: req.body?.firstName || 'Resident' });
+    return res.json({ success: true, message: 'Verification code sent to your email.' });
+  } catch (error) {
+    console.error('Registration OTP send error:', error);
+    return res.status(502).json({ success: false, error: 'Unable to send verification email' });
+  }
+});
+
+router.post('/registration-otp/verify', async (req, res) => {
+  const { error, value: email } = emailSchema.validate(req.body?.email);
+  const code = String(req.body?.code || '');
+  if (error || !/^\d{6}$/.test(code)) {
+    return res.status(400).json({ success: false, error: 'Enter a valid six-digit code' });
+  }
+  const result = await verifyOtp({ email, purpose: 'registration', code });
+  if (!result.valid) return res.status(400).json({ success: false, error: result.error });
+  return res.json({ success: true, verificationToken: createOtpGrant(email, 'registration') });
+});
+
 // Check availability route - SECURITY: Fixed NoSQL injection
 router.post('/check-availability', async (req, res) => {
   try {
@@ -327,8 +441,20 @@ router.post('/register', registerUpload.fields([
       });
     }
 
+    const normalizedRegistrationEmail = String(email).trim().toLowerCase();
+    if (!verifyOtpGrant(
+      req.body.emailVerificationToken,
+      normalizedRegistrationEmail,
+      'registration'
+    )) {
+      return res.status(403).json({
+        success: false,
+        error: 'Please verify your email address before registering'
+      });
+    }
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedRegistrationEmail });
     if (existingUser) {
       console.log('User already exists:', email);
       return res.status(400).json({
@@ -367,7 +493,7 @@ router.post('/register', registerUpload.fields([
       ...(typeof dateOfBirth === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth.trim())
         ? { dateOfBirth: dateOfBirth.trim() }
         : {}),
-      email: email.toLowerCase(),
+      email: normalizedRegistrationEmail,
       phone,
       password,
       role: userRole,
@@ -677,7 +803,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 // Change password - SECURITY: Enforce strong password policy
 router.put('/change-password', protect, async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword, otpVerificationToken } = req.body;
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
@@ -702,6 +828,13 @@ router.put('/change-password', protect, async (req, res) => {
       return res.status(404).json({
         success: false,
         error: 'User not found'
+      });
+    }
+
+    if (!verifyOtpGrant(otpVerificationToken, user.email, 'password_change', user._id)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Email OTP verification is required'
       });
     }
 
@@ -761,6 +894,35 @@ router.put('/change-password', protect, async (req, res) => {
       error: 'Failed to change password'
     });
   }
+});
+
+router.post('/change-password-otp/request', protect, otpLimiter, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user || !req.body?.currentPassword ||
+        !(await user.comparePassword(req.body.currentPassword))) {
+      return res.status(400).json({ success: false, error: 'Current password is incorrect' });
+    }
+    await sendOtp({ email: user.email, purpose: 'password_change', firstName: user.firstName });
+    return res.json({ success: true, message: 'Verification code sent to your email.' });
+  } catch (error) {
+    console.error('Change password OTP send error:', error);
+    return res.status(502).json({ success: false, error: 'Unable to send verification email' });
+  }
+});
+
+router.post('/change-password-otp/verify', protect, async (req, res) => {
+  const user = await User.findById(req.user.id);
+  const code = String(req.body?.code || '');
+  if (!user || !/^\d{6}$/.test(code)) {
+    return res.status(400).json({ success: false, error: 'Enter a valid six-digit code' });
+  }
+  const result = await verifyOtp({ email: user.email, purpose: 'password_change', code });
+  if (!result.valid) return res.status(400).json({ success: false, error: result.error });
+  return res.json({
+    success: true,
+    verificationToken: createOtpGrant(user.email, 'password_change', user._id)
+  });
 });
 
 // Get current user
@@ -832,57 +994,25 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
       console.log('Password reset requested for unregistered email');
       return res.json({
         success: true,
-        message: 'If your email is registered, you will receive a password reset link.'
+        message: 'If your email is registered, you will receive a verification code.'
       });
     }
     
     console.log('Password reset requested for registered user');
-    
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenHash = hashResetToken(resetToken);
-    const resetTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    
-    // Save only the token hash. The raw token is sent once by email.
-    user.resetPasswordToken = resetTokenHash;
-    user.resetPasswordExpires = resetTokenExpiry;
-    await user.save();
-    
-    console.log('Reset token generated and saved');
-    
-    // Send email
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-    
+
     try {
-      console.log('Attempting to send password reset email via Resend');
-      await resend.emails.send({
-        //from: 'VIMS System <noreply@vims-system.com>',
-        from: 'VIMS System <noreply@casimiro-westville-homes-vims.online>',
-        to: user.email,
-        subject: 'Password Reset Request',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Password Reset Request</h2>
-            <p>Hello ${user.firstName},</p>
-            <p>You requested a password reset for your VIMS account.</p>
-            <p>Click the link below to reset your password:</p>
-            <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0;">Reset Password</a>
-            <p>This link will expire in 10 minutes.</p>
-            <p>If you didn't request this, please ignore this email.</p>
-            <p>Best regards,<br>VIMS Team</p>
-          </div>
-        `
+      await sendOtp({
+        email: user.email,
+        purpose: 'password_reset',
+        firstName: user.firstName
       });
-      
-      console.log('Password reset email sent successfully');
     } catch (emailError) {
-      console.error('Failed to send reset email:', emailError);
-      // Don't fail the request, just log it
+      console.error('Failed to send password reset OTP:', emailError);
     }
-    
-    res.json({
+
+    return res.json({
       success: true,
-      message: 'If your email is registered, you will receive a password reset link.'
+      message: 'If your email is registered, you will receive a verification code.'
     });
     
   } catch (error) {
@@ -892,6 +1022,23 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
       error: 'Failed to process request'
     });
   }
+});
+
+router.post('/forgot-password/verify-otp', async (req, res) => {
+  const { error, value: email } = emailSchema.validate(req.body?.email);
+  const code = String(req.body?.code || '');
+  if (error || !/^\d{6}$/.test(code)) {
+    return res.status(400).json({ success: false, error: 'Enter a valid six-digit code' });
+  }
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).json({ success: false, error: 'Invalid or expired code' });
+  const result = await verifyOtp({ email, purpose: 'password_reset', code });
+  if (!result.valid) return res.status(400).json({ success: false, error: result.error });
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  user.resetPasswordToken = hashResetToken(resetToken);
+  user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+  return res.json({ success: true, resetToken });
 });
 
 // Reset password - SECURITY: Enforce strong password policy and improve token security

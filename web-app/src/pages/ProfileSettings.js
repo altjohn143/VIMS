@@ -184,6 +184,8 @@ const ProfileSettings = () => {
   const [passwordErrors, setPasswordErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [passwordOtp, setPasswordOtp] = useState('');
+  const [passwordOtpSent, setPasswordOtpSent] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [moveOutDialogOpen, setMoveOutDialogOpen] = useState(false);
   const [moveOutReason, setMoveOutReason] = useState('');
@@ -622,10 +624,10 @@ const ProfileSettings = () => {
 
     if (!passwordData.newPassword) {
       newErrors.newPassword = 'New password is required';
-    } else if (passwordData.newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordData.newPassword)) {
-      newErrors.newPassword = 'Password must contain uppercase, lowercase, and numbers';
+    } else if (passwordData.newPassword.length < 12) {
+      newErrors.newPassword = 'Password must be at least 12 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(passwordData.newPassword)) {
+      newErrors.newPassword = 'Password must contain uppercase, lowercase, number, and special character';
     }
 
     if (!passwordData.confirmPassword) {
@@ -649,9 +651,27 @@ const ProfileSettings = () => {
 
     setSaving(true);
     try {
+      if (!passwordOtpSent) {
+        await axios.post('/api/auth/change-password-otp/request', {
+          currentPassword: passwordData.currentPassword
+        });
+        setPasswordOtpSent(true);
+        toast.success('A verification code was sent to your email.');
+        return;
+      }
+
+      if (!/^\d{6}$/.test(passwordOtp)) {
+        toast.error('Enter the six-digit code sent to your email.');
+        return;
+      }
+
+      const verification = await axios.post('/api/auth/change-password-otp/verify', {
+        code: passwordOtp
+      });
       const response = await axios.put('/api/auth/change-password', {
         currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
+        newPassword: passwordData.newPassword,
+        otpVerificationToken: verification.data.verificationToken
       });
 
       if (response.data.success) {
@@ -686,6 +706,8 @@ const ProfileSettings = () => {
     });
     setPasswordStrength(0);
     setPasswordErrors({});
+    setPasswordOtp('');
+    setPasswordOtpSent(false);
   };
 
   const handleBack = () => {
@@ -2056,6 +2078,21 @@ const ProfileSettings = () => {
                   }}
                 />
               </Box>
+
+              {passwordOtpSent && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
+                    Email Verification Code
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    value={passwordOtp}
+                    onChange={(event) => setPasswordOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit code"
+                    inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+                  />
+                </Box>
+              )}
             </form>
           </DialogContent>
           <DialogActions sx={{ p: 3, pt: 0, borderTop: `1px solid ${themeColors.border}` }}>
@@ -2087,7 +2124,7 @@ const ProfileSettings = () => {
                 fontWeight: 600
               }}
             >
-              {saving ? 'Changing...' : 'Change Password'}
+              {saving ? 'Processing...' : passwordOtpSent ? 'Verify & Change Password' : 'Send Verification Code'}
             </Button>
           </DialogActions>
         </Dialog>

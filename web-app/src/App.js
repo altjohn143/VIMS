@@ -1,5 +1,5 @@
 // src/App.js - Complete updated file with all routes
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider, createTheme } from '@mui/material';
@@ -8,15 +8,17 @@ import './config/axios';
 
 import Login from './pages/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ChunkLoadErrorBoundary from './components/ChunkLoadErrorBoundary';
+import { clearChunkReloadMarker, lazyWithRetry } from './utils/lazyWithRetry';
 
-const Register = lazy(() => import('./pages/Register'));
-const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const PublicLotMap = lazy(() => import('./pages/PublicLotMap'));
-const PendingApproval = lazy(() => import('./pages/PendingApproval'));
-const PaymentRedirect = lazy(() => import('./pages/PaymentRedirect'));
-const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
-const PaymentCancelled = lazy(() => import('./pages/PaymentCancelled'));
+const Register = lazyWithRetry(() => import('./pages/Register'));
+const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
+const PublicLotMap = lazyWithRetry(() => import('./pages/PublicLotMap'));
+const PendingApproval = lazyWithRetry(() => import('./pages/PendingApproval'));
+const PaymentRedirect = lazyWithRetry(() => import('./pages/PaymentRedirect'));
+const PaymentSuccess = lazyWithRetry(() => import('./pages/PaymentSuccess'));
+const PaymentCancelled = lazyWithRetry(() => import('./pages/PaymentCancelled'));
 
 const theme = createTheme({
   palette: {
@@ -50,10 +52,16 @@ const SecurityRoute = ({ children }) => <ProtectedRoute requiredRole="security">
 const ResidentRoute = ({ children }) => <ProtectedRoute requiredRole="resident">{children}</ProtectedRoute>;
 
 function App() {
+  useEffect(() => {
+    const timer = window.setTimeout(clearChunkReloadMarker, 3000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
-    <ThemeProvider theme={theme}>
-      <AuthProvider>
-        <Router>
+    <ChunkLoadErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <AuthProvider>
+          <Router>
           <Toaster position="top-right" />
           <Suspense fallback={
             <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
@@ -122,9 +130,10 @@ function App() {
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
           </Suspense>
-        </Router>
-      </AuthProvider>
-    </ThemeProvider>
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
+    </ChunkLoadErrorBoundary>
   );
 }
 

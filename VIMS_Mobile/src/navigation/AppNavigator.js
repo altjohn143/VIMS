@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../context/AuthContext';
-import { themeColors } from '../utils/theme';
+import { themeColors, shadows } from '../utils/theme';
 
 // Auth Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -84,20 +84,26 @@ const ResidentTabs = () => {
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.textSecondary,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
+          fontSize: 10,
+          fontWeight: '800',
+          marginTop: 2,
         },
         tabBarItemStyle: {
-          paddingVertical: 6,
+          paddingVertical: 5,
+          borderRadius: 12,
+          marginHorizontal: 2,
         },
         tabBarStyle: {
           backgroundColor: themeColors.cardBackground,
           borderTopWidth: 1,
           borderTopColor: themeColors.border,
-          paddingBottom: 10,
-          paddingTop: 10,
-          height: 72,
+          paddingBottom: 9,
+          paddingTop: 8,
+          height: 68,
+          ...shadows.medium,
         },
+        tabBarActiveBackgroundColor: themeColors.primaryWash,
+        tabBarHideOnKeyboard: true,
         headerShown: false,
       })}
     >
@@ -137,20 +143,26 @@ const AdminTabs = () => {
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.textSecondary,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
+          fontSize: 10,
+          fontWeight: '800',
+          marginTop: 2,
         },
         tabBarItemStyle: {
-          paddingVertical: 6,
+          paddingVertical: 5,
+          borderRadius: 12,
+          marginHorizontal: 2,
         },
         tabBarStyle: {
           backgroundColor: themeColors.cardBackground,
           borderTopWidth: 1,
           borderTopColor: themeColors.border,
-          paddingBottom: 10,
-          paddingTop: 10,
-          height: 72,
+          paddingBottom: 9,
+          paddingTop: 8,
+          height: 68,
+          ...shadows.medium,
         },
+        tabBarActiveBackgroundColor: themeColors.primaryWash,
+        tabBarHideOnKeyboard: true,
         headerShown: false,
       })}
     >
@@ -188,20 +200,26 @@ const SecurityTabs = () => {
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.textSecondary,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
+          fontSize: 10,
+          fontWeight: '800',
+          marginTop: 2,
         },
         tabBarItemStyle: {
-          paddingVertical: 6,
+          paddingVertical: 5,
+          borderRadius: 12,
+          marginHorizontal: 2,
         },
         tabBarStyle: {
           backgroundColor: themeColors.cardBackground,
           borderTopWidth: 1,
           borderTopColor: themeColors.border,
-          paddingBottom: 10,
-          paddingTop: 10,
-          height: 72,
+          paddingBottom: 9,
+          paddingTop: 8,
+          height: 68,
+          ...shadows.medium,
         },
+        tabBarActiveBackgroundColor: themeColors.primaryWash,
+        tabBarHideOnKeyboard: true,
         headerShown: false,
       })}
     >

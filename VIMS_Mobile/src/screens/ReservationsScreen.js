@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { themeColors, radii, shadows } from '../utils/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import api from '../utils/api';
@@ -368,7 +369,7 @@ const ReservationsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#166534" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Reservations</Text>
         <TouchableOpacity
@@ -859,13 +860,13 @@ const ReservationsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.background,
   },
   loadingText: {
     marginTop: 16,
@@ -877,11 +878,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    paddingTop: 56,
+    paddingBottom: 18,
+    backgroundColor: themeColors.primary,
   },
   backButton: {
     padding: 8,
@@ -889,16 +888,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: themeColors.white,
+    fontWeight: '800',
   },
   addButton: {
-    backgroundColor: '#166534',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: radii.round,
     padding: 8,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -907,15 +907,11 @@ const styles = StyleSheet.create({
   },
   coloredStatCard: {
     flex: 1,
-    borderRadius: 10,
-    padding: 8,
+    borderRadius: radii.md,
+    padding: 10,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    ...shadows.small,
   },
   statCardHighlight: {
     position: 'absolute',

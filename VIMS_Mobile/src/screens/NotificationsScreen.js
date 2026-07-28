@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: themeColors.primary,
-    paddingTop: 60,
+    paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   },
   backButton: { padding: 8 },
   headerTitleWrap: { flex: 1, minWidth: 0 },
-  headerTitle: { color: 'white', fontSize: 20, fontWeight: '700' },
+  headerTitle: { color: 'white', fontSize: 21, fontWeight: '800' },
   headerSubtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerActionBtn: {

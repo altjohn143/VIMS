@@ -928,8 +928,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 56,
+    paddingBottom: 18,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -949,7 +949,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: 'white',
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   refreshButton: {
     padding: 8,
@@ -988,12 +988,12 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
+    backgroundColor: themeColors.surfaceMuted,
+    borderRadius: 14,
     paddingHorizontal: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: themeColors.border,
+    borderColor: themeColors.borderStrong,
   },
   searchInput: {
     flex: 1,

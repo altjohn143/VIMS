@@ -361,8 +361,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 56,
+    paddingBottom: 18,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: 'white',
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   refreshButton: {
     padding: 8,
@@ -389,9 +389,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     margin: 16,
     padding: 20,
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: themeColors.border,
+    ...shadows.small,
   },
   statsLabel: {
     fontSize: 14,
@@ -409,11 +410,12 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: themeColors.border,
+    ...shadows.small,
   },
   cardHeader: {
     flexDirection: 'row',

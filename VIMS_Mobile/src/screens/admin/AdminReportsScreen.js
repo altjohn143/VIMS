@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: themeColors.background },
   header: {
     backgroundColor: themeColors.primary,
-    paddingTop: 60,
+    paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   backButton: { padding: 8 },
-  headerTitle: { color: 'white', fontSize: 20, fontWeight: '700', flex: 1, textAlign: 'center' },
+  headerTitle: { color: 'white', fontSize: 21, fontWeight: '800', flex: 1, textAlign: 'center' },
   content: { padding: 16, paddingBottom: 28 },
   title: { fontSize: 20, fontWeight: '900', color: themeColors.textPrimary },
   subtitle: { marginTop: 6, fontSize: 13, color: themeColors.textSecondary, fontWeight: '600', lineHeight: 18 },

@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     backgroundColor: themeColors.primary,
-    paddingTop: 60,
+    paddingTop: 56,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   backButton: { padding: 8 },
-  headerTitle: { color: 'white', fontSize: 20, fontWeight: '700', flex: 1, textAlign: 'center' },
+  headerTitle: { color: 'white', fontSize: 21, fontWeight: '800', flex: 1, textAlign: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerIconButton: { padding: 8 },
   listContainer: { padding: 16, paddingBottom: 24 },

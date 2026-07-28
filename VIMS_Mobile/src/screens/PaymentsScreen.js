@@ -605,8 +605,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 56,
+    paddingBottom: 18,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: 'white',
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   loadingContainer: {
     flex: 1,
@@ -632,19 +632,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: themeColors.background,
   },
   coloredStatCard: {
     flex: 1,
-    borderRadius: 10,
-    padding: 8,
+    borderRadius: 14,
+    padding: 10,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    ...shadows.small,
   },
   statCardHighlight: {
     position: 'absolute',

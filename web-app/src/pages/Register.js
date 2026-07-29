@@ -25,7 +25,11 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Stepper,
+  Step,
+  StepLabel,
+  LinearProgress
 } from '@mui/material';
 import {
   Visibility,
@@ -92,6 +96,15 @@ const ID_DOCUMENT_TYPE_OPTIONS = [
   { value: 'pnp', label: 'PNP ID' }
 ];
 
+const REGISTRATION_STEPS = [
+  { key: 'info', label: 'Info' },
+  { key: 'email', label: 'Email' },
+  { key: 'lot', label: 'Select Lot' },
+  { key: 'vehicles', label: 'Vehicles' },
+  { key: 'family', label: 'Family' },
+  { key: 'id', label: 'Verify ID' },
+  { key: 'photo', label: 'Add Photo' }
+];
 const Register = () => {
   const themeColors = {
     primary: '#2d5016',
@@ -136,6 +149,7 @@ const Register = () => {
   const [ocrUnavailable, setOcrUnavailable] = useState(false);
   const [ocrIdNumber, setOcrIdNumber] = useState('');
   const [registrationMode, setRegistrationMode] = useState(null);
+  const [manualStep, setManualStep] = useState(0);
   const [ocrDialogOpen, setOcrDialogOpen] = useState(false);
   const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
 
@@ -417,6 +431,56 @@ const Register = () => {
     
     return newErrors;
   };
+  const getStepForErrors = (validationErrors) => {
+    const keys = Object.keys(validationErrors);
+    if (keys.some((key) => ['firstName', 'lastName', 'middleName', 'dateOfBirth'].includes(key))) return 0;
+    if (keys.some((key) => ['email', 'phone', 'password', 'confirmPassword'].includes(key))) return 1;
+    if (keys.includes('selectedLot')) return 2;
+    if (keys.some((key) => key.startsWith('vehicle_'))) return 3;
+    if (keys.some((key) => key.startsWith('family'))) return 4;
+    if (keys.some((key) => ['idNumber', 'frontImage', 'backImage'].includes(key))) return 5;
+    return manualStep;
+  };
+
+  const validateCurrentStep = () => {
+    const validationErrors = validate();
+    const stepKeys = {
+      info: ['firstName', 'lastName', 'middleName', 'dateOfBirth'],
+      email: ['email', 'phone', 'password', 'confirmPassword'],
+      lot: ['selectedLot'],
+      vehicles: Object.keys(validationErrors).filter((key) => key.startsWith('vehicle_')),
+      family: Object.keys(validationErrors).filter((key) => key.startsWith('family')),
+      id: ['idNumber', 'frontImage', 'backImage'],
+      photo: []
+    };
+    const activeKey = REGISTRATION_STEPS[manualStep].key;
+    const allowedKeys = stepKeys[activeKey] || [];
+    const stepErrors = Object.fromEntries(
+      Object.entries(validationErrors).filter(([key]) => allowedKeys.includes(key))
+    );
+
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
+      return false;
+    }
+
+    setErrors((prev) => {
+      const next = { ...prev };
+      allowedKeys.forEach((key) => delete next[key]);
+      delete next.submit;
+      return next;
+    });
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (!validateCurrentStep()) return;
+    setManualStep((prev) => Math.min(prev + 1, REGISTRATION_STEPS.length - 1));
+  };
+
+  const handlePreviousStep = () => {
+    setManualStep((prev) => Math.max(prev - 1, 0));
+  };
 
   // Profile photo upload handler
   const handleProfilePhotoUpload = async (event) => {
@@ -495,6 +559,7 @@ const Register = () => {
     }
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      setManualStep(getStepForErrors(validationErrors));
       return;
     }
 
@@ -730,6 +795,10 @@ const Register = () => {
 
   // Get selected country display
   const selectedCountry = COUNTRY_CODES.find(c => c.code === formData.countryCode) || COUNTRY_CODES[0];
+  const activeStep = REGISTRATION_STEPS[manualStep];
+  const currentStepKey = activeStep.key;
+  const stepProgress = ((manualStep + 1) / REGISTRATION_STEPS.length) * 100;
+  const isLastStep = manualStep === REGISTRATION_STEPS.length - 1;
 
   return (
     <Box
@@ -850,6 +919,7 @@ const Register = () => {
                       variant="contained"
                       onClick={() => {
                         setRegistrationMode('manual');
+                        setManualStep(0);
                         setErrors(prev => ({ ...prev, mode: '' }));
                       }}
                       sx={{ textTransform: 'none', borderRadius: 2 }}
@@ -903,7 +973,7 @@ const Register = () => {
                </Typography>
               <Button
                 variant="text"
-                onClick={() => setRegistrationMode(null)}
+                onClick={() => { setRegistrationMode(null); setManualStep(0); }}
                 sx={{ textTransform: 'none', color: themeColors.primary }}
               >
                 Change registration method
@@ -935,7 +1005,36 @@ const Register = () => {
 
           {registrationMode && (registrationMode !== 'ocr' || ocrStepCompleted) && (
             <Box component="form" onSubmit={handleSubmit}>
+              <Box sx={{ mb: 3 }}>
+                <Stepper activeStep={manualStep} alternativeLabel sx={{ display: { xs: 'none', sm: 'flex' }, mb: 2 }}>
+                  {REGISTRATION_STEPS.map((step) => (
+                    <Step key={step.key}>
+                      <StepLabel>{step.label}</StepLabel>
+                    </Step>
+                  ))}
+                </Stepper>
+                <Box sx={{ display: { xs: 'block', sm: 'none' }, mb: 1.5 }}>
+                  <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+                    Step {manualStep + 1} of {REGISTRATION_STEPS.length}: {activeStep.label}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
+                    Complete this section, then tap Next.
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={stepProgress}
+                  sx={{
+                    height: 8,
+                    borderRadius: 999,
+                    backgroundColor: '#e2e8f0',
+                    '& .MuiLinearProgress-bar': { backgroundColor: themeColors.primary, borderRadius: 999 }
+                  }}
+                />
+              </Box>
               <Grid container spacing={2}>
+              {currentStepKey === 'info' && (
+                <>
               {/* First Name */}
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -1029,6 +1128,11 @@ const Register = () => {
                 </Grid>
               )}
 
+                </>
+              )}
+
+              {currentStepKey === 'email' && (
+                <>
               {/* Email */}
               <Grid item xs={12}>
                 <TextField
@@ -1186,6 +1290,11 @@ const Register = () => {
                 />
               </Grid>
 
+                </>
+              )}
+
+              {currentStepKey === 'lot' && (
+                <>
               {/* Lot Selection Section - Enhanced with Map Button */}
               <Grid item xs={12}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -1302,6 +1411,11 @@ const Register = () => {
                 )}
               </Grid>
 
+                </>
+              )}
+
+              {currentStepKey === 'vehicles' && (
+                <>
               {/* Vehicle Information */}
               <Grid item xs={12}>
                 <Divider sx={{ my: 1.5 }} />
@@ -1440,6 +1554,11 @@ const Register = () => {
                 )}
               </Grid>
 
+                </>
+              )}
+
+              {currentStepKey === 'family' && (
+                <>
               {/* Family Members */}
               <Grid item xs={12}>
                 <Divider sx={{ my: 1.5 }} />
@@ -1522,9 +1641,12 @@ const Register = () => {
                   <Button size="small" onClick={addFamilyMember}>Add Family Member</Button>
                 )}
               </Grid>
+                </>
+              )}
             </Grid>
 
-            <Grid item xs={12}>
+            {currentStepKey === 'id' && (
+              <Grid item xs={12}>
               <Typography variant="h6" sx={{ mt: 1, mb: 1, color: themeColors.textPrimary }}>
                 Valid ID Verification
               </Typography>
@@ -1680,6 +1802,10 @@ const Register = () => {
               )}
             </Grid>
 
+            )}
+
+            {currentStepKey === 'photo' && (
+              <>
             {/* Profile Photo Section */}
             <Grid item xs={12}>
               <Divider sx={{ my: 3 }} />
@@ -1763,26 +1889,71 @@ const Register = () => {
               </Typography>
             </Grid>
 
-            {/* Submit button */}
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              disabled={loading || loadingLots || availableLots.length === 0}
-              sx={{
-                mt: 3,
-                backgroundColor: themeColors.primary,
-                '&:hover': { backgroundColor: themeColors.primaryDark },
-                py: 1.5,
-                borderRadius: 2,
-                fontWeight: 600,
-                fontSize: '1rem',
-                textTransform: 'none',
-                boxShadow: '0 4px 14px rgba(45,80,22,0.4)',
-              }}
-            >
-              {loading ? <CircularProgress size={22} color="inherit" /> : 'Create Account'}
-            </Button>
+              </>
+            )}
+            {/* Step navigation */}
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 3, flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
+              <Button
+                type="button"
+                variant="outlined"
+                disabled={manualStep === 0 || loading}
+                onClick={handlePreviousStep}
+                sx={{
+                  flex: 1,
+                  borderColor: themeColors.primary,
+                  color: themeColors.primary,
+                  py: 1.4,
+                  borderRadius: 2,
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  '&:hover': { backgroundColor: themeColors.primary + '0a' },
+                }}
+              >
+                Back
+              </Button>
+              {!isLastStep ? (
+                <Button
+                  type="button"
+                  fullWidth
+                  variant="contained"
+                  disabled={loading || (currentStepKey === 'lot' && (loadingLots || availableLots.length === 0))}
+                  onClick={handleNextStep}
+                  sx={{
+                    flex: 2,
+                    backgroundColor: themeColors.primary,
+                    '&:hover': { backgroundColor: themeColors.primaryDark },
+                    py: 1.4,
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    textTransform: 'none',
+                    boxShadow: '0 4px 14px rgba(45,80,22,0.32)',
+                  }}
+                >
+                  Next: {REGISTRATION_STEPS[manualStep + 1].label}
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  disabled={loading || loadingLots || availableLots.length === 0}
+                  sx={{
+                    flex: 2,
+                    backgroundColor: themeColors.primary,
+                    '&:hover': { backgroundColor: themeColors.primaryDark },
+                    py: 1.4,
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    textTransform: 'none',
+                    boxShadow: '0 4px 14px rgba(45,80,22,0.4)',
+                  }}
+                >
+                  {loading ? <CircularProgress size={22} color="inherit" /> : 'Create Account'}
+                </Button>
+              )}
+            </Box>
 
             <Divider sx={{ my: 2.5 }}>
               <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
@@ -2014,3 +2185,14 @@ const Register = () => {
 };
 
 export default Register;
+
+
+
+
+
+
+
+
+
+
+

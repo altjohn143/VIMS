@@ -14,7 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { themeColors, shadows } from '../utils/theme';
+import { themeColors, radii, shadows } from '../utils/theme';
 import api from '../utils/api';
 import QRCode from 'react-native-qrcode-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';

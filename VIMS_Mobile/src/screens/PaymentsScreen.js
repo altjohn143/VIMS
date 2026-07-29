@@ -17,7 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import UserDropdownMenu from '../components/UserDropdownMenu';
-import { themeColors, shadows } from '../utils/theme';
+import { themeColors, radii, shadows } from '../utils/theme';
 import api from '../utils/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';

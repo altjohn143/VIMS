@@ -24,12 +24,10 @@ const DockItem = ({ route, descriptor, focused, navigation }) => {
   const icons = iconMap[route.name] || ['ellipse', 'ellipse-outline'];
 
   useEffect(() => {
-    Animated.spring(progress, {
+    Animated.timing(progress, {
       toValue: focused ? 1 : 0,
-      useNativeDriver: false,
-      damping: 18,
-      stiffness: 210,
-      mass: 0.8,
+      duration: 160,
+      useNativeDriver: true,
     }).start();
   }, [focused, progress]);
 
@@ -43,14 +41,7 @@ const DockItem = ({ route, descriptor, focused, navigation }) => {
   };
 
   return (
-    <Animated.View
-      style={[
-        styles.itemWrap,
-        {
-          width: progress.interpolate({ inputRange: [0, 1], outputRange: [46, 102] }),
-        },
-      ]}
-    >
+    <View style={styles.itemWrap}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={focused ? { selected: true } : {}}
@@ -63,26 +54,26 @@ const DockItem = ({ route, descriptor, focused, navigation }) => {
           pressed && styles.itemPressed,
         ]}
       >
-        <View style={[styles.iconBubble, focused && styles.iconBubbleActive]}>
-          <Ionicons
-            name={focused ? icons[0] : icons[1]}
-            size={focused ? 20 : 22}
-            color={focused ? themeColors.primaryDeep : themeColors.navMuted}
-          />
-        </View>
         <Animated.View
           style={[
-            styles.labelClip,
+            styles.iconBubble,
+            focused && styles.iconBubbleActive,
             {
-              width: progress.interpolate({ inputRange: [0, 1], outputRange: [0, 58] }),
-              opacity: progress,
+              transform: [{
+                scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }),
+              }],
             },
           ]}
         >
-          <Text numberOfLines={1} style={styles.label}>{label}</Text>
+          <Ionicons
+            name={focused ? icons[0] : icons[1]}
+            size={21}
+            color={focused ? themeColors.primaryDeep : themeColors.navMuted}
+          />
         </Animated.View>
+        <Text numberOfLines={1} style={[styles.label, focused && styles.labelActive]}>{label}</Text>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 };
 
@@ -112,7 +103,7 @@ const styles = StyleSheet.create({
     paddingTop: 7,
   },
   dock: {
-    minHeight: 64,
+    minHeight: 68,
     paddingHorizontal: 7,
     paddingVertical: 8,
     borderRadius: radii.xl,
@@ -124,31 +115,35 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.08)',
     ...shadows.floating,
   },
-  itemWrap: { height: 48, overflow: 'hidden' },
+  itemWrap: { flex: 1, height: 52 },
   item: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radii.lg,
-    paddingHorizontal: 5,
+    borderRadius: 16,
+    paddingHorizontal: 2,
+    paddingVertical: 3,
   },
-  itemActive: { backgroundColor: themeColors.navActive, justifyContent: 'flex-start' },
+  itemActive: { backgroundColor: themeColors.navActive },
   itemPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
   iconBubble: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 31,
+    height: 30,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconBubbleActive: { backgroundColor: themeColors.accent },
-  labelClip: { overflow: 'hidden', marginLeft: 3 },
   label: {
+    color: themeColors.navMuted,
+    fontSize: 9,
+    fontWeight: '700',
+    marginTop: 1,
+    maxWidth: '100%',
+  },
+  labelActive: {
     color: themeColors.white,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: -0.1,
+    fontWeight: '900',
   },
 });
 

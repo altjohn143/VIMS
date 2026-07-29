@@ -371,7 +371,11 @@ const ReservationsScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Reservations</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerEyebrow}>PLAN YOUR TIME</Text>
+          <Text style={styles.headerTitle}>My Reservations</Text>
+          <Text style={styles.headerSubtitle}>Venues and community equipment</Text>
+        </View>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
@@ -881,17 +885,20 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 24,
     backgroundColor: themeColors.primaryDeep,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 48,
   },
   backButton: {
     padding: 8,
   },
+  headerTitleWrap: { flex: 1, marginHorizontal: 8 },
+  headerEyebrow: { color: themeColors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
   headerTitle: {
-    fontSize: 23,
+    fontSize: 22,
     color: themeColors.white,
-    fontWeight: '800',
+    fontWeight: '900',
   },
+  headerSubtitle: { color: 'rgba(255,255,255,0.68)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   addButton: {
     backgroundColor: themeColors.accent,
     borderRadius: radii.round,

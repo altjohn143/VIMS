@@ -222,7 +222,11 @@ const PaymentsScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payments & Dues</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerEyebrow}>MY WALLET</Text>
+          <Text style={styles.headerTitle}>Payments & Dues</Text>
+          <Text style={styles.headerSubtitle}>Balances, receipts and payment history</Text>
+        </View>
         <UserDropdownMenu navigation={navigation} />
       </View>
 
@@ -604,24 +608,27 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   header: {
-    backgroundColor: themeColors.primaryDeep,
+    backgroundColor: themeColors.primaryDark,
     paddingTop: 56,
     paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 46,
   },
   backButton: {
     padding: 8,
   },
+  headerTitleWrap: { flex: 1, marginHorizontal: 8 },
+  headerEyebrow: { color: themeColors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
   headerTitle: {
     color: 'white',
-    fontSize: 23,
-    fontWeight: '800',
+    fontSize: 21,
+    fontWeight: '900',
   },
+  headerSubtitle: { color: 'rgba(255,255,255,0.68)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

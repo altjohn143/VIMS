@@ -460,7 +460,11 @@ const VisitorManagementScreen = ({ navigation }) => {
   <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
     <Ionicons name="arrow-back" size={24} color="white" />
   </TouchableOpacity>
-  <Text style={styles.headerTitle}>{historyMode ? 'Visitor History' : 'Visitor Management'}</Text>
+  <View style={styles.headerTitleWrap}>
+    <Text style={styles.headerEyebrow}>GUEST ACCESS</Text>
+    <Text style={styles.headerTitle}>{historyMode ? 'Visitor History' : 'Visitor Management'}</Text>
+    <Text style={styles.headerSubtitle}>{historyMode ? 'Review previous community entries' : 'Invite, approve and track visitors'}</Text>
+  </View>
   <View style={styles.headerRight}>
     <TouchableOpacity onPress={() => setHistoryMode(!historyMode)} style={styles.historyButton}>
       <Ionicons name={historyMode ? 'people' : 'time'} size={24} color="white" />
@@ -878,15 +882,15 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   header: {
-    backgroundColor: themeColors.primaryDeep,
+    backgroundColor: themeColors.primary,
     paddingTop: 56,
     paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 48,
+    borderBottomRightRadius: 18,
   },
   headerRight: {
   flexDirection: 'row',
@@ -895,16 +899,20 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  headerTitleWrap: { flex: 1, marginHorizontal: 6 },
+  headerEyebrow: { color: themeColors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
   headerTitle: {
     color: 'white',
-    fontSize: 23,
-    fontWeight: '800',
+    fontSize: 21,
+    fontWeight: '900',
   },
+  headerSubtitle: { color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   historyButton: {
     padding: 8,
   },
   statsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -912,7 +920,8 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   coloredStatCard: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '46%',
     borderRadius: radii.lg,
     padding: 13,
     position: 'relative',

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { themeColors, shadows } from '../utils/theme';
+import { themeColors, radii, shadows } from '../utils/theme';
 import api from '../utils/api';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../components/UserDropdownMenu';
@@ -322,7 +322,11 @@ const ServiceRequestsScreen = ({ navigation }) => {
   <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
     <Ionicons name="arrow-back" size={24} color="white" />
   </TouchableOpacity>
-  <Text style={styles.headerTitle}>Service Requests</Text>
+  <View style={styles.headerTitleWrap}>
+    <Text style={styles.headerEyebrow}>COMMUNITY SUPPORT</Text>
+    <Text style={styles.headerTitle}>Service Requests</Text>
+    <Text style={styles.headerSubtitle}>Report, follow up and rate completed work</Text>
+  </View>
   <View style={styles.headerRight}>
     <TouchableOpacity onPress={fetchRequests} style={styles.refreshButton}>
       <Ionicons name="refresh" size={24} color="white" />
@@ -332,25 +336,25 @@ const ServiceRequestsScreen = ({ navigation }) => {
 </View>
 
       <View style={styles.statsGrid}>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
+        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="build-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.total}</Text>
           <Text style={styles.coloredStatLabel}>Total</Text>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
+        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.pending}</Text>
           <Text style={styles.coloredStatLabel}>Pending</Text>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#0284c7' }]}>
+        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="cog-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.inProgress}</Text>
           <Text style={styles.coloredStatLabel}>In Progress</Text>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.completed}</Text>
@@ -709,13 +713,15 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   header: {
-    backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    backgroundColor: themeColors.nav,
+    paddingTop: 56,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
   },
   headerRight: {
   flexDirection: 'row',
@@ -724,33 +730,38 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  headerTitleWrap: { flex: 1, marginHorizontal: 6 },
+  headerEyebrow: { color: '#fbbf24', fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
   headerTitle: {
     color: 'white',
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 21,
+    fontWeight: '900',
   },
+  headerSubtitle: { color: 'rgba(255,255,255,0.66)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   refreshButton: {
     padding: 8,
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: 10,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: themeColors.nav,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 22,
   },
   coloredStatCard: {
-    flex: 1,
-    borderRadius: 10,
-    padding: 8,
+    flexGrow: 1,
+    flexBasis: '46%',
+    borderRadius: radii.lg,
+    padding: 13,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   statCardHighlight: {
     position: 'absolute',
@@ -780,14 +791,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tabContainer: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: 'transparent',
   },
   scrollableTabs: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   tab: {
     flexDirection: 'row',
@@ -795,8 +804,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: themeColors.background,
+    borderRadius: radii.md,
+    backgroundColor: themeColors.cardBackground,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   activeTab: {
     backgroundColor: themeColors.primary + '15',
@@ -833,11 +844,12 @@ const styles = StyleSheet.create({
   },
   requestCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radii.lg,
+    padding: 18,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: themeColors.border,
+    ...shadows.small,
   },
   requestHeader: {
     flexDirection: 'row',
@@ -973,9 +985,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    margin: 16,
+    borderRadius: 20,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyTitle: {
     fontSize: 18,

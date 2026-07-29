@@ -3,22 +3,26 @@
     "name": "VIMS Mobile",
     "slug": "vims-mobile-7euufkub27o94cpv6tbz",
     "version": "1.0.0",
-    "jsEngine": "jsc",
+    "icon": "./assets/app-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#2224be"
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f4d28"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.vims"
+      "bundleIdentifier": "com.yourcompany.vims",
+      "icon": "./assets/app-icon.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#2224be"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f4d28"
       },
       "package": "com.yourcompany.vims",
       "permissions": [

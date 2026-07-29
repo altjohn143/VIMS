@@ -357,64 +357,45 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-<View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="white" />
-  </TouchableOpacity>
-  <Text style={styles.headerTitle}>User Management</Text>
-  <View style={styles.headerRight}>
-    <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.createButton}>
-      <Ionicons name="add" size={24} color="white" />
-    </TouchableOpacity>
-    <TouchableOpacity onPress={fetchUsers} style={styles.refreshButton}>
-      <Ionicons name="refresh" size={24} color="white" />
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={() => navigation.navigate('ArchivedUsers')}
-      style={styles.archivedButton}
-    >
-      <Ionicons name="archive" size={24} color="white" />
-    </TouchableOpacity>
-    <UserDropdownMenu navigation={navigation} />
-  </View>
-</View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.total}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+      <View style={styles.directoryHeader}>
+        <View style={styles.directoryTopRow}>
+          <View>
+            <Text style={styles.directoryEyebrow}>ADMIN DIRECTORY</Text>
+            <Text style={styles.directoryTitle}>User Management</Text>
+            <Text style={styles.directorySubtitle}>{stats.total} community accounts</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.residents}</Text>
-            <Text style={styles.statLabel}>Residents</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.admin}</Text>
-            <Text style={styles.statLabel}>Admins</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.security}</Text>
-            <Text style={styles.statLabel}>Security</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.success }]}>{stats.approved}</Text>
-            <Text style={styles.statLabel}>Approved</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.warning }]}>{stats.pending}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.success }]}>{stats.active}</Text>
-            <Text style={styles.statLabel}>Active</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.error }]}>{stats.inactive}</Text>
-            <Text style={styles.statLabel}>Inactive</Text>
-          </View>
+          <UserDropdownMenu navigation={navigation} />
         </View>
-      </ScrollView>
+        <View style={styles.directoryActions}>
+          <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.directoryPrimaryAction}>
+            <Ionicons name="person-add-outline" size={18} color="white" />
+            <Text style={styles.directoryPrimaryText}>Add staff</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={fetchUsers} style={styles.directoryIconAction}>
+            <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('ArchivedUsers')} style={styles.directoryIconAction}>
+            <Ionicons name="archive-outline" size={20} color={themeColors.primaryDeep} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.directorySummary}>
+        <View style={styles.directorySummaryItem}>
+          <Text style={styles.directorySummaryValue}>{stats.residents}</Text>
+          <Text style={styles.directorySummaryLabel}>Residents</Text>
+        </View>
+        <View style={styles.directorySummaryDivider} />
+        <View style={styles.directorySummaryItem}>
+          <Text style={styles.directorySummaryValue}>{stats.admin + stats.security}</Text>
+          <Text style={styles.directorySummaryLabel}>Staff</Text>
+        </View>
+        <View style={styles.directorySummaryDivider} />
+        <View style={styles.directorySummaryItem}>
+          <Text style={[styles.directorySummaryValue, { color: themeColors.warning }]}>{stats.pending}</Text>
+          <Text style={styles.directorySummaryLabel}>Pending</Text>
+        </View>
+      </View>
 
       <View style={styles.filterContainer}>
         <View style={styles.searchBox}>
@@ -926,14 +907,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
+  directoryHeader: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20 },
+  directoryTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  directoryEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  directoryTitle: { color: 'white', fontSize: 32, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
+  directorySubtitle: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '600', marginTop: 2 },
+  directoryActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
+  directoryPrimaryAction: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: themeColors.primary, paddingHorizontal: 16, height: 44, borderRadius: 14 },
+  directoryPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },
+  directoryIconAction: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.accent },
+  directorySummary: { marginHorizontal: 16, marginTop: 14, backgroundColor: 'white', borderRadius: 18, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' },
+  directorySummaryItem: { flex: 1, alignItems: 'center' },
+  directorySummaryValue: { color: themeColors.primaryDeep, fontSize: 21, fontWeight: '900' },
+  directorySummaryLabel: { color: themeColors.textSecondary, fontSize: 10, fontWeight: '800', marginTop: 2 },
+  directorySummaryDivider: { width: 1, height: 34, backgroundColor: themeColors.border },
   header: {
-    backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    backgroundColor: themeColors.primaryDeep,
+    paddingTop: 56,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 42,
   },
   headerRight: {
     flexDirection: 'row',
@@ -949,7 +946,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: 'white',
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   refreshButton: {
     padding: 8,
@@ -958,17 +955,19 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   statsScroll: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: themeColors.primarySoft,
   },
   statsContainer: {
     flexDirection: 'row',
     padding: 16,
   },
   statCard: {
-    alignItems: 'center',
-    marginRight: 20,
+    alignItems: 'flex-start',
+    marginRight: 10,
+    minWidth: 112,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 12,
   },
   statValue: {
     fontSize: 18,
@@ -980,20 +979,19 @@ const styles = StyleSheet.create({
     color: themeColors.textSecondary,
   },
   filterContainer: {
-    backgroundColor: 'white',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: themeColors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
+    backgroundColor: themeColors.surfaceMuted,
+    borderRadius: 14,
     paddingHorizontal: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: themeColors.border,
+    borderColor: themeColors.borderStrong,
   },
   searchInput: {
     flex: 1,
@@ -1038,11 +1036,12 @@ const styles = StyleSheet.create({
   },
   userCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.primary,
   },
   userHeader: {
     flexDirection: 'row',

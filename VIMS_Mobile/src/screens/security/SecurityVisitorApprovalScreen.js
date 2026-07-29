@@ -360,13 +360,15 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   header: {
-    backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    backgroundColor: themeColors.primaryDeep,
+    paddingTop: 56,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   headerRight: {
   flexDirection: 'row',
@@ -378,7 +380,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: 'white',
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   refreshButton: {
     padding: 8,
@@ -386,22 +388,20 @@ const styles = StyleSheet.create({
   statsCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: themeColors.nav,
     margin: 16,
     padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 24,
   },
   statsLabel: {
     fontSize: 14,
-    color: themeColors.textSecondary,
+    color: 'rgba(255,255,255,0.68)',
     marginLeft: 12,
   },
   statsValue: {
     fontSize: 28,
     fontWeight: '700',
-    color: themeColors.warning,
+    color: themeColors.accent,
     marginLeft: 12,
   },
   listContainer: {
@@ -409,11 +409,11 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 14,
+    borderTopWidth: 5,
+    borderTopColor: themeColors.warning,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -527,9 +527,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    margin: 16,
+    borderRadius: 18,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyTitle: {
     fontSize: 18,

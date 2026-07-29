@@ -1764,8 +1764,9 @@ const Login = () => {
       });
 
       const data = await response.json();
-      alert(data.message || 'If your email is registered, you will receive a password reset link.');
+      alert(data.message || 'If your email is registered, you will receive a verification code.');
       setShowForgotPassword(false);
+      navigate(`/reset-password?email=${encodeURIComponent(formData.email.toLowerCase())}`);
     } catch (error) {
       alert('Failed to send reset email. Please try again.');
     } finally {

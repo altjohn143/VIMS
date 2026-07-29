@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { themeColors, radii, shadows } from '../utils/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import api from '../utils/api';
@@ -368,9 +369,13 @@ const ReservationsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#166534" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Reservations</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerEyebrow}>PLAN YOUR TIME</Text>
+          <Text style={styles.headerTitle}>My Reservations</Text>
+          <Text style={styles.headerSubtitle}>Venues and community equipment</Text>
+        </View>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
@@ -859,13 +864,13 @@ const ReservationsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.background,
   },
   loadingText: {
     marginTop: 16,
@@ -877,45 +882,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    paddingTop: 56,
+    paddingBottom: 24,
+    backgroundColor: themeColors.primaryDeep,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 48,
   },
   backButton: {
     padding: 8,
   },
+  headerTitleWrap: { flex: 1, marginHorizontal: 8 },
+  headerEyebrow: { color: themeColors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e293b',
+    fontSize: 22,
+    color: themeColors.white,
+    fontWeight: '900',
   },
+  headerSubtitle: { color: 'rgba(255,255,255,0.68)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   addButton: {
-    backgroundColor: '#166534',
-    borderRadius: 20,
+    backgroundColor: themeColors.accent,
+    borderRadius: radii.round,
     padding: 8,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 18,
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     marginBottom: 24,
   },
   coloredStatCard: {
     flex: 1,
-    borderRadius: 10,
-    padding: 8,
+    borderRadius: radii.lg,
+    padding: 13,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    ...shadows.small,
   },
   statCardHighlight: {
     position: 'absolute',
@@ -956,7 +960,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 16,
     paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     gap: 8,
   },
   quickActionText: {
@@ -974,11 +978,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emptyState: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
+    alignItems: 'flex-start',
+    paddingVertical: 28,
+    backgroundColor: themeColors.surfaceTint,
+    borderRadius: 20,
+    paddingHorizontal: 22,
   },
   emptyTitle: {
     fontSize: 18,
@@ -994,14 +998,14 @@ const styles = StyleSheet.create({
   },
   reservationCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radii.lg,
+    padding: 18,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    ...shadows.small,
   },
   reservationHeader: {
     flexDirection: 'row',

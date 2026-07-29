@@ -1,7 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
 const User = require('../models/User');
 const Lot = require('../models/Lot');
@@ -12,6 +10,13 @@ const Setting = require('../models/Setting');
 const { protect, authorize } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
+const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
+
+const buildProfilePhotoUrl = (req, photo) => {
+  if (!photo) return null;
+  if (/^https?:\/\//i.test(photo)) return photo;
+  return `${req.protocol}://${req.get('host')}/uploads/profile-photos/${photo}`;
+};
 
 async function getMonthlyDuesAmount() {
   const setting = await Setting.findOne({ key: 'monthly_dues_amount' });
@@ -116,7 +121,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
       const verification = verificationMap.get(String(user._id));
       const userObj = user.toObject();
       if (user.profilePhoto) {
-        userObj.profilePhotoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${user.profilePhoto}`;
+        userObj.profilePhotoUrl = buildProfilePhotoUrl(req, user.profilePhoto);
       }
       userObj.verificationStatus = verification?.status || 'pending_upload';
       userObj.verificationUpdatedAt = verification?.updatedAt || null;
@@ -165,7 +170,7 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
       const hasUploadedId = !!(verification?.frontImage && verification?.backImage);
       const userObj = user.toObject();
       if (user.profilePhoto) {
-        userObj.profilePhotoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${user.profilePhoto}`;
+        userObj.profilePhotoUrl = buildProfilePhotoUrl(req, user.profilePhoto);
       }
       return {
         ...userObj,
@@ -502,22 +507,8 @@ router.get('/stats/registrations', protect, authorize('admin'), async (req, res)
 });
 
 console.log('🔧 Loading users route file');
-const profilePhotoDir = path.join(__dirname, '../uploads/profile-photos');
-if (!fs.existsSync(profilePhotoDir)) {
-  fs.mkdirSync(profilePhotoDir, { recursive: true });
-}
-
-const photoStorage = multer.diskStorage({
-  destination: profilePhotoDir,
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9\.\-]/g, '_');
-    cb(null, `${req.user.id}_${timestamp}_${safeName}`);
-  }
-});
-
 const photoUpload = multer({
-  storage: photoStorage,
+  storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -535,20 +526,33 @@ router.post('/profile-photo', protect, photoUpload.single('photo'), async (req, 
       return res.status(400).json({ success: false, error: 'No photo file uploaded' });
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('+profilePhotoPublicId');
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    user.profilePhoto = req.file.filename;
+    const uploadedPhoto = await uploadImageBuffer(req.file.buffer, {
+      folder: 'vims/profiles',
+      publicId: String(user._id)
+    });
+    const previousPublicId = user.profilePhotoPublicId;
+    user.profilePhoto = uploadedPhoto.secure_url;
+    user.profilePhotoPublicId = uploadedPhoto.public_id;
     await user.save();
 
-    const photoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${req.file.filename}`;
+    if (previousPublicId && previousPublicId !== uploadedPhoto.public_id) {
+      deleteImage(previousPublicId).catch(error =>
+        console.warn('Unable to delete previous profile photo:', error.message)
+      );
+    }
 
     res.json({
       success: true,
       message: 'Profile photo uploaded successfully',
-      data: { profilePhoto: req.file.filename, profilePhotoUrl: photoUrl }
+      data: {
+        profilePhoto: uploadedPhoto.secure_url,
+        profilePhotoUrl: uploadedPhoto.secure_url
+      }
     });
   } catch (error) {
     console.error('Upload profile photo error:', error);
@@ -614,7 +618,7 @@ router.get('/:id/profile', protect, async (req, res) => {
     
     const userObj = user.toObject();
     if (user.profilePhoto) {
-      userObj.profilePhotoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${user.profilePhoto}`;
+      userObj.profilePhotoUrl = buildProfilePhotoUrl(req, user.profilePhoto);
     }
 
     res.json({
@@ -645,7 +649,7 @@ router.get('/profile', protect, async (req, res) => {
 
     const userObj = user.toObject();
     if (user.profilePhoto) {
-      userObj.profilePhotoUrl = `${req.protocol}://${req.get('host')}/uploads/profile-photos/${user.profilePhoto}`;
+      userObj.profilePhotoUrl = buildProfilePhotoUrl(req, user.profilePhoto);
     }
     
     res.json({

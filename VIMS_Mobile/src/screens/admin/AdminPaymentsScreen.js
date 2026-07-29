@@ -313,40 +313,28 @@ const AdminPaymentsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment Management</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Chatbot')} style={styles.backButton}>
-          <Ionicons name="sparkles-outline" size={22} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats Cards */}
-      <View style={styles.statsGrid}>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
-          <Ionicons name="cash-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalCollected)}</Text>
-          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Total Collected</Text>
-        </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
-          <Ionicons name="calendar-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.monthlyCollected)}</Text>
-          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Monthly</Text>
+      <View style={styles.ledgerHeader}>
+        <Text style={styles.ledgerEyebrow}>FINANCE LEDGER</Text>
+        <Text style={styles.ledgerTitle}>Payment Management</Text>
+        <Text style={styles.ledgerSubtitle}>Monitor dues, receipts and outstanding balances</Text>
+        <View style={styles.ledgerBalance}>
+          <Text style={styles.ledgerBalanceLabel}>TOTAL COLLECTED</Text>
+          <Text style={styles.ledgerBalanceValue}>{formatCurrency(summary.totalCollected)}</Text>
+          <View style={styles.ledgerBalanceBottom}>
+            <Text style={styles.ledgerBalanceMeta}>This month {formatCurrency(summary.monthlyCollected)}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Chatbot')} style={styles.ledgerAssistant}>
+              <Ionicons name="sparkles-outline" size={18} color={themeColors.primaryDeep} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actionBar}>
-        <TouchableOpacity style={styles.actionBarButton} onPress={() => setShowReminderDialog(true)}>
-          <Ionicons name="send" size={20} color="white" />
-          <Text style={styles.actionBarButtonText}>Reminders</Text>
+      <View style={styles.ledgerActions}>
+        <TouchableOpacity style={styles.ledgerActionPrimary} onPress={() => setShowReminderDialog(true)}>
+          <Ionicons name="paper-plane-outline" size={18} color="white" />
+          <Text style={styles.ledgerActionPrimaryText}>Send reminders</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBarButton} onPress={fetchPayments}>
-          <Ionicons name="refresh" size={20} color="white" />
-          <Text style={styles.actionBarButtonText}>Refresh</Text>
+        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={fetchPayments}>
+          <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
         </TouchableOpacity>
       </View>
 
@@ -570,14 +558,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
+  ledgerHeader: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 22 },
+  ledgerEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  ledgerTitle: { color: 'white', fontSize: 30, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
+  ledgerSubtitle: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', marginTop: 3 },
+  ledgerBalance: { backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 20, padding: 18, marginTop: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  ledgerBalanceLabel: { color: 'rgba(255,255,255,0.58)', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  ledgerBalanceValue: { color: 'white', fontSize: 31, fontWeight: '900', marginTop: 5 },
+  ledgerBalanceBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  ledgerBalanceMeta: { color: 'rgba(255,255,255,0.66)', fontSize: 11, fontWeight: '700' },
+  ledgerAssistant: { width: 34, height: 34, borderRadius: 11, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center' },
+  ledgerActions: { flexDirection: 'row', gap: 10, padding: 16 },
+  ledgerActionPrimary: { flex: 1, height: 46, borderRadius: 14, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  ledgerActionPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },
+  ledgerActionSecondary: { width: 46, height: 46, borderRadius: 14, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   header: {
-    backgroundColor: themeColors.primary,
+    backgroundColor: themeColors.primaryDeep,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   backButton: {
     padding: 8,
@@ -593,11 +597,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: themeColors.background,
   },
   coloredStatCard: {
     flex: 1,
-    borderRadius: 10,
+    borderRadius: 18,
     padding: 12,
     position: 'relative',
     overflow: 'hidden',
@@ -637,7 +641,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: themeColors.primary,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 16,
     gap: 8,
   },
   actionBarButtonText: {
@@ -693,11 +697,12 @@ const styles = StyleSheet.create({
   },
   paymentCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 2,
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    marginBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
   },
   paymentHeader: {
     flexDirection: 'row',
@@ -810,9 +815,11 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    borderRadius: 18,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyText: {
     marginTop: 16,

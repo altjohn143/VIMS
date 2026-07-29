@@ -155,7 +155,7 @@ const PendingApprovalScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a3a0a',
+    backgroundColor: themeColors.nav,
   },
   content: {
     flexGrow: 1,
@@ -167,9 +167,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 92,
+    height: 92,
+    borderRadius: 28,
     backgroundColor: 'rgba(245, 158, 11, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -203,8 +203,8 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
@@ -232,8 +232,8 @@ const styles = StyleSheet.create({
   },
   nextStepsCard: {
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.3)',

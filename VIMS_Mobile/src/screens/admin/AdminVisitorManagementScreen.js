@@ -239,50 +239,33 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-   <View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="white" />
-  </TouchableOpacity>
-  <Text style={styles.headerTitle}>Visitor Management</Text>
-  <View style={styles.headerRight}>
-    <TouchableOpacity onPress={() => navigation.navigate('AdminVisitorReports')} style={styles.reportsButton}>
-      <Ionicons name="bar-chart" size={24} color="white" />
-    </TouchableOpacity>
-    <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
-      <Ionicons name="download" size={24} color="white" />
-    </TouchableOpacity>
-    <UserDropdownMenu navigation={navigation} />
-  </View>
-</View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.total || 0}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+      <View style={styles.flowHeader}>
+        <View style={styles.flowHeaderTop}>
+          <View>
+            <Text style={styles.flowEyebrow}>GATE OPERATIONS</Text>
+            <Text style={styles.flowTitle}>Visitor Management</Text>
+            <Text style={styles.flowSubtitle}>Track arrivals from request to exit</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.warning }]}>{stats.pending || 0}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.success }]}>{stats.approved || 0}</Text>
-            <Text style={styles.statLabel}>Approved</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.info }]}>{stats.active || 0}</Text>
-            <Text style={styles.statLabel}>Active</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.textSecondary }]}>{stats.completed || 0}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.error }]}>{stats.rejected || 0}</Text>
-            <Text style={styles.statLabel}>Rejected</Text>
-          </View>
+          <UserDropdownMenu navigation={navigation} />
         </View>
-      </ScrollView>
+        <View style={styles.flowActions}>
+          <TouchableOpacity onPress={() => navigation.navigate('AdminVisitorReports')} style={styles.flowAction}>
+            <Ionicons name="analytics-outline" size={18} color={themeColors.primaryDeep} />
+            <Text style={styles.flowActionText}>Insights</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleExport} style={styles.flowAction}>
+            <Ionicons name="download-outline" size={18} color={themeColors.primaryDeep} />
+            <Text style={styles.flowActionText}>Export</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.flowSummary}>
+        <View><Text style={styles.flowSummaryValue}>{stats.pending || 0}</Text><Text style={styles.flowSummaryLabel}>Waiting</Text></View>
+        <Ionicons name="arrow-forward" size={17} color={themeColors.textMuted} />
+        <View><Text style={styles.flowSummaryValue}>{stats.active || 0}</Text><Text style={styles.flowSummaryLabel}>Inside</Text></View>
+        <Ionicons name="arrow-forward" size={17} color={themeColors.textMuted} />
+        <View><Text style={styles.flowSummaryValue}>{stats.completed || 0}</Text><Text style={styles.flowSummaryLabel}>Exited</Text></View>
+      </View>
 
       <View style={styles.filterContainer}>
         <View style={styles.searchBox}>
@@ -561,14 +544,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
+  flowHeader: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20 },
+  flowHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  flowEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  flowTitle: { color: 'white', fontSize: 30, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
+  flowSubtitle: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', marginTop: 2 },
+  flowActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  flowAction: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: themeColors.accent, height: 42, paddingHorizontal: 15, borderRadius: 14 },
+  flowActionText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
+  flowSummary: { margin: 16, padding: 16, borderRadius: 18, backgroundColor: 'white', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  flowSummaryValue: { textAlign: 'center', color: themeColors.primaryDeep, fontSize: 21, fontWeight: '900' },
+  flowSummaryLabel: { color: themeColors.textSecondary, fontSize: 10, fontWeight: '800', marginTop: 2 },
   header: {
-    backgroundColor: themeColors.primary,
+    backgroundColor: themeColors.primaryDeep,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 44,
+    borderBottomRightRadius: 0,
   },
   headerRight: {
   flexDirection: 'row',
@@ -589,17 +585,20 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   statsScroll: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: themeColors.background,
   },
   statsContainer: {
     flexDirection: 'row',
     padding: 16,
   },
   statCard: {
-    alignItems: 'center',
-    marginRight: 20,
+    alignItems: 'flex-start',
+    marginRight: 10,
+    minWidth: 108,
+    backgroundColor: '#edf7f1',
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   statValue: {
     fontSize: 18,
@@ -670,11 +669,11 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: themeColors.primary,
   },
   visitorHeader: {
     flexDirection: 'row',
@@ -744,9 +743,11 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    borderRadius: 18,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyTitle: {
     fontSize: 18,

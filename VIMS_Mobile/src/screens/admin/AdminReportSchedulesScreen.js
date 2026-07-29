@@ -246,7 +246,7 @@ const AdminReportSchedulesScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Reservation Logs</Text>
+          <Text style={styles.headerTitle}>Report Schedules</Text>
           <Text style={styles.headerSubtitle} numberOfLines={1}>
             Manage borrow, return, and return issues
           </Text>
@@ -340,18 +340,20 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: themeColors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
-    backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+    backgroundColor: themeColors.primaryDeep,
+    paddingTop: 56,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   backButton: { padding: 8 },
   headerTitleWrap: { flex: 1, minWidth: 0 },
-  headerTitle: { color: 'white', fontSize: 20, fontWeight: '700' },
+  headerTitle: { color: 'white', fontSize: 23, fontWeight: '900' },
   headerSubtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerIconButton: { padding: 8 },
@@ -359,11 +361,11 @@ const styles = StyleSheet.create({
   listContainer: { padding: 16, paddingBottom: 24 },
   card: {
     backgroundColor: 'white',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderLeftWidth: 5,
+    borderLeftColor: themeColors.info,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   cardTitleBlock: { flex: 1, minWidth: 0 },

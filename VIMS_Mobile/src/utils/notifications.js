@@ -1,17 +1,29 @@
 import { AppState, Platform } from 'react-native';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import api from './api';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+const isExpoGo =
+  Constants.executionEnvironment === 'storeClient' ||
+  Constants.appOwnership === 'expo';
+
+let notificationsModule = null;
+
+const getNotificationsModule = () => {
+  if (isExpoGo) return null;
+  if (!notificationsModule) {
+    notificationsModule = require('expo-notifications');
+    notificationsModule.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  }
+  return notificationsModule;
+};
 
 export async function fetchUnreadNotificationCount() {
   const res = await api.get('/notifications/unread-count');
@@ -66,6 +78,14 @@ export function startUnreadCountPolling({ intervalMs = 45000, onCount, onError }
 }
 
 export async function registerForPushNotifications() {
+  const Notifications = getNotificationsModule();
+  if (!Notifications) {
+    return {
+      success: false,
+      error: 'Remote push notifications are unavailable in Expo Go. Use the VIMS development build.',
+    };
+  }
+
   if (!Device.isDevice) {
     return { success: false, error: 'Push notifications require a physical device.' };
   }

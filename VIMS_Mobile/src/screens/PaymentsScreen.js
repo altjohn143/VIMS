@@ -17,7 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import UserDropdownMenu from '../components/UserDropdownMenu';
-import { themeColors, shadows } from '../utils/theme';
+import { themeColors, radii, shadows } from '../utils/theme';
 import api from '../utils/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -222,7 +222,11 @@ const PaymentsScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payments & Dues</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerEyebrow}>MY WALLET</Text>
+          <Text style={styles.headerTitle}>Payments & Dues</Text>
+          <Text style={styles.headerSubtitle}>Balances, receipts and payment history</Text>
+        </View>
         <UserDropdownMenu navigation={navigation} />
       </View>
 
@@ -232,19 +236,19 @@ const PaymentsScreen = ({ navigation }) => {
       >
         {/* Stats Cards */}
         <View style={styles.statsGrid}>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#e8f5ed' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalPaid)}</Text>
             <Text style={styles.coloredStatLabel}>Total Paid</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#d97706' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#fff4df' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalPending)}</Text>
             <Text style={styles.coloredStatLabel}>Pending Balance</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#fff0f0' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="alert-circle-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.overdueAmount)}</Text>
@@ -604,22 +608,27 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   header: {
-    backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    backgroundColor: themeColors.primaryDark,
+    paddingTop: 56,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 46,
   },
   backButton: {
     padding: 8,
   },
+  headerTitleWrap: { flex: 1, marginHorizontal: 8 },
+  headerEyebrow: { color: themeColors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
   headerTitle: {
     color: 'white',
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 21,
+    fontWeight: '900',
   },
+  headerSubtitle: { color: 'rgba(255,255,255,0.68)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -628,23 +637,20 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: themeColors.background,
   },
   coloredStatCard: {
     flex: 1,
-    borderRadius: 10,
-    padding: 8,
+    borderRadius: radii.lg,
+    padding: 13,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   statCardHighlight: {
     position: 'absolute',
@@ -653,34 +659,35 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(20,113,61,0.08)',
   },
   coloredStatBgIcon: {
     position: 'absolute',
     top: 6,
     right: 6,
     fontSize: 16,
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(20,113,61,0.24)',
   },
   coloredStatValue: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: themeColors.textPrimary,
+    fontSize: 17,
+    fontWeight: '900',
     marginBottom: 2,
   },
   coloredStatLabel: {
-    color: 'rgba(255,255,255,0.9)',
+    color: themeColors.textSecondary,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   currentDuesCard: {
     backgroundColor: '#fffbeb',
     marginHorizontal: 16,
     marginBottom: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: themeColors.warning,
-    padding: 16,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: '#f4d58a',
+    padding: 20,
+    ...shadows.small,
   },
   currentDuesContent: {
     flexDirection: 'row',
@@ -714,7 +721,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radii.md,
     gap: 8,
   },
   payNowText: {
@@ -726,8 +733,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 4,
+    borderRadius: radii.lg,
+    padding: 5,
     borderWidth: 1,
     borderColor: themeColors.border,
   },
@@ -735,7 +742,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: radii.md,
   },
   activeTab: {
     backgroundColor: themeColors.primary,
@@ -752,10 +759,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginHorizontal: 16,
     marginBottom: 12,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radii.lg,
+    padding: 18,
     borderWidth: 1,
     borderColor: themeColors.border,
+    ...shadows.small,
   },
   paymentHeader: {
     flexDirection: 'row',

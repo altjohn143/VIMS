@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { ActivityIndicator, View, Platform } from 'react-native';
+import { ActivityIndicator, View, Platform, Text, Image, StatusBar, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { themeColors } from './src/utils/theme';
+import { themeColors, navigationTheme, shadows } from './src/utils/theme';
 
 const LoadingScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background }}>
-    <ActivityIndicator size="large" color={themeColors.primary} />
+  <View style={styles.loadingScreen}>
+    <View style={styles.loadingBrand}>
+      <Image source={require('./assets/village-logo.png')} style={styles.loadingLogo} />
+    </View>
+    <Text style={styles.loadingTitle}>VIMS</Text>
+    <Text style={styles.loadingSubtitle}>Preparing your community workspace</Text>
+    <ActivityIndicator style={styles.loadingIndicator} size="small" color={themeColors.primary} />
   </View>
 );
 
@@ -50,7 +55,8 @@ const AppContent = () => {
     root.style.maxWidth = '480px';
     root.style.margin = '0 auto';
     root.style.boxShadow = '0 0 40px rgba(0,0,0,0.45)';
-    root.style.borderRadius = '24px';
+    root.style.borderRadius = '0';
+    root.style.overflow = 'hidden';
   }, []);
 
   if (isLoading) {
@@ -58,8 +64,45 @@ const AppContent = () => {
   }
 
   return (
-    <NavigationContainer>
+    <>
+      <StatusBar barStyle="light-content" backgroundColor={themeColors.primaryDark} />
+      <NavigationContainer theme={navigationTheme}>
       <AppNavigator />
-    </NavigationContainer>
+      </NavigationContainer>
+    </>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: themeColors.background,
+    padding: 24,
+  },
+  loadingBrand: {
+    width: 82,
+    height: 82,
+    borderRadius: 24,
+    backgroundColor: themeColors.cardBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.medium,
+  },
+  loadingLogo: { width: 62, height: 62, resizeMode: 'contain' },
+  loadingTitle: {
+    marginTop: 20,
+    color: themeColors.primaryDark,
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  loadingSubtitle: {
+    marginTop: 5,
+    color: themeColors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  loadingIndicator: { marginTop: 24 },
+});

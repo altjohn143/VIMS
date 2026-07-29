@@ -582,13 +582,15 @@ const styles = StyleSheet.create({
     color: themeColors.textSecondary,
   },
   header: {
-    backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    backgroundColor: themeColors.primaryDeep,
+    paddingTop: 56,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   headerRight: {
     flexDirection: 'row',
@@ -600,7 +602,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: 'white',
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   refreshButton: {
     padding: 8,
@@ -609,12 +611,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     margin: 16,
     padding: 20,
-    borderRadius: 12,
+    borderRadius: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: themeColors.border,
+    ...shadows.small,
   },
   statsLabel: {
     fontSize: 16,
@@ -630,11 +633,12 @@ const styles = StyleSheet.create({
   },
   userCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: themeColors.border,
+    ...shadows.small,
   },
   userHeader: {
     flexDirection: 'row',

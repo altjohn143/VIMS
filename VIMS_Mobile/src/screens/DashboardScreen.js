@@ -23,6 +23,7 @@ import testDirectFetch from '../utils/testFetch';
 import { startUnreadCountPolling } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationModal from '../components/NotificationModal';
+import { radii, shadows, themeColors } from '../utils/theme';
 import ChatbotScreen from './ChatbotScreen';
 
 const DashboardScreen = ({ navigation }) => {
@@ -508,12 +509,16 @@ const DashboardScreen = ({ navigation }) => {
       {/* ── Top Bar ── */}
       <View style={styles.topBar}>
         <View style={styles.topBarLeft}>
-          <View style={styles.topLogoCircle}>
-            <Text style={styles.topLogoText}>CW</Text>
-          </View>
+          <TouchableOpacity style={styles.commandAvatar} onPress={openDropdown} activeOpacity={0.8}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.commandAvatarImage} />
+            ) : (
+              <Text style={styles.commandAvatarText}>{initials}</Text>
+            )}
+          </TouchableOpacity>
           <View style={styles.topTextWrap}>
-            <Text style={styles.topBarTitle} numberOfLines={1}>Dashboard</Text>
-            <Text style={styles.topBarSubtitle} numberOfLines={1}>Casimiro Westville Homes</Text>
+            <Text style={styles.topBarEyebrow}>{roleDisplay.toUpperCase()}</Text>
+            <Text style={styles.topBarTitle} numberOfLines={1}>Hello, {userToShow?.firstName || 'User'}</Text>
           </View>
         </View>
 
@@ -523,7 +528,7 @@ const DashboardScreen = ({ navigation }) => {
             style={styles.bellBtn}
             onPress={() => setNotificationModalVisible(true)}
           >
-            <Ionicons name="notifications-outline" size={18} color="#fff" />
+            <Ionicons name="notifications-outline" size={21} color={themeColors.textPrimary} />
             {unreadCount > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -685,10 +690,10 @@ const DashboardScreen = ({ navigation }) => {
           {config.stats.map((stat, i) => {
             // Curated, beautiful gradients matching the original colors
             const gradientColors = 
-              i === 0 ? ['#4F46E5', '#3730A3'] : // Indigo
-              i === 1 ? ['#10B981', '#065F46'] : // Emerald Green
-              i === 2 ? ['#0EA5E9', '#0369A1'] : // Ocean Sky
-              ['#EF4444', '#991B1B'];            // Crimson Red
+              i === 0 ? ['#e7f5ec', '#d6ecdf'] :
+              i === 1 ? ['#e8f4f1', '#d9ece8'] :
+              i === 2 ? ['#fff4df', '#f8e8c5'] :
+              ['#fff0f0', '#f8dddd'];
 
             return (
               <Animated.View
@@ -728,8 +733,8 @@ const DashboardScreen = ({ navigation }) => {
         </View>
 
         {/* ── Quick Actions ── */}
-        <View style={styles.sectionCard}>
-          <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('quickActions')} activeOpacity={0.8}>
+        <View style={[styles.sectionCard, styles.quickActionsCard]}>
+          <TouchableOpacity style={[styles.sectionHeader, styles.quickActionsHeader]} onPress={() => toggleSection('quickActions')} activeOpacity={0.8}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.sectionToggleWrap}>
               <Text style={styles.sectionToggleText}>{collapsedSections.quickActions ? 'Show' : 'Hide'}</Text>
@@ -740,6 +745,7 @@ const DashboardScreen = ({ navigation }) => {
             <Animated.View
               key={i}
               style={{
+                width: '50%',
                 transform: [{ scale: actionScaleAnims[i] || 1 }]
               }}
             >
@@ -749,6 +755,7 @@ const DashboardScreen = ({ navigation }) => {
                 onPress={() => action.screen === 'Chatbot' ? setAssistantVisible(true) : navigation.navigate(action.screen)}
                 style={({ pressed }) => [
                   styles.actionRow,
+                  styles.quickActionTile,
                   pressed && styles.actionRowPressed,
                   i < config.quickActions.length - 1 && styles.actionRowDivider
                 ]}
@@ -900,17 +907,23 @@ const DashboardScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', gap: 10 },
+  container: { flex: 1, backgroundColor: themeColors.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background, gap: 10 },
   loadingText: { fontSize: 14, color: '#64748b', fontWeight: '500' },
 
   /* Top Bar */
   topBar: {
-    paddingTop: 52, paddingHorizontal: 14, paddingBottom: 12,
-    backgroundColor: '#1a6b3c',
+    paddingTop: 50, paddingHorizontal: 18, paddingBottom: 14,
+    backgroundColor: themeColors.background,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
   },
-  topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 },
+  topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 11, flex: 1, minWidth: 0 },
+  commandAvatar: { width: 44, height: 44, borderRadius: 16, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  commandAvatarImage: { width: 44, height: 44 },
+  commandAvatarText: { color: themeColors.primaryDeep, fontSize: 13, fontWeight: '900' },
+  topBarEyebrow: { color: themeColors.primary, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
   topLogoCircle: {
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -918,13 +931,14 @@ const styles = StyleSheet.create({
   },
   topLogoText: { color: '#fff', fontSize: 12, fontWeight: '900' },
   topTextWrap: { flexShrink: 1, minWidth: 0 },
-  topBarTitle: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
+  topBarTitle: { color: themeColors.textPrimary, fontSize: 19, fontWeight: '900', letterSpacing: -0.4, marginTop: 1 },
   topBarSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   bellBtn: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 40, height: 40, borderRadius: 14,
+    backgroundColor: themeColors.cardBackground,
     alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: themeColors.border,
   },
   notificationBadge: {
     position: 'absolute',
@@ -945,11 +959,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   userPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 20, paddingVertical: 4, paddingLeft: 4, paddingRight: 8,
+    width: 40, height: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: themeColors.primaryDeep,
+    borderRadius: 14,
   },
   userPillAvatar: {
+    display: 'none',
     width: 22, height: 22, borderRadius: 11,
     backgroundColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
@@ -961,7 +976,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   userPillInitials: { fontSize: 8, fontWeight: '900', color: '#1a6b3c' },
-  userPillText: { maxWidth: 70 },
+  userPillText: { display: 'none' },
   userPillName: { fontSize: 9, fontWeight: '700', color: '#fff' },
   userPillRole: { fontSize: 8, fontWeight: '600', color: '#86efac', marginTop: 1 },
 
@@ -1017,14 +1032,14 @@ const styles = StyleSheet.create({
 
   /* Scroll */
   content: { flex: 1 },
-  contentContainer: { padding: 12, paddingBottom: 32, gap: 10 },
+  contentContainer: { padding: 18, paddingBottom: 36, gap: 18 },
 
   /* Hero */
-  heroCard: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#0f172a' },
-  heroBg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#111827' },
+  heroCard: { display: 'none' },
+  heroBg: { ...StyleSheet.absoluteFillObject, backgroundColor: themeColors.primaryDeep, opacity: 0 },
   heroInner: { flexDirection: 'row', alignItems: 'center' },
-  heroInnerNarrow: { flexDirection: 'column', alignItems: 'stretch' },
-  heroLeft: { flex: 1, padding: 18 },
+  heroInnerNarrow: { flexDirection: 'row', alignItems: 'center' },
+  heroLeft: { flex: 1, padding: 20 },
   heroEyebrowPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1037,43 +1052,42 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   heroEyebrow: {
-    color: '#4ade80', fontSize: 9, fontWeight: '800',
+    color: themeColors.accent, fontSize: 9, fontWeight: '800',
     textTransform: 'uppercase', letterSpacing: 0.6,
   },
-  heroTitle: { color: '#e2e8f0', fontSize: 20, fontWeight: '500', lineHeight: 26, marginBottom: 6 },
-  heroTitleBold: { color: '#fff', fontSize: 24, fontWeight: '900' },
+  heroTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '500', lineHeight: 22, marginBottom: 5 },
+  heroTitleBold: { color: '#fff', fontSize: 22, fontWeight: '900' },
   heroDate: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '500', lineHeight: 16, marginBottom: 12 },
   heroPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20,
   },
-  heroPillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4ade80' },
+  heroPillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: themeColors.accent },
   heroPillText: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '600' },
   
   /* Modern Access Widget */
   heroRightWidget: {
-    width: 130,
+    width: 108,
     alignItems: 'center',
     justifyContent: 'center',
     borderLeftWidth: 1,
     borderLeftColor: 'rgba(255,255,255,0.08)',
-    paddingVertical: 20,
+    paddingVertical: 16,
     backgroundColor: 'rgba(255,255,255,0.02)',
     height: '100%',
   },
   heroRightWidgetNarrow: {
-    width: '100%',
-    borderLeftWidth: 0,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    width: 108,
+    borderLeftWidth: 1,
+    borderTopWidth: 0,
     paddingVertical: 16,
-    height: 'auto',
+    height: '100%',
   },
   accessIndicatorCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: 'rgba(74, 222, 128, 0.4)',
     alignItems: 'center',
@@ -1113,24 +1127,27 @@ const styles = StyleSheet.create({
   },
 
   /* Stat Cards */
-  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statGridNarrow: { flexDirection: 'column', gap: 10 },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  statGridNarrow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   statCard: {
-    width: '100%', borderRadius: 16, padding: 12, minHeight: 115,
+    width: '100%', borderRadius: 18, padding: 14, minHeight: 102,
     overflow: 'hidden', justifyContent: 'flex-end',
   },
-  statCardNarrow: { width: '100%' },
-  statCardBgIcon: { position: 'absolute', right: -8, bottom: -8 },
+  statCardWrapper: { width: '48%' },
+  statCardNarrow: { width: '48%' },
+  statCardBgIcon: { position: 'absolute', right: -8, bottom: -8, opacity: 0.35 },
   statCardTop: { marginBottom: 6 },
-  statCardValue: { color: '#fff', fontSize: 28, fontWeight: '900', lineHeight: 30 },
-  statCardLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700', marginTop: 4 },
-  statCardHint: { color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700', marginTop: 5 },
+  statCardValue: { color: themeColors.textPrimary, fontSize: 25, fontWeight: '900', lineHeight: 28 },
+  statCardLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '800', marginTop: 4 },
+  statCardHint: { color: themeColors.textMuted, fontSize: 9, fontWeight: '700', marginTop: 5 },
 
   /* Section Cards */
   sectionCard: {
-    backgroundColor: '#fff', borderRadius: 16,
-    borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.06)', overflow: 'hidden',
+    backgroundColor: '#fff', borderRadius: 22,
+    borderWidth: 1, borderColor: themeColors.border, overflow: 'hidden', ...shadows.small,
   },
+  quickActionsCard: { flexDirection: 'row', flexWrap: 'wrap' },
+  quickActionsHeader: { width: '100%' },
   sectionHeader: {
     paddingHorizontal: 14, paddingVertical: 12,
     borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9',
@@ -1150,7 +1167,15 @@ const styles = StyleSheet.create({
     minHeight: 72,
   },
   actionRowDivider: { borderBottomWidth: 0.5, borderBottomColor: '#f8fafc' },
-  actionIconWrap: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  quickActionTile: {
+    minHeight: 142,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    borderRightWidth: 0.5,
+    borderRightColor: '#eef2f0',
+  },
+  actionIconWrap: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,

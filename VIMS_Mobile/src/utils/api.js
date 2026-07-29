@@ -259,7 +259,14 @@ api.interceptors.request.use(
     console.log(`🌐 API ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     console.log(`   Full URL: ${config.baseURL}${config.url}`);
     console.log(`   Platform: ${Platform.OS}`);
-    console.log(`   Headers:`, JSON.stringify(config.headers, null, 2));
+    const safeHeaders = { ...config.headers };
+    if (safeHeaders.Authorization) {
+      safeHeaders.Authorization = 'Bearer [REDACTED]';
+    }
+    if (safeHeaders.authorization) {
+      safeHeaders.authorization = 'Bearer [REDACTED]';
+    }
+    console.log(`   Headers:`, JSON.stringify(safeHeaders, null, 2));
     
     return config;
   },

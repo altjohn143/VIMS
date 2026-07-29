@@ -14,7 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { themeColors, shadows } from '../utils/theme';
+import { themeColors, radii, shadows } from '../utils/theme';
 import api from '../utils/api';
 import QRCode from 'react-native-qrcode-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -460,7 +460,11 @@ const VisitorManagementScreen = ({ navigation }) => {
   <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
     <Ionicons name="arrow-back" size={24} color="white" />
   </TouchableOpacity>
-  <Text style={styles.headerTitle}>{historyMode ? 'Visitor History' : 'Visitor Management'}</Text>
+  <View style={styles.headerTitleWrap}>
+    <Text style={styles.headerEyebrow}>GUEST ACCESS</Text>
+    <Text style={styles.headerTitle}>{historyMode ? 'Visitor History' : 'Visitor Management'}</Text>
+    <Text style={styles.headerSubtitle}>{historyMode ? 'Review previous community entries' : 'Invite, approve and track visitors'}</Text>
+  </View>
   <View style={styles.headerRight}>
     <TouchableOpacity onPress={() => setHistoryMode(!historyMode)} style={styles.historyButton}>
       <Ionicons name={historyMode ? 'people' : 'time'} size={24} color="white" />
@@ -471,25 +475,25 @@ const VisitorManagementScreen = ({ navigation }) => {
 
       {!historyMode && (
         <View style={styles.statsGrid}>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#eef6f1' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="people-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.total}</Text>
             <Text style={styles.coloredStatLabel}>Total Visitors</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#e7f5ec' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="today-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.today}</Text>
             <Text style={styles.coloredStatLabel}>Today's Visitors</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#0284c7' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#edf7f5' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="radio-button-on-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.active}</Text>
             <Text style={styles.coloredStatLabel}>Active Visitors</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#fff5e8' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.pending}</Text>
@@ -879,12 +883,14 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 56,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 48,
+    borderBottomRightRadius: 18,
   },
   headerRight: {
   flexDirection: 'row',
@@ -893,33 +899,35 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  headerTitleWrap: { flex: 1, marginHorizontal: 6 },
+  headerEyebrow: { color: themeColors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
   headerTitle: {
     color: 'white',
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 21,
+    fontWeight: '900',
   },
+  headerSubtitle: { color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   historyButton: {
     padding: 8,
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: 10,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: themeColors.background,
   },
   coloredStatCard: {
-    flex: 1,
-    borderRadius: 10,
-    padding: 8,
+    flexGrow: 1,
+    flexBasis: '46%',
+    borderRadius: radii.lg,
+    padding: 13,
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   statCardHighlight: {
     position: 'absolute',
@@ -928,33 +936,34 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(20,113,61,0.08)',
   },
   coloredStatBgIcon: {
     position: 'absolute',
     top: 6,
     right: 6,
     fontSize: 16,
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(20,113,61,0.28)',
   },
   coloredStatValue: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: themeColors.primaryDeep,
+    fontSize: 24,
+    fontWeight: '900',
     marginBottom: 2,
   },
   coloredStatLabel: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 9,
-    fontWeight: '600',
+    color: themeColors.textSecondary,
+    fontSize: 10,
+    fontWeight: '800',
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: themeColors.cardBackground,
+    marginHorizontal: 16,
+    marginTop: 4,
+    padding: 5,
+    borderRadius: radii.lg,
+    ...shadows.small,
   },
   confirmBar: {
     paddingHorizontal: 16,
@@ -985,7 +994,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginRight: 8,
-    borderRadius: 20,
+    borderRadius: radii.md,
   },
   activeTab: {
     backgroundColor: themeColors.primary + '15',
@@ -1005,11 +1014,12 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radii.lg,
+    padding: 18,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: themeColors.border,
+    ...shadows.small,
   },
   visitorHeader: {
     flexDirection: 'row',
@@ -1118,9 +1128,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    margin: 16,
+    borderRadius: 20,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyTitle: {
     fontSize: 18,

@@ -4,22 +4,22 @@ import { themeColors } from '../utils/theme';
 // Extracted styles to keep `RegisterScreen.js` small and reduce reload cost.
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: themeColors.background },
-  scrollContent: { padding: 20, paddingTop: 40 },
+  scrollContent: { padding: 18, paddingTop: 48 },
   backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   backText: { color: themeColors.textPrimary, fontSize: 16, marginLeft: 8 },
 
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
   iconContainer: {
     width: 60,
     height: 60,
-    borderRadius: 30,
-    backgroundColor: themeColors.primary,
+    borderRadius: 20,
+    backgroundColor: themeColors.primaryDeep,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
   subtitle: { fontSize: 12, color: themeColors.textSecondary, letterSpacing: 1 },
-  title: { fontSize: 22, fontWeight: '700', color: themeColors.textPrimary },
+  title: { fontSize: 26, fontWeight: '900', color: themeColors.textPrimary, letterSpacing: -0.6 },
 
   successAlert: {
     flexDirection: 'row',
@@ -35,20 +35,26 @@ export const styles = StyleSheet.create({
 
   formCard: {
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderRadius: 28,
     padding: 20,
     borderWidth: 1,
     borderColor: themeColors.border,
+    shadowColor: '#061a11',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: themeColors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: themeColors.borderStrong,
+    borderRadius: 17,
+    paddingHorizontal: 14,
+    minHeight: 56,
     marginBottom: 8,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.surfaceMuted,
   },
   inputIcon: { marginRight: 8 },
   input: { flex: 1, paddingVertical: 12, fontSize: 16, color: themeColors.textPrimary },
@@ -132,7 +138,7 @@ export const styles = StyleSheet.create({
   infoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: themeColors.info + '10', padding: 12, borderRadius: 8, gap: 8, marginBottom: 16 },
   infoText: { flex: 1, fontSize: 12, color: themeColors.info },
 
-  submitButton: { backgroundColor: themeColors.primary, borderRadius: 8, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+  submitButton: { backgroundColor: themeColors.primaryDeep, borderRadius: 18, paddingVertical: 17, alignItems: 'center', marginTop: 8, shadowColor: '#061a11', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 12, elevation: 5 },
   submitButtonDisabled: { opacity: 0.6 },
   submitButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
 

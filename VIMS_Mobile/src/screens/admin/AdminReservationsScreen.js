@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import api from '../../utils/api';
+import { themeColors } from '../../utils/theme';
 
 const AdminReservationsScreen = ({ navigation }) => {
   const [reservations, setReservations] = useState([]);
@@ -306,11 +307,19 @@ const AdminReservationsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#166534" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Reservation Logs</Text>
+      <View style={styles.scheduleHeader}>
+        <Text style={styles.scheduleEyebrow}>RESOURCE SCHEDULE</Text>
+        <Text style={styles.scheduleTitle}>Reservation Logs</Text>
+        <Text style={styles.scheduleSubtitle}>A chronological view of community reservations</Text>
+        <View style={styles.scheduleMeta}>
+          <View style={styles.scheduleMetaIcon}>
+            <Ionicons name="calendar-outline" size={21} color={themeColors.primaryDeep} />
+          </View>
+          <View>
+            <Text style={styles.scheduleMetaValue}>{reservations.length}</Text>
+            <Text style={styles.scheduleMetaLabel}>total records</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView
@@ -323,8 +332,8 @@ const AdminReservationsScreen = ({ navigation }) => {
         {reservations.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="calendar-outline" size={48} color="#cbd5e1" />
-            <Text style={styles.emptyTitle}>No reservations</Text>
-            <Text style={styles.emptySubtitle}>Create the first reservation</Text>
+            <Text style={styles.emptyTitle}>The schedule is clear</Text>
+            <Text style={styles.emptySubtitle}>New resident bookings will appear here automatically.</Text>
           </View>
         ) : (
           reservations.map((reservation) => {
@@ -789,6 +798,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
   },
+  scheduleHeader: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 22 },
+  scheduleEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  scheduleTitle: { color: 'white', fontSize: 31, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
+  scheduleSubtitle: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', marginTop: 3 },
+  scheduleMeta: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  scheduleMetaIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center' },
+  scheduleMetaValue: { color: 'white', fontSize: 20, fontWeight: '900' },
+  scheduleMetaLabel: { color: 'rgba(255,255,255,0.60)', fontSize: 10, fontWeight: '700' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -796,9 +813,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#edf7f1',
+    borderBottomRightRadius: 42,
   },
   backButton: {
     padding: 8,
@@ -819,10 +835,10 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
+    paddingVertical: 72,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingHorizontal: 24,
   },
   emptyTitle: {
     fontSize: 18,
@@ -838,14 +854,11 @@ const styles = StyleSheet.create({
   },
   reservationCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderLeftWidth: 5,
+    borderLeftColor: '#166534',
   },
   reservationHeader: {
     flexDirection: 'row',

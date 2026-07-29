@@ -738,13 +738,15 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   header: {
-    backgroundColor: themeColors.primary,
+    backgroundColor: themeColors.primaryDeep,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 38,
   },
   headerRight: {
   flexDirection: 'row',
@@ -755,8 +757,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: 'white',
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 23,
+    fontWeight: '900',
   },
   exportButton: {
     padding: 8,
@@ -766,17 +768,19 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   statsScroll: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: themeColors.nav,
   },
   statsContainer: {
     flexDirection: 'row',
     padding: 16,
   },
   statCard: {
-    alignItems: 'center',
-    marginRight: 20,
+    alignItems: 'flex-start',
+    marginRight: 10,
+    minWidth: 108,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   statValue: {
     fontSize: 18,
@@ -847,11 +851,11 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 8,
+    padding: 18,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.primary,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -985,17 +989,20 @@ const styles = StyleSheet.create({
   activityBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: themeColors.primary,
+    color: themeColors.accent,
   },
   activityEmpty: {
-    color: themeColors.textSecondary,
+    color: 'rgba(255,255,255,0.64)',
     textAlign: 'center',
     paddingVertical: 12,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    margin: 16,
+    borderRadius: 18,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyTitle: {
     fontSize: 18,

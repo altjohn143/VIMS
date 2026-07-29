@@ -349,7 +349,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
         <View style={styles.queueHeaderTop}>
           <View>
             <Text style={styles.queueEyebrow}>MAINTENANCE DESK</Text>
-            <Text style={styles.queueTitle}>Work queue</Text>
+            <Text style={styles.queueTitle}>Service Requests</Text>
             <Text style={styles.queueSubtitle}>{stats.pending || 0} waiting · {stats.inProgress || 0} being handled</Text>
           </View>
           <UserDropdownMenu navigation={navigation} />

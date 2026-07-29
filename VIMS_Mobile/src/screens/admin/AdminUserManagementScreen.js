@@ -361,7 +361,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
         <View style={styles.directoryTopRow}>
           <View>
             <Text style={styles.directoryEyebrow}>ADMIN DIRECTORY</Text>
-            <Text style={styles.directoryTitle}>People</Text>
+            <Text style={styles.directoryTitle}>User Management</Text>
             <Text style={styles.directorySubtitle}>{stats.total} community accounts</Text>
           </View>
           <UserDropdownMenu navigation={navigation} />

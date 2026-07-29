@@ -309,7 +309,7 @@ const AdminReservationsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.scheduleHeader}>
         <Text style={styles.scheduleEyebrow}>RESOURCE SCHEDULE</Text>
-        <Text style={styles.scheduleTitle}>Bookings</Text>
+        <Text style={styles.scheduleTitle}>Reservation Logs</Text>
         <Text style={styles.scheduleSubtitle}>A chronological view of community reservations</Text>
         <View style={styles.scheduleMeta}>
           <View style={styles.scheduleMetaIcon}>

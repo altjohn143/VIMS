@@ -315,7 +315,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.ledgerHeader}>
         <Text style={styles.ledgerEyebrow}>FINANCE LEDGER</Text>
-        <Text style={styles.ledgerTitle}>Collections</Text>
+        <Text style={styles.ledgerTitle}>Payment Management</Text>
         <Text style={styles.ledgerSubtitle}>Monitor dues, receipts and outstanding balances</Text>
         <View style={styles.ledgerBalance}>
           <Text style={styles.ledgerBalanceLabel}>TOTAL COLLECTED</Text>

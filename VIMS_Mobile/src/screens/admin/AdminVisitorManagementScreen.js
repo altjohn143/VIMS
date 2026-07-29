@@ -243,7 +243,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
         <View style={styles.flowHeaderTop}>
           <View>
             <Text style={styles.flowEyebrow}>GATE OPERATIONS</Text>
-            <Text style={styles.flowTitle}>Guest flow</Text>
+            <Text style={styles.flowTitle}>Visitor Management</Text>
             <Text style={styles.flowSubtitle}>Track arrivals from request to exit</Text>
           </View>
           <UserDropdownMenu navigation={navigation} />

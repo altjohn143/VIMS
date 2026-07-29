@@ -1128,9 +1128,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    margin: 16,
+    borderRadius: 20,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyTitle: {
     fontSize: 18,

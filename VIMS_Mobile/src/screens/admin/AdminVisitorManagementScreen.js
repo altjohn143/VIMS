@@ -749,9 +749,11 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    borderRadius: 18,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyTitle: {
     fontSize: 18,

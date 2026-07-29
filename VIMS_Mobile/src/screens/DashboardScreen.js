@@ -690,10 +690,10 @@ const DashboardScreen = ({ navigation }) => {
           {config.stats.map((stat, i) => {
             // Curated, beautiful gradients matching the original colors
             const gradientColors = 
-              i === 0 ? ['#14713d', '#0d552e'] :
-              i === 1 ? ['#0f766e', '#115e59'] :
-              i === 2 ? ['#b7791f', '#8a5a12'] :
-              ['#b53a3a', '#7f1d1d'];
+              i === 0 ? ['#e7f5ec', '#d6ecdf'] :
+              i === 1 ? ['#e8f4f1', '#d9ece8'] :
+              i === 2 ? ['#fff4df', '#f8e8c5'] :
+              ['#fff0f0', '#f8dddd'];
 
             return (
               <Animated.View
@@ -1135,11 +1135,11 @@ const styles = StyleSheet.create({
   },
   statCardWrapper: { width: '48%' },
   statCardNarrow: { width: '48%' },
-  statCardBgIcon: { position: 'absolute', right: -8, bottom: -8 },
+  statCardBgIcon: { position: 'absolute', right: -8, bottom: -8, opacity: 0.35 },
   statCardTop: { marginBottom: 6 },
-  statCardValue: { color: '#fff', fontSize: 23, fontWeight: '900', lineHeight: 26 },
-  statCardLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700', marginTop: 4 },
-  statCardHint: { color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700', marginTop: 5 },
+  statCardValue: { color: themeColors.textPrimary, fontSize: 25, fontWeight: '900', lineHeight: 28 },
+  statCardLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '800', marginTop: 4 },
+  statCardHint: { color: themeColors.textMuted, fontSize: 9, fontWeight: '700', marginTop: 5 },
 
   /* Section Cards */
   sectionCard: {

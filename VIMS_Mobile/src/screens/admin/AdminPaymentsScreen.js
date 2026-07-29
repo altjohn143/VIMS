@@ -813,9 +813,11 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    borderRadius: 18,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyText: {
     marginTop: 16,

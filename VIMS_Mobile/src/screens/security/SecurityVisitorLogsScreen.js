@@ -997,9 +997,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    padding: 24,
+    margin: 16,
+    borderRadius: 18,
+    backgroundColor: themeColors.surfaceTint,
   },
   emptyTitle: {
     fontSize: 18,

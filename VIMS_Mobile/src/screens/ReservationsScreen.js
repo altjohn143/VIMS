@@ -978,11 +978,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emptyState: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
+    alignItems: 'flex-start',
+    paddingVertical: 28,
+    backgroundColor: themeColors.surfaceTint,
+    borderRadius: 20,
+    paddingHorizontal: 22,
   },
   emptyTitle: {
     fontSize: 18,

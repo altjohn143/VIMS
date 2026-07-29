@@ -818,10 +818,10 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
+    paddingVertical: 72,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingHorizontal: 24,
   },
   emptyTitle: {
     fontSize: 18,

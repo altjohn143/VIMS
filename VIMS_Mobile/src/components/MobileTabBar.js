@@ -68,7 +68,7 @@ const DockItem = ({ route, descriptor, focused, navigation }) => {
           <Ionicons
             name={focused ? icons[0] : icons[1]}
             size={21}
-            color={focused ? themeColors.primaryDeep : themeColors.navMuted}
+            color={focused ? themeColors.white : themeColors.textMuted}
           />
         </Animated.View>
         <Text numberOfLines={1} style={[styles.label, focused && styles.labelActive]}>{label}</Text>
@@ -99,20 +99,20 @@ const MobileTabBar = ({ state, descriptors, navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: themeColors.background,
-    paddingHorizontal: 12,
-    paddingTop: 7,
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
   dock: {
-    minHeight: 68,
-    paddingHorizontal: 7,
-    paddingVertical: 8,
-    borderRadius: radii.xl,
-    backgroundColor: themeColors.nav,
+    minHeight: 66,
+    paddingHorizontal: 5,
+    paddingVertical: 7,
+    borderRadius: 22,
+    backgroundColor: themeColors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: themeColors.border,
     ...shadows.floating,
   },
   itemWrap: { flex: 1, height: 52 },
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingVertical: 3,
   },
-  itemActive: { backgroundColor: themeColors.navActive },
+  itemActive: { backgroundColor: themeColors.primarySoft },
   itemPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
   iconBubble: {
     width: 31,
@@ -133,16 +133,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconBubbleActive: { backgroundColor: themeColors.accent },
+  iconBubbleActive: { backgroundColor: themeColors.primaryDeep },
   label: {
-    color: themeColors.navMuted,
+    color: themeColors.textMuted,
     fontSize: 9,
     fontWeight: '700',
     marginTop: 1,
     maxWidth: '100%',
   },
   labelActive: {
-    color: themeColors.white,
+    color: themeColors.primaryDeep,
     fontWeight: '900',
   },
 });

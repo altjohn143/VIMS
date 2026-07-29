@@ -409,7 +409,7 @@ const ProfileScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={24} color={themeColors.primaryDeep} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile Settings</Text>
         <UserDropdownMenu navigation={navigation} />
@@ -762,23 +762,23 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: themeColors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { backgroundColor: themeColors.primaryDeep, paddingTop: 56, paddingBottom: 24, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  header: { backgroundColor: themeColors.background, paddingTop: 52, paddingBottom: 14, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', borderBottomWidth: 1, borderBottomColor: themeColors.border },
   backButton: { padding: 8 },
-  headerTitle: { color: 'white', fontSize: 23, fontWeight: '900', letterSpacing: -0.4 },
-  content: { paddingTop: 24, paddingHorizontal: 16, paddingBottom: 24 },
-  profileCard: { backgroundColor: themeColors.primaryDeep, borderRadius: 28, padding: 24, alignItems: 'center', marginBottom: 18, borderWidth: 1, borderColor: '#285a42', ...shadows.medium },
-  avatarContainer: { marginBottom: 12, alignItems: 'center' },
-  avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: themeColors.primary, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: 'white', fontSize: 36, fontWeight: '600' },
+  headerTitle: { color: themeColors.textPrimary, fontSize: 21, fontWeight: '900', letterSpacing: -0.4 },
+  content: { paddingTop: 16, paddingHorizontal: 16, paddingBottom: 24 },
+  profileCard: { backgroundColor: '#e7f5ec', borderRadius: 22, padding: 18, alignItems: 'center', marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },
+  avatarContainer: { marginBottom: 8, alignItems: 'center' },
+  avatar: { width: 76, height: 76, borderRadius: 24, backgroundColor: themeColors.primary, justifyContent: 'center', alignItems: 'center' },
+  avatarText: { color: 'white', fontSize: 28, fontWeight: '700' },
   avatarButton: { borderRadius: 50, overflow: 'hidden' },
-  photoButton: { marginTop: 12, backgroundColor: '#e5f4ec', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#c7e5d4' },
+  photoButton: { marginTop: 8, backgroundColor: 'white', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: '#c7e5d4' },
   photoButtonText: { color: themeColors.primary, fontWeight: '700' },
-  userName: { fontSize: 22, fontWeight: '900', color: themeColors.white, marginBottom: 8 },
+  userName: { fontSize: 19, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 6 },
   roleBadge: { backgroundColor: themeColors.accent, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 16, marginBottom: 8 },
   roleText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '800' },
-  userEmail: { fontSize: 14, color: '#c7ddd1', marginBottom: 4 },
-  userHouse: { fontSize: 14, color: '#9fbeae' },
-  section: { backgroundColor: 'white', borderRadius: 24, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: themeColors.border, ...shadows.small },
+  userEmail: { fontSize: 13, color: themeColors.textSecondary, marginBottom: 3 },
+  userHouse: { fontSize: 13, color: themeColors.textMuted },
+  section: { backgroundColor: 'white', borderRadius: 14, padding: 18, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: themeColors.textPrimary, marginBottom: 16 },
   helperText: { fontSize: 12, color: themeColors.textSecondary, marginTop: -10, marginBottom: 12, lineHeight: 16 },
   moveOutRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },

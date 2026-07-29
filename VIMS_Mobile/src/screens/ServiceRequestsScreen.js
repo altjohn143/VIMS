@@ -30,6 +30,12 @@ const ServiceRequestsScreen = ({ navigation }) => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingRequestId, setRatingRequestId] = useState(null);
   const [ratingValue, setRatingValue] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   
   const [formData, setFormData] = useState({
     category: '',
@@ -219,15 +225,25 @@ const ServiceRequestsScreen = ({ navigation }) => {
   };
 
   const getFilteredRequests = () => {
-    if (activeTab === 'all') return requests;
-    if (activeTab === 'pending') {
-      return requests.filter(r => ['pending', 'under-review'].includes(r.status));
-    }
-    if (activeTab === 'in-progress') {
-      return requests.filter(r => ['assigned', 'in-progress'].includes(r.status));
-    }
-    return requests.filter(r => r.status === activeTab);
+    return requests.filter(request => {
+      const tabMatches = activeTab === 'all'
+        || (activeTab === 'pending' && ['pending', 'under-review'].includes(request.status))
+        || (activeTab === 'in-progress' && ['assigned', 'in-progress'].includes(request.status))
+        || request.status === activeTab;
+      const query = searchQuery.trim().toLowerCase();
+      const searchMatches = !query || [request.title, request.description, request.location, request.category].filter(Boolean).join(' ').toLowerCase().includes(query);
+      return tabMatches
+        && searchMatches
+        && (categoryFilter === 'all' || request.category === categoryFilter)
+        && (priorityFilter === 'all' || request.priority === priorityFilter);
+    });
   };
+  const filteredRequests = getFilteredRequests();
+  const paginatedRequests = filteredRequests.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  useEffect(() => {
+    setPage(0);
+  }, [activeTab, searchQuery, categoryFilter, priorityFilter, rowsPerPage]);
 
   const stats = {
     total: requests.length,
@@ -375,8 +391,18 @@ const ServiceRequestsScreen = ({ navigation }) => {
         />
       </View>
 
+      <View style={styles.directorySearchRow}>
+        <View style={styles.directorySearch}>
+          <Ionicons name="search" size={19} color={themeColors.textSecondary} />
+          <TextInput style={styles.directorySearchInput} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search requests..." />
+        </View>
+        <TouchableOpacity style={[styles.directoryFilterButton, (categoryFilter !== 'all' || priorityFilter !== 'all') && styles.directoryFilterActive]} onPress={() => setShowFilterModal(true)}>
+          <Ionicons name="options-outline" size={20} color={(categoryFilter !== 'all' || priorityFilter !== 'all') ? 'white' : themeColors.primaryDeep} />
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={getFilteredRequests()}
+        data={paginatedRequests}
         renderItem={renderRequestCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
@@ -396,7 +422,29 @@ const ServiceRequestsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         }
+        ListFooterComponent={filteredRequests.length > rowsPerPage ? (
+          <View style={styles.pagination}>
+            <TouchableOpacity disabled={page === 0} style={[styles.pageButton, page === 0 && styles.pageDisabled]} onPress={() => setPage(value => Math.max(0, value - 1))}><Text style={styles.pageButtonText}>Previous</Text></TouchableOpacity>
+            <Text style={styles.pageText}>{page + 1} / {Math.ceil(filteredRequests.length / rowsPerPage)}</Text>
+            <TouchableOpacity disabled={(page + 1) * rowsPerPage >= filteredRequests.length} style={[styles.pageButton, (page + 1) * rowsPerPage >= filteredRequests.length && styles.pageDisabled]} onPress={() => setPage(value => value + 1)}><Text style={styles.pageButtonText}>Next</Text></TouchableOpacity>
+          </View>
+        ) : null}
       />
+
+      <Modal visible={showFilterModal} transparent animationType="slide" onRequestClose={() => setShowFilterModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.filterSheet}>
+            <View style={styles.modalHeader}><Text style={styles.modalTitle}>Filter Requests</Text><TouchableOpacity onPress={() => setShowFilterModal(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity></View>
+            <Text style={styles.label}>Category</Text>
+            <View style={styles.pickerContainer}><Picker selectedValue={categoryFilter} onValueChange={setCategoryFilter} style={styles.picker}><Picker.Item label="All categories" value="all" />{categories.map(item => <Picker.Item key={item.value} label={item.label} value={item.value} />)}</Picker></View>
+            <Text style={styles.label}>Priority</Text>
+            <View style={styles.pickerContainer}><Picker selectedValue={priorityFilter} onValueChange={setPriorityFilter} style={styles.picker}><Picker.Item label="All priorities" value="all" />{['low', 'medium', 'high', 'urgent'].map(value => <Picker.Item key={value} label={value[0].toUpperCase() + value.slice(1)} value={value} />)}</Picker></View>
+            <Text style={styles.label}>Requests per page</Text>
+            <View style={styles.rowsSelector}>{[5, 10, 25].map(value => <TouchableOpacity key={value} style={[styles.rowChoice, rowsPerPage === value && styles.rowChoiceActive]} onPress={() => setRowsPerPage(value)}><Text style={[styles.rowChoiceText, rowsPerPage === value && styles.rowChoiceTextActive]}>{value}</Text></TouchableOpacity>)}</View>
+            <View style={styles.modalActions}><TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => { setCategoryFilter('all'); setPriorityFilter('all'); }}><Text style={styles.cancelButtonText}>Reset</Text></TouchableOpacity><TouchableOpacity style={[styles.modalButton, styles.submitButton]} onPress={() => setShowFilterModal(false)}><Text style={styles.submitButtonText}>Show Results</Text></TouchableOpacity></View>
+          </View>
+        </View>
+      </Modal>
 
       <TouchableOpacity style={styles.fab} onPress={() => setShowCreateModal(true)}>
         <Ionicons name="add" size={30} color="white" />
@@ -708,6 +756,23 @@ const ScrollableTab = ({ tabs, activeTab, onTabPress }) => {
 };
 
 const styles = StyleSheet.create({
+  directorySearchRow: { flexDirection: 'row', gap: 9, paddingHorizontal: 20, paddingBottom: 12 },
+  directorySearch: { flex: 1, height: 46, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white' },
+  directorySearchInput: { flex: 1, color: themeColors.textPrimary },
+  directoryFilterButton: { width: 46, height: 46, borderRadius: 13, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  directoryFilterActive: { backgroundColor: themeColors.primaryDeep },
+  pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16 },
+  pageButton: { paddingHorizontal: 14, paddingVertical: 9, backgroundColor: themeColors.primarySoft, borderRadius: 10 },
+  pageDisabled: { opacity: 0.35 },
+  pageButtonText: { color: themeColors.primaryDeep, fontWeight: '800', fontSize: 12 },
+  pageText: { color: themeColors.textSecondary, fontWeight: '700', fontSize: 12 },
+  filterSheet: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  rowsSelector: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  rowChoice: { flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 10, backgroundColor: '#f1f5f9' },
+  rowChoiceActive: { backgroundColor: themeColors.primaryDeep },
+  rowChoiceText: { color: themeColors.textSecondary, fontWeight: '800' },
+  rowChoiceTextActive: { color: 'white' },
   container: {
     flex: 1,
     backgroundColor: themeColors.background,

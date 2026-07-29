@@ -306,6 +306,9 @@ const AdminApprovalsScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Pending Approvals</Text>
         <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => navigation.navigate('AdminVerificationQueue')} style={styles.refreshButton}>
+            <Ionicons name="shield-checkmark-outline" size={23} color="white" />
+          </TouchableOpacity>
           <TouchableOpacity onPress={fetchPendingApprovals} style={styles.refreshButton}>
             <Ionicons name="refresh" size={24} color="white" />
           </TouchableOpacity>
@@ -449,16 +452,26 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
                 <View style={styles.modalActions}>
                   <TouchableOpacity
-                    style={[styles.modalActionButton, styles.approveButton]}
-                    onPress={() => directApprove(selectedUser._id)}
-                    disabled={processing}
+                    style={[
+                      styles.modalActionButton,
+                      styles.approveButton,
+                      (!selectedUser.canApprove || processing) && styles.actionButtonDisabled,
+                    ]}
+                    onPress={() => {
+                      if (!selectedUser.canApprove) {
+                        Alert.alert('Cannot Approve Yet', 'Resident identification must be verified before account approval.');
+                        return;
+                      }
+                      directApprove(selectedUser._id);
+                    }}
+                    disabled={processing || !selectedUser.canApprove}
                   >
                     {processing && approvingUserId === selectedUser._id ? (
                       <ActivityIndicator color="white" />
                     ) : (
                       <>
                         <Ionicons name="checkmark-circle" size={20} color="white" />
-                        <Text style={styles.modalActionText}>Approve</Text>
+                        <Text style={styles.modalActionText}>{selectedUser.canApprove ? 'Approve' : 'Awaiting Verified ID'}</Text>
                       </>
                     )}
                   </TouchableOpacity>

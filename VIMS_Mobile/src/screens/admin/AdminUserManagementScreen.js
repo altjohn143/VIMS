@@ -11,9 +11,13 @@ import {
   Modal,
   RefreshControl,
   FlatList,
+  Image,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
@@ -27,11 +31,32 @@ const AdminUserManagementScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [approvalFilter, setApprovalFilter] = useState('all');
+  const [viewFilter, setViewFilter] = useState('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [documentOpen, setDocumentOpen] = useState(false);
+  const [documentLoading, setDocumentLoading] = useState(false);
+  const [documentImages, setDocumentImages] = useState({ front: null, back: null, selfie: null });
+  const [assignmentEditMode, setAssignmentEditMode] = useState(false);
+  const [assignmentProcessing, setAssignmentProcessing] = useState(false);
+  const [securityAssignments, setSecurityAssignments] = useState([]);
+  const [assignmentForm, setAssignmentForm] = useState({
+    securityLevel: 'personnel',
+    headOfficerId: '',
+    assignedPhases: '',
+    assignedAreas: '',
+    patrolSchedule: '',
+  });
+  const [moveOutUser, setMoveOutUser] = useState(null);
+  const [moveOutAction, setMoveOutAction] = useState('approve');
+  const [moveOutNotes, setMoveOutNotes] = useState('');
+  const [moveOutOpen, setMoveOutOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createProcessing, setCreateProcessing] = useState(false);
   const [newUserData, setNewUserData] = useState({
@@ -41,6 +66,8 @@ const AdminUserManagementScreen = ({ navigation }) => {
     phone: '',
     password: '',
     role: 'security',
+    securityLevel: 'personnel',
+    headOfficerId: '',
     assignedPhases: '',
     assignedAreas: '',
     patrolSchedule: ''
@@ -59,11 +86,21 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
   useEffect(() => {
     fetchUsers();
+    loadSecurityAssignments();
   }, []);
 
   useEffect(() => {
     filterUsers();
-  }, [users, searchQuery, roleFilter, statusFilter]);
+  }, [users, searchQuery, roleFilter, statusFilter, approvalFilter, viewFilter]);
+
+  const loadSecurityAssignments = async () => {
+    try {
+      const response = await api.get('/patrols/assignments');
+      if (response.data?.success) setSecurityAssignments(response.data.data || []);
+    } catch (error) {
+      console.warn('Unable to load security assignments:', error?.response?.data?.error || error.message);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -129,7 +166,158 @@ const AdminUserManagementScreen = ({ navigation }) => {
       }
     }
 
+    if (approvalFilter !== 'all') {
+      const approved = approvalFilter === 'approved';
+      filtered = filtered.filter((user) => user.role === 'resident' && user.isApproved === approved);
+    }
+
+    if (viewFilter === 'residents') filtered = filtered.filter((user) => user.role === 'resident');
+    if (viewFilter === 'pending') filtered = filtered.filter((user) => user.role === 'resident' && !user.isApproved);
+    if (viewFilter === 'moveout') filtered = filtered.filter((user) => user.role === 'resident' && user.moveOutStatus === 'pending');
+    if (viewFilter === 'staff') filtered = filtered.filter((user) => ['admin', 'security'].includes(user.role));
+
     setFilteredUsers(filtered);
+  };
+
+  const handleApproveResident = async (user) => {
+    if (!user || user.role !== 'resident' || user.isApproved) return;
+    const canApprove = user.canApprove ?? user.hasUploadedId;
+    if (!canApprove) {
+      Alert.alert('Awaiting ID Upload', 'This resident cannot be approved until front and back identification images are uploaded.');
+      return;
+    }
+    Alert.alert('Approve Resident', `Approve ${user.firstName} ${user.lastName}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Approve',
+        onPress: async () => {
+          setProcessing(true);
+          try {
+            const response = await api.put(`/users/${user._id}/approve`);
+            if (response.data?.success) {
+              Alert.alert('Success', 'Resident approved successfully');
+              fetchUsers();
+            }
+          } catch (error) {
+            Alert.alert('Error', error.response?.data?.error || 'Failed to approve resident');
+          } finally {
+            setProcessing(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleLoadVerificationImages = async (user) => {
+    if (!user?.verificationId) {
+      Alert.alert('No Documents', 'This user has not uploaded identification documents.');
+      return;
+    }
+    setSelectedUser(user);
+    setDocumentOpen(true);
+    setDocumentLoading(true);
+    setDocumentImages({ front: null, back: null, selfie: null });
+    try {
+      const response = await api.get(`/verifications/admin/${user.verificationId}/images`);
+      if (response.data?.success) setDocumentImages(response.data.data || {});
+      else Alert.alert('Error', response.data?.error || 'Failed to load uploaded documents');
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to load uploaded documents');
+    } finally {
+      setDocumentLoading(false);
+    }
+  };
+
+  const openMoveOutDialog = (user, action) => {
+    setMoveOutUser(user);
+    setMoveOutAction(action);
+    setMoveOutNotes(action === 'approve' ? 'Move-out approved by admin' : 'Move-out request denied');
+    setMoveOutOpen(true);
+  };
+
+  const submitMoveOutDecision = async () => {
+    if (!moveOutUser) return;
+    setProcessing(true);
+    try {
+      const endpoint = moveOutAction === 'approve'
+        ? `/users/${moveOutUser._id}/move-out/approve`
+        : `/users/${moveOutUser._id}/move-out/deny`;
+      const response = await api.put(endpoint, { notes: moveOutNotes });
+      if (response.data?.success) {
+        Alert.alert('Success', response.data.message || 'Move-out request updated');
+        setMoveOutOpen(false);
+        setMoveOutUser(null);
+        fetchUsers();
+      }
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update move-out request');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const beginAssignmentEdit = (user) => {
+    setAssignmentForm({
+      securityLevel: user.securityLevel || 'personnel',
+      headOfficerId: user.headOfficerId?._id || user.headOfficerId || '',
+      assignedPhases: (user.assignedPhases || []).join(', '),
+      assignedAreas: (user.assignedAreas || []).join(', '),
+      patrolSchedule: user.patrolSchedule || '',
+    });
+    setAssignmentEditMode(true);
+  };
+
+  const saveAssignment = async () => {
+    if (!selectedUser || selectedUser.role !== 'security') return;
+    setAssignmentProcessing(true);
+    try {
+      const payload = {
+        securityLevel: assignmentForm.securityLevel,
+        headOfficerId: assignmentForm.securityLevel === 'personnel' ? assignmentForm.headOfficerId || null : null,
+        assignedPhases: assignmentForm.assignedPhases.split(',').map((value) => Number(value.trim())).filter((value) => Number.isInteger(value) && value > 0),
+        assignedAreas: assignmentForm.assignedAreas.split(',').map((value) => value.trim()).filter(Boolean),
+        patrolSchedule: assignmentForm.patrolSchedule.trim(),
+      };
+      const response = await api.put(`/patrols/assign/${selectedUser._id}`, payload);
+      if (response.data?.success) {
+        const updated = response.data.data;
+        setSelectedUser((previous) => ({ ...previous, ...updated }));
+        setUsers((previous) => previous.map((user) => user._id === updated._id ? { ...user, ...updated } : user));
+        setAssignmentEditMode(false);
+        loadSecurityAssignments();
+        Alert.alert('Success', 'Security patrol assignment updated');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update assignment');
+    } finally {
+      setAssignmentProcessing(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      const fileUri = `${FileSystem.documentDirectory}user_management_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.pdf`;
+      const token = await AsyncStorage.getItem('token');
+      const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
+      const download = await FileSystem.downloadAsync(
+        `${baseUrl}/users/export?format=pdf&timezoneOffset=${new Date().getTimezoneOffset()}`,
+        fileUri,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
+      if (download.status < 200 || download.status >= 300) {
+        throw new Error(`Export server returned status ${download.status}`);
+      }
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, { mimeType: 'application/pdf', dialogTitle: 'Export User Management PDF' });
+      } else {
+        Alert.alert('Export Complete', `PDF saved to ${fileUri}`);
+      }
+    } catch (error) {
+      Alert.alert('Export Failed', error.response?.data?.error || error.message || 'Failed to export PDF');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleToggleStatus = async (user) => {
@@ -325,19 +513,43 @@ const AdminUserManagementScreen = ({ navigation }) => {
             <>
               <TouchableOpacity
                 style={[styles.actionButton, styles.approveMoveOutButton]}
-                onPress={() => handleMoveOutDecision(item, 'approve')}
+                onPress={() => openMoveOutDialog(item, 'approve')}
               >
                 <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
                 <Text style={[styles.actionButtonText, { color: themeColors.success }]}>Move-out</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionButton, styles.denyMoveOutButton]}
-                onPress={() => handleMoveOutDecision(item, 'deny')}
+                onPress={() => openMoveOutDialog(item, 'deny')}
               >
                 <Ionicons name="close-circle" size={20} color={themeColors.warning} />
                 <Text style={[styles.actionButtonText, { color: themeColors.warning }]}>Deny</Text>
               </TouchableOpacity>
             </>
+          )}
+
+          {isResident && !item.isApproved && (
+            <TouchableOpacity
+              style={[styles.actionButton, !(item.canApprove ?? item.hasUploadedId) && styles.disabledAction]}
+              onPress={() => handleApproveResident(item)}
+              disabled={processing}
+            >
+              <Ionicons name="checkmark-done-circle" size={20} color={(item.canApprove ?? item.hasUploadedId) ? themeColors.success : themeColors.textSecondary} />
+              <Text style={[styles.actionButtonText, { color: (item.canApprove ?? item.hasUploadedId) ? themeColors.success : themeColors.textSecondary }]}>
+                Approve
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {isResident && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleLoadVerificationImages(item)}
+              disabled={!item.verificationId}
+            >
+              <Ionicons name="images" size={20} color={item.verificationId ? themeColors.info : themeColors.textSecondary} />
+              <Text style={[styles.actionButtonText, { color: item.verificationId ? themeColors.info : themeColors.textSecondary }]}>IDs</Text>
+            </TouchableOpacity>
           )}
 
           <TouchableOpacity
@@ -377,6 +589,14 @@ const AdminUserManagementScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.navigate('ArchivedUsers')} style={styles.directoryIconAction}>
             <Ionicons name="archive-outline" size={20} color={themeColors.primaryDeep} />
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('AdminVerificationQueue')} style={styles.directoryIconAction}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={themeColors.primaryDeep} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleExportPdf} style={styles.directoryIconAction} disabled={exporting}>
+            {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : (
+              <Ionicons name="download-outline" size={20} color={themeColors.primaryDeep} />
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -398,6 +618,23 @@ const AdminUserManagementScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.viewFilterScroll}>
+          {[
+            ['all', `All (${stats.total})`],
+            ['residents', `Residents (${stats.residents})`],
+            ['pending', `Pending (${stats.pending})`],
+            ['moveout', `Move-out (${stats.moveOut})`],
+            ['staff', `Staff (${stats.admin + stats.security})`],
+          ].map(([value, label]) => (
+            <TouchableOpacity
+              key={value}
+              style={[styles.viewChip, viewFilter === value && styles.viewChipActive]}
+              onPress={() => setViewFilter(value)}
+            >
+              <Text style={[styles.viewChipText, viewFilter === value && styles.viewChipTextActive]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color={themeColors.textSecondary} />
           <TextInput
@@ -413,7 +650,13 @@ const AdminUserManagementScreen = ({ navigation }) => {
           ) : null}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+        <TouchableOpacity style={styles.advancedFilterToggle} onPress={() => setShowAdvancedFilters((value) => !value)}>
+          <Ionicons name="options-outline" size={17} color={themeColors.primary} />
+          <Text style={styles.advancedFilterToggleText}>{showAdvancedFilters ? 'Hide advanced filters' : 'More filters'}</Text>
+          {(roleFilter !== 'all' || statusFilter !== 'all' || approvalFilter !== 'all') && <View style={styles.activeFilterDot} />}
+        </TouchableOpacity>
+
+        {showAdvancedFilters && <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <TouchableOpacity
             style={[styles.filterChip, roleFilter === 'all' && styles.activeFilter]}
             onPress={() => setRoleFilter('all')}
@@ -461,7 +704,19 @@ const AdminUserManagementScreen = ({ navigation }) => {
               Move-out ({stats.moveOut})
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+          <TouchableOpacity
+            style={[styles.filterChip, approvalFilter === 'approved' && styles.activeFilter]}
+            onPress={() => setApprovalFilter(approvalFilter === 'approved' ? 'all' : 'approved')}
+          >
+            <Text style={[styles.filterText, approvalFilter === 'approved' && styles.activeFilterText]}>Approved</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, approvalFilter === 'pending' && styles.activeFilter]}
+            onPress={() => setApprovalFilter(approvalFilter === 'pending' ? 'all' : 'pending')}
+          >
+            <Text style={[styles.filterText, approvalFilter === 'pending' && styles.activeFilterText]}>Pending approval</Text>
+          </TouchableOpacity>
+        </ScrollView>}
       </View>
 
       <FlatList
@@ -552,6 +807,40 @@ const AdminUserManagementScreen = ({ navigation }) => {
               {newUserData.role === 'security' && (
                 <>
                   <View style={styles.formRow}>
+                    <Text style={styles.fieldLabel}>Security level</Text>
+                    <View style={styles.pickerContainer}>
+                      <Picker
+                        selectedValue={newUserData.securityLevel}
+                        onValueChange={(value) => setNewUserData((prev) => ({ ...prev, securityLevel: value, headOfficerId: '' }))}
+                      >
+                        <Picker.Item label="Security personnel" value="personnel" />
+                        <Picker.Item label="Head officer" value="head-officer" />
+                      </Picker>
+                    </View>
+                  </View>
+                  {newUserData.securityLevel === 'personnel' && (
+                    <View style={styles.formRow}>
+                      <Text style={styles.fieldLabel}>Head officer (optional)</Text>
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={newUserData.headOfficerId}
+                          onValueChange={(value) => setNewUserData((prev) => ({ ...prev, headOfficerId: value }))}
+                        >
+                          <Picker.Item label="Not assigned" value="" />
+                          {securityAssignments
+                            .filter((officer) => officer.securityLevel === 'head-officer')
+                            .map((officer) => (
+                              <Picker.Item
+                                key={officer._id}
+                                label={`${officer.firstName} ${officer.lastName}`}
+                                value={officer._id}
+                              />
+                            ))}
+                        </Picker>
+                      </View>
+                    </View>
+                  )}
+                  <View style={styles.formRow}>
                     <TextInput
                       style={styles.input}
                       placeholder="Assigned Phases (1,2)"
@@ -590,6 +879,8 @@ const AdminUserManagementScreen = ({ navigation }) => {
                         phone: '',
                         password: '',
                         role: 'security',
+                        securityLevel: 'personnel',
+                        headOfficerId: '',
                         assignedPhases: '',
                         assignedAreas: '',
                         patrolSchedule: ''
@@ -616,6 +907,10 @@ const AdminUserManagementScreen = ({ navigation }) => {
                         phone: phone.trim(),
                         password,
                         role,
+                        securityLevel: role === 'security' ? newUserData.securityLevel : undefined,
+                        headOfficerId: role === 'security' && newUserData.securityLevel === 'personnel'
+                          ? newUserData.headOfficerId || null
+                          : null,
                         assignedPhases: newUserData.assignedPhases
                           .split(',')
                           .map((item) => Number(item.trim()))
@@ -636,11 +931,14 @@ const AdminUserManagementScreen = ({ navigation }) => {
                           phone: '',
                           password: '',
                           role: 'security',
+                          securityLevel: 'personnel',
+                          headOfficerId: '',
                           assignedPhases: '',
                           assignedAreas: '',
                           patrolSchedule: ''
                         });
                         fetchUsers();
+                        loadSecurityAssignments();
                       } else {
                         Alert.alert('Error', response.data.error || 'Unable to create staff account');
                       }
@@ -779,6 +1077,70 @@ const AdminUserManagementScreen = ({ navigation }) => {
                   </View>
                 )}
 
+                {selectedUser.role === 'security' && (
+                  <View style={styles.detailSection}>
+                    <View style={styles.sectionTitleRow}>
+                      <Text style={styles.detailSectionTitle}>Security Assignment</Text>
+                      {!assignmentEditMode && (
+                        <TouchableOpacity onPress={() => beginAssignmentEdit(selectedUser)}>
+                          <Text style={styles.linkText}>Edit</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {assignmentEditMode ? (
+                      <>
+                        <Text style={styles.fieldLabel}>Security level</Text>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={assignmentForm.securityLevel}
+                            onValueChange={(value) => setAssignmentForm((previous) => ({ ...previous, securityLevel: value, headOfficerId: '' }))}
+                          >
+                            <Picker.Item label="Security personnel" value="personnel" />
+                            <Picker.Item label="Head officer" value="head-officer" />
+                          </Picker>
+                        </View>
+                        {assignmentForm.securityLevel === 'personnel' && (
+                          <>
+                            <Text style={styles.fieldLabel}>Head officer</Text>
+                            <View style={styles.pickerContainer}>
+                              <Picker
+                                selectedValue={assignmentForm.headOfficerId}
+                                onValueChange={(value) => setAssignmentForm((previous) => ({ ...previous, headOfficerId: value }))}
+                              >
+                                <Picker.Item label="Not assigned" value="" />
+                                {securityAssignments
+                                  .filter((officer) => officer.securityLevel === 'head-officer' && officer._id !== selectedUser._id)
+                                  .map((officer) => (
+                                    <Picker.Item key={officer._id} label={`${officer.firstName} ${officer.lastName}`} value={officer._id} />
+                                  ))}
+                              </Picker>
+                            </View>
+                            <TextInput style={styles.input} placeholder="Assigned phases (1, 2)" value={assignmentForm.assignedPhases} onChangeText={(value) => setAssignmentForm((previous) => ({ ...previous, assignedPhases: value }))} />
+                            <TextInput style={styles.input} placeholder="Assigned areas" value={assignmentForm.assignedAreas} onChangeText={(value) => setAssignmentForm((previous) => ({ ...previous, assignedAreas: value }))} />
+                            <TextInput style={styles.input} placeholder="Patrol schedule" value={assignmentForm.patrolSchedule} onChangeText={(value) => setAssignmentForm((previous) => ({ ...previous, patrolSchedule: value }))} />
+                          </>
+                        )}
+                        <View style={styles.inlineActions}>
+                          <TouchableOpacity style={styles.secondaryBtn} onPress={() => setAssignmentEditMode(false)} disabled={assignmentProcessing}>
+                            <Text style={styles.secondaryText}>Cancel</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.primaryBtn} onPress={saveAssignment} disabled={assignmentProcessing}>
+                            {assignmentProcessing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryText}>Save Assignment</Text>}
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <View style={styles.detailItem}><Text style={styles.detailItemLabel}>Level</Text><Text style={styles.detailItemValue}>{selectedUser.securityLevel || 'personnel'}</Text></View>
+                        <View style={styles.detailItem}><Text style={styles.detailItemLabel}>Head officer</Text><Text style={styles.detailItemValue}>{selectedUser.headOfficerId?.firstName ? `${selectedUser.headOfficerId.firstName} ${selectedUser.headOfficerId.lastName}` : 'Not assigned'}</Text></View>
+                        <View style={styles.detailItem}><Text style={styles.detailItemLabel}>Phases</Text><Text style={styles.detailItemValue}>{(selectedUser.assignedPhases || []).join(', ') || 'Not assigned'}</Text></View>
+                        <View style={styles.detailItem}><Text style={styles.detailItemLabel}>Areas</Text><Text style={styles.detailItemValue}>{(selectedUser.assignedAreas || []).join(', ') || 'Not assigned'}</Text></View>
+                        <View style={styles.detailItem}><Text style={styles.detailItemLabel}>Schedule</Text><Text style={styles.detailItemValue}>{selectedUser.patrolSchedule || 'Not set'}</Text></View>
+                      </>
+                    )}
+                  </View>
+                )}
+
                 <View style={styles.detailSection}>
                   <Text style={styles.detailSectionTitle}>Account Details</Text>
                   <View style={styles.detailItem}>
@@ -792,6 +1154,26 @@ const AdminUserManagementScreen = ({ navigation }) => {
                 </View>
 
                 <View style={styles.modalActions}>
+                  {selectedUser.role === 'resident' && (
+                    <TouchableOpacity
+                      style={[styles.modalActionButton, !selectedUser.verificationId && styles.disabledAction]}
+                      onPress={() => handleLoadVerificationImages(selectedUser)}
+                      disabled={!selectedUser.verificationId}
+                    >
+                      <Ionicons name="images" size={20} color={themeColors.info} />
+                      <Text style={[styles.modalActionText, { color: themeColors.info }]}>View IDs</Text>
+                    </TouchableOpacity>
+                  )}
+                  {selectedUser.role === 'resident' && !selectedUser.isApproved && (
+                    <TouchableOpacity
+                      style={[styles.modalActionButton, !(selectedUser.canApprove ?? selectedUser.hasUploadedId) && styles.disabledAction]}
+                      onPress={() => handleApproveResident(selectedUser)}
+                      disabled={processing || !(selectedUser.canApprove ?? selectedUser.hasUploadedId)}
+                    >
+                      <Ionicons name="checkmark-done-circle" size={20} color={themeColors.success} />
+                      <Text style={[styles.modalActionText, { color: themeColors.success }]}>Approve</Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     style={[styles.modalActionButton, styles.statusButton]}
                     onPress={() => {
@@ -898,6 +1280,68 @@ const AdminUserManagementScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={moveOutOpen} animationType="slide" transparent onRequestClose={() => setMoveOutOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.createModalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{moveOutAction === 'approve' ? 'Approve move-out' : 'Deny move-out'}</Text>
+              <TouchableOpacity onPress={() => setMoveOutOpen(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
+            </View>
+            <Text style={styles.modalHelper}>
+              {moveOutUser ? `${moveOutUser.firstName} ${moveOutUser.lastName} • ${moveOutUser.houseNumber || 'No house number'}` : ''}
+            </Text>
+            <Text style={styles.fieldLabel}>Admin review notes</Text>
+            <TextInput
+              style={[styles.input, styles.notesInput]}
+              multiline
+              value={moveOutNotes}
+              onChangeText={setMoveOutNotes}
+              placeholder="Enter the decision notes"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.secondaryBtn} onPress={() => setMoveOutOpen(false)}><Text style={styles.secondaryText}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.primaryBtn} onPress={submitMoveOutDecision} disabled={processing}>
+                {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryText}>{moveOutAction === 'approve' ? 'Approve' : 'Deny'}</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={documentOpen} animationType="slide" transparent onRequestClose={() => setDocumentOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.documentModalCard}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Uploaded Identification</Text>
+                <Text style={styles.modalHelper}>{selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : 'Resident documents'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setDocumentOpen(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
+            </View>
+            {documentLoading ? (
+              <View style={styles.documentLoading}><ActivityIndicator color={themeColors.primary} /><Text style={styles.modalHelper}>Loading secure documents…</Text></View>
+            ) : (
+              <ScrollView>
+                {[
+                  ['front', 'ID Front'],
+                  ['back', 'ID Back'],
+                  ['selfie', 'Verification Selfie'],
+                ].map(([key, label]) => (
+                  <View key={key} style={styles.documentBlock}>
+                    <Text style={styles.detailSectionTitle}>{label}</Text>
+                    {documentImages[key] ? (
+                      <Image source={{ uri: documentImages[key] }} style={styles.documentImage} resizeMode="contain" />
+                    ) : (
+                      <View style={styles.documentMissing}><Ionicons name="image-outline" size={30} color={themeColors.textSecondary} /><Text style={styles.modalHelper}>Not available</Text></View>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -907,20 +1351,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
-  directoryHeader: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20 },
+  directoryHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   directoryTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  directoryEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
-  directoryTitle: { color: 'white', fontSize: 32, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
-  directorySubtitle: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '600', marginTop: 2 },
+  directoryEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  directoryTitle: { color: themeColors.textPrimary, fontSize: 30, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
+  directorySubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 2 },
   directoryActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
   directoryPrimaryAction: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: themeColors.primary, paddingHorizontal: 16, height: 44, borderRadius: 14 },
   directoryPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },
   directoryIconAction: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.accent },
-  directorySummary: { marginHorizontal: 16, marginTop: 14, backgroundColor: 'white', borderRadius: 18, paddingVertical: 15, flexDirection: 'row', alignItems: 'center' },
+  directorySummary: { marginHorizontal: 16, marginTop: 14, backgroundColor: themeColors.surfaceTint, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors.border },
   directorySummaryItem: { flex: 1, alignItems: 'center' },
   directorySummaryValue: { color: themeColors.primaryDeep, fontSize: 21, fontWeight: '900' },
   directorySummaryLabel: { color: themeColors.textSecondary, fontSize: 10, fontWeight: '800', marginTop: 2 },
   directorySummaryDivider: { width: 1, height: 34, backgroundColor: themeColors.border },
+  viewFilterScroll: { marginBottom: 12 },
+  viewChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12, marginRight: 8, backgroundColor: themeColors.surfaceMuted, borderWidth: 1, borderColor: themeColors.border },
+  viewChipActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },
+  viewChipText: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
+  viewChipTextActive: { color: 'white' },
+  disabledAction: { opacity: 0.45 },
+  advancedFilterToggle: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
+  advancedFilterToggleText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
+  activeFilterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.warning },
+  fieldLabel: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 6, marginTop: 6 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  linkText: { color: themeColors.primary, fontSize: 13, fontWeight: '800' },
+  inlineActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  modalHelper: { color: themeColors.textSecondary, fontSize: 13, marginTop: 4, marginBottom: 12 },
+  notesInput: { minHeight: 100, textAlignVertical: 'top' },
+  documentModalCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, width: '94%', maxHeight: '88%' },
+  documentLoading: { minHeight: 260, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  documentBlock: { marginBottom: 18 },
+  documentImage: { width: '100%', height: 230, borderRadius: 16, backgroundColor: themeColors.surfaceMuted },
+  documentMissing: { height: 130, borderRadius: 16, backgroundColor: themeColors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   header: {
     backgroundColor: themeColors.primaryDeep,
     paddingTop: 56,

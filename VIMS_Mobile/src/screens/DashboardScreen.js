@@ -40,6 +40,7 @@ const DashboardScreen = ({ navigation }) => {
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [assistantVisible, setAssistantVisible] = useState(false);
   const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
+  const [residentOverview, setResidentOverview] = useState({ announcements: [], upcomingSchedules: [], pendingDues: 0, openServices: 0 });
   const [collapsedSections, setCollapsedSections] = useState({
     quickActions: false,
     recentActivity: false,
@@ -198,11 +199,29 @@ const DashboardScreen = ({ navigation }) => {
     const securityLevel = userData?.securityLevel;
     try {
       if (role === 'resident') {
-        const response = await api.get('/visitors/resident/dashboard');
-        if (response.data.success) {
+        const [visitorResult, paymentsResult, servicesResult, announcementsResult, schedulesResult] = await Promise.allSettled([
+          api.get('/visitors/resident/dashboard'),
+          api.get('/payments/my'),
+          api.get('/service-requests/my'),
+          api.get('/announcements'),
+          api.get('/reservations/public/schedules'),
+        ]);
+        const response = visitorResult.status === 'fulfilled' ? visitorResult.value : null;
+        if (response?.data?.success) {
           const payload = response.data.data || {};
           setStats(payload.stats || {});
         }
+        const paymentPayload = paymentsResult.status === 'fulfilled' ? paymentsResult.value.data : {};
+        const serviceRows = servicesResult.status === 'fulfilled' ? servicesResult.value.data?.data || [] : [];
+        const announcementRows = announcementsResult.status === 'fulfilled' ? announcementsResult.value.data?.data || [] : [];
+        const schedulePayload = schedulesResult.status === 'fulfilled' ? schedulesResult.value.data?.data : null;
+        const scheduleRows = Array.isArray(schedulePayload) ? schedulePayload : (schedulePayload?.schedules || []);
+        setResidentOverview({
+          pendingDues: paymentPayload?.summary?.totalPending || paymentPayload?.summary?.pendingAmount || 0,
+          openServices: serviceRows.filter(item => !['completed', 'cancelled', 'rejected'].includes(item.status)).length,
+          announcements: announcementRows.slice(0, 3),
+          upcomingSchedules: scheduleRows.filter(item => new Date(item.endDate || item.startDate) >= new Date()).slice(0, 3),
+        });
         return;
       }
 
@@ -773,6 +792,37 @@ const DashboardScreen = ({ navigation }) => {
           ))}
         </View>
 
+        {userToShow?.role === 'resident' && (
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Community Overview</Text>
+              <View style={styles.liveBadge}><View style={styles.liveDot} /><Text style={styles.liveBadgeText}>Live</Text></View>
+            </View>
+            <View style={styles.residentOverviewGrid}>
+              <TouchableOpacity style={styles.residentOverviewCard} onPress={() => navigation.navigate('PaymentsTab')}>
+                <Ionicons name="wallet-outline" size={20} color="#d97706" />
+                <Text style={styles.residentOverviewValue}>₱{formatPeso(residentOverview.pendingDues)}</Text>
+                <Text style={styles.residentOverviewLabel}>Pending dues</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.residentOverviewCard} onPress={() => navigation.navigate('ServicesTab')}>
+                <Ionicons name="build-outline" size={20} color="#2563eb" />
+                <Text style={styles.residentOverviewValue}>{residentOverview.openServices}</Text>
+                <Text style={styles.residentOverviewLabel}>Open services</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.feedHeader} onPress={() => navigation.navigate('Announcements')}>
+              <Text style={styles.feedTitle}>Latest announcements</Text><Ionicons name="chevron-forward" size={17} color={themeColors.primaryDeep} />
+            </TouchableOpacity>
+            {residentOverview.announcements.length ? residentOverview.announcements.map(item => (
+              <View key={item._id} style={styles.feedRow}><Ionicons name="megaphone-outline" size={17} color={themeColors.primary} /><View style={{ flex: 1 }}><Text style={styles.feedRowTitle} numberOfLines={1}>{item.title}</Text><Text style={styles.feedRowMeta} numberOfLines={1}>{item.body}</Text></View></View>
+            )) : <Text style={styles.analyticsEmpty}>No announcements yet</Text>}
+            <Text style={[styles.feedTitle, { marginTop: 14 }]}>Upcoming community schedules</Text>
+            {residentOverview.upcomingSchedules.length ? residentOverview.upcomingSchedules.map((item, index) => (
+              <View key={item.reservationId || item._id || index} style={styles.feedRow}><Ionicons name="calendar-outline" size={17} color="#7c3aed" /><View style={{ flex: 1 }}><Text style={styles.feedRowTitle} numberOfLines={1}>{item.resourceName || 'Community reservation'}</Text><Text style={styles.feedRowMeta}>{item.startDate ? new Date(item.startDate).toLocaleString() : 'Schedule pending'}</Text></View></View>
+            )) : <Text style={styles.analyticsEmpty}>No upcoming schedules</Text>}
+          </View>
+        )}
+
         {userToShow?.role === 'security' && securityAnalytics && (
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
@@ -907,6 +957,15 @@ const DashboardScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  residentOverviewGrid: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  residentOverviewCard: { flex: 1, padding: 14, borderRadius: 15, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
+  residentOverviewValue: { color: '#0f172a', fontSize: 20, fontWeight: '900', marginTop: 7 },
+  residentOverviewLabel: { color: '#64748b', fontSize: 11, fontWeight: '700', marginTop: 2 },
+  feedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, marginBottom: 7 },
+  feedTitle: { color: '#0f172a', fontSize: 13, fontWeight: '900' },
+  feedRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#eef2f7' },
+  feedRowTitle: { color: '#1e293b', fontSize: 12, fontWeight: '800' },
+  feedRowMeta: { color: '#64748b', fontSize: 10, marginTop: 2 },
   container: { flex: 1, backgroundColor: themeColors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background, gap: 10 },
   loadingText: { fontSize: 14, color: '#64748b', fontWeight: '500' },
@@ -1214,7 +1273,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15,23,42,0.22)',
     justifyContent: 'flex-end',
     paddingHorizontal: 12,
-    paddingBottom: 88,
+    paddingBottom: 12,
   },
   assistantBubble: {
     height: '72%',
@@ -1240,10 +1299,10 @@ const styles = StyleSheet.create({
   },
   floatingAssistantPulseContainer: {
     position: 'absolute',
-    right: 18,
-    bottom: 88,
-    width: 68,
-    height: 68,
+    right: 12,
+    bottom: 8,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },

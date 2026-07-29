@@ -28,7 +28,7 @@ const PublicLotMapScreen = ({ navigation }) => {
   const [showTourModal, setShowTourModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPhase, setSelectedPhase] = useState(1);
+  const [selectedPhase, setSelectedPhase] = useState('all');
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,13 +87,13 @@ const PublicLotMapScreen = ({ navigation }) => {
   }, [lots]);
 
   useEffect(() => {
-    if (phases.length > 0 && !phases.includes(selectedPhase)) {
-      setSelectedPhase(phases[0]);
+    if (selectedPhase !== 'all' && phases.length > 0 && !phases.includes(selectedPhase)) {
+      setSelectedPhase('all');
     }
   }, [phases, selectedPhase]);
 
   const phaseFilteredLots = useMemo(() => {
-    return filteredLots.filter(lot => (lot.phase || 1) === selectedPhase);
+    return selectedPhase === 'all' ? filteredLots : filteredLots.filter(lot => (lot.phase || 1) === selectedPhase);
   }, [filteredLots, selectedPhase]);
 
   const visibleBlocks = useMemo(() => {
@@ -332,6 +332,9 @@ const PublicLotMapScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.phaseRow}>
+          <TouchableOpacity style={[styles.phaseChip, selectedPhase === 'all' && styles.activePhaseChip]} onPress={() => setSelectedPhase('all')}>
+            <Text style={[styles.phaseText, selectedPhase === 'all' && styles.activePhaseText]}>All phases</Text>
+          </TouchableOpacity>
           {phases.map((phase) => (
             <TouchableOpacity
               key={phase}

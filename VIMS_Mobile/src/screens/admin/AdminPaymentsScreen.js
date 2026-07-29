@@ -20,6 +20,8 @@ import { useAuth } from '../../context/AuthContext';
 import { themeColors, shadows } from '../../utils/theme';
 import api, { getProtectedImageDataUrl } from '../../utils/api';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AdminPaymentsScreen = ({ navigation }) => {
   const [payments, setPayments] = useState([]);
@@ -27,7 +29,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [summary, setSummary] = useState({ totalCollected: 0, monthlyCollected: 0 });
+  const [summary, setSummary] = useState({ totalCollected: 0, monthlyCollected: 0, pendingTotal: 0, collectionRate: 0 });
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showQRVerifyDialog, setShowQRVerifyDialog] = useState(false);
@@ -45,8 +47,16 @@ const AdminPaymentsScreen = ({ navigation }) => {
     setSelectedImageUri(null);
   };
   const [processing, setProcessing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [monthlyDuesAmount, setMonthlyDuesAmount] = useState(0);
+  const [duesAmountDraft, setDuesAmountDraft] = useState('');
+  const [showDuesDialog, setShowDuesDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showFiltersDialog, setShowFiltersDialog] = useState(false);
 
   const { user } = useAuth();
 
@@ -55,6 +65,8 @@ const AdminPaymentsScreen = ({ navigation }) => {
     try {
       const params = { page, limit: 20 };
       if (statusFilter !== 'all') params.status = statusFilter;
+      if (paymentTypeFilter !== 'all') params.paymentType = paymentTypeFilter;
+      if (paymentMethodFilter !== 'all') params.paymentMethod = paymentMethodFilter;
       
       const response = await api.get('/payments', { params });
       
@@ -70,7 +82,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, statusFilter]);
+  }, [page, statusFilter, paymentTypeFilter, paymentMethodFilter]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -83,14 +95,78 @@ const AdminPaymentsScreen = ({ navigation }) => {
     }
   }, []);
 
+  const fetchMonthlyDuesAmount = useCallback(async () => {
+    try {
+      const response = await api.get('/payments/admin/monthly-dues-amount');
+      const amount = response.data?.data?.amount || 0;
+      setMonthlyDuesAmount(amount);
+      setDuesAmountDraft(String(amount));
+    } catch (error) {
+      console.error('Error fetching monthly dues amount:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPayments();
     fetchStats();
-  }, [fetchPayments, fetchStats]);
+    fetchMonthlyDuesAmount();
+  }, [fetchPayments, fetchStats, fetchMonthlyDuesAmount]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, paymentTypeFilter, paymentMethodFilter]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchPayments();
+    fetchStats();
+    fetchMonthlyDuesAmount();
+  };
+
+  const handleUpdateDuesAmount = async () => {
+    const amount = Number(duesAmountDraft);
+    if (!Number.isFinite(amount) || amount < 0) {
+      Alert.alert('Invalid amount', 'Enter a valid monthly dues amount.');
+      return;
+    }
+    setProcessing(true);
+    try {
+      const response = await api.put('/payments/admin/monthly-dues-amount', { amount });
+      setMonthlyDuesAmount(response.data?.data?.amount ?? amount);
+      setShowDuesDialog(false);
+      Alert.alert('Monthly dues updated', 'The new amount will apply when monthly invoices are generated.');
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update monthly dues.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const params = new URLSearchParams({ format: 'pdf', timezoneOffset: String(new Date().getTimezoneOffset()) });
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (paymentTypeFilter !== 'all') params.set('paymentType', paymentTypeFilter);
+      if (paymentMethodFilter !== 'all') params.set('paymentMethod', paymentMethodFilter);
+      const target = `${FileSystem.cacheDirectory}VIMS_Payments_${new Date().toISOString().slice(0, 10)}.pdf`;
+      const result = await FileSystem.downloadAsync(
+        `${api.defaults.baseURL}/payments?${params.toString()}`,
+        target,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (result.status !== 200) throw new Error('Export request failed');
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert('Export ready', `Saved to ${result.uri}`);
+        return;
+      }
+      await Sharing.shareAsync(result.uri, { mimeType: 'application/pdf', dialogTitle: 'Export payments report' });
+    } catch (error) {
+      Alert.alert('Export failed', 'The payments PDF could not be generated.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleConfirmCashPayment = async () => {
@@ -170,6 +246,20 @@ const AdminPaymentsScreen = ({ navigation }) => {
       setSelectedImageUri(previewUri);
     } else {
       Alert.alert('Preview unavailable', 'Unable to load this receipt image.');
+    }
+  };
+
+  const handleShareReceiptImage = async () => {
+    if (!selectedImageUri) return;
+    try {
+      const match = selectedImageUri.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match) throw new Error('Unsupported receipt format');
+      const extension = match[1].includes('png') ? 'png' : 'jpg';
+      const target = `${FileSystem.cacheDirectory}payment-receipt-${selectedImagePayment?.invoiceNumber || Date.now()}.${extension}`;
+      await FileSystem.writeAsStringAsync(target, match[2], { encoding: FileSystem.EncodingType.Base64 });
+      await Sharing.shareAsync(target, { mimeType: match[1], dialogTitle: 'Save or share payment receipt' });
+    } catch (error) {
+      Alert.alert('Unable to share', 'The receipt image could not be saved or shared.');
     }
   };
 
@@ -271,6 +361,16 @@ const AdminPaymentsScreen = ({ navigation }) => {
         )}
         
         <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.viewButton]}
+            onPress={() => {
+              setSelectedPayment(payment);
+              setShowDetailsDialog(true);
+            }}
+          >
+            <Ionicons name="document-text-outline" size={18} color={themeColors.primaryDeep} />
+            <Text style={[styles.actionButtonText, { color: themeColors.primaryDeep }]}>Details</Text>
+          </TouchableOpacity>
           {payment.status === 'pending' && payment.paymentMethod === 'cash' && (
             <TouchableOpacity
               style={[styles.actionButton, styles.confirmButton]}
@@ -333,9 +433,31 @@ const AdminPaymentsScreen = ({ navigation }) => {
           <Ionicons name="paper-plane-outline" size={18} color="white" />
           <Text style={styles.ledgerActionPrimaryText}>Send reminders</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={fetchPayments}>
+        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={() => setShowDuesDialog(true)}>
+          <Ionicons name="settings-outline" size={20} color={themeColors.primaryDeep} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={handleExportPdf} disabled={exporting}>
+          {exporting
+            ? <ActivityIndicator size="small" color={themeColors.primaryDeep} />
+            : <Ionicons name="download-outline" size={20} color={themeColors.primaryDeep} />}
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={onRefresh}>
           <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
         </TouchableOpacity>
+      </View>
+      <View style={styles.financeSnapshot}>
+        <View style={styles.snapshotItem}>
+          <Text style={styles.snapshotLabel}>MONTHLY DUES</Text>
+          <Text style={styles.snapshotValue}>{formatCurrency(monthlyDuesAmount)}</Text>
+        </View>
+        <View style={styles.snapshotItem}>
+          <Text style={styles.snapshotLabel}>PENDING</Text>
+          <Text style={styles.snapshotValue}>{formatCurrency(summary.pendingTotal)}</Text>
+        </View>
+        <View style={styles.snapshotItem}>
+          <Text style={styles.snapshotLabel}>COLLECTION</Text>
+          <Text style={styles.snapshotValue}>{summary.collectionRate || 0}%</Text>
+        </View>
       </View>
 
       {/* Search & Filter */}
@@ -349,16 +471,33 @@ const AdminPaymentsScreen = ({ navigation }) => {
             onChangeText={setSearchQuery}
           />
         </View>
-        
         <TouchableOpacity
-          style={[styles.filterButton, statusFilter !== 'all' && styles.activeFilter]}
-          onPress={() => setStatusFilter(statusFilter === 'all' ? 'pending' : 'all')}
+          style={[styles.compactFilterButton, (paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') && styles.compactFilterButtonActive]}
+          onPress={() => setShowFiltersDialog(true)}
         >
-          <Ionicons name="filter" size={18} color={statusFilter !== 'all' ? 'white' : themeColors.textSecondary} />
-          <Text style={[styles.filterText, statusFilter !== 'all' && styles.activeFilterText]}>
-            {statusFilter === 'all' ? 'All' : 'Pending'}
-          </Text>
+          <Ionicons name="options-outline" size={20} color={(paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') ? 'white' : themeColors.primaryDeep} />
+          {(paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') && <View style={styles.filterDot} />}
         </TouchableOpacity>
+      </View>
+      <View style={styles.filterPanel}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {['all', 'pending', 'paid', 'overdue'].map(value => (
+            <TouchableOpacity key={value} style={[styles.filterChip, statusFilter === value && styles.filterChipActive]} onPress={() => setStatusFilter(value)}>
+              <Text style={[styles.filterChipText, statusFilter === value && styles.filterChipTextActive]}>{value === 'all' ? 'All' : value[0].toUpperCase() + value.slice(1)}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        {(paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') && (
+          <View style={styles.activeFilterSummary}>
+            <Ionicons name="funnel" size={13} color={themeColors.primaryDeep} />
+            <Text style={styles.activeFilterSummaryText}>
+              {[paymentTypeFilter !== 'all' ? paymentTypeFilter.replace(/_/g, ' ') : null, paymentMethodFilter !== 'all' ? paymentMethodFilter.replace(/_/g, ' ') : null].filter(Boolean).join(' · ')}
+            </Text>
+            <TouchableOpacity onPress={() => { setPaymentTypeFilter('all'); setPaymentMethodFilter('all'); }}>
+              <Ionicons name="close-circle" size={18} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Payments List */}
@@ -374,7 +513,108 @@ const AdminPaymentsScreen = ({ navigation }) => {
             <Text style={styles.emptyText}>No payments found</Text>
           </View>
         }
+        ListFooterComponent={total > 20 ? (
+          <View style={styles.pagination}>
+            <TouchableOpacity disabled={page <= 1} style={[styles.pageButton, page <= 1 && styles.pageButtonDisabled]} onPress={() => setPage(current => Math.max(1, current - 1))}>
+              <Ionicons name="chevron-back" size={18} color={themeColors.primaryDeep} />
+              <Text style={styles.pageButtonText}>Previous</Text>
+            </TouchableOpacity>
+            <Text style={styles.pageIndicator}>Page {page} of {Math.ceil(total / 20)}</Text>
+            <TouchableOpacity disabled={page >= Math.ceil(total / 20)} style={[styles.pageButton, page >= Math.ceil(total / 20) && styles.pageButtonDisabled]} onPress={() => setPage(current => current + 1)}>
+              <Text style={styles.pageButtonText}>Next</Text>
+              <Ionicons name="chevron-forward" size={18} color={themeColors.primaryDeep} />
+            </TouchableOpacity>
+          </View>
+        ) : null}
       />
+
+      <Modal visible={showFiltersDialog} transparent animationType="slide" onRequestClose={() => setShowFiltersDialog(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.filterSheet}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Filter payments</Text>
+                <Text style={styles.detailModalInvoice}>Use advanced filters only when needed</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowFiltersDialog(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.filterGroupLabel}>PAYMENT TYPE</Text>
+            <View style={styles.wrappedFilters}>
+              {[['all', 'All types'], ['monthly_dues', 'Monthly dues'], ['special_assessment', 'Special assessment'], ['service_fee', 'Service fee'], ['penalty', 'Penalty']].map(([value, label]) => (
+                <TouchableOpacity key={value} style={[styles.filterChip, paymentTypeFilter === value && styles.filterChipActive]} onPress={() => setPaymentTypeFilter(value)}>
+                  <Text style={[styles.filterChipText, paymentTypeFilter === value && styles.filterChipTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.filterGroupLabel}>PAYMENT METHOD</Text>
+            <View style={styles.wrappedFilters}>
+              {[['all', 'All methods'], ['cash', 'Cash'], ['qrph', 'QRPh'], ['gcash', 'GCash'], ['paymaya', 'PayMaya'], ['bank_transfer', 'Bank transfer'], ['check', 'Check']].map(([value, label]) => (
+                <TouchableOpacity key={value} style={[styles.filterChip, paymentMethodFilter === value && styles.filterChipActive]} onPress={() => setPaymentMethodFilter(value)}>
+                  <Text style={[styles.filterChipText, paymentMethodFilter === value && styles.filterChipTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.filterSheetActions}>
+              <TouchableOpacity style={styles.clearFilterButton} onPress={() => { setPaymentTypeFilter('all'); setPaymentMethodFilter('all'); }}>
+                <Text style={styles.clearFilterButtonText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.applyFilterButton} onPress={() => setShowFiltersDialog(false)}>
+                <Text style={styles.applyFilterButtonText}>Show payments</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showDuesDialog} transparent animationType="fade" onRequestClose={() => setShowDuesDialog(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <Text style={styles.confirmTitle}>Set Monthly Dues</Text>
+            <Text style={styles.confirmMessage}>This amount is used for newly generated monthly invoices.</Text>
+            <TextInput style={styles.duesInput} value={duesAmountDraft} onChangeText={setDuesAmountDraft} keyboardType="decimal-pad" placeholder="0.00" />
+            <View style={styles.confirmActions}>
+              <TouchableOpacity style={styles.cancelConfirmButton} onPress={() => setShowDuesDialog(false)}><Text style={styles.cancelConfirmText}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.confirmButtonLarge} onPress={handleUpdateDuesAmount} disabled={processing}>
+                {processing ? <ActivityIndicator color="white" /> : <Text style={styles.confirmButtonText}>Save Amount</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showDetailsDialog} transparent animationType="slide" onRequestClose={() => setShowDetailsDialog(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '86%' }]}>
+            <View style={styles.modalHeader}>
+              <View><Text style={styles.modalTitle}>Payment Details</Text><Text style={styles.detailModalInvoice}>{selectedPayment?.invoiceNumber}</Text></View>
+              <TouchableOpacity onPress={() => setShowDetailsDialog(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
+            </View>
+            {selectedPayment && (
+              <ScrollView>
+                {[
+                  ['Resident', `${selectedPayment.residentId?.firstName || ''} ${selectedPayment.residentId?.lastName || ''}`.trim() || 'N/A'],
+                  ['House', selectedPayment.residentId?.houseNumber || 'N/A'],
+                  ['Amount', formatCurrency(selectedPayment.amount)],
+                  ['Type', (selectedPayment.paymentType || 'N/A').replace(/_/g, ' ')],
+                  ['Status', getStatusChip(selectedPayment.status, selectedPayment.dueDate).label],
+                  ['Method', getPaymentMethodConfig(selectedPayment.paymentMethod).label],
+                  ['Due date', formatDate(selectedPayment.dueDate)],
+                  ['Payment date', formatDate(selectedPayment.paymentDate)],
+                  ['Reference', selectedPayment.referenceNumber || 'N/A'],
+                  ['Receipt number', selectedPayment.receiptNumber || 'N/A']
+                ].map(([label, value]) => <View key={label} style={styles.detailModalRow}><Text style={styles.detailModalLabel}>{label}</Text><Text style={styles.detailModalValue}>{value}</Text></View>)}
+                <Text style={styles.detailSectionTitle}>Description</Text>
+                <Text style={styles.detailBody}>{selectedPayment.description || 'No description'}</Text>
+                {!!selectedPayment.inclusions?.length && <><Text style={styles.detailSectionTitle}>Inclusions</Text><Text style={styles.detailBody}>{selectedPayment.inclusions.join(' • ')}</Text></>}
+                {!!selectedPayment.notes && <><Text style={styles.detailSectionTitle}>Notes</Text><Text style={styles.detailBody}>{selectedPayment.notes}</Text></>}
+                {!!selectedPayment.receiptAi && <><Text style={styles.detailSectionTitle}>AI receipt review</Text><Text style={[styles.detailBody, { color: getReceiptAiMeta(selectedPayment.receiptAi).color }]}>{getReceiptAiMeta(selectedPayment.receiptAi).label} · Fraud score {typeof selectedPayment.receiptAi.fraudScore === 'number' ? selectedPayment.receiptAi.fraudScore.toFixed(2) : 'N/A'}</Text><Text style={styles.detailBody}>{selectedPayment.receiptAi.explanation || 'No AI explanation provided.'}</Text></>}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Confirm Cash Payment Dialog */}
       <Modal
@@ -464,6 +704,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
                     {selectedPayment.receiptAi.flags?.length > 0 && (
                       <Text style={styles.verifyValue}>Flags: {selectedPayment.receiptAi.flags.join(', ')}</Text>
                     )}
+                    {!!selectedPayment.receiptAi.explanation && (
+                      <Text style={[styles.verifyValue, { marginTop: 8 }]}>{selectedPayment.receiptAi.explanation}</Text>
+                    )}
                   </View>
                 )}
                 
@@ -545,6 +788,10 @@ const AdminPaymentsScreen = ({ navigation }) => {
             <View style={styles.imageInfo}>
               <Text style={styles.imageInfoText}>Invoice: {selectedImagePayment.invoiceNumber}</Text>
               <Text style={styles.imageInfoText}>Amount: {formatCurrency(selectedImagePayment.amount)}</Text>
+              <TouchableOpacity style={styles.shareReceiptButton} onPress={handleShareReceiptImage} disabled={!selectedImageUri}>
+                <Ionicons name="share-outline" size={18} color="white" />
+                <Text style={styles.shareReceiptText}>Save or share receipt</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -558,20 +805,56 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
-  ledgerHeader: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 22 },
-  ledgerEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
-  ledgerTitle: { color: 'white', fontSize: 30, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
-  ledgerSubtitle: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', marginTop: 3 },
-  ledgerBalance: { backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 20, padding: 18, marginTop: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  ledgerBalanceLabel: { color: 'rgba(255,255,255,0.58)', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
-  ledgerBalanceValue: { color: 'white', fontSize: 31, fontWeight: '900', marginTop: 5 },
-  ledgerBalanceBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  ledgerHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 46, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  ledgerEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  ledgerTitle: { color: themeColors.textPrimary, fontSize: 24, fontWeight: '800', letterSpacing: -0.7, marginTop: 1 },
+  ledgerSubtitle: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '500', marginTop: 2 },
+  ledgerBalance: { backgroundColor: themeColors.primaryDeep, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginTop: 10 },
+  ledgerBalanceLabel: { color: 'rgba(255,255,255,0.66)', fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
+  ledgerBalanceValue: { color: 'white', fontSize: 23, fontWeight: '800', marginTop: 2 },
+  ledgerBalanceBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 },
   ledgerBalanceMeta: { color: 'rgba(255,255,255,0.66)', fontSize: 11, fontWeight: '700' },
-  ledgerAssistant: { width: 34, height: 34, borderRadius: 11, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center' },
-  ledgerActions: { flexDirection: 'row', gap: 10, padding: 16 },
-  ledgerActionPrimary: { flex: 1, height: 46, borderRadius: 14, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  ledgerAssistant: { width: 28, height: 28, borderRadius: 8, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center' },
+  ledgerActions: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
+  ledgerActionPrimary: { flex: 1, height: 40, borderRadius: 10, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   ledgerActionPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },
-  ledgerActionSecondary: { width: 46, height: 46, borderRadius: 14, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  ledgerActionSecondary: { width: 40, height: 40, borderRadius: 10, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  financeSnapshot: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 8, backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, paddingVertical: 8 },
+  snapshotItem: { flex: 1, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: themeColors.border },
+  snapshotLabel: { color: themeColors.textSecondary, fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
+  snapshotValue: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '800', marginTop: 2 },
+  filterPanel: { paddingHorizontal: 16, paddingBottom: 7 },
+  compactFilterButton: { width: 42, height: 42, borderRadius: 10, backgroundColor: themeColors.primarySoft, borderWidth: 1, borderColor: themeColors.border, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  compactFilterButtonActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },
+  filterDot: { position: 'absolute', right: 8, top: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.accent },
+  filterGroupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  filterGroupLabel: { color: themeColors.textSecondary, fontSize: 9, fontWeight: '900', letterSpacing: 1, marginTop: 7, marginBottom: 7 },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 7, backgroundColor: 'white', borderWidth: 1, borderColor: themeColors.border, borderRadius: 999, marginRight: 7 },
+  filterChipActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },
+  filterChipText: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '700' },
+  filterChipTextActive: { color: 'white' },
+  clearFilters: { color: themeColors.primary, fontSize: 11, fontWeight: '800', marginTop: 7 },
+  activeFilterSummary: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8, paddingHorizontal: 11, paddingVertical: 8, backgroundColor: themeColors.primarySoft, borderRadius: 10 },
+  activeFilterSummaryText: { flex: 1, color: themeColors.primaryDeep, fontSize: 11, fontWeight: '800', textTransform: 'capitalize' },
+  filterSheet: { width: '100%', backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 28 },
+  wrappedFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+  filterSheetActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  clearFilterButton: { flex: 1, alignItems: 'center', paddingVertical: 13, borderRadius: 12, backgroundColor: '#f1f5f9' },
+  clearFilterButtonText: { color: themeColors.textSecondary, fontWeight: '800' },
+  applyFilterButton: { flex: 2, alignItems: 'center', paddingVertical: 13, borderRadius: 12, backgroundColor: themeColors.primaryDeep },
+  applyFilterButtonText: { color: 'white', fontWeight: '900' },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 18 },
+  pageButton: { flexDirection: 'row', alignItems: 'center', gap: 3, padding: 10, borderRadius: 10, backgroundColor: themeColors.primarySoft },
+  pageButtonDisabled: { opacity: 0.35 },
+  pageButtonText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '800' },
+  pageIndicator: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '700' },
+  duesInput: { borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc', borderRadius: 12, padding: 14, fontSize: 20, fontWeight: '800', color: themeColors.primaryDeep, marginBottom: 18 },
+  detailModalInvoice: { color: themeColors.textSecondary, fontSize: 12, marginTop: 2 },
+  detailModalRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  detailModalLabel: { color: themeColors.textSecondary, fontSize: 13 },
+  detailModalValue: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '700', flex: 1, textAlign: 'right', textTransform: 'capitalize' },
+  detailSectionTitle: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900', marginTop: 18, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.6 },
+  detailBody: { color: themeColors.textSecondary, fontSize: 13, lineHeight: 20 },
   header: {
     backgroundColor: themeColors.primaryDeep,
     paddingTop: 60,
@@ -1133,6 +1416,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 4,
   },
+  shareReceiptButton: { marginTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 11, borderRadius: 10, backgroundColor: themeColors.primary },
+  shareReceiptText: { color: 'white', fontSize: 13, fontWeight: '800' },
 });
 
 export default AdminPaymentsScreen;

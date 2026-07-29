@@ -13,6 +13,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
@@ -31,9 +32,15 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [overrideAction, setOverrideAction] = useState('approve');
   const [overrideReason, setOverrideReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+  const [exportFormat, setExportFormat] = useState('pdf');
+  const [exporting, setExporting] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -63,7 +70,15 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
         setVisitors(visitorsRes.data.data);
       }
       if (statsRes.data.success) {
-        setStats(statsRes.data.data.totals);
+        const totals = statsRes.data.data.totals || {};
+        setStats({
+          total: totals.totalVisitors || 0,
+          pending: totals.pendingVisitors || 0,
+          approved: totals.approvedVisitors || 0,
+          active: totals.activeVisitors || 0,
+          rejected: totals.rejectedVisitors || 0,
+          completed: visitorsRes.data?.data?.filter((visitor) => visitor.status === 'completed').length || 0,
+        });
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch data');
@@ -97,9 +112,13 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     }
 
     if (dateFilter) {
-      filtered = filtered.filter(v => 
-        format(new Date(v.createdAt), 'yyyy-MM-dd') === dateFilter
-      );
+      filtered = filtered.filter((visitor) => {
+        try {
+          return format(new Date(visitor.expectedArrival), 'yyyy-MM-dd') === dateFilter;
+        } catch {
+          return false;
+        }
+      });
     }
 
     setFilteredVisitors(filtered);
@@ -135,27 +154,70 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     }
   };
 
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setDateFilter('');
+  };
+
   const handleExport = async () => {
+    if (!!exportStartDate !== !!exportEndDate) {
+      Alert.alert('Incomplete Range', 'Enter both a start date and an end date, or leave both empty.');
+      return;
+    }
+    if ((exportStartDate && !/^\d{4}-\d{2}-\d{2}$/.test(exportStartDate)) ||
+        (exportEndDate && !/^\d{4}-\d{2}-\d{2}$/.test(exportEndDate))) {
+      Alert.alert('Invalid Date', 'Use YYYY-MM-DD for the export dates.');
+      return;
+    }
+    if (exportStartDate && exportEndDate && exportStartDate > exportEndDate) {
+      Alert.alert('Invalid Range', 'The start date must be before or equal to the end date.');
+      return;
+    }
+    setExporting(true);
     try {
-      const response = await api.get('/visitors/admin/export');
-      
-      if (response.data.success) {
-        const csvData = response.data.data;
-        const jsonString = JSON.stringify(csvData, null, 2);
-        const fileUri = FileSystem.documentDirectory + `visitors_export_${format(new Date(), 'yyyy-MM-dd')}.json`;
-        
+      const params = new URLSearchParams();
+      if (exportStartDate) params.append('startDate', exportStartDate);
+      if (exportEndDate) params.append('endDate', exportEndDate);
+      params.append('format', exportFormat);
+      params.append('timezoneOffset', String(new Date().getTimezoneOffset()));
+
+      let fileUri;
+      if (exportFormat === 'pdf') {
+        const token = await AsyncStorage.getItem('token');
+        const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
+        fileUri = `${FileSystem.documentDirectory}visitors_export_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.pdf`;
+        const download = await FileSystem.downloadAsync(
+          `${baseUrl}/visitors/admin/export?${params.toString()}`,
+          fileUri,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        );
+        if (download.status < 200 || download.status >= 300) {
+          throw new Error(`Export server returned status ${download.status}`);
+        }
+      } else {
+        const response = await api.get(`/visitors/admin/export?${params.toString()}`);
+        if (!response.data?.success) throw new Error(response.data?.error || 'Export failed');
+        const jsonString = JSON.stringify(response.data.data, null, 2);
+        fileUri = `${FileSystem.documentDirectory}visitors_export_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.json`;
         await FileSystem.writeAsStringAsync(fileUri, jsonString, {
           encoding: FileSystem.EncodingType.UTF8,
         });
-
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(fileUri);
-        } else {
-          Alert.alert('Success', `Exported ${csvData.length} visitors`);
-        }
       }
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: exportFormat === 'pdf' ? 'application/pdf' : 'application/json',
+          dialogTitle: `Share Visitor ${exportFormat.toUpperCase()} Export`,
+        });
+      } else {
+        Alert.alert('Export Complete', `File saved to ${fileUri}`);
+      }
+      setShowExportModal(false);
     } catch (error) {
-      Alert.alert('Error', 'Failed to export data');
+      Alert.alert('Export Failed', error.response?.data?.error || error.message || 'Failed to export data');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -253,18 +315,20 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
             <Ionicons name="analytics-outline" size={18} color={themeColors.primaryDeep} />
             <Text style={styles.flowActionText}>Insights</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleExport} style={styles.flowAction}>
+          <TouchableOpacity onPress={() => setShowExportModal(true)} style={styles.flowAction}>
             <Ionicons name="download-outline" size={18} color={themeColors.primaryDeep} />
             <Text style={styles.flowActionText}>Export</Text>
           </TouchableOpacity>
         </View>
       </View>
       <View style={styles.flowSummary}>
-        <View><Text style={styles.flowSummaryValue}>{stats.pending || 0}</Text><Text style={styles.flowSummaryLabel}>Waiting</Text></View>
-        <Ionicons name="arrow-forward" size={17} color={themeColors.textMuted} />
-        <View><Text style={styles.flowSummaryValue}>{stats.active || 0}</Text><Text style={styles.flowSummaryLabel}>Inside</Text></View>
-        <Ionicons name="arrow-forward" size={17} color={themeColors.textMuted} />
-        <View><Text style={styles.flowSummaryValue}>{stats.completed || 0}</Text><Text style={styles.flowSummaryLabel}>Exited</Text></View>
+        <View style={styles.flowSummaryItem}><Text style={styles.flowSummaryValue}>{stats.total}</Text><Text style={styles.flowSummaryLabel}>Total</Text></View>
+        <View style={styles.flowSummaryDivider} />
+        <View style={styles.flowSummaryItem}><Text style={[styles.flowSummaryValue, { color: themeColors.warning }]}>{stats.pending}</Text><Text style={styles.flowSummaryLabel}>Pending</Text></View>
+        <View style={styles.flowSummaryDivider} />
+        <View style={styles.flowSummaryItem}><Text style={[styles.flowSummaryValue, { color: themeColors.success }]}>{stats.approved}</Text><Text style={styles.flowSummaryLabel}>Approved</Text></View>
+        <View style={styles.flowSummaryDivider} />
+        <View style={styles.flowSummaryItem}><Text style={[styles.flowSummaryValue, { color: themeColors.info }]}>{stats.active}</Text><Text style={styles.flowSummaryLabel}>Active</Text></View>
       </View>
 
       <View style={styles.filterContainer}>
@@ -276,6 +340,11 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {(searchQuery || statusFilter !== 'all' || dateFilter) ? (
+            <TouchableOpacity onPress={clearFilters}>
+              <Ionicons name="close-circle" size={21} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
@@ -309,14 +378,32 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
           >
             <Text style={[styles.filterText, statusFilter === 'completed' && styles.activeFilterText]}>Completed</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'rejected' && styles.activeFilter]}
+            onPress={() => setStatusFilter('rejected')}
+          >
+            <Text style={[styles.filterText, statusFilter === 'rejected' && styles.activeFilterText]}>Rejected</Text>
+          </TouchableOpacity>
         </ScrollView>
 
-        <TextInput
-          style={styles.dateInput}
-          placeholder="Filter by date (YYYY-MM-DD)"
-          value={dateFilter}
-          onChangeText={setDateFilter}
-        />
+        <TouchableOpacity style={styles.advancedFilterToggle} onPress={() => setShowAdvancedFilters((value) => !value)}>
+          <Ionicons name="calendar-outline" size={17} color={themeColors.primary} />
+          <Text style={styles.advancedFilterToggleText}>{showAdvancedFilters ? 'Hide date filter' : 'Filter by date'}</Text>
+          {!!dateFilter && <View style={styles.activeFilterDot} />}
+        </TouchableOpacity>
+
+        {showAdvancedFilters && <View style={styles.dateFilterRow}>
+          <TextInput
+            style={[styles.dateInput, { flex: 1 }]}
+            placeholder="Arrival date (YYYY-MM-DD)"
+            value={dateFilter}
+            onChangeText={setDateFilter}
+          />
+          <TouchableOpacity style={styles.clearFilterButton} onPress={clearFilters}>
+            <Ionicons name="filter-outline" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.clearFilterText}>Clear</Text>
+          </TouchableOpacity>
+        </View>}
       </View>
 
       <FlatList
@@ -535,6 +622,70 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={showExportModal} animationType="slide" transparent onRequestClose={() => !exporting && setShowExportModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.exportModalCard}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Export Visitor Data</Text>
+                <Text style={styles.exportHelper}>Leave dates empty to export all visitor records.</Text>
+              </View>
+              <TouchableOpacity onPress={() => !exporting && setShowExportModal(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.exportLabel}>File format</Text>
+            <View style={styles.exportFormatRow}>
+              {[
+                ['pdf', 'PDF report', 'document-text-outline'],
+                ['json', 'JSON data', 'code-slash-outline'],
+              ].map(([value, label, icon]) => (
+                <TouchableOpacity
+                  key={value}
+                  style={[styles.exportFormatCard, exportFormat === value && styles.exportFormatCardActive]}
+                  onPress={() => setExportFormat(value)}
+                  disabled={exporting}
+                >
+                  <Ionicons name={icon} size={22} color={exportFormat === value ? 'white' : themeColors.primary} />
+                  <Text style={[styles.exportFormatText, exportFormat === value && styles.exportFormatTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.exportLabel}>Created-date range</Text>
+            <TextInput
+              style={styles.exportDateInput}
+              placeholder="Start date (YYYY-MM-DD)"
+              value={exportStartDate}
+              onChangeText={setExportStartDate}
+              editable={!exporting}
+            />
+            <TextInput
+              style={styles.exportDateInput}
+              placeholder="End date (YYYY-MM-DD)"
+              value={exportEndDate}
+              onChangeText={setExportEndDate}
+              editable={!exporting}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowExportModal(false)} disabled={exporting}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.approveButton]} onPress={handleExport} disabled={exporting}>
+                {exporting ? <ActivityIndicator color="white" /> : (
+                  <>
+                    <Ionicons name="download-outline" size={19} color="white" />
+                    <Text style={styles.modalButtonText}>Export {exportFormat.toUpperCase()}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -544,15 +695,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
-  flowHeader: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20 },
+  flowHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   flowHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  flowEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
-  flowTitle: { color: 'white', fontSize: 30, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
-  flowSubtitle: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', marginTop: 2 },
+  flowEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
+  flowTitle: { color: themeColors.textPrimary, fontSize: 30, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
+  flowSubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 2 },
   flowActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
   flowAction: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: themeColors.accent, height: 42, paddingHorizontal: 15, borderRadius: 14 },
   flowActionText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
-  flowSummary: { margin: 16, padding: 16, borderRadius: 18, backgroundColor: 'white', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  flowSummary: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: themeColors.surfaceTint, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', borderWidth: 1, borderColor: themeColors.border },
+  flowSummaryItem: { flex: 1, alignItems: 'center' },
+  flowSummaryDivider: { width: 1, height: 32, backgroundColor: themeColors.border },
   flowSummaryValue: { textAlign: 'center', color: themeColors.primaryDeep, fontSize: 21, fontWeight: '900' },
   flowSummaryLabel: { color: themeColors.textSecondary, fontSize: 10, fontWeight: '800', marginTop: 2 },
   header: {
@@ -664,6 +817,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: '#f8fafc',
   },
+  dateFilterRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  clearFilterButton: { height: 43, paddingHorizontal: 13, borderRadius: 10, backgroundColor: themeColors.primarySoft, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  clearFilterText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '800' },
+  advancedFilterToggle: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
+  advancedFilterToggleText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
+  activeFilterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.warning },
+  exportModalCard: { width: '92%', maxWidth: 520, backgroundColor: 'white', borderRadius: 24, padding: 20 },
+  exportHelper: { color: themeColors.textSecondary, fontSize: 12, marginTop: 3 },
+  exportLabel: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800', marginTop: 16, marginBottom: 8 },
+  exportFormatRow: { flexDirection: 'row', gap: 10 },
+  exportFormatCard: { flex: 1, minHeight: 72, borderRadius: 14, borderWidth: 1, borderColor: themeColors.border, backgroundColor: themeColors.surfaceMuted, alignItems: 'center', justifyContent: 'center', gap: 5 },
+  exportFormatCardActive: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
+  exportFormatText: { color: themeColors.textPrimary, fontSize: 12, fontWeight: '800' },
+  exportFormatTextActive: { color: 'white' },
+  exportDateInput: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 12, backgroundColor: themeColors.surfaceMuted, color: themeColors.textPrimary, marginBottom: 9 },
   listContainer: {
     padding: 16,
   },

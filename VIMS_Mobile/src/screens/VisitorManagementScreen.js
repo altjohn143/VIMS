@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../components/UserDropdownMenu';
 import { Camera, CameraView } from 'expo-camera';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -41,6 +43,9 @@ const VisitorManagementScreen = ({ navigation }) => {
   const [showConfirmScanner, setShowConfirmScanner] = useState(false);
   const [isConfirmingScan, setIsConfirmingScan] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const qrRef = useRef(null);
 
   const [formData, setFormData] = useState({
     visitorName: '',
@@ -360,6 +365,25 @@ const VisitorManagementScreen = ({ navigation }) => {
       default: return visitors;
     }
   };
+  const filteredVisitors = getFilteredVisitors();
+  const paginatedVisitors = filteredVisitors.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  useEffect(() => {
+    setPage(0);
+  }, [historyMode, activeTab, rowsPerPage]);
+
+  const shareVisitorQr = () => {
+    if (!qrRef.current) return;
+    qrRef.current.toDataURL(async data => {
+      try {
+        const target = `${FileSystem.cacheDirectory}visitor-qr-${selectedVisitor?._id || Date.now()}.png`;
+        await FileSystem.writeAsStringAsync(target, data, { encoding: FileSystem.EncodingType.Base64 });
+        await Sharing.shareAsync(target, { mimeType: 'image/png', dialogTitle: 'Save or share visitor QR code' });
+      } catch (error) {
+        Alert.alert('Unable to share', 'The visitor QR code could not be saved or shared.');
+      }
+    });
+  };
 
   const stats = {
     total: visitors.length,
@@ -538,7 +562,7 @@ const VisitorManagementScreen = ({ navigation }) => {
       )}
 
       <FlatList
-        data={getFilteredVisitors()}
+        data={paginatedVisitors}
         renderItem={renderVisitorCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
@@ -563,6 +587,13 @@ const VisitorManagementScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         }
+        ListFooterComponent={filteredVisitors.length > rowsPerPage ? (
+          <View style={styles.pagination}>
+            <TouchableOpacity disabled={page === 0} style={[styles.pageButton, page === 0 && styles.pageDisabled]} onPress={() => setPage(value => Math.max(0, value - 1))}><Text style={styles.pageButtonText}>Previous</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.rowsButton} onPress={() => setRowsPerPage(rowsPerPage === 5 ? 10 : rowsPerPage === 10 ? 25 : 5)}><Text style={styles.pageText}>{rowsPerPage}/page · {page + 1}/{Math.ceil(filteredVisitors.length / rowsPerPage)}</Text></TouchableOpacity>
+            <TouchableOpacity disabled={(page + 1) * rowsPerPage >= filteredVisitors.length} style={[styles.pageButton, (page + 1) * rowsPerPage >= filteredVisitors.length && styles.pageDisabled]} onPress={() => setPage(value => value + 1)}><Text style={styles.pageButtonText}>Next</Text></TouchableOpacity>
+          </View>
+        ) : null}
       />
 
       <TouchableOpacity style={styles.fab} onPress={() => setShowCreateModal(true)}>
@@ -751,12 +782,17 @@ const VisitorManagementScreen = ({ navigation }) => {
               <ScrollView>
                 <View style={styles.qrContainer}>
                   <QRCode
+                    getRef={(ref) => { qrRef.current = ref; }}
                     value={selectedVisitor.qrCode}
                     size={200}
                     color="black"
                     backgroundColor="white"
                   />
                 </View>
+                <TouchableOpacity style={styles.shareQrButton} onPress={shareVisitorQr}>
+                  <Ionicons name="share-outline" size={19} color="white" />
+                  <Text style={styles.shareQrText}>Save or share QR code</Text>
+                </TouchableOpacity>
 
                 <View style={styles.qrInfo}>
                   <Text style={styles.qrVisitorName}>{selectedVisitor.visitorName}</Text>
@@ -877,6 +913,14 @@ const VisitorManagementScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
+  pageButton: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primarySoft },
+  pageDisabled: { opacity: 0.35 },
+  pageButtonText: { color: themeColors.primaryDeep, fontWeight: '800', fontSize: 12 },
+  rowsButton: { padding: 7 },
+  pageText: { color: themeColors.textSecondary, fontWeight: '700', fontSize: 11 },
+  shareQrButton: { marginHorizontal: 24, marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 12, borderRadius: 12, backgroundColor: themeColors.primaryDeep },
+  shareQrText: { color: 'white', fontWeight: '900' },
   container: {
     flex: 1,
     backgroundColor: themeColors.background,

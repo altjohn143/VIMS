@@ -368,10 +368,25 @@ router.get('/receipt-image/:filename', protect, authorize('admin'), async (req, 
 // Admin: Get all payments
 router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const { status, paymentType, page = 1, limit = 20, format = 'json' } = req.query;
+    const {
+      status,
+      paymentType,
+      paymentMethod,
+      page = 1,
+      limit = 20,
+      format = 'json',
+      timezoneOffset = '0'
+    } = req.query;
+    const timezoneOffsetMinutes = Number.parseInt(timezoneOffset, 10) || 0;
     let filter = {};
-    if (status) filter.status = status;
+    if (status === 'overdue') {
+      filter.status = 'pending';
+      filter.dueDate = { $lt: new Date() };
+    } else if (status) {
+      filter.status = status;
+    }
     if (paymentType) filter.paymentType = paymentType;
+    if (paymentMethod) filter.paymentMethod = paymentMethod;
 
     const payments = await Payment.find(filter)
       .populate('residentId', 'firstName lastName houseNumber')
@@ -550,10 +565,13 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
       endDate = new Date();
     }
 
-    const [totalCollected, monthlyCollected, paymentCount] = await Promise.all([
+    const [totalCollected, monthlyCollected, paymentCount, pendingSummary, totalInvoices, paidInvoices] = await Promise.all([
       Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
       Payment.aggregate([{ $match: { status: 'paid', createdAt: { $gte: startDate, $lte: endDate } } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
-      Payment.countDocuments({ status: 'paid', createdAt: { $gte: startDate, $lte: endDate } })
+      Payment.countDocuments({ status: 'paid', createdAt: { $gte: startDate, $lte: endDate } }),
+      Payment.aggregate([{ $match: { status: 'pending' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+      Payment.countDocuments({}),
+      Payment.countDocuments({ status: 'paid' })
     ]);
 
     res.json({
@@ -561,7 +579,9 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
       data: {
         totalCollected: totalCollected[0]?.total || 0,
         monthlyCollected: monthlyCollected[0]?.total || 0,
-        paymentCount: monthlyCollected[0]?.count || paymentCount || 0
+        paymentCount: monthlyCollected[0]?.count || paymentCount || 0,
+        pendingTotal: pendingSummary[0]?.total || 0,
+        collectionRate: totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 1000) / 10 : 0
       }
     });
   } catch (error) {

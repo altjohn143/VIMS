@@ -21,6 +21,8 @@ import { themeColors, radii, shadows } from '../utils/theme';
 import api from '../utils/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const PaymentsScreen = ({ navigation }) => {
   const [payments, setPayments] = useState([]);
@@ -44,6 +46,8 @@ const PaymentsScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const { user } = useAuth();
 
@@ -206,6 +210,31 @@ const PaymentsScreen = ({ navigation }) => {
   const filteredPayments = activeTab === 0 
     ? payments 
     : payments.filter(p => p.status === (activeTab === 1 ? 'pending' : 'paid'));
+  const paginatedPayments = filteredPayments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  useEffect(() => {
+    setPage(0);
+  }, [activeTab, rowsPerPage]);
+
+  const shareReceipt = async () => {
+    if (!receiptData) return;
+    try {
+      const content = [
+        'VIMS PAYMENT RECEIPT',
+        `Receipt: ${receiptData.receiptNumber}`,
+        `Invoice: ${receiptData.invoiceNumber}`,
+        `Date: ${formatDate(receiptData.paymentDate)}`,
+        `Method: ${receiptData.paymentMethod?.toUpperCase() || 'QRPh'}`,
+        `Description: ${receiptData.description || ''}`,
+        `Amount: ${formatCurrency(receiptData.amount)}`,
+      ].join('\r\n');
+      const target = `${FileSystem.cacheDirectory}VIMS-Receipt-${receiptData.receiptNumber}.txt`;
+      await FileSystem.writeAsStringAsync(target, content);
+      await Sharing.shareAsync(target, { mimeType: 'text/plain', dialogTitle: 'Save or share payment receipt' });
+    } catch (error) {
+      Alert.alert('Unable to share', 'The payment receipt could not be saved or shared.');
+    }
+  };
 
   if (loading && !refreshing) {
     return (
@@ -319,7 +348,7 @@ const PaymentsScreen = ({ navigation }) => {
             <Text style={styles.emptyText}>No payment records found</Text>
           </View>
         ) : (
-          filteredPayments.map((payment) => {
+          paginatedPayments.map((payment) => {
             const status = getStatusChip(payment.status, payment.dueDate);
             return (
               <View key={payment._id} style={[styles.paymentCard, shadows.small]}>
@@ -389,6 +418,13 @@ const PaymentsScreen = ({ navigation }) => {
               </View>
             );
           })
+        )}
+        {filteredPayments.length > rowsPerPage && (
+          <View style={styles.pagination}>
+            <TouchableOpacity disabled={page === 0} style={[styles.pageButton, page === 0 && styles.pageDisabled]} onPress={() => setPage(value => Math.max(0, value - 1))}><Text style={styles.pageButtonText}>Previous</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setRowsPerPage(rowsPerPage === 5 ? 10 : rowsPerPage === 10 ? 25 : 5)}><Text style={styles.pageText}>{rowsPerPage}/page · {page + 1}/{Math.ceil(filteredPayments.length / rowsPerPage)}</Text></TouchableOpacity>
+            <TouchableOpacity disabled={(page + 1) * rowsPerPage >= filteredPayments.length} style={[styles.pageButton, (page + 1) * rowsPerPage >= filteredPayments.length && styles.pageDisabled]} onPress={() => setPage(value => value + 1)}><Text style={styles.pageButtonText}>Next</Text></TouchableOpacity>
+          </View>
         )}
       </ScrollView>
 
@@ -591,9 +627,10 @@ const PaymentsScreen = ({ navigation }) => {
             
             <TouchableOpacity
               style={styles.closeReceiptButton}
-              onPress={() => setShowReceiptDialog(false)}
+              onPress={shareReceipt}
             >
-              <Text style={styles.closeReceiptText}>Close</Text>
+              <Ionicons name="share-outline" size={18} color="white" />
+              <Text style={styles.closeReceiptText}>Save or Share</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -603,6 +640,11 @@ const PaymentsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 18 },
+  pageButton: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primarySoft },
+  pageDisabled: { opacity: 0.35 },
+  pageButtonText: { color: themeColors.primaryDeep, fontWeight: '800', fontSize: 12 },
+  pageText: { color: themeColors.textSecondary, fontWeight: '700', fontSize: 11 },
   container: {
     flex: 1,
     backgroundColor: themeColors.background,
@@ -1135,6 +1177,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
     marginTop: 16,
   },
   closeReceiptText: {

@@ -25,6 +25,7 @@ const ReservationsScreen = ({ navigation }) => {
   const [resources, setResources] = useState({ venue: [], equipment: [] });
   const [availability, setAvailability] = useState([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityFilter, setAvailabilityFilter] = useState('all');
 
   const [formData, setFormData] = useState({
     description: '',
@@ -666,6 +667,13 @@ const ReservationsScreen = ({ navigation }) => {
               )}
 
               <Text style={styles.sectionTitle}>Availability Calendar</Text>
+              <View style={styles.availabilityFilters}>
+                {[['all', 'All'], ['venue', 'Venues'], ['equipment', 'Equipment']].map(([value, label]) => (
+                  <TouchableOpacity key={value} style={[styles.availabilityFilterChip, availabilityFilter === value && styles.availabilityFilterChipActive]} onPress={() => setAvailabilityFilter(value)}>
+                    <Text style={[styles.availabilityFilterText, availabilityFilter === value && styles.availabilityFilterTextActive]}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               <View style={styles.availabilityPanel}>
                 {getAvailabilityResources().length === 0 ? (
                   <Text style={styles.availabilityText}>Select a venue or equipment item to see reserved schedules.</Text>
@@ -681,7 +689,7 @@ const ReservationsScreen = ({ navigation }) => {
                     {getSelectedScheduleConflicts().length > 0 && (
                       <Text style={styles.availabilityError}>Selected schedule overlaps with an existing reservation.</Text>
                     )}
-                    {availability.slice(0, 6).map((slot) => (
+                    {availability.filter(slot => availabilityFilter === 'all' || slot.resourceType === availabilityFilter).slice(0, 6).map((slot) => (
                       <View
                         key={`${slot.reservationId}-${slot.resourceName}-${slot.startDate}`}
                         style={[
@@ -862,6 +870,11 @@ const ReservationsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  availabilityFilters: { flexDirection: 'row', gap: 7, marginBottom: 9 },
+  availabilityFilterChip: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 999, backgroundColor: '#f1f5f9' },
+  availabilityFilterChipActive: { backgroundColor: '#166534' },
+  availabilityFilterText: { color: '#64748b', fontSize: 11, fontWeight: '800' },
+  availabilityFilterTextActive: { color: 'white' },
   container: {
     flex: 1,
     backgroundColor: themeColors.background,

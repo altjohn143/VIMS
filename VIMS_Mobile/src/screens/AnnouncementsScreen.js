@@ -24,6 +24,7 @@ const AnnouncementsScreen = ({ navigation }) => {
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState('all');
 
   const load = useCallback(async () => {
     try {
@@ -70,6 +71,7 @@ const AnnouncementsScreen = ({ navigation }) => {
     setSelected(item);
     setDetailsOpen(true);
   };
+  const visibleRows = rows.filter(item => filterCategory === 'all' || item.category === filterCategory);
 
   const getAnnouncementImageUrl = (image) => {
     if (!image) return null;
@@ -155,8 +157,16 @@ const AnnouncementsScreen = ({ navigation }) => {
         </View>
       ) : null}
 
+      <View style={styles.categoryFilters}>
+        {[['all', 'All announcements'], ['monthlyCollection', 'Monthly collection']].map(([value, label]) => (
+          <TouchableOpacity key={value} style={[styles.categoryChip, filterCategory === value && styles.categoryChipActive]} onPress={() => setFilterCategory(value)}>
+            <Text style={[styles.categoryChipText, filterCategory === value && styles.categoryChipTextActive]}>{label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <FlatList
-        data={rows}
+        data={visibleRows}
         renderItem={renderItem}
         keyExtractor={(item) => item?._id || String(Math.random())}
         contentContainerStyle={styles.listContainer}
@@ -248,6 +258,11 @@ const styles = StyleSheet.create({
   retryText: { color: themeColors.warning, fontWeight: '700', fontSize: 12 },
 
   listContainer: { padding: 16, paddingBottom: 24 },
+  categoryFilters: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14 },
+  categoryChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 999, backgroundColor: 'white', borderWidth: 1, borderColor: themeColors.border },
+  categoryChipActive: { backgroundColor: themeColors.primarySoft, borderColor: themeColors.primary },
+  categoryChipText: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
+  categoryChipTextActive: { color: themeColors.primaryDeep },
 
   card: {
     backgroundColor: 'white',

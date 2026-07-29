@@ -19,6 +19,8 @@ import { themeColors, shadows } from '../utils/theme';
 import api, { getProtectedImageDataUrl } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UserDropdownMenu from '../components/UserDropdownMenu';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const ProfileScreen = ({ navigation }) => {
   const { updateUser } = useAuth();
@@ -37,6 +39,10 @@ const ProfileScreen = ({ navigation }) => {
     new: false,
     confirm: false,
   });
+  const [passwordOtpSent, setPasswordOtpSent] = useState(false);
+  const [passwordOtp, setPasswordOtp] = useState('');
+  const [showMoveOutModal, setShowMoveOutModal] = useState(false);
+  const [moveOutReason, setMoveOutReason] = useState('');
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [documentModalTitle, setDocumentModalTitle] = useState('');
   const [documentModalImage, setDocumentModalImage] = useState(null);
@@ -196,32 +202,26 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const requestMoveOut = async () => {
-    Alert.alert(
-      'Request move-out',
-      'This will notify the admin to review your move-out request. Once approved, your lot will be set to vacant and your account will be deactivated.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Submit',
-          onPress: async () => {
-            try {
-              setMoveOutSubmitting(true);
-              const res = await api.post('/users/move-out/request', { reason: '' });
-              if (res.data?.success) {
-                Alert.alert('Submitted', res.data.message || 'Move-out request submitted');
-                await loadUserProfile();
-              } else {
-                Alert.alert('Error', res.data?.error || 'Failed to submit move-out request');
-              }
-            } catch (e) {
-              Alert.alert('Error', e?.response?.data?.error || 'Failed to submit move-out request');
-            } finally {
-              setMoveOutSubmitting(false);
-            }
-          }
-        }
-      ]
-    );
+    if (!moveOutReason.trim()) {
+      Alert.alert('Reason required', 'Please explain why you are requesting to move out.');
+      return;
+    }
+    try {
+      setMoveOutSubmitting(true);
+      const res = await api.post('/users/move-out/request', { reason: moveOutReason.trim() });
+      if (res.data?.success) {
+        Alert.alert('Submitted', res.data.message || 'Move-out request submitted');
+        setShowMoveOutModal(false);
+        setMoveOutReason('');
+        await loadUserProfile();
+      } else {
+        Alert.alert('Error', res.data?.error || 'Failed to submit move-out request');
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to submit move-out request');
+    } finally {
+      setMoveOutSubmitting(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -235,27 +235,65 @@ const ProfileScreen = ({ navigation }) => {
       return;
     }
 
-    if (passwordData.newPassword.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters');
+    if (passwordData.newPassword.length < 12 || !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(passwordData.newPassword)) {
+      Alert.alert('Error', 'Password must be at least 12 characters with uppercase, lowercase, number, and special character');
       return;
     }
 
     setSaving(true);
     try {
+      if (!passwordOtpSent) {
+        await api.post('/auth/change-password-otp/request', { currentPassword: passwordData.currentPassword });
+        setPasswordOtpSent(true);
+        Alert.alert('Code sent', 'A six-digit verification code was sent to your email.');
+        return;
+      }
+      if (!/^\d{6}$/.test(passwordOtp)) {
+        Alert.alert('Invalid code', 'Enter the six-digit code sent to your email.');
+        return;
+      }
+      const verification = await api.post('/auth/change-password-otp/verify', { code: passwordOtp });
       const response = await api.put('/auth/change-password', {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
+        otpVerificationToken: verification.data.verificationToken,
       });
 
       if (response.data.success) {
         Alert.alert('Success', 'Password changed successfully');
         setShowPasswordModal(false);
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setPasswordOtp('');
+        setPasswordOtpSent(false);
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to change password');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const shareDocument = async () => {
+    if (!documentModalImage) return;
+    try {
+      const match = String(documentModalImage).match(/^data:([^;]+);base64,(.+)$/);
+      const safeTitle = documentModalTitle.replace(/\s+/g, '-').toLowerCase();
+      let target;
+      let mimeType = 'image/jpeg';
+      if (match) {
+        mimeType = match[1];
+        const extension = mimeType.includes('png') ? 'png' : 'jpg';
+        target = `${FileSystem.cacheDirectory}${safeTitle}.${extension}`;
+        await FileSystem.writeAsStringAsync(target, match[2], { encoding: FileSystem.EncodingType.Base64 });
+      } else {
+        const token = await AsyncStorage.getItem('token');
+        target = `${FileSystem.cacheDirectory}${safeTitle}.jpg`;
+        const result = await FileSystem.downloadAsync(documentModalImage, target, { headers: { Authorization: `Bearer ${token}` } });
+        target = result.uri;
+      }
+      await Sharing.shareAsync(target, { mimeType, dialogTitle: `Save ${documentModalTitle}` });
+    } catch (error) {
+      Alert.alert('Unable to save', 'This document could not be saved or shared.');
     }
   };
 
@@ -505,6 +543,73 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
+        <View style={[styles.section, shadows.small]}>
+          <Text style={styles.sectionTitle}>Emergency Contact</Text>
+          <Text style={styles.label}>Contact Name</Text>
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color={themeColors.textSecondary} />
+            <TextInput style={styles.input} value={formData.emergencyContact.name} onChangeText={(text) => setFormData(prev => ({ ...prev, emergencyContact: { ...prev.emergencyContact, name: text } }))} placeholder="Full name" />
+          </View>
+          <Text style={[styles.label, { marginTop: 14 }]}>Phone Number</Text>
+          <View style={styles.inputContainer}>
+            <Ionicons name="call-outline" size={20} color={themeColors.textSecondary} />
+            <TextInput style={styles.input} value={formData.emergencyContact.phone} onChangeText={(text) => setFormData(prev => ({ ...prev, emergencyContact: { ...prev.emergencyContact, phone: text.replace(/\D/g, '').slice(0, 11) } }))} placeholder="09XXXXXXXXX" keyboardType="phone-pad" />
+          </View>
+        </View>
+
+        <View style={[styles.section, shadows.small]}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Vehicles</Text>
+            <TouchableOpacity style={styles.addInlineButton} onPress={addVehicle}><Ionicons name="add" size={18} color="white" /><Text style={styles.addInlineText}>Add</Text></TouchableOpacity>
+          </View>
+          {formData.vehicles.map((vehicle, index) => (
+            <View key={index} style={styles.vehicleEditor}>
+              <View style={styles.vehicleEditorHeader}>
+                <Text style={styles.vehicleEditorTitle}>Vehicle {index + 1}</Text>
+                {formData.vehicles.length > 1 && <TouchableOpacity onPress={() => removeVehicle(index)}><Ionicons name="trash-outline" size={19} color={themeColors.error} /></TouchableOpacity>}
+              </View>
+              {[
+                ['Plate number', 'plateNumber'],
+                ['Make', 'make'],
+                ['Model', 'model'],
+                ['Color', 'color'],
+              ].map(([label, key]) => (
+                <View key={key} style={styles.compactField}>
+                  <Text style={styles.label}>{label}</Text>
+                  <TextInput style={styles.compactInput} value={vehicle[key] || ''} onChangeText={(text) => setFormData(prev => ({ ...prev, vehicles: prev.vehicles.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: key === 'plateNumber' ? text.toUpperCase() : text } : item) }))} />
+                </View>
+              ))}
+              {!!vehicle.carImage && <TouchableOpacity onPress={() => openDocumentModal(`Vehicle ${index + 1}`, buildVehicleUrl(vehicle.carImage))}><Text style={styles.documentLink}>View registered vehicle photo</Text></TouchableOpacity>}
+            </View>
+          ))}
+        </View>
+
+        <View style={[styles.section, shadows.small]}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Family Members</Text>
+            <TouchableOpacity style={styles.addInlineButton} onPress={addFamilyMember}><Ionicons name="add" size={18} color="white" /><Text style={styles.addInlineText}>Add</Text></TouchableOpacity>
+          </View>
+          {formData.familyMembers.map((member, index) => (
+            <View key={index} style={styles.vehicleEditor}>
+              <View style={styles.vehicleEditorHeader}>
+                <Text style={styles.vehicleEditorTitle}>Family Member {index + 1}</Text>
+                {formData.familyMembers.length > 1 && <TouchableOpacity onPress={() => removeFamilyMember(index)}><Ionicons name="trash-outline" size={19} color={themeColors.error} /></TouchableOpacity>}
+              </View>
+              {[
+                ['Full name', 'name', 'default'],
+                ['Relationship', 'relationship', 'default'],
+                ['Age', 'age', 'number-pad'],
+                ['Phone', 'phone', 'phone-pad'],
+              ].map(([label, key, keyboardType]) => (
+                <View key={key} style={styles.compactField}>
+                  <Text style={styles.label}>{label}</Text>
+                  <TextInput style={styles.compactInput} keyboardType={keyboardType} value={String(member[key] || '')} onChangeText={(text) => setFormData(prev => ({ ...prev, familyMembers: prev.familyMembers.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: key === 'age' || key === 'phone' ? text.replace(/\D/g, '') : text } : item) }))} />
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+
         {/* Uploaded Documents Section */}
         <View style={[styles.section, shadows.small]}>
           <Text style={styles.sectionTitle}>Uploaded Documents</Text>
@@ -590,39 +695,6 @@ const ProfileScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Vehicles Section */}
-        {formData.vehicles && formData.vehicles.length > 0 && formData.vehicles.some(v => v.plateNumber || v.make || v.model || v.color) && (
-          <View style={[styles.section, shadows.small]}>
-            <Text style={styles.sectionTitle}>Vehicles</Text>
-            {formData.vehicles.map((vehicle, index) => (
-              (vehicle.plateNumber || vehicle.make || vehicle.model || vehicle.color) && (
-                <View key={index} style={styles.vehicleItem}>
-                  <View style={styles.vehicleInfo}>
-                    <Text style={styles.vehicleTitle}>
-                      {vehicle.make} {vehicle.model} {vehicle.color && `(${vehicle.color})`}
-                    </Text>
-                    {vehicle.plateNumber && (
-                      <Text style={styles.vehiclePlate}>Plate: {vehicle.plateNumber}</Text>
-                    )}
-                  </View>
-                  {vehicle.carImage && (
-                    <TouchableOpacity 
-                      style={styles.vehicleImageContainer}
-                      onPress={() => openDocumentModal(`Vehicle ${index + 1}`, buildVehicleUrl(vehicle.carImage))}
-                    >
-                      <Image 
-                        source={{ uri: buildVehicleUrl(vehicle.carImage) }} 
-                        style={styles.vehicleImage} 
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )
-            ))}
-          </View>
-        )}
-
         {user?.role === 'resident' && (
           <View style={[styles.section, shadows.small]}>
             <Text style={styles.sectionTitle}>Move-out</Text>
@@ -637,7 +709,7 @@ const ProfileScreen = ({ navigation }) => {
               </View>
               <TouchableOpacity
                 style={[styles.moveOutButton, (moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved') && styles.moveOutButtonDisabled]}
-                onPress={requestMoveOut}
+                onPress={() => setShowMoveOutModal(true)}
                 disabled={moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved'}
               >
                 {moveOutSubmitting ? (
@@ -722,12 +794,43 @@ const ProfileScreen = ({ navigation }) => {
               </View>
             </View>
 
+            {passwordOtpSent && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email Verification Code</Text>
+                <View style={styles.inputContainer}>
+                  <Ionicons name="mail-open-outline" size={20} color={themeColors.textSecondary} />
+                  <TextInput style={styles.input} value={passwordOtp} onChangeText={(text) => setPasswordOtp(text.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} placeholder="6-digit code" />
+                </View>
+                <TouchableOpacity onPress={() => { setPasswordOtpSent(false); setPasswordOtp(''); }}><Text style={styles.documentLink}>Request a new code</Text></TouchableOpacity>
+              </View>
+            )}
+
             <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowPasswordModal(false)}>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => { setShowPasswordModal(false); setPasswordOtpSent(false); setPasswordOtp(''); }}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalButton, styles.changeButton]} onPress={handleChangePassword} disabled={saving}>
-                {saving ? <ActivityIndicator color="white" /> : <Text style={styles.changeButtonText}>Change Password</Text>}
+                {saving ? <ActivityIndicator color="white" /> : <Text style={styles.changeButtonText}>{passwordOtpSent ? 'Verify & Change' : 'Send Email Code'}</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showMoveOutModal} animationType="slide" transparent onRequestClose={() => setShowMoveOutModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Request Move-out</Text>
+              <TouchableOpacity onPress={() => setShowMoveOutModal(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
+            </View>
+            <Text style={styles.helperText}>An administrator will review this request before your lot and account status change.</Text>
+            <Text style={styles.label}>Reason</Text>
+            <TextInput style={styles.reasonInput} value={moveOutReason} onChangeText={setMoveOutReason} placeholder="Explain your move-out request" multiline textAlignVertical="top" />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowMoveOutModal(false)}><Text style={styles.cancelButtonText}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.changeButton]} onPress={requestMoveOut} disabled={moveOutSubmitting}>
+                {moveOutSubmitting ? <ActivityIndicator color="white" /> : <Text style={styles.changeButtonText}>Submit Request</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -746,6 +849,7 @@ const ProfileScreen = ({ navigation }) => {
             {documentModalImage ? (
               <View style={styles.documentViewerWrapper}>
                 <Image source={{ uri: documentModalImage }} style={styles.documentViewerImage} resizeMode="contain" />
+                <TouchableOpacity style={styles.shareDocumentButton} onPress={shareDocument}><Ionicons name="share-outline" size={18} color="white" /><Text style={styles.shareDocumentText}>Save or share document</Text></TouchableOpacity>
               </View>
             ) : (
               <View style={styles.noDocuments}>
@@ -780,6 +884,15 @@ const styles = StyleSheet.create({
   userHouse: { fontSize: 13, color: themeColors.textMuted },
   section: { backgroundColor: 'white', borderRadius: 14, padding: 18, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: themeColors.textPrimary, marginBottom: 16 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  addInlineButton: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: themeColors.primary, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
+  addInlineText: { color: 'white', fontWeight: '800', fontSize: 12 },
+  vehicleEditor: { padding: 14, borderRadius: 14, backgroundColor: themeColors.surfaceMuted, borderWidth: 1, borderColor: themeColors.border, marginBottom: 11 },
+  vehicleEditorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  vehicleEditorTitle: { color: themeColors.primaryDeep, fontWeight: '900', fontSize: 14 },
+  compactField: { marginBottom: 9 },
+  compactInput: { minHeight: 45, borderWidth: 1, borderColor: themeColors.borderStrong, borderRadius: 12, backgroundColor: 'white', paddingHorizontal: 12, color: themeColors.textPrimary },
+  documentLink: { color: themeColors.primary, fontWeight: '800', fontSize: 12, marginTop: 8 },
   helperText: { fontSize: 12, color: themeColors.textSecondary, marginTop: -10, marginBottom: 12, lineHeight: 16 },
   moveOutRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   moveOutStatusPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: themeColors.warning + '15', borderWidth: 1, borderColor: themeColors.warning + '35' },
@@ -806,6 +919,7 @@ const styles = StyleSheet.create({
   cancelButtonText: { color: themeColors.textPrimary, fontSize: 16, fontWeight: '600' },
   changeButton: { backgroundColor: themeColors.primary, marginLeft: 8 },
   changeButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  reasonInput: { minHeight: 110, borderWidth: 1, borderColor: themeColors.borderStrong, borderRadius: 14, backgroundColor: themeColors.surfaceMuted, padding: 13, color: themeColors.textPrimary },
   previewNotice: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e5f4ec', borderRadius: 8, padding: 12, marginTop: 12 },
   previewText: { fontSize: 14, color: themeColors.secondary, marginLeft: 8, fontWeight: '500' },
   loadingDocuments: { alignItems: 'center', padding: 20 },
@@ -822,6 +936,8 @@ const styles = StyleSheet.create({
   documentModalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, minHeight: 360 },
   documentViewerWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 8 },
   documentViewerImage: { width: '100%', height: 420, borderRadius: 16 },
+  shareDocumentButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 10, width: '100%', paddingVertical: 12, borderRadius: 12, backgroundColor: themeColors.primaryDeep },
+  shareDocumentText: { color: 'white', fontWeight: '800' },
   noDocuments: { alignItems: 'center', padding: 32 },
   noDocumentsText: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary, marginTop: 16 },
   noDocumentsSubtext: { fontSize: 14, color: themeColors.textSecondary, marginTop: 4, textAlign: 'center' },

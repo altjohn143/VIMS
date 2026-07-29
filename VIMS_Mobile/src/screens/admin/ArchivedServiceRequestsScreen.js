@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -23,6 +24,7 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [selectedServiceRequest, setSelectedServiceRequest] = useState(null);
   const [restoring, setRestoring] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadArchivedServiceRequests();
@@ -91,6 +93,17 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
     }
   };
 
+  const filteredServiceRequests = serviceRequests.filter((request) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    const residentName = `${request.residentId?.firstName || ''} ${request.residentId?.lastName || ''}`.toLowerCase();
+    return request.title?.toLowerCase().includes(query) ||
+      request.description?.toLowerCase().includes(query) ||
+      residentName.includes(query) ||
+      request.residentId?.houseNumber?.toLowerCase().includes(query) ||
+      request.archivedReason?.toLowerCase().includes(query);
+  });
+
   const renderServiceRequestCard = ({ item }) => {
     const statusColor = getStatusColor(item.status);
     const priorityColor = getPriorityColor(item.priority);
@@ -122,7 +135,7 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
           <View style={styles.detailRow}>
             <Ionicons name="person-outline" size={16} color={themeColors.textSecondary} />
             <Text style={styles.detailText}>
-              {item.createdBy ? `${item.createdBy.firstName} ${item.createdBy.lastName}` : 'Unknown'}
+              {item.residentId ? `${item.residentId.firstName} ${item.residentId.lastName}` : 'Unknown'}
             </Text>
           </View>
           <View style={styles.detailRow}>
@@ -186,8 +199,23 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
         </View>
       </View>
 
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color={themeColors.textSecondary} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search archived requests..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery ? (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={20} color={themeColors.textSecondary} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
       <FlatList
-        data={serviceRequests}
+        data={filteredServiceRequests}
         renderItem={renderServiceRequestCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
@@ -195,8 +223,8 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="build" size={64} color={themeColors.textSecondary} />
-            <Text style={styles.emptyTitle}>No archived service requests</Text>
-            <Text style={styles.emptyText}>Archived service requests will appear here</Text>
+            <Text style={styles.emptyTitle}>{serviceRequests.length ? 'No matching requests' : 'No archived service requests'}</Text>
+            <Text style={styles.emptyText}>{serviceRequests.length ? 'Try a different search' : 'Archived service requests will appear here'}</Text>
           </View>
         }
       />
@@ -310,6 +338,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
+  searchContainer: { marginHorizontal: 20, marginBottom: 12, height: 46, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white', paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchInput: { flex: 1, color: themeColors.textPrimary, fontSize: 15 },
   statCard: {
     backgroundColor: themeColors.cardBackground,
     borderRadius: 12,

@@ -34,6 +34,8 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 10;
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -49,6 +51,16 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   useEffect(() => {
     filterVisitors();
   }, [visitors, searchQuery, statusFilter, dateFilter]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery, statusFilter, dateFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredVisitors.length / rowsPerPage));
+  const paginatedVisitors = useMemo(
+    () => filteredVisitors.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredVisitors, page]
+  );
 
   const fetchVisitors = async () => {
     setLoading(true);
@@ -202,6 +214,34 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       return format(new Date(dateString), 'MMM dd, yyyy hh:mm a');
     } catch {
       return 'Invalid Date';
+    }
+  };
+
+  const handleSharePass = async (visitor) => {
+    try {
+      const pass = [
+        'CASIMIRO WESTVILLE HOMES',
+        'SECURITY VISITOR PASS',
+        '',
+        `Visitor: ${visitor.visitorName || 'N/A'}`,
+        `Phone: ${visitor.visitorPhone || 'N/A'}`,
+        `Resident: ${visitor.residentId?.firstName || ''} ${visitor.residentId?.lastName || ''}`,
+        `House: ${visitor.residentId?.houseNumber || 'N/A'}`,
+        `Purpose: ${visitor.purpose || 'N/A'}`,
+        `Expected arrival: ${formatDate(visitor.expectedArrival)}`,
+        `Expected departure: ${formatDate(visitor.expectedDeparture)}`,
+        `Status: ${visitor.status || 'pending'}`,
+        `Pass ID: ${visitor._id}`,
+      ].join('\n');
+      const fileUri = `${FileSystem.documentDirectory}visitor_pass_${visitor._id}.txt`;
+      await FileSystem.writeAsStringAsync(fileUri, pass, { encoding: FileSystem.EncodingType.UTF8 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, { mimeType: 'text/plain', dialogTitle: 'Print or share visitor pass' });
+      } else {
+        Alert.alert('Visitor Pass', pass);
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to prepare visitor pass');
     }
   };
 
@@ -509,7 +549,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={filteredVisitors}
+        data={paginatedVisitors}
         renderItem={renderVisitorCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
@@ -521,6 +561,17 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
             <Text style={styles.emptyText}>Try adjusting your filters</Text>
           </View>
         }
+        ListFooterComponent={filteredVisitors.length > rowsPerPage ? (
+          <View style={styles.paginationRow}>
+            <TouchableOpacity style={[styles.pageButton, page === 0 && styles.pageButtonDisabled]} disabled={page === 0} onPress={() => setPage((value) => Math.max(0, value - 1))}>
+              <Text style={styles.pageButtonText}>Previous</Text>
+            </TouchableOpacity>
+            <Text style={styles.pageInfo}>Page {page + 1} of {pageCount}</Text>
+            <TouchableOpacity style={[styles.pageButton, page >= pageCount - 1 && styles.pageButtonDisabled]} disabled={page >= pageCount - 1} onPress={() => setPage((value) => Math.min(pageCount - 1, value + 1))}>
+              <Text style={styles.pageButtonText}>Next</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       />
 
       {/* Details Modal */}
@@ -608,6 +659,10 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
                     <Text style={styles.detailText}>{selectedVisitor.securityNotes}</Text>
                   </View>
                 )}
+                <TouchableOpacity style={styles.sharePassButton} onPress={() => handleSharePass(selectedVisitor)}>
+                  <Ionicons name="print-outline" size={19} color="white" />
+                  <Text style={styles.sharePassText}>Print or Share Pass</Text>
+                </TouchableOpacity>
               </ScrollView>
             )}
           </View>
@@ -1129,6 +1184,13 @@ const styles = StyleSheet.create({
     color: themeColors.textPrimary,
     marginLeft: 8,
   },
+  paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  pageButton: { backgroundColor: themeColors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
+  pageButtonDisabled: { opacity: 0.45 },
+  pageButtonText: { color: 'white', fontWeight: '900' },
+  pageInfo: { color: themeColors.textSecondary, fontWeight: '800' },
+  sharePassButton: { marginTop: 18, marginBottom: 8, borderRadius: 12, backgroundColor: themeColors.primary, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  sharePassText: { color: 'white', fontWeight: '900' },
 });
 
 export default SecurityVisitorLogsScreen;

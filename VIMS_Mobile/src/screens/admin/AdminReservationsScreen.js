@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,12 @@ const AdminReservationsScreen = ({ navigation }) => {
   const [submitting, setSubmitting] = useState(false);
   const [resources, setResources] = useState({ venue: [], equipment: [] });
   const [resourceModalVisible, setResourceModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [resourceTypeFilter, setResourceTypeFilter] = useState('all');
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [formData, setFormData] = useState({
     resourceType: 'venue',
@@ -49,6 +55,55 @@ const AdminReservationsScreen = ({ navigation }) => {
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    return {
+      total: reservations.length,
+      pending: reservations.filter(item => item.status === 'pending').length,
+      confirmed: reservations.filter(item => item.status === 'confirmed').length,
+      cancelled: reservations.filter(item => item.status === 'cancelled').length,
+      borrowed: reservations.filter(item => item.status === 'borrowed').length,
+      returned: reservations.filter(item => item.status === 'returned').length,
+      checked_out: reservations.filter(item => item.status === 'checked_out').length,
+      overdue: reservations.filter(item => new Date(item.endDate) < now && !['returned', 'checked_out', 'cancelled'].includes(item.status)).length,
+    };
+  }, [reservations]);
+
+  const filteredReservations = useMemo(() => {
+    const now = new Date();
+    const query = searchQuery.trim().toLowerCase();
+    return reservations.filter(reservation => {
+      const overdue = new Date(reservation.endDate) < now && !['returned', 'checked_out', 'cancelled'].includes(reservation.status);
+      const itemTypes = [...new Set((reservation.items || []).map(item => item.resourceType).filter(Boolean))];
+      const reservationType = itemTypes.length ? (itemTypes.length === 1 ? itemTypes[0] : 'mixed') : (reservation.resourceType || 'unknown');
+      const reservationTitle = reservation.items?.length
+        ? `${reservation.items.length} item${reservation.items.length > 1 ? 's' : ''}`
+        : (reservation.resourceName || 'Reservation');
+      if (activeTab === 'overdue' && !overdue) return false;
+      if (!['all', 'overdue'].includes(activeTab) && reservation.status !== activeTab) return false;
+      if (resourceTypeFilter !== 'all' && reservationType !== resourceTypeFilter) return false;
+      if (!query) return true;
+      const searchable = [
+        reservation.reservedBy?.firstName,
+        reservation.reservedBy?.lastName,
+        reservationTitle,
+        reservation.description,
+        reservation.status,
+        ...(reservation.items || []).flatMap(item => [item.resourceName, item.resourceType])
+      ].filter(Boolean).join(' ').toLowerCase();
+      return searchable.includes(query);
+    });
+  }, [activeTab, reservations, resourceTypeFilter, searchQuery]);
+
+  const paginatedReservations = useMemo(
+    () => filteredReservations.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredReservations, page, rowsPerPage]
+  );
+
+  useEffect(() => {
+    setPage(0);
+  }, [activeTab, resourceTypeFilter, searchQuery, rowsPerPage]);
 
   useEffect(() => {
     fetchReservations();
@@ -308,16 +363,27 @@ const AdminReservationsScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.scheduleHeader}>
-        <Text style={styles.scheduleEyebrow}>RESOURCE SCHEDULE</Text>
-        <Text style={styles.scheduleTitle}>Reservation Logs</Text>
-        <Text style={styles.scheduleSubtitle}>A chronological view of community reservations</Text>
-        <View style={styles.scheduleMeta}>
-          <View style={styles.scheduleMetaIcon}>
-            <Ionicons name="calendar-outline" size={21} color={themeColors.primaryDeep} />
+        <Text style={styles.scheduleEyebrow}>COMMUNITY BOOKINGS</Text>
+        <Text style={styles.scheduleTitle}>Reservation Requests</Text>
+        <Text style={styles.scheduleSubtitle}>Review requests, approvals, cancellations and returns</Text>
+        <View style={styles.headerUtilityRow}>
+          <View style={styles.scheduleMeta}>
+            <View style={styles.scheduleMetaIcon}>
+              <Ionicons name="calendar-outline" size={18} color={themeColors.primaryDeep} />
+            </View>
+            <View>
+              <Text style={styles.scheduleMetaValue}>{reservations.length}</Text>
+              <Text style={styles.scheduleMetaLabel}>Total records</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.scheduleMetaValue}>{reservations.length}</Text>
-            <Text style={styles.scheduleMetaLabel}>total records</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerPrimaryButton} onPress={handleResourceModalOpen}>
+              <Ionicons name="add" size={18} color={themeColors.primaryDeep} />
+              <Text style={styles.headerPrimaryText}>Add Resource</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconButton} onPress={handleRefresh}>
+              <Ionicons name="refresh" size={19} color={themeColors.primaryDeep} />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -329,14 +395,73 @@ const AdminReservationsScreen = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {reservations.length === 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsStrip}>
+          {[
+            ['Total', stats.total, '#2563eb'],
+            ['Pending', stats.pending, '#f59e0b'],
+            ['Confirmed', stats.confirmed, '#16a34a'],
+            ['Borrowed', stats.borrowed, '#0ea5e9'],
+            ['Returned', stats.returned, '#64748b'],
+            ['Checked out', stats.checked_out, '#7c3aed'],
+            ['Overdue', stats.overdue, '#dc2626'],
+          ].map(([label, value, color]) => (
+            <View key={label} style={styles.statCard}>
+              <Text style={[styles.statValue, { color }]}>{value}</Text>
+              <Text style={styles.statLabel}>{label}</Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={19} color="#64748b" />
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search resident or resource..."
+              placeholderTextColor="#94a3b8"
+            />
+          </View>
+          <TouchableOpacity style={[styles.filterButton, resourceTypeFilter !== 'all' && styles.filterButtonActive]} onPress={() => setFilterModalVisible(true)}>
+            <Ionicons name="options-outline" size={20} color={resourceTypeFilter !== 'all' ? 'white' : themeColors.primaryDeep} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statusTabs}>
+          {[
+            ['all', 'All', stats.total],
+            ['pending', 'Pending', stats.pending],
+            ['confirmed', 'Confirmed', stats.confirmed],
+            ['borrowed', 'Borrowed', stats.borrowed],
+            ['returned', 'Returned', stats.returned],
+            ['checked_out', 'Checked Out', stats.checked_out],
+            ['cancelled', 'Cancelled', stats.cancelled],
+            ['overdue', 'Overdue', stats.overdue],
+          ].map(([value, label, count]) => (
+            <TouchableOpacity key={value} style={[styles.statusTab, activeTab === value && styles.statusTabActive]} onPress={() => setActiveTab(value)}>
+              <Text style={[styles.statusTabText, activeTab === value && styles.statusTabTextActive]}>{label} ({count})</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <View style={styles.resultsSummary}>
+          <Text style={styles.resultsText}>Showing {filteredReservations.length} of {reservations.length} requests</Text>
+          {resourceTypeFilter !== 'all' && (
+            <TouchableOpacity onPress={() => setResourceTypeFilter('all')} style={styles.activeTypeChip}>
+              <Text style={styles.activeTypeText}>{resourceTypeFilter}</Text>
+              <Ionicons name="close" size={14} color={themeColors.primaryDeep} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {filteredReservations.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="calendar-outline" size={48} color="#cbd5e1" />
-            <Text style={styles.emptyTitle}>The schedule is clear</Text>
-            <Text style={styles.emptySubtitle}>New resident bookings will appear here automatically.</Text>
+            <Text style={styles.emptyTitle}>No matching reservation requests</Text>
+            <Text style={styles.emptySubtitle}>Try another status, resource type, or search term.</Text>
           </View>
         ) : (
-          reservations.map((reservation) => {
+          paginatedReservations.map((reservation) => {
             const isOverdue = new Date(reservation.endDate) < new Date() && !['returned', 'checked_out', 'cancelled'].includes(reservation.status);
             const displayStatus = isOverdue ? 'Overdue' : formatStatusLabel(reservation.status);
             const statusColor = isOverdue ? '#ef4444' : getStatusColor(reservation.status);
@@ -466,7 +591,56 @@ const AdminReservationsScreen = ({ navigation }) => {
             );
           })
         )}
+        {filteredReservations.length > rowsPerPage && (
+          <View style={styles.pagination}>
+            <TouchableOpacity disabled={page === 0} style={[styles.pageButton, page === 0 && styles.pageButtonDisabled]} onPress={() => setPage(current => Math.max(0, current - 1))}>
+              <Ionicons name="chevron-back" size={18} color={themeColors.primaryDeep} />
+              <Text style={styles.pageButtonText}>Previous</Text>
+            </TouchableOpacity>
+            <Text style={styles.pageText}>{page + 1} / {Math.ceil(filteredReservations.length / rowsPerPage)}</Text>
+            <TouchableOpacity disabled={(page + 1) * rowsPerPage >= filteredReservations.length} style={[styles.pageButton, (page + 1) * rowsPerPage >= filteredReservations.length && styles.pageButtonDisabled]} onPress={() => setPage(current => current + 1)}>
+              <Text style={styles.pageButtonText}>Next</Text>
+              <Ionicons name="chevron-forward" size={18} color={themeColors.primaryDeep} />
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
+
+      <Modal visible={filterModalVisible} transparent animationType="slide" onRequestClose={() => setFilterModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.filterSheet}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Resource type</Text>
+                <Text style={styles.filterSubtitle}>Choose which reservations to display</Text>
+              </View>
+              <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            {[
+              ['all', 'All Types', 'layers-outline'],
+              ['venue', 'Venues', 'business-outline'],
+              ['equipment', 'Equipment', 'build-outline'],
+              ['mixed', 'Mixed Resources', 'apps-outline'],
+            ].map(([value, label, icon]) => (
+              <TouchableOpacity key={value} style={[styles.typeOption, resourceTypeFilter === value && styles.typeOptionActive]} onPress={() => { setResourceTypeFilter(value); setFilterModalVisible(false); }}>
+                <Ionicons name={icon} size={20} color={resourceTypeFilter === value ? 'white' : themeColors.primaryDeep} />
+                <Text style={[styles.typeOptionText, resourceTypeFilter === value && styles.typeOptionTextActive]}>{label}</Text>
+                {resourceTypeFilter === value && <Ionicons name="checkmark-circle" size={20} color="white" />}
+              </TouchableOpacity>
+            ))}
+            <Text style={styles.sheetSectionLabel}>REQUESTS PER PAGE</Text>
+            <View style={styles.rowsOptions}>
+              {[5, 10, 25].map(value => (
+                <TouchableOpacity key={value} style={[styles.rowsOption, rowsPerPage === value && styles.rowsOptionActive]} onPress={() => setRowsPerPage(value)}>
+                  <Text style={[styles.rowsOptionText, rowsPerPage === value && styles.rowsOptionTextActive]}>{value}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Reservation Modal */}
       <Modal
@@ -798,14 +972,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
   },
-  scheduleHeader: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 22 },
-  scheduleEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
-  scheduleTitle: { color: 'white', fontSize: 31, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
-  scheduleSubtitle: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', marginTop: 3 },
-  scheduleMeta: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  scheduleMetaIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center' },
-  scheduleMetaValue: { color: 'white', fontSize: 20, fontWeight: '900' },
-  scheduleMetaLabel: { color: 'rgba(255,255,255,0.60)', fontSize: 10, fontWeight: '700' },
+  scheduleHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 22, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  scheduleEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  scheduleTitle: { color: themeColors.textPrimary, fontSize: 31, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
+  scheduleSubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 3 },
+  headerUtilityRow: { marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  scheduleMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  scheduleMetaIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center' },
+  scheduleMetaValue: { color: themeColors.textPrimary, fontSize: 17, fontWeight: '800', lineHeight: 18 },
+  scheduleMetaLabel: { color: themeColors.textSecondary, fontSize: 10, fontWeight: '700' },
+  headerActions: { flexDirection: 'row', gap: 7, alignItems: 'center' },
+  headerPrimaryButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: themeColors.accent, paddingHorizontal: 11, height: 36, borderRadius: 10 },
+  headerPrimaryText: { color: themeColors.primaryDeep, fontWeight: '900', fontSize: 12 },
+  headerIconButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: themeColors.border },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -833,6 +1012,29 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
+  statsStrip: { gap: 9, paddingBottom: 16 },
+  statCard: { width: 104, padding: 13, backgroundColor: 'white', borderRadius: 15, borderWidth: 1, borderColor: '#e2e8f0' },
+  statValue: { fontSize: 22, fontWeight: '900' },
+  statLabel: { color: '#64748b', fontSize: 10, fontWeight: '800', marginTop: 3 },
+  searchRow: { flexDirection: 'row', gap: 9, marginBottom: 12 },
+  searchBox: { flex: 1, height: 48, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'white', borderWidth: 1, borderColor: '#dbe4df', borderRadius: 14, paddingHorizontal: 13 },
+  searchInput: { flex: 1, color: '#0f172a', fontSize: 14 },
+  filterButton: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.primarySoft, borderWidth: 1, borderColor: '#dbe4df' },
+  filterButtonActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },
+  statusTabs: { gap: 7, paddingBottom: 10 },
+  statusTab: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'white', borderRadius: 999, borderWidth: 1, borderColor: '#dbe4df' },
+  statusTabActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },
+  statusTabText: { color: '#64748b', fontSize: 11, fontWeight: '800' },
+  statusTabTextActive: { color: 'white' },
+  resultsSummary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  resultsText: { color: '#64748b', fontSize: 11, fontWeight: '700' },
+  activeTypeChip: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: themeColors.primarySoft, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 },
+  activeTypeText: { color: themeColors.primaryDeep, textTransform: 'capitalize', fontSize: 10, fontWeight: '900' },
+  pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingBottom: 30 },
+  pageButton: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: themeColors.primarySoft, borderRadius: 11, paddingHorizontal: 12, paddingVertical: 9 },
+  pageButtonDisabled: { opacity: 0.35 },
+  pageButtonText: { color: themeColors.primaryDeep, fontSize: 11, fontWeight: '900' },
+  pageText: { color: '#64748b', fontSize: 11, fontWeight: '800' },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 72,
@@ -952,6 +1154,18 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: '90%',
   },
+  filterSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 26 },
+  filterSubtitle: { color: '#64748b', fontSize: 12, marginTop: 3 },
+  typeOption: { marginHorizontal: 20, marginTop: 10, minHeight: 50, borderRadius: 14, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
+  typeOptionActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },
+  typeOptionText: { flex: 1, color: '#334155', fontSize: 14, fontWeight: '800' },
+  typeOptionTextActive: { color: 'white' },
+  sheetSectionLabel: { marginHorizontal: 20, marginTop: 22, color: '#64748b', fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  rowsOptions: { flexDirection: 'row', gap: 8, marginHorizontal: 20, marginTop: 9 },
+  rowsOption: { flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 11, backgroundColor: '#f1f5f9' },
+  rowsOptionActive: { backgroundColor: themeColors.primaryDeep },
+  rowsOptionText: { color: '#64748b', fontWeight: '900' },
+  rowsOptionTextActive: { color: 'white' },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

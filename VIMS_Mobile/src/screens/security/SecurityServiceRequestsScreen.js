@@ -31,6 +31,8 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   const [selected, setSelected] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 10;
 
   const loadUser = useCallback(async () => {
     const raw = await AsyncStorage.getItem('user');
@@ -80,15 +82,9 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   };
 
   const filtered = useMemo(() => {
-    const onlyAssigned = rows.filter((r) => {
-      const assignedId = r?.assignedTo?._id || r?.assignedTo;
-      const myId = user?.id || user?._id;
-      return Boolean(myId && assignedId && String(assignedId) === String(myId));
-    });
-
-    if (!query.trim()) return onlyAssigned;
+    if (!query.trim()) return rows;
     const q = query.trim().toLowerCase();
-    return onlyAssigned.filter((r) => {
+    return rows.filter((r) => {
       const residentName = `${r?.residentId?.firstName || ''} ${r?.residentId?.lastName || ''}`.toLowerCase();
       return (
         String(r?.title || '').toLowerCase().includes(q) ||
@@ -99,6 +95,16 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       );
     });
   }, [rows, query, user]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [query, status, priority, category]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+  const paginated = useMemo(
+    () => filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filtered, page]
+  );
 
   const canUpdate = useCallback(
     (req) => {
@@ -209,7 +215,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={filtered}
+        data={paginated}
         renderItem={renderItem}
         keyExtractor={(item) => item?._id || String(Math.random())}
         contentContainerStyle={styles.listContainer}
@@ -221,6 +227,17 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
             <Text style={styles.emptyText}>No service requests match your filters.</Text>
           </View>
         }
+        ListFooterComponent={filtered.length > rowsPerPage ? (
+          <View style={styles.paginationRow}>
+            <TouchableOpacity style={[styles.pageButton, page === 0 && styles.disabled]} disabled={page === 0} onPress={() => setPage((value) => Math.max(0, value - 1))}>
+              <Text style={styles.pageButtonText}>Previous</Text>
+            </TouchableOpacity>
+            <Text style={styles.pageInfo}>Page {page + 1} of {pageCount}</Text>
+            <TouchableOpacity style={[styles.pageButton, page >= pageCount - 1 && styles.disabled]} disabled={page >= pageCount - 1} onPress={() => setPage((value) => Math.min(pageCount - 1, value + 1))}>
+              <Text style={styles.pageButtonText}>Next</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       />
 
       <Modal visible={detailsOpen} transparent animationType="slide" onRequestClose={() => setDetailsOpen(false)}>
@@ -342,6 +359,10 @@ const styles = StyleSheet.create({
   completedBtn: { backgroundColor: themeColors.success },
   actionText: { color: 'white', fontWeight: '900' },
   disabled: { opacity: 0.55 },
+  paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  pageButton: { backgroundColor: themeColors.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
+  pageButtonText: { color: 'white', fontWeight: '900' },
+  pageInfo: { color: themeColors.textSecondary, fontWeight: '800' },
 });
 
 export default SecurityServiceRequestsScreen;

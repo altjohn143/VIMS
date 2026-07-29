@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +12,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../utils/api';
 import { themeColors, shadows } from '../../utils/theme';
+
+const officerName = (officer) =>
+  `${officer?.firstName || ''} ${officer?.lastName || ''}`.trim() || 'Unassigned officer';
+const listText = (value, fallback) =>
+  Array.isArray(value) && value.length ? value.join(', ') : fallback;
+const when = (value) => {
+  if (!value) return 'No timestamp';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'No timestamp' : date.toLocaleString();
+};
 
 const HeadOfficerTeamScreen = ({ navigation, route }) => {
   const [team, setTeam] = useState([]);
@@ -36,111 +47,213 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
     load();
   }, [load]);
 
-  const title = useMemo(() => {
-    if (route?.name === 'PersonnelTab') return 'Personnel Management';
-    if (route?.name === 'AnalyticsTab') return 'Patrol Analytics';
-    return 'Team Performance';
-  }, [route?.name]);
+  const view = route?.name === 'PersonnelTab'
+    ? 'team'
+    : route?.name === 'AnalyticsTab'
+      ? 'analytics'
+      : 'performance';
 
-  const data = route?.name === 'PersonnelTab' ? team : logs;
+  const title = {
+    team: 'Personnel Management',
+    performance: 'Team Performance',
+    analytics: 'Patrol Analytics',
+  }[view];
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    load();
-  };
-
-  const renderItem = ({ item }) => {
-    if (route?.name === 'PersonnelTab') {
-      return (
-        <View style={[styles.card, shadows.small]}>
-          <Text style={styles.cardTitle}>{item.firstName} {item.lastName}</Text>
-          <Text style={styles.cardMeta}>{item.email}</Text>
-          <Text style={styles.cardMeta}>Schedule: {item.patrolSchedule || 'Not set'}</Text>
-          <Text style={styles.cardMeta}>Phases: {item.assignedPhases?.join(', ') || 'None'}</Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={[styles.card, shadows.small]}>
-        <Text style={styles.cardTitle}>{item.area || 'Area'} - {item.checkpoint || 'Checkpoint'}</Text>
-        <Text style={styles.cardMeta}>Officer: {item.officerId?.firstName || ''} {item.officerId?.lastName || ''}</Text>
-        <Text style={styles.cardMeta}>Status: {item.status || 'completed'}</Text>
-        <Text style={styles.cardMeta}>{new Date(item.loggedAt || item.createdAt).toLocaleString()}</Text>
-      </View>
+  const metrics = useMemo(() => {
+    const today = new Date().toDateString();
+    const issueLogs = logs.filter((log) => log.status === 'issue_found');
+    const completedLogs = logs.filter((log) => ['completed', 'nothing_found'].includes(log.status));
+    const todayLogs = logs.filter(
+      (log) => new Date(log.loggedAt || log.createdAt).toDateString() === today
     );
-  };
+    return {
+      issueLogs,
+      completedLogs,
+      todayLogs,
+      activeTeam: team.filter((member) => member.isActive),
+      unassignedTeam: team.filter((member) => !member.headOfficerId),
+      scheduledTeam: team.filter((member) => member.patrolSchedule),
+      completionRate: logs.length ? Math.round((completedLogs.length / logs.length) * 100) : 0,
+    };
+  }, [logs, team]);
+
+  const refreshControl = (
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={() => {
+        setRefreshing(true);
+        load();
+      }}
+    />
+  );
+
+  const renderPersonnel = ({ item }) => (
+    <View style={[styles.card, shadows.small]}>
+      <View style={styles.cardHeading}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{`${item.firstName?.[0] || ''}${item.lastName?.[0] || ''}` || 'SO'}</Text>
+        </View>
+        <View style={styles.cardHeadingText}>
+          <Text style={styles.cardTitle}>{officerName(item)}</Text>
+          <Text style={styles.cardMeta}>{item.email || 'No email'}</Text>
+        </View>
+        <View style={[styles.badge, item.isActive ? styles.activeBadge : styles.inactiveBadge]}>
+          <Text style={styles.badgeText}>{item.isActive ? 'Active' : 'Inactive'}</Text>
+        </View>
+      </View>
+      <Text style={styles.cardMeta}>Areas: {listText(item.assignedAreas, 'No assigned area')}</Text>
+      <Text style={styles.cardMeta}>Phases: {listText(item.assignedPhases, 'No phases')}</Text>
+      <Text style={styles.cardMeta}>Schedule: {item.patrolSchedule || 'No patrol schedule'}</Text>
+      {!item.headOfficerId && <Text style={styles.warningText}>Unassigned personnel</Text>}
+    </View>
+  );
+
+  const renderLog = ({ item }) => (
+    <View style={[styles.card, shadows.small]}>
+      <View style={styles.cardHeading}>
+        <View style={styles.cardHeadingText}>
+          <Text style={styles.cardTitle}>{item.area || 'Area'} · {item.checkpoint || 'Checkpoint'}</Text>
+          <Text style={styles.cardMeta}>{officerName(item.officerId)}</Text>
+        </View>
+        <View style={[styles.badge, item.status === 'issue_found' ? styles.issueBadge : styles.activeBadge]}>
+          <Text style={styles.badgeText}>{String(item.status || 'completed').replaceAll('_', ' ')}</Text>
+        </View>
+      </View>
+      <Text style={styles.cardMeta}>Phase: {item.phase || 'N/A'}</Text>
+      <Text style={styles.cardMeta}>{when(item.loggedAt || item.createdAt)}</Text>
+      {!!item.notes && <Text style={styles.notes}>{item.notes}</Text>}
+    </View>
+  );
+
+  const SummaryCard = ({ value, label, icon, color = themeColors.primary }) => (
+    <View style={styles.summaryCard}>
+      <Ionicons name={icon} size={20} color={color} />
+      <Text style={styles.summaryValue}>{value}</Text>
+      <Text style={styles.summaryLabel}>{label}</Text>
+    </View>
+  );
+
+  const header = (
+    <>
+      <View style={styles.summaryGrid}>
+        {view === 'team' ? (
+          <>
+            <SummaryCard value={team.length} label="Personnel" icon="people-outline" />
+            <SummaryCard value={metrics.activeTeam.length} label="Active" icon="radio-button-on" color={themeColors.success} />
+            <SummaryCard value={metrics.unassignedTeam.length} label="Unassigned" icon="person-remove-outline" color={themeColors.warning} />
+            <SummaryCard value={metrics.scheduledTeam.length} label="Scheduled" icon="calendar-outline" color={themeColors.info} />
+          </>
+        ) : view === 'performance' ? (
+          <>
+            <SummaryCard value={logs.length} label="Patrol Logs" icon="clipboard-outline" />
+            <SummaryCard value={metrics.todayLogs.length} label="Today" icon="today-outline" color={themeColors.info} />
+            <SummaryCard value={metrics.completedLogs.length} label="Completed/Clear" icon="checkmark-circle-outline" color={themeColors.success} />
+            <SummaryCard value={metrics.issueLogs.length} label="Issues" icon="warning-outline" color={themeColors.error} />
+          </>
+        ) : (
+          <>
+            <SummaryCard value={`${metrics.completionRate}%`} label="Completion" icon="analytics-outline" color={themeColors.success} />
+            <SummaryCard value={metrics.issueLogs.length} label="Issues Found" icon="alert-circle-outline" color={themeColors.error} />
+            <SummaryCard value={metrics.scheduledTeam.length} label="Coverage" icon="map-outline" color={themeColors.info} />
+            <SummaryCard value={team.length} label="Personnel" icon="people-outline" />
+          </>
+        )}
+      </View>
+      <Text style={styles.sectionTitle}>
+        {view === 'team' ? 'Assigned personnel' : view === 'performance' ? 'Recent patrol activity' : 'Assignment coverage'}
+      </Text>
+      {view === 'analytics' && (
+        <View style={[styles.coverageCard, shadows.small]}>
+          {team.length === 0 ? (
+            <Text style={styles.cardMeta}>No assignment data yet.</Text>
+          ) : team.map((member) => (
+            <View key={member._id} style={styles.coverageRow}>
+              <Text style={styles.coverageName}>{officerName(member)}</Text>
+              <Text style={styles.cardMeta}>{listText(member.assignedAreas, 'No area')} · {member.patrolSchedule || 'No schedule'}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {view === 'analytics' && <Text style={styles.sectionTitle}>Pending patrol reports</Text>}
+    </>
+  );
 
   if (loading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={themeColors.primary} />
-      </View>
-    );
+    return <View style={styles.loading}><ActivityIndicator size="large" color={themeColors.primary} /></View>;
   }
+
+  const data = view === 'team'
+    ? team
+    : view === 'analytics'
+      ? metrics.issueLogs
+      : logs.slice(0, 12);
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{title}</Text>
+        <View style={styles.titleBlock}>
+          <Text style={styles.eyebrow}>HEAD OFFICER</Text>
+          <Text style={styles.headerTitle}>{title}</Text>
+        </View>
         <TouchableOpacity onPress={load} style={styles.headerButton}>
           <Ionicons name="refresh" size={22} color="white" />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{team.length}</Text>
-          <Text style={styles.statLabel}>Personnel</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{logs.length}</Text>
-          <Text style={styles.statLabel}>Patrol Logs</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{logs.filter((log) => log.status === 'issue_found').length}</Text>
-          <Text style={styles.statLabel}>Issues</Text>
-        </View>
-      </View>
-
       <FlatList
         data={data}
-        keyExtractor={(item) => item._id}
-        renderItem={renderItem}
+        keyExtractor={(item, index) => item._id || String(index)}
+        renderItem={view === 'team' ? renderPersonnel : renderLog}
+        ListHeaderComponent={header}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Ionicons name={view === 'analytics' ? 'shield-checkmark-outline' : 'file-tray-outline'} size={48} color={themeColors.textSecondary} />
+            <Text style={styles.emptyTitle}>{view === 'analytics' ? 'No pending patrol reports' : 'No records found'}</Text>
+          </View>
+        }
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListEmptyComponent={<Text style={styles.emptyText}>No records found.</Text>}
+        refreshControl={refreshControl}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.nav },
+  container: { flex: 1, backgroundColor: themeColors.background },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: {
-    backgroundColor: themeColors.nav,
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  topBar: { backgroundColor: themeColors.primaryDeep, paddingTop: 52, paddingHorizontal: 16, paddingBottom: 24, flexDirection: 'row', alignItems: 'center', borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
   headerButton: { padding: 8 },
-  headerTitle: { color: 'white', fontSize: 20, fontWeight: '800' },
-  statsRow: { flexDirection: 'row', gap: 10, padding: 16, backgroundColor: themeColors.nav },
-  statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  statValue: { fontSize: 24, fontWeight: '900', color: themeColors.accent },
-  statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.62)', fontWeight: '700' },
-  list: { padding: 16, paddingTop: 0 },
-  card: { backgroundColor: '#f8fbf9', borderRadius: 20, padding: 18, marginBottom: 12 },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: themeColors.textPrimary, marginBottom: 6 },
-  cardMeta: { color: themeColors.textSecondary, marginTop: 2 },
-  emptyText: { textAlign: 'center', color: themeColors.textSecondary, marginTop: 40 },
+  titleBlock: { flex: 1, marginLeft: 8 },
+  eyebrow: { color: themeColors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
+  headerTitle: { color: 'white', fontSize: 23, fontWeight: '900', marginTop: 2 },
+  list: { padding: 16, paddingBottom: 32 },
+  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+  summaryCard: { width: '48%', backgroundColor: 'white', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: themeColors.border },
+  summaryValue: { fontSize: 25, fontWeight: '900', color: themeColors.textPrimary, marginTop: 8 },
+  summaryLabel: { fontSize: 12, color: themeColors.textSecondary, fontWeight: '700', marginTop: 2 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 12, marginTop: 4 },
+  card: { backgroundColor: 'white', borderRadius: 20, padding: 17, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border },
+  cardHeading: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  cardHeadingText: { flex: 1, minWidth: 0 },
+  avatar: { width: 42, height: 42, borderRadius: 14, backgroundColor: themeColors.primary + '18', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  avatarText: { color: themeColors.primary, fontWeight: '900' },
+  cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary },
+  cardMeta: { color: themeColors.textSecondary, fontSize: 12, marginTop: 3 },
+  badge: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999, marginLeft: 8 },
+  activeBadge: { backgroundColor: themeColors.success + '20' },
+  inactiveBadge: { backgroundColor: themeColors.textSecondary + '20' },
+  issueBadge: { backgroundColor: themeColors.warning + '25' },
+  badgeText: { color: themeColors.textPrimary, fontSize: 10, fontWeight: '900', textTransform: 'capitalize' },
+  warningText: { color: themeColors.warning, fontSize: 12, fontWeight: '800', marginTop: 8 },
+  notes: { color: themeColors.textPrimary, fontSize: 13, lineHeight: 19, marginTop: 9, paddingTop: 9, borderTopWidth: 1, borderTopColor: themeColors.border },
+  coverageCard: { backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 18 },
+  coverageRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  coverageName: { fontWeight: '900', color: themeColors.textPrimary },
+  empty: { alignItems: 'center', paddingVertical: 48 },
+  emptyTitle: { color: themeColors.textPrimary, fontWeight: '800', fontSize: 16, marginTop: 12 },
 });
 
 export default HeadOfficerTeamScreen;

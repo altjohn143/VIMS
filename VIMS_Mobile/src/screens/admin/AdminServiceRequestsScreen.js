@@ -11,9 +11,13 @@ import {
   Modal,
   RefreshControl,
   FlatList,
+  Linking,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { themeColors, shadows } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
@@ -32,12 +36,15 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
     inProgress: 0,
     completed: 0,
     urgent: 0,
+    averageRating: 0,
   });
 
   const [processForm, setProcessForm] = useState({
@@ -72,6 +79,12 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     urgent: themeColors.error,
   };
 
+  const isEmergency = (request) => {
+    if (!request) return false;
+    const content = `${request.title || ''} ${request.description || ''}`.toLowerCase();
+    return request.category === 'security' || ['fire', 'emergency', 'alert', 'danger', 'urgent'].some((keyword) => content.includes(keyword));
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -96,7 +109,17 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
         setStaffMembers(staffRes.data.data);
       }
       if (statsRes.data.success) {
-        setStats(statsRes.data.data);
+        const dashboard = statsRes.data.data || {};
+        const allRequests = requestsRes.data?.data || [];
+        const rated = allRequests.filter((request) => Number(request.rating) > 0);
+        setStats({
+          total: dashboard.totalRequests || allRequests.length,
+          pending: dashboard.pendingRequests || 0,
+          inProgress: dashboard.inProgressRequests || 0,
+          completed: dashboard.completedRequests || 0,
+          urgent: dashboard.urgentRequests || 0,
+          averageRating: rated.length ? rated.reduce((sum, request) => sum + Number(request.rating), 0) / rated.length : 0,
+        });
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch data');
@@ -146,22 +169,42 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     setLoading(true);
     try {
       let response;
+      const emergency = isEmergency(selectedRequest);
+      let assignedStaffId = processForm.assignedTo;
+      if (emergency && processForm.status === 'assigned') {
+        assignedStaffId = staffMembers.find((staff) => staff.role === 'security')?._id || '';
+        if (!assignedStaffId) {
+          Alert.alert('No Security Staff', 'No active security personnel are available for automatic emergency assignment.');
+          return;
+        }
+      }
       
-      if (processForm.assignedTo && processForm.status === 'assigned') {
+      if (assignedStaffId && processForm.status === 'assigned') {
         response = await api.put(`/service-requests/${selectedRequest._id}/assign-staff`, {
-          assignedTo: processForm.assignedTo,
-          adminNotes: processForm.adminNotes,
+          assignedTo: assignedStaffId,
+          adminNotes: emergency ? `[EMERGENCY] ${processForm.adminNotes}` : processForm.adminNotes,
         });
       } else {
         response = await api.put(`/service-requests/${selectedRequest._id}/review`, {
           status: processForm.status,
-          adminNotes: processForm.adminNotes,
+          adminNotes: emergency ? `[EMERGENCY] ${processForm.adminNotes}` : processForm.adminNotes,
           estimatedCompletion: processForm.estimatedCompletion,
         });
       }
 
       if (response.data.success) {
-        Alert.alert('Success', 'Request processed successfully');
+        if (emergency && processForm.status === 'assigned') {
+          Alert.alert(
+            'Emergency Request Assigned',
+            'Security personnel were assigned. Do you want to open the phone dialer for the national emergency hotline (911)?',
+            [
+              { text: 'Not Now', style: 'cancel' },
+              { text: 'Call 911', style: 'destructive', onPress: () => Linking.openURL('tel:911') },
+            ]
+          );
+        } else {
+          Alert.alert('Success', 'Request processed successfully');
+        }
         setShowProcessModal(false);
         fetchData();
       }
@@ -169,6 +212,43 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
       Alert.alert('Error', error.response?.data?.error || 'Failed to process request');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+    setPriorityFilter('all');
+  };
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('format', 'pdf');
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (categoryFilter !== 'all') params.append('category', categoryFilter);
+      if (priorityFilter !== 'all') params.append('priority', priorityFilter);
+      params.append('timezoneOffset', String(new Date().getTimezoneOffset()));
+      const token = await AsyncStorage.getItem('token');
+      const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
+      const fileUri = `${FileSystem.documentDirectory}service_requests_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.pdf`;
+      const download = await FileSystem.downloadAsync(
+        `${baseUrl}/service-requests/export?${params.toString()}`,
+        fileUri,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
+      if (download.status < 200 || download.status >= 300) throw new Error(`Export server returned status ${download.status}`);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, { mimeType: 'application/pdf', dialogTitle: 'Share Service Requests PDF' });
+      } else {
+        Alert.alert('Export Complete', `PDF saved to ${fileUri}`);
+      }
+    } catch (error) {
+      Alert.alert('Export Failed', error.response?.data?.error || error.message || 'Failed to export PDF');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -362,6 +442,11 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.navigate('ArchivedServiceRequests')} style={styles.queueTool}>
             <Ionicons name="archive-outline" size={20} color={themeColors.primaryDeep} />
           </TouchableOpacity>
+          <TouchableOpacity onPress={handleExportPdf} style={styles.queueTool} disabled={exporting}>
+            {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : (
+              <Ionicons name="download-outline" size={20} color={themeColors.primaryDeep} />
+            )}
+          </TouchableOpacity>
         </View>
       </View>
       <View style={styles.queueProgress}>
@@ -370,8 +455,8 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
           <View style={[styles.queueProgressPending, { flex: Math.max(1, (stats.total || 0) - (stats.completed || 0)) }]} />
         </View>
         <View style={styles.queueProgressLabels}>
-          <Text style={styles.queueProgressText}>{stats.completed || 0} resolved</Text>
-          <Text style={[styles.queueProgressText, { color: themeColors.error }]}>{stats.urgent || 0} urgent</Text>
+          <Text style={styles.queueProgressText}>{stats.total} total · {stats.completed} resolved</Text>
+          <Text style={[styles.queueProgressText, { color: themeColors.error }]}>{stats.urgent} urgent · ★ {stats.averageRating.toFixed(1)}</Text>
         </View>
       </View>
 
@@ -384,6 +469,11 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {(searchQuery || statusFilter !== 'all' || categoryFilter !== 'all' || priorityFilter !== 'all') ? (
+            <TouchableOpacity onPress={clearFilters}>
+              <Ionicons name="close-circle" size={21} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
@@ -398,6 +488,18 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
             onPress={() => setStatusFilter('pending')}
           >
             <Text style={[styles.filterText, statusFilter === 'pending' && styles.activeFilterText]}>Pending</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'under-review' && styles.activeFilter]}
+            onPress={() => setStatusFilter('under-review')}
+          >
+            <Text style={[styles.filterText, statusFilter === 'under-review' && styles.activeFilterText]}>Under Review</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'assigned' && styles.activeFilter]}
+            onPress={() => setStatusFilter('assigned')}
+          >
+            <Text style={[styles.filterText, statusFilter === 'assigned' && styles.activeFilterText]}>Assigned</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.filterChip, statusFilter === 'in-progress' && styles.activeFilter]}
@@ -419,7 +521,13 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+        <TouchableOpacity style={styles.advancedFilterToggle} onPress={() => setShowAdvancedFilters((value) => !value)}>
+          <Ionicons name="options-outline" size={17} color={themeColors.primary} />
+          <Text style={styles.advancedFilterToggleText}>{showAdvancedFilters ? 'Hide category and priority' : 'Category and priority'}</Text>
+          {(categoryFilter !== 'all' || priorityFilter !== 'all') && <View style={styles.activeFilterDot} />}
+        </TouchableOpacity>
+
+        {showAdvancedFilters && <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <TouchableOpacity
             style={[styles.filterChip, categoryFilter === 'all' && styles.activeFilter]}
             onPress={() => setCategoryFilter('all')}
@@ -436,7 +544,25 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
               <Text style={[styles.filterText, categoryFilter === cat.value && styles.activeFilterText]}>{cat.label}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </ScrollView>}
+
+        {showAdvancedFilters && <><View style={styles.filterLabelRow}>
+          <Text style={styles.filterGroupLabel}>Priority</Text>
+          <TouchableOpacity onPress={clearFilters}><Text style={styles.clearFiltersText}>Clear all</Text></TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          {['all', 'low', 'medium', 'high', 'urgent'].map((priority) => (
+            <TouchableOpacity
+              key={priority}
+              style={[styles.filterChip, priorityFilter === priority && styles.activeFilter]}
+              onPress={() => setPriorityFilter(priority)}
+            >
+              <Text style={[styles.filterText, priorityFilter === priority && styles.activeFilterText]}>
+                {priority === 'all' ? 'All Priorities' : priority.charAt(0).toUpperCase() + priority.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView></>}
       </View>
 
       <FlatList
@@ -474,6 +600,15 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
               {selectedRequest && (
                 <View>
                   <Text style={styles.modalSubtitle}>{selectedRequest.title}</Text>
+                  {isEmergency(selectedRequest) && (
+                    <View style={styles.emergencyBanner}>
+                      <Ionicons name="warning" size={22} color={themeColors.error} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.emergencyTitle}>EMERGENCY DETECTED</Text>
+                        <Text style={styles.emergencyText}>Assigning this request will automatically select active security personnel. You will be asked before opening the 911 dialer.</Text>
+                      </View>
+                    </View>
+                  )}
 
                   <View style={styles.formGroup}>
                     <Text style={styles.label}>Action</Text>
@@ -491,7 +626,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                     </View>
                   </View>
 
-                  {processForm.status === 'assigned' && (
+                  {processForm.status === 'assigned' && !isEmergency(selectedRequest) && (
                     <View style={styles.formGroup}>
                       <Text style={styles.label}>Assign To *</Text>
                       <View style={styles.pickerContainer}>
@@ -546,7 +681,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                     <TouchableOpacity
                       style={[styles.modalButton, styles.submitButton]}
                       onPress={handleProcessRequest}
-                      disabled={loading || (processForm.status === 'assigned' && !processForm.assignedTo)}
+                      disabled={loading || (processForm.status === 'assigned' && !isEmergency(selectedRequest) && !processForm.assignedTo)}
                     >
                       {loading ? <ActivityIndicator color="white" /> : <Text style={styles.submitButtonText}>Process</Text>}
                     </TouchableOpacity>
@@ -577,6 +712,8 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
             {selectedRequest && (
               <ScrollView>
                 <Text style={styles.detailTitle}>{selectedRequest.title}</Text>
+                <Text style={styles.detailSubtext}>Request #{String(selectedRequest._id || '').slice(-6)} · Created {formatDate(selectedRequest.createdAt)}</Text>
+                {selectedRequest.updatedAt && <Text style={styles.detailSubtext}>Last updated {formatDate(selectedRequest.updatedAt)}</Text>}
                 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Resident</Text>
@@ -586,6 +723,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                   <Text style={styles.detailSubtext}>
                     House {selectedRequest.residentId?.houseNumber} • {selectedRequest.residentId?.phone}
                   </Text>
+                  <Text style={styles.detailSubtext}>{selectedRequest.residentId?.email || 'No email available'}</Text>
                 </View>
 
                 <View style={styles.detailSection}>
@@ -618,6 +756,18 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                       <Text style={styles.detailValue}>{selectedRequest.location}</Text>
                     </View>
                   )}
+                  {Number(selectedRequest.estimatedCost) > 0 && (
+                    <View style={styles.detailGridItem}>
+                      <Text style={styles.detailLabel}>Estimated Cost</Text>
+                      <Text style={styles.detailValue}>₱{Number(selectedRequest.estimatedCost).toLocaleString()}</Text>
+                    </View>
+                  )}
+                  {selectedRequest.estimatedCompletion && (
+                    <View style={styles.detailGridItem}>
+                      <Text style={styles.detailLabel}>Est. Completion</Text>
+                      <Text style={styles.detailValue}>{formatDate(selectedRequest.estimatedCompletion)}</Text>
+                    </View>
+                  )}
                 </View>
 
                 {selectedRequest.assignedTo && (
@@ -627,6 +777,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                       {selectedRequest.assignedTo.firstName} {selectedRequest.assignedTo.lastName}
                     </Text>
                     <Text style={styles.detailSubtext}>{selectedRequest.assignedTo.role}</Text>
+                    {selectedRequest.assignedAt && <Text style={styles.detailSubtext}>Assigned {formatDate(selectedRequest.assignedAt)}</Text>}
                   </View>
                 )}
 
@@ -658,6 +809,12 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                     <Ionicons name="time" size={16} color={themeColors.textSecondary} />
                     <Text style={styles.timelineText}>Created: {formatDate(selectedRequest.createdAt)}</Text>
                   </View>
+                  {(selectedRequest.reviewedAt || ['under-review', 'assigned', 'in-progress', 'completed'].includes(selectedRequest.status)) && (
+                    <View style={styles.timelineItem}>
+                      <Ionicons name="eye" size={16} color={themeColors.primary} />
+                      <Text style={styles.timelineText}>Reviewed: {selectedRequest.reviewedAt ? formatDate(selectedRequest.reviewedAt) : 'Updated recently'}</Text>
+                    </View>
+                  )}
                   {selectedRequest.assignedAt && (
                     <View style={styles.timelineItem}>
                       <Ionicons name="person" size={16} color={themeColors.textSecondary} />
@@ -671,6 +828,16 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                     </View>
                   )}
                 </View>
+
+                {selectedRequest.completedAt && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Completion Details</Text>
+                    <Text style={styles.detailText}>Completed {formatDate(selectedRequest.completedAt)}</Text>
+                    {selectedRequest.completedBy && (
+                      <Text style={styles.detailSubtext}>By {selectedRequest.completedBy.firstName} {selectedRequest.completedBy.lastName}</Text>
+                    )}
+                  </View>
+                )}
 
                 {selectedRequest.rating && (
                   <View style={styles.ratingSection}>
@@ -695,21 +862,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
-  queueHeader: { backgroundColor: themeColors.nav, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20 },
+  queueHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   queueHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  queueEyebrow: { color: '#fbbf24', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
-  queueTitle: { color: 'white', fontSize: 30, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
-  queueSubtitle: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', marginTop: 3 },
+  queueEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
+  queueTitle: { color: themeColors.textPrimary, fontSize: 30, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
+  queueSubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 3 },
   queueToolbar: { flexDirection: 'row', gap: 10, marginTop: 18 },
   queueToolPrimary: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 43, paddingHorizontal: 16, borderRadius: 14, backgroundColor: themeColors.primary },
   queueToolPrimaryText: { color: 'white', fontSize: 12, fontWeight: '900' },
   queueTool: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.accent },
-  queueProgress: { margin: 16, padding: 16, backgroundColor: 'white', borderRadius: 18 },
+  queueProgress: { margin: 16, padding: 16, backgroundColor: themeColors.surfaceTint, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border },
+  advancedFilterToggle: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
+  advancedFilterToggleText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
+  activeFilterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.warning },
   queueProgressTrack: { height: 9, borderRadius: 999, overflow: 'hidden', flexDirection: 'row', backgroundColor: themeColors.border },
   queueProgressFill: { backgroundColor: themeColors.primary },
   queueProgressPending: { backgroundColor: '#f5d48d' },
   queueProgressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   queueProgressText: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '800' },
+  filterLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 },
+  filterGroupLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.8 },
+  clearFiltersText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
+  emergencyBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 13, borderRadius: 14, backgroundColor: themeColors.error + '12', borderWidth: 1, borderColor: themeColors.error + '55', marginTop: 12, marginBottom: 4 },
+  emergencyTitle: { color: themeColors.error, fontSize: 12, fontWeight: '900' },
+  emergencyText: { color: themeColors.error, fontSize: 11, lineHeight: 16, marginTop: 2 },
+  cancelledMetadata: { marginTop: 8, padding: 9, borderRadius: 10, backgroundColor: themeColors.error + '10' },
+  cancelledMetaText: { color: themeColors.error, fontSize: 11, fontWeight: '700' },
   header: {
     backgroundColor: themeColors.primaryDeep,
     paddingTop: 60,

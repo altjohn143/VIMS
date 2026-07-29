@@ -94,7 +94,7 @@ const AdminTabs = () => {
       <Tab.Screen name="VisitorsTab" component={AdminVisitorManagementScreen} options={{ title: 'Visitors' }} />
       <Tab.Screen name="ServicesTab" component={AdminServiceRequestsScreen} options={{ title: 'Services' }} />
       <Tab.Screen name="PaymentsTab" component={AdminPaymentsScreen} options={{ title: 'Payments' }} />
-      <Tab.Screen name="LogsTab" component={AdminReservationsScreen} options={{ title: 'Reservation Logs' }} />
+      <Tab.Screen name="LogsTab" component={AdminReservationsScreen} options={{ title: 'Reservations' }} />
     </Tab.Navigator>
   );
 };

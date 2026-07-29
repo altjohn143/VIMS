@@ -475,25 +475,25 @@ const VisitorManagementScreen = ({ navigation }) => {
 
       {!historyMode && (
         <View style={styles.statsGrid}>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#eef6f1' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="people-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.total}</Text>
             <Text style={styles.coloredStatLabel}>Total Visitors</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#e7f5ec' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="today-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.today}</Text>
             <Text style={styles.coloredStatLabel}>Today's Visitors</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#0284c7' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#edf7f5' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="radio-button-on-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.active}</Text>
             <Text style={styles.coloredStatLabel}>Active Visitors</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#fff5e8' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.pending}</Text>
@@ -926,7 +926,8 @@ const styles = StyleSheet.create({
     padding: 13,
     position: 'relative',
     overflow: 'hidden',
-    ...shadows.small,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   statCardHighlight: {
     position: 'absolute',
@@ -935,25 +936,25 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(20,113,61,0.08)',
   },
   coloredStatBgIcon: {
     position: 'absolute',
     top: 6,
     right: 6,
     fontSize: 16,
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(20,113,61,0.28)',
   },
   coloredStatValue: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: themeColors.primaryDeep,
+    fontSize: 24,
+    fontWeight: '900',
     marginBottom: 2,
   },
   coloredStatLabel: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 9,
-    fontWeight: '600',
+    color: themeColors.textSecondary,
+    fontSize: 10,
+    fontWeight: '800',
   },
   tabContainer: {
     flexDirection: 'row',

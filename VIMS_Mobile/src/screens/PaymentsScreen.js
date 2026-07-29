@@ -236,19 +236,19 @@ const PaymentsScreen = ({ navigation }) => {
       >
         {/* Stats Cards */}
         <View style={styles.statsGrid}>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#e8f5ed' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalPaid)}</Text>
             <Text style={styles.coloredStatLabel}>Total Paid</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#d97706' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#fff4df' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalPending)}</Text>
             <Text style={styles.coloredStatLabel}>Pending Balance</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
+          <View style={[styles.coloredStatCard, { backgroundColor: '#fff0f0' }]}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="alert-circle-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.overdueAmount)}</Text>
@@ -649,7 +649,8 @@ const styles = StyleSheet.create({
     padding: 13,
     position: 'relative',
     overflow: 'hidden',
-    ...shadows.small,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   statCardHighlight: {
     position: 'absolute',
@@ -658,25 +659,25 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(20,113,61,0.08)',
   },
   coloredStatBgIcon: {
     position: 'absolute',
     top: 6,
     right: 6,
     fontSize: 16,
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(20,113,61,0.24)',
   },
   coloredStatValue: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: themeColors.textPrimary,
+    fontSize: 17,
+    fontWeight: '900',
     marginBottom: 2,
   },
   coloredStatLabel: {
-    color: 'rgba(255,255,255,0.9)',
+    color: themeColors.textSecondary,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   currentDuesCard: {
     backgroundColor: '#fffbeb',

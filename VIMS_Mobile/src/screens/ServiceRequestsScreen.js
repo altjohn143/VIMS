@@ -336,25 +336,25 @@ const ServiceRequestsScreen = ({ navigation }) => {
 </View>
 
       <View style={styles.statsGrid}>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
+        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="build-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.total}</Text>
           <Text style={styles.coloredStatLabel}>Total</Text>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
+        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.pending}</Text>
           <Text style={styles.coloredStatLabel}>Pending</Text>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#0284c7' }]}>
+        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="cog-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.inProgress}</Text>
           <Text style={styles.coloredStatLabel}>In Progress</Text>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.completed}</Text>
@@ -748,7 +748,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    backgroundColor: themeColors.background,
+    backgroundColor: themeColors.nav,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 22,
   },
   coloredStatCard: {
     flexGrow: 1,
@@ -757,7 +760,8 @@ const styles = StyleSheet.create({
     padding: 13,
     position: 'relative',
     overflow: 'hidden',
-    ...shadows.small,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   statCardHighlight: {
     position: 'absolute',

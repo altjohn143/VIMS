@@ -230,15 +230,17 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: 'white',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
   },
   cardUnread: {
-    borderColor: themeColors.primary + '55',
-    backgroundColor: themeColors.primary + '06',
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.primary,
+    backgroundColor: themeColors.primary + '08',
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconWrap: {

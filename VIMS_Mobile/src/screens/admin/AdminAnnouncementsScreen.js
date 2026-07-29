@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   headerIconButton: { padding: 8 },
 
   listContainer: { padding: 16, paddingBottom: 24 },
-  card: { backgroundColor: 'white', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border },
+  card: { backgroundColor: '#f9fcfa', borderRadius: 24, padding: 18, marginBottom: 16, borderTopWidth: 6, borderTopColor: themeColors.primary },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
   cardTitle: { flex: 1, minWidth: 0, fontSize: 15, fontWeight: '900', color: themeColors.textPrimary },
   badge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },

@@ -569,8 +569,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 44,
+    borderBottomRightRadius: 0,
   },
   headerRight: {
   flexDirection: 'row',
@@ -591,17 +591,20 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   statsScroll: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: themeColors.background,
   },
   statsContainer: {
     flexDirection: 'row',
     padding: 16,
   },
   statCard: {
-    alignItems: 'center',
-    marginRight: 20,
+    alignItems: 'flex-start',
+    marginRight: 10,
+    minWidth: 108,
+    backgroundColor: '#edf7f1',
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   statValue: {
     fontSize: 18,
@@ -672,11 +675,11 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderLeftWidth: 3,
+    borderLeftColor: themeColors.primary,
   },
   visitorHeader: {
     flexDirection: 'row',

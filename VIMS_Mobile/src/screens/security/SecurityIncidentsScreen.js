@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   listContainer: { padding: 16, paddingBottom: 24 },
   formCard: { backgroundColor: 'white', borderRadius: 22, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 8, marginTop: 4 },
-  card: { backgroundColor: 'white', borderRadius: 22, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border },
+  card: { backgroundColor: '#fff8f5', borderRadius: 6, padding: 18, marginBottom: 10, borderLeftWidth: 5, borderLeftColor: themeColors.danger },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary, flex: 1, minWidth: 0 },
   pill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },

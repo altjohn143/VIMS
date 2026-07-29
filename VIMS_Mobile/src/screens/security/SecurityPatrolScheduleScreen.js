@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   listContainer: { padding: 16, paddingBottom: 24 },
   formCard: { backgroundColor: 'white', borderRadius: 22, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 8, marginTop: 4 },
-  card: { backgroundColor: 'white', borderRadius: 22, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border },
+  card: { backgroundColor: '#f4faf6', borderRadius: 22, padding: 18, marginBottom: 12, borderTopWidth: 5, borderTopColor: themeColors.primary },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary, flex: 1, minWidth: 0 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: themeColors.primary + '12' },

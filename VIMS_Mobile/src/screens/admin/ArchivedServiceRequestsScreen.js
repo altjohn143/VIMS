@@ -332,10 +332,12 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: themeColors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    ...shadows.small,
+    borderRadius: 6,
+    padding: 18,
+    marginBottom: 8,
+    opacity: 0.88,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.textMuted,
   },
   cardHeader: {
     flexDirection: 'row',

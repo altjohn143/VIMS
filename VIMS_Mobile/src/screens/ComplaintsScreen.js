@@ -352,7 +352,7 @@ const ComplaintsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#fff8f3' },
   header: {
     paddingTop: 52,
     paddingHorizontal: 16,
@@ -360,15 +360,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#fff8f3',
+    borderBottomRightRadius: 44,
   },
   headerTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
   content: { flex: 1 },
   contentInner: { padding: 14, paddingBottom: 28 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  statBox: { width: '48%', backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#e2e8f0' },
+  statBox: { width: '48%', backgroundColor: '#fff', borderRadius: 6, padding: 16, borderLeftWidth: 4, borderLeftColor: '#166534' },
   statValue: { fontSize: 24, fontWeight: '900', color: '#166534' },
   statLabel: { color: '#64748b', fontWeight: '700', marginTop: 2 },
   primaryBtn: {
@@ -384,7 +383,7 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontWeight: '800' },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', marginTop: 18, marginBottom: 10 },
   emptyText: { color: '#64748b', textAlign: 'center', paddingVertical: 18 },
-  card: { backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 10 },
+  card: { backgroundColor: '#fff', borderRadius: 6, padding: 18, borderLeftWidth: 5, borderLeftColor: '#d97706', marginBottom: 10 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   cardTitleWrap: { flex: 1 },
   cardTitle: { fontSize: 15, fontWeight: '900', color: '#0f172a' },

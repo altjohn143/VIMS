@@ -934,8 +934,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 42,
   },
   headerRight: {
     flexDirection: 'row',
@@ -960,17 +960,19 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   statsScroll: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: themeColors.primarySoft,
   },
   statsContainer: {
     flexDirection: 'row',
     padding: 16,
   },
   statCard: {
-    alignItems: 'center',
-    marginRight: 20,
+    alignItems: 'flex-start',
+    marginRight: 10,
+    minWidth: 112,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 12,
   },
   statValue: {
     fontSize: 18,
@@ -982,10 +984,9 @@ const styles = StyleSheet.create({
     color: themeColors.textSecondary,
   },
   filterContainer: {
-    backgroundColor: 'white',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: themeColors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   searchBox: {
     flexDirection: 'row',
@@ -1040,11 +1041,12 @@ const styles = StyleSheet.create({
   },
   userCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.primary,
   },
   userHeader: {
     flexDirection: 'row',

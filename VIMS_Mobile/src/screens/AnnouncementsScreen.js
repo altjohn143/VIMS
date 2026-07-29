@@ -251,11 +251,11 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: 'white',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.border,
+    borderRadius: 26,
+    padding: 18,
+    marginBottom: 18,
+    borderTopWidth: 6,
+    borderTopColor: themeColors.primary,
   },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   badge: {
@@ -269,8 +269,8 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: themeColors.primary, fontWeight: '800', fontSize: 11 },
   timeText: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '600' },
-  title: { color: themeColors.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 8 },
-  bodyPreview: { color: themeColors.textPrimary, fontSize: 13, lineHeight: 19, opacity: 0.9 },
+  title: { color: themeColors.textPrimary, fontSize: 20, fontWeight: '900', marginBottom: 10 },
+  bodyPreview: { color: themeColors.textSecondary, fontSize: 14, lineHeight: 22 },
   cardImage: { width: '100%', height: 170, borderRadius: 12, marginTop: 12, backgroundColor: '#f8fafc' },
   cardBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 },

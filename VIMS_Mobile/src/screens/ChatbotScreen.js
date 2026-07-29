@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
+import { themeColors } from '../utils/theme';
 
 const suggestedQuestionsByRole = {
   resident: [
@@ -136,7 +137,7 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: themeColors.nav },
   header: {
     paddingTop: 52,
     paddingHorizontal: 16,
@@ -144,32 +145,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff'
+    backgroundColor: themeColors.nav
   },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
+  headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
   messages: { flex: 1, padding: 12 },
   empty: { color: '#64748b', textAlign: 'center', marginTop: 20 },
   bubble: { padding: 10, borderRadius: 12, marginBottom: 10, maxWidth: '88%' },
   userBubble: { alignSelf: 'flex-end', backgroundColor: '#dcfce7' },
-  assistantBubble: { alignSelf: 'flex-start', backgroundColor: '#e2e8f0' },
-  bubbleText: { color: '#0f172a' },
+  assistantBubble: { alignSelf: 'flex-start', backgroundColor: '#163629' },
+  bubbleText: { color: '#f8fafc' },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
     padding: 10,
-    backgroundColor: '#fff'
+    backgroundColor: '#10251c'
   },
   suggestionsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: themeColors.nav,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0'
   },
   suggestionsTitle: {
-    color: '#0f172a',
+    color: '#fff',
     fontWeight: '700',
     marginBottom: 8
   },
@@ -178,13 +179,13 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   suggestionPill: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: '#163629',
     borderRadius: 18,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginRight: 10,
     borderWidth: 1,
-    borderColor: '#d1fae5'
+    borderColor: '#285a42'
   },
   suggestionText: {
     color: '#166534',
@@ -200,7 +201,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    backgroundColor: '#fff'
+    backgroundColor: '#163629',
+    color: '#fff'
   },
   sendBtn: {
     marginLeft: 8,

@@ -313,40 +313,28 @@ const AdminPaymentsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment Management</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Chatbot')} style={styles.backButton}>
-          <Ionicons name="sparkles-outline" size={22} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats Cards */}
-      <View style={styles.statsGrid}>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
-          <Ionicons name="cash-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalCollected)}</Text>
-          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Total Collected</Text>
-        </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
-          <Ionicons name="calendar-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.monthlyCollected)}</Text>
-          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Monthly</Text>
+      <View style={styles.ledgerHeader}>
+        <Text style={styles.ledgerEyebrow}>FINANCE LEDGER</Text>
+        <Text style={styles.ledgerTitle}>Collections</Text>
+        <Text style={styles.ledgerSubtitle}>Monitor dues, receipts and outstanding balances</Text>
+        <View style={styles.ledgerBalance}>
+          <Text style={styles.ledgerBalanceLabel}>TOTAL COLLECTED</Text>
+          <Text style={styles.ledgerBalanceValue}>{formatCurrency(summary.totalCollected)}</Text>
+          <View style={styles.ledgerBalanceBottom}>
+            <Text style={styles.ledgerBalanceMeta}>This month {formatCurrency(summary.monthlyCollected)}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Chatbot')} style={styles.ledgerAssistant}>
+              <Ionicons name="sparkles-outline" size={18} color={themeColors.primaryDeep} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actionBar}>
-        <TouchableOpacity style={styles.actionBarButton} onPress={() => setShowReminderDialog(true)}>
-          <Ionicons name="send" size={20} color="white" />
-          <Text style={styles.actionBarButtonText}>Reminders</Text>
+      <View style={styles.ledgerActions}>
+        <TouchableOpacity style={styles.ledgerActionPrimary} onPress={() => setShowReminderDialog(true)}>
+          <Ionicons name="paper-plane-outline" size={18} color="white" />
+          <Text style={styles.ledgerActionPrimaryText}>Send reminders</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBarButton} onPress={fetchPayments}>
-          <Ionicons name="refresh" size={20} color="white" />
-          <Text style={styles.actionBarButtonText}>Refresh</Text>
+        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={fetchPayments}>
+          <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
         </TouchableOpacity>
       </View>
 
@@ -570,6 +558,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
+  ledgerHeader: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 22 },
+  ledgerEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  ledgerTitle: { color: 'white', fontSize: 30, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
+  ledgerSubtitle: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', marginTop: 3 },
+  ledgerBalance: { backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 20, padding: 18, marginTop: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  ledgerBalanceLabel: { color: 'rgba(255,255,255,0.58)', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  ledgerBalanceValue: { color: 'white', fontSize: 31, fontWeight: '900', marginTop: 5 },
+  ledgerBalanceBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  ledgerBalanceMeta: { color: 'rgba(255,255,255,0.66)', fontSize: 11, fontWeight: '700' },
+  ledgerAssistant: { width: 34, height: 34, borderRadius: 11, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center' },
+  ledgerActions: { flexDirection: 'row', gap: 10, padding: 16 },
+  ledgerActionPrimary: { flex: 1, height: 46, borderRadius: 14, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  ledgerActionPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },
+  ledgerActionSecondary: { width: 46, height: 46, borderRadius: 14, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   header: {
     backgroundColor: themeColors.primaryDeep,
     paddingTop: 60,

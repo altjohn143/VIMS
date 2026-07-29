@@ -345,50 +345,33 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-<View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="white" />
-  </TouchableOpacity>
-  <Text style={styles.headerTitle}>Service Requests</Text>
-  <View style={styles.headerRight}>
-    <TouchableOpacity onPress={fetchData} style={styles.refreshButton}>
-      <Ionicons name="refresh" size={24} color="white" />
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={() => navigation.navigate('ArchivedServiceRequests')}
-      style={styles.archivedButton}
-    >
-      <Ionicons name="archive" size={24} color="white" />
-    </TouchableOpacity>
-    <UserDropdownMenu navigation={navigation} />
-  </View>
-</View>
-
-      <View style={styles.statsGrid}>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
-          <Ionicons name="build-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.total || 0}</Text>
-          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Total</Text>
+      <View style={styles.queueHeader}>
+        <View style={styles.queueHeaderTop}>
+          <View>
+            <Text style={styles.queueEyebrow}>MAINTENANCE DESK</Text>
+            <Text style={styles.queueTitle}>Work queue</Text>
+            <Text style={styles.queueSubtitle}>{stats.pending || 0} waiting · {stats.inProgress || 0} being handled</Text>
+          </View>
+          <UserDropdownMenu navigation={navigation} />
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#d97706' }]}>
-          <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.pending || 0}</Text>
-          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Pending</Text>
+        <View style={styles.queueToolbar}>
+          <TouchableOpacity onPress={fetchData} style={styles.queueToolPrimary}>
+            <Ionicons name="sync-outline" size={18} color="white" />
+            <Text style={styles.queueToolPrimaryText}>Sync queue</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('ArchivedServiceRequests')} style={styles.queueTool}>
+            <Ionicons name="archive-outline" size={20} color={themeColors.primaryDeep} />
+          </TouchableOpacity>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#0284c7' }]}>
-          <Ionicons name="cog-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.inProgress || 0}</Text>
-          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Active</Text>
+      </View>
+      <View style={styles.queueProgress}>
+        <View style={styles.queueProgressTrack}>
+          <View style={[styles.queueProgressFill, { flex: Math.max(1, stats.completed || 0) }]} />
+          <View style={[styles.queueProgressPending, { flex: Math.max(1, (stats.total || 0) - (stats.completed || 0)) }]} />
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
-          <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.completed || 0}</Text>
-          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Done</Text>
-        </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
-          <Ionicons name="alert-circle-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{stats.urgent || 0}</Text>
-          <Text style={styles.coloredStatLabel} numberOfLines={1} adjustsFontSizeToFit>Urgent</Text>
+        <View style={styles.queueProgressLabels}>
+          <Text style={styles.queueProgressText}>{stats.completed || 0} resolved</Text>
+          <Text style={[styles.queueProgressText, { color: themeColors.error }]}>{stats.urgent || 0} urgent</Text>
         </View>
       </View>
 
@@ -712,6 +695,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: themeColors.background,
   },
+  queueHeader: { backgroundColor: themeColors.nav, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20 },
+  queueHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  queueEyebrow: { color: '#fbbf24', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  queueTitle: { color: 'white', fontSize: 30, fontWeight: '900', letterSpacing: -1, marginTop: 2 },
+  queueSubtitle: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '600', marginTop: 3 },
+  queueToolbar: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  queueToolPrimary: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 43, paddingHorizontal: 16, borderRadius: 14, backgroundColor: themeColors.primary },
+  queueToolPrimaryText: { color: 'white', fontSize: 12, fontWeight: '900' },
+  queueTool: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.accent },
+  queueProgress: { margin: 16, padding: 16, backgroundColor: 'white', borderRadius: 18 },
+  queueProgressTrack: { height: 9, borderRadius: 999, overflow: 'hidden', flexDirection: 'row', backgroundColor: themeColors.border },
+  queueProgressFill: { backgroundColor: themeColors.primary },
+  queueProgressPending: { backgroundColor: '#f5d48d' },
+  queueProgressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  queueProgressText: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '800' },
   header: {
     backgroundColor: themeColors.primaryDeep,
     paddingTop: 60,

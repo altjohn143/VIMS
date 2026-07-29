@@ -23,6 +23,7 @@ import testDirectFetch from '../utils/testFetch';
 import { startUnreadCountPolling } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationModal from '../components/NotificationModal';
+import { radii, shadows, themeColors } from '../utils/theme';
 import ChatbotScreen from './ChatbotScreen';
 
 const DashboardScreen = ({ navigation }) => {
@@ -900,15 +901,17 @@ const DashboardScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', gap: 10 },
+  container: { flex: 1, backgroundColor: themeColors.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background, gap: 10 },
   loadingText: { fontSize: 14, color: '#64748b', fontWeight: '500' },
 
   /* Top Bar */
   topBar: {
-    paddingTop: 52, paddingHorizontal: 14, paddingBottom: 12,
-    backgroundColor: '#1a6b3c',
+    paddingTop: 54, paddingHorizontal: 16, paddingBottom: 22,
+    backgroundColor: themeColors.primaryDeep,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 },
   topLogoCircle: {
@@ -918,7 +921,7 @@ const styles = StyleSheet.create({
   },
   topLogoText: { color: '#fff', fontSize: 12, fontWeight: '900' },
   topTextWrap: { flexShrink: 1, minWidth: 0 },
-  topBarTitle: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
+  topBarTitle: { color: '#ffffff', fontSize: 17, fontWeight: '900', letterSpacing: -0.3 },
   topBarSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   bellBtn: {
@@ -1017,10 +1020,10 @@ const styles = StyleSheet.create({
 
   /* Scroll */
   content: { flex: 1 },
-  contentContainer: { padding: 12, paddingBottom: 32, gap: 10 },
+  contentContainer: { padding: 16, paddingBottom: 34, gap: 14 },
 
   /* Hero */
-  heroCard: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#0f172a' },
+  heroCard: { borderRadius: radii.xl, overflow: 'hidden', backgroundColor: themeColors.nav, ...shadows.medium },
   heroBg: { ...StyleSheet.absoluteFillObject, backgroundColor: '#111827' },
   heroInner: { flexDirection: 'row', alignItems: 'center' },
   heroInnerNarrow: { flexDirection: 'column', alignItems: 'stretch' },
@@ -1037,7 +1040,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   heroEyebrow: {
-    color: '#4ade80', fontSize: 9, fontWeight: '800',
+    color: themeColors.accent, fontSize: 9, fontWeight: '800',
     textTransform: 'uppercase', letterSpacing: 0.6,
   },
   heroTitle: { color: '#e2e8f0', fontSize: 20, fontWeight: '500', lineHeight: 26, marginBottom: 6 },
@@ -1048,7 +1051,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20,
   },
-  heroPillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4ade80' },
+  heroPillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: themeColors.accent },
   heroPillText: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '600' },
   
   /* Modern Access Widget */
@@ -1116,7 +1119,7 @@ const styles = StyleSheet.create({
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statGridNarrow: { flexDirection: 'column', gap: 10 },
   statCard: {
-    width: '100%', borderRadius: 16, padding: 12, minHeight: 115,
+    width: '100%', borderRadius: 22, padding: 15, minHeight: 122,
     overflow: 'hidden', justifyContent: 'flex-end',
   },
   statCardNarrow: { width: '100%' },
@@ -1128,8 +1131,8 @@ const styles = StyleSheet.create({
 
   /* Section Cards */
   sectionCard: {
-    backgroundColor: '#fff', borderRadius: 16,
-    borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.06)', overflow: 'hidden',
+    backgroundColor: '#fff', borderRadius: 22,
+    borderWidth: 1, borderColor: themeColors.border, overflow: 'hidden', ...shadows.small,
   },
   sectionHeader: {
     paddingHorizontal: 14, paddingVertical: 12,
@@ -1150,7 +1153,7 @@ const styles = StyleSheet.create({
     minHeight: 72,
   },
   actionRowDivider: { borderBottomWidth: 0.5, borderBottomColor: '#f8fafc' },
-  actionIconWrap: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  actionIconWrap: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,

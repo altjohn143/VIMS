@@ -149,17 +149,19 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 56,
-    paddingBottom: 14,
+    paddingBottom: 22,
     paddingHorizontal: 16,
-    backgroundColor: themeColors.primary,
+    backgroundColor: themeColors.primaryDeep,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   headerTitle: {
     color: 'white',
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 23,
+    fontWeight: '900',
   },
   cameraWrap: {
     margin: 16,

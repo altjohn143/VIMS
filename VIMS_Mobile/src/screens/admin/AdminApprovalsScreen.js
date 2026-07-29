@@ -582,13 +582,15 @@ const styles = StyleSheet.create({
     color: themeColors.textSecondary,
   },
   header: {
-    backgroundColor: themeColors.primary,
+    backgroundColor: themeColors.primaryDeep,
     paddingTop: 56,
-    paddingBottom: 18,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   headerRight: {
     flexDirection: 'row',

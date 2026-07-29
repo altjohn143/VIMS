@@ -878,13 +878,15 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   header: {
-    backgroundColor: themeColors.primary,
+    backgroundColor: themeColors.primaryDeep,
     paddingTop: 56,
-    paddingBottom: 18,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   headerRight: {
   flexDirection: 'row',
@@ -895,7 +897,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: 'white',
-    fontSize: 20,
+    fontSize: 23,
     fontWeight: '800',
   },
   historyButton: {
@@ -903,7 +905,7 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
@@ -911,8 +913,8 @@ const styles = StyleSheet.create({
   },
   coloredStatCard: {
     flex: 1,
-    borderRadius: 14,
-    padding: 10,
+    borderRadius: radii.lg,
+    padding: 13,
     position: 'relative',
     overflow: 'hidden',
     ...shadows.small,
@@ -946,11 +948,12 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    backgroundColor: themeColors.cardBackground,
+    marginHorizontal: 16,
+    marginTop: 4,
+    padding: 5,
+    borderRadius: radii.lg,
+    ...shadows.small,
   },
   confirmBar: {
     paddingHorizontal: 16,
@@ -981,7 +984,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginRight: 8,
-    borderRadius: 20,
+    borderRadius: radii.md,
   },
   activeTab: {
     backgroundColor: themeColors.primary + '15',
@@ -1001,11 +1004,12 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radii.lg,
+    padding: 18,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: themeColors.border,
+    ...shadows.small,
   },
   visitorHeader: {
     flexDirection: 'row',

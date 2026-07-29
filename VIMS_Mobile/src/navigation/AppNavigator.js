@@ -1,10 +1,9 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../context/AuthContext';
-import { themeColors, shadows } from '../utils/theme';
+import MobileTabBar from '../components/MobileTabBar';
 
 // Auth Screens
 import LoginScreen from '../screens/LoginScreen';
@@ -63,49 +62,11 @@ const ResidentTabs = () => {
   return (
     <Tab.Navigator
       initialRouteName="DashboardTab"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'DashboardTab') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'ReservationsTab') {
-            iconName = focused ? 'calendar' : 'calendar-outline';
-          } else if (route.name === 'VisitorsTab') {
-            iconName = focused ? 'people' : 'people-outline';
-          } else if (route.name === 'ServicesTab') {
-            iconName = focused ? 'build' : 'build-outline';
-          } else if (route.name === 'PaymentsTab') {
-            iconName = focused ? 'cash' : 'cash-outline';
-          } else if (route.name === 'ProfileTab') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-          return <Ionicons name={iconName} size={24} color={color} />;
-        },
-        tabBarActiveTintColor: themeColors.primary,
-        tabBarInactiveTintColor: themeColors.textSecondary,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '800',
-          marginTop: 2,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 5,
-          borderRadius: 12,
-          marginHorizontal: 2,
-        },
-        tabBarStyle: {
-          backgroundColor: themeColors.cardBackground,
-          borderTopWidth: 1,
-          borderTopColor: themeColors.border,
-          paddingBottom: 9,
-          paddingTop: 8,
-          height: 68,
-          ...shadows.medium,
-        },
-        tabBarActiveBackgroundColor: themeColors.primaryWash,
+      tabBar={(props) => <MobileTabBar {...props} />}
+      screenOptions={{
         tabBarHideOnKeyboard: true,
         headerShown: false,
-      })}
+      }}
     >
       <Tab.Screen name="DashboardTab" component={DashboardScreen} options={{ title: 'Home' }} />
       <Tab.Screen name="ReservationsTab" component={ReservationsScreen} options={{ title: 'Reservations' }} />
@@ -122,49 +83,11 @@ const AdminTabs = () => {
   return (
     <Tab.Navigator
       initialRouteName="DashboardTab"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'DashboardTab') {
-            iconName = focused ? 'speedometer' : 'speedometer-outline';
-          } else if (route.name === 'UsersTab') {
-            iconName = focused ? 'people' : 'people-outline';
-          } else if (route.name === 'VisitorsTab') {
-            iconName = focused ? 'qr-code' : 'qr-code-outline';
-          } else if (route.name === 'ServicesTab') {
-            iconName = focused ? 'build' : 'build-outline';
-          } else if (route.name === 'PaymentsTab') {
-            iconName = focused ? 'cash' : 'cash-outline';
-          } else if (route.name === 'LogsTab') {
-            iconName = focused ? 'time' : 'time-outline';
-          }
-          return <Ionicons name={iconName} size={24} color={color} />;
-        },
-        tabBarActiveTintColor: themeColors.primary,
-        tabBarInactiveTintColor: themeColors.textSecondary,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '800',
-          marginTop: 2,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 5,
-          borderRadius: 12,
-          marginHorizontal: 2,
-        },
-        tabBarStyle: {
-          backgroundColor: themeColors.cardBackground,
-          borderTopWidth: 1,
-          borderTopColor: themeColors.border,
-          paddingBottom: 9,
-          paddingTop: 8,
-          height: 68,
-          ...shadows.medium,
-        },
-        tabBarActiveBackgroundColor: themeColors.primaryWash,
+      tabBar={(props) => <MobileTabBar {...props} />}
+      screenOptions={{
         tabBarHideOnKeyboard: true,
         headerShown: false,
-      })}
+      }}
     >
       <Tab.Screen name="DashboardTab" component={DashboardScreen} options={{ title: 'Dashboard' }} />
       <Tab.Screen name="UsersTab" component={AdminUserManagementScreen} options={{ title: 'Users' }} />
@@ -181,47 +104,11 @@ const SecurityTabs = () => {
   return (
     <Tab.Navigator
       initialRouteName="DashboardTab"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'DashboardTab') {
-            iconName = focused ? 'speedometer' : 'speedometer-outline';
-          } else if (route.name === 'ApprovalsTab') {
-            iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline';
-          } else if (route.name === 'LogsTab') {
-            iconName = focused ? 'time' : 'time-outline';
-          } else if (route.name === 'ScannerTab') {
-            iconName = focused ? 'qr-code' : 'qr-code-outline';
-          } else if (route.name === 'ProfileTab') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-          return <Ionicons name={iconName} size={24} color={color} />;
-        },
-        tabBarActiveTintColor: themeColors.primary,
-        tabBarInactiveTintColor: themeColors.textSecondary,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '800',
-          marginTop: 2,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 5,
-          borderRadius: 12,
-          marginHorizontal: 2,
-        },
-        tabBarStyle: {
-          backgroundColor: themeColors.cardBackground,
-          borderTopWidth: 1,
-          borderTopColor: themeColors.border,
-          paddingBottom: 9,
-          paddingTop: 8,
-          height: 68,
-          ...shadows.medium,
-        },
-        tabBarActiveBackgroundColor: themeColors.primaryWash,
+      tabBar={(props) => <MobileTabBar {...props} />}
+      screenOptions={{
         tabBarHideOnKeyboard: true,
         headerShown: false,
-      })}
+      }}
     >
       <Tab.Screen name="DashboardTab" component={DashboardScreen} options={{ title: 'Dashboard' }} />
       <Tab.Screen name="ApprovalsTab" component={SecurityVisitorApprovalScreen} options={{ title: 'Approvals' }} />

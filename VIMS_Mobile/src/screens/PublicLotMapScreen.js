@@ -10,7 +10,6 @@ import {
   FlatList,
   Dimensions,
   Image,
-  ImageBackground,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -21,6 +20,9 @@ import UserDropdownMenu from '../components/UserDropdownMenu';
 import api from '../utils/api';
 
 const { width } = Dimensions.get('window');
+const MAP_CANVAS_WIDTH = Math.max(width - 32, 720);
+const MAP_CANVAS_HEIGHT = MAP_CANVAS_WIDTH * (1024 / 1536);
+const LOT_MAP_IMAGE = require('../../assets/lotbettermap.jpg');
 
 const PublicLotMapScreen = ({ navigation }) => {
   const [selectedLot, setSelectedLot] = useState(null);
@@ -60,31 +62,50 @@ const PublicLotMapScreen = ({ navigation }) => {
     fetchLots();
   }, []);
 
-  const stats = useMemo(() => ({
-    vacant: lots.filter(l => l.status === 'vacant').length,
-    occupied: lots.filter(l => l.status === 'occupied').length,
-    reserved: lots.filter(l => l.status === 'reserved').length,
-    total: lots.length,
+  const mappedLots = useMemo(() => lots.filter((lot) => {
+    const position = lot.mapPosition;
+    return position?.isPositioned &&
+      [position.left, position.top, position.width, position.height]
+        .map(Number)
+        .every(Number.isFinite) &&
+      Number(position.width) > 0 &&
+      Number(position.height) > 0;
   }), [lots]);
 
+  const selectedPhaseLots = useMemo(() => (
+    selectedPhase === 'all'
+      ? mappedLots
+      : mappedLots.filter((lot) => Number(lot.phase || 1) === Number(selectedPhase))
+  ), [mappedLots, selectedPhase]);
+
+  const stats = useMemo(() => ({
+    vacant: selectedPhaseLots.filter(l => l.status === 'vacant').length,
+    occupied: selectedPhaseLots.filter(l => l.status === 'occupied').length,
+    reserved: selectedPhaseLots.filter(l => l.status === 'reserved').length,
+    total: selectedPhaseLots.length,
+  }), [selectedPhaseLots]);
+
   const filteredLots = useMemo(() => {
-    return lots.filter((lot) => {
+    return mappedLots.filter((lot) => {
       const matchesStatus = filterStatus === 'all' || lot.status === filterStatus;
-      const matchesSearch = searchQuery === '' || 
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch = query === '' ||
         String(lot.lotId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        String(lot.block || '').toLowerCase().includes(searchQuery.toLowerCase());
+        String(lot.phase || '').toLowerCase().includes(query) ||
+        String(lot.block || '').toLowerCase().includes(query) ||
+        String(lot.lotNumber || '').toLowerCase().includes(query);
       return matchesStatus && matchesSearch;
     });
-  }, [lots, filterStatus, searchQuery]);
+  }, [mappedLots, filterStatus, searchQuery]);
 
   const phases = useMemo(() => {
     const phaseSet = new Set();
-    lots.forEach(lot => {
-      if (lot.phase != null) phaseSet.add(lot.phase);
+    mappedLots.forEach(lot => {
+      if (lot.phase != null) phaseSet.add(Number(lot.phase));
     });
     const phaseArray = Array.from(phaseSet).sort((a, b) => a - b);
     return phaseArray.length ? phaseArray : [1];
-  }, [lots]);
+  }, [mappedLots]);
 
   useEffect(() => {
     if (selectedPhase !== 'all' && phases.length > 0 && !phases.includes(selectedPhase)) {
@@ -93,18 +114,10 @@ const PublicLotMapScreen = ({ navigation }) => {
   }, [phases, selectedPhase]);
 
   const phaseFilteredLots = useMemo(() => {
-    return selectedPhase === 'all' ? filteredLots : filteredLots.filter(lot => (lot.phase || 1) === selectedPhase);
+    return selectedPhase === 'all'
+      ? filteredLots
+      : filteredLots.filter(lot => Number(lot.phase || 1) === Number(selectedPhase));
   }, [filteredLots, selectedPhase]);
-
-  const visibleBlocks = useMemo(() => {
-    const blockSet = new Set(phaseFilteredLots.map(lot => lot.block));
-    return Array.from(blockSet).sort((a, b) => {
-      const aNum = Number(a);
-      const bNum = Number(b);
-      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum;
-      return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
-    });
-  }, [phaseFilteredLots]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -115,15 +128,6 @@ const PublicLotMapScreen = ({ navigation }) => {
     vacant: { color: '#22c55e', bg: '#dcfce7', label: 'Vacant', icon: 'checkmark-circle' },
     occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', icon: 'close-circle' },
     reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', icon: 'time' },
-  };
-
-  const PUBLIC_MAP_IMAGE_URI = 'https://staticmap.openstreetmap.de/staticmap.php?center=14.4435299,120.9667736&zoom=17&size=1000x700&maptype=mapnik';
-  const MOBILE_BLOCK_POSITIONS = {
-    1: { top: '14%', left: '10%' },
-    2: { top: '12%', left: '60%' },
-    3: { top: '36%', left: '20%' },
-    4: { top: '48%', left: '62%' },
-    5: { top: '70%', left: '28%' },
   };
 
   // VIRTUAL TOUR PHOTO CATEGORIES
@@ -348,45 +352,55 @@ const PublicLotMapScreen = ({ navigation }) => {
           ))}
         </View>
 
-        <View style={styles.mapBackgroundContainer}>
-          <ImageBackground
-            source={{ uri: PUBLIC_MAP_IMAGE_URI }}
-            style={styles.mapImageBackground}
-            imageStyle={styles.mapImageStyle}
-          >
-            <View style={styles.mapOverlayHeader}>
-              <Text style={styles.mapOverlayTitle}>Actual Lot Map</Text>
+        <View style={styles.mapSection}>
+          <View style={styles.mapSectionHeader}>
+            <View>
+              <Text style={styles.mapSectionTitle}>
+                {selectedPhase === 'all' ? 'ALL PHASES' : `PHASE ${selectedPhase}`}
+              </Text>
+              <Text style={styles.mapSectionSubtitle}>
+                Swipe sideways to explore the actual lot plan
+              </Text>
             </View>
-            {visibleBlocks.map(block => {
-              const blockLots = phaseFilteredLots.filter(l => l.block === block);
-              if (blockLots.length === 0) return null;
-              const position = MOBILE_BLOCK_POSITIONS[block] || { top: '16%', left: '12%' };
-              return (
-                <View key={block} style={[styles.blockOverlay, position]}>
-                  <Text style={styles.blockOverlayTitle}>Block {block}</Text>
-                  <View style={styles.blockLotGrid}>
-                    {blockLots.map((lot) => {
-                      const cfg = statusConfig[lot.status] || statusConfig.vacant;
-                      return (
-                        <TouchableOpacity
-                          key={lot.lotId || lot._id || `${lot.block}-${lot.lotNumber}`}
-                          style={[
-                            styles.mapLotMarker,
-                            { backgroundColor: cfg.bg, borderColor: cfg.color },
-                            lot.status === 'vacant' && styles.mapLotMarkerActive,
-                            selectedLot?.lotId === lot.lotId && styles.activeMapLotMarker,
-                          ]}
-                          onPress={() => handleLotPress(lot)}
-                        >
-                          <Text style={[styles.mapLotLabel, { color: cfg.color }]}>{lot.lotNumber}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              );
-            })}
-          </ImageBackground>
+            <Text style={styles.mapResultCount}>{phaseFilteredLots.length} shown</Text>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator
+            contentContainerStyle={styles.mapScrollContent}
+          >
+            <View style={[styles.mapCanvas, { width: MAP_CANVAS_WIDTH, height: MAP_CANVAS_HEIGHT }]}>
+              <Image source={LOT_MAP_IMAGE} style={styles.mapPlanImage} resizeMode="contain" />
+              {phaseFilteredLots.map((lot) => {
+                const cfg = statusConfig[lot.status] || statusConfig.vacant;
+                const position = lot.mapPosition;
+                const isSelected = selectedLot?.lotId === lot.lotId;
+
+                return (
+                  <TouchableOpacity
+                    key={lot.lotId || lot._id}
+                    accessibilityLabel={`Phase ${lot.phase}, Block ${lot.block}, Lot ${lot.lotNumber}, ${cfg.label}`}
+                    activeOpacity={0.7}
+                    onPress={() => handleLotPress(lot)}
+                    style={[
+                      styles.mapLotSquare,
+                      {
+                        left: `${Number(position.left)}%`,
+                        top: `${Number(position.top)}%`,
+                        width: `${Number(position.width)}%`,
+                        height: `${Number(position.height)}%`,
+                        borderColor: isSelected ? '#ffffff' : cfg.color,
+                        backgroundColor: `${cfg.color}38`,
+                        transform: [{ rotate: `${Number(position.rotate) || 0}deg` }],
+                      },
+                      isSelected && styles.activeMapLotSquare,
+                    ]}
+                  />
+                );
+              })}
+            </View>
+          </ScrollView>
         </View>
 
         <View style={styles.legendContainer}>
@@ -791,153 +805,63 @@ const styles = StyleSheet.create({
   activePhaseText: {
     color: 'white',
   },
-  mapBackgroundContainer: {
+  mapSection: {
     marginBottom: 24,
-    borderRadius: 20,
-    overflow: 'hidden',
-    height: 420,
-    backgroundColor: '#e2e8f0',
-  },
-  mapImageBackground: {
-    flex: 1,
-  },
-  mapImageStyle: {
-    resizeMode: 'cover',
-  },
-  mapOverlayHeader: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    zIndex: 2,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  mapOverlayTitle: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.35,
-  },
-  blockOverlay: {
-    position: 'absolute',
-    width: 140,
-    padding: 10,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    overflow: 'hidden',
+    backgroundColor: '#0f172a',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 5,
+    borderColor: '#334155',
   },
-  blockOverlayTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: themeColors.textPrimary,
-    marginBottom: 8,
-  },
-  blockLotGrid: {
+  mapSectionHeader: {
+    minHeight: 66,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
-  mapLotMarker: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  mapLotMarkerActive: {
-    backgroundColor: '#d1fae5',
-  },
-  activeMapLotMarker: {
-    borderColor: themeColors.primary,
-    borderWidth: 2,
-  },
-  mapLotLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  mapBackgroundContainer: {
-    marginBottom: 24,
-    borderRadius: 20,
-    overflow: 'hidden',
-    height: 420,
-    backgroundColor: '#e2e8f0',
-  },
-  mapImageBackground: {
-    flex: 1,
-  },
-  mapImageStyle: {
-    resizeMode: 'cover',
-  },
-  mapOverlayHeader: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    zIndex: 2,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  mapOverlayTitle: {
+  mapSectionTitle: {
     color: 'white',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.35,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 1.2,
   },
-  blockOverlay: {
+  mapSectionSubtitle: {
+    color: '#94a3b8',
+    fontSize: 11,
+    marginTop: 3,
+  },
+  mapResultCount: {
+    color: '#93c5fd',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  mapScrollContent: {
+    backgroundColor: '#020617',
+  },
+  mapCanvas: {
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#dbe4e8',
+  },
+  mapPlanImage: {
     position: 'absolute',
-    width: 140,
-    padding: 10,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: '100%',
+  },
+  mapLotSquare: {
+    position: 'absolute',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 5,
+    borderRadius: 2,
+    minWidth: 3,
+    minHeight: 3,
   },
-  blockOverlayTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: themeColors.textPrimary,
-    marginBottom: 8,
-  },
-  blockLotGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  mapLotMarker: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  mapLotMarkerActive: {
-    backgroundColor: '#d1fae5',
-  },
-  activeMapLotMarker: {
-    borderColor: themeColors.primary,
+  activeMapLotSquare: {
     borderWidth: 2,
-  },
-  mapLotLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    elevation: 5,
   },
   mapContainer: {
     marginBottom: 24,

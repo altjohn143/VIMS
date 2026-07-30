@@ -42,6 +42,16 @@ const ID_DOCUMENT_TYPE_OPTIONS = [
   { value: 'pnp', label: 'PNP ID' }
 ];
 
+const REGISTRATION_STEPS = [
+  { key: 'info', label: 'Info' },
+  { key: 'email', label: 'Email' },
+  { key: 'lot', label: 'Select Lot' },
+  { key: 'vehicles', label: 'Vehicles' },
+  { key: 'family', label: 'Family' },
+  { key: 'id', label: 'Verify ID' },
+  { key: 'photo', label: 'Add Photo' },
+];
+
 const RegisterScreen = ({ navigation, route }) => {
   const { updateUser } = useAuth();
   const WebDateInput = Platform.OS === 'web'
@@ -87,11 +97,12 @@ const RegisterScreen = ({ navigation, route }) => {
     confirmPassword: '',
     address: '',
     selectedLot: '',
+    idNumber: '',
     documentType: 'national_id',
     noVehicles: false,
     soloResident: false,
     vehicles: [{ plateNumber: '', make: '', model: '', color: '', carImage: null }],
-    familyMembers: [{ name: '', relationship: '', age: '', phone: '' }],
+    familyMembers: [{ name: '', relationship: '', otherRelationship: '', age: '', phone: '' }],
   });
 
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -108,6 +119,10 @@ const RegisterScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [availability, setAvailability] = useState({ email: null, phone: null });
   const [checkingAvailability, setCheckingAvailability] = useState({ email: false, phone: false });
+  const [emailVerificationToken, setEmailVerificationToken] = useState('');
+  const [emailOtp, setEmailOtp] = useState('');
+  const [emailOtpOpen, setEmailOtpOpen] = useState(false);
+  const [emailOtpLoading, setEmailOtpLoading] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [showCountryCodeDropdown, setShowCountryCodeDropdown] = useState(false);
 
@@ -182,6 +197,11 @@ const RegisterScreen = ({ navigation, route }) => {
     }
 
     setFormData(prev => ({ ...prev, [field]: filteredValue }));
+
+    if (field === 'email') {
+      setEmailVerificationToken('');
+      setEmailOtp('');
+    }
     
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -224,7 +244,7 @@ const RegisterScreen = ({ navigation, route }) => {
     setFormData(prev => ({
       ...prev,
       soloResident: false,
-      familyMembers: [...(prev.familyMembers || []), { name: '', relationship: '', age: '', phone: '' }]
+      familyMembers: [...(prev.familyMembers || []), { name: '', relationship: '', otherRelationship: '', age: '', phone: '' }]
     }));
   };
 
@@ -247,7 +267,7 @@ const RegisterScreen = ({ navigation, route }) => {
     setFormData(prev => ({
       ...prev,
       soloResident: !prev.soloResident,
-      familyMembers: prev.soloResident ? [{ name: '', relationship: '', age: '', phone: '' }] : []
+      familyMembers: prev.soloResident ? [{ name: '', relationship: '', otherRelationship: '', age: '', phone: '' }] : []
     }));
   };
 
@@ -451,6 +471,7 @@ const RegisterScreen = ({ navigation, route }) => {
           dateOfBirth: prev.dateOfBirth?.trim()
             ? prev.dateOfBirth
             : (/^\d{4}-\d{2}-\d{2}$/.test(String(ocr.dob || '')) ? ocr.dob : prev.dateOfBirth),
+          idNumber: prev.idNumber?.trim() ? prev.idNumber : (ocr.idNumber || prev.idNumber),
         }));
         if (ocr.idNumber) {
           setOcrIdNumber(ocr.idNumber);
@@ -544,7 +565,10 @@ const RegisterScreen = ({ navigation, route }) => {
 
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    if (!emailRegex.test(email)) return false;
+    const reputableDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'aol.com', 'protonmail.com', 'zoho.com', 'yandex.com', 'mail.com', 'gmx.com', 'fastmail.com'];
+    const domain = email.split('@')[1];
+    return reputableDomains.includes(domain.toLowerCase());
   };
 
   // Profile photo handling functions
@@ -607,7 +631,7 @@ const RegisterScreen = ({ navigation, route }) => {
     else if (formData.lastName.length < 2) newErrors.lastName = 'Last name must be at least 2 characters';
 
     if (!formData.email) newErrors.email = 'Email is required';
-    else if (!isValidEmail(formData.email)) newErrors.email = 'Please enter a valid email';
+    else if (!isValidEmail(formData.email)) newErrors.email = 'Please use a valid email from reputable providers';
     else if (availability.email === false) newErrors.email = 'This email is already registered';
 
     if (!formData.phone) {
@@ -620,19 +644,45 @@ const RegisterScreen = ({ navigation, route }) => {
     }
     if (availability.phone === false) newErrors.phone = 'This phone number is already registered';
 
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    else if (formData.address.length < 5) newErrors.address = 'Address must be at least 5 characters';
-
     if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
-    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain uppercase, lowercase, and numbers';
-    }
+    else if (formData.password.length < 12) newErrors.password = 'Password must be at least 12 characters';
+    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(formData.password)) newErrors.password = 'Password must contain uppercase, lowercase, number, and special character';
 
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm your password';
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
 
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot';
+    if (registrationMode === 'ocr' && !formData.idNumber.trim()) newErrors.idNumber = 'ID number is required';
+    if (!idDocs.frontUri) newErrors.frontImage = 'Please upload the front side of your ID';
+    if (!idDocs.backUri) newErrors.backImage = 'Please upload the back side of your ID';
+
+    if (formData.middleName.trim() && formData.middleName.length > 50) {
+      newErrors.middleName = 'Middle name must be at most 50 characters';
+    }
+    if (formData.dateOfBirth) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.dateOfBirth)) {
+        newErrors.dateOfBirth = 'Use a valid date';
+      } else {
+        const date = new Date(`${formData.dateOfBirth}T12:00:00`);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (date > today) newErrors.dateOfBirth = 'Date of birth cannot be in the future';
+        if (date.getFullYear() < 1900) newErrors.dateOfBirth = 'Please enter a realistic date of birth';
+      }
+    }
+
+    formData.familyMembers.forEach((member, index) => {
+      const hasData = member.name || member.relationship || member.otherRelationship || member.age || member.phone;
+      if (!hasData || formData.soloResident) return;
+      if (!member.name?.trim()) newErrors[`familyName_${index}`] = 'Name is required';
+      if (!member.relationship?.trim()) newErrors[`familyRelationship_${index}`] = 'Relationship is required';
+      if (member.relationship === 'Other' && !member.otherRelationship?.trim()) {
+        newErrors[`familyOtherRelationship_${index}`] = 'Please specify relationship';
+      }
+      if (!/^9\d{9}$/.test(member.phone || '')) {
+        newErrors[`familyPhone_${index}`] = 'Phone must be 10 digits starting with 9';
+      }
+    });
 
     // Validate vehicle car images
     if (!formData.noVehicles && formData.vehicles.length > 0) {
@@ -654,6 +704,23 @@ const RegisterScreen = ({ navigation, route }) => {
       return;
     }
 
+    if (!emailVerificationToken) {
+      setEmailOtpLoading(true);
+      try {
+        await api.post('/auth/registration-otp/request', {
+          email: formData.email.trim().toLowerCase(),
+          firstName: formData.firstName.trim(),
+        });
+        setEmailOtpOpen(true);
+        Alert.alert('Verification code sent', 'Check your email for the six-digit registration code.');
+      } catch (error) {
+        Alert.alert('Unable to send code', error.response?.data?.error || 'Unable to send verification code');
+      } finally {
+        setEmailOtpLoading(false);
+      }
+      return;
+    }
+
     setLoading(true);
     try {
       // Create FormData for multipart upload
@@ -669,24 +736,29 @@ const RegisterScreen = ({ navigation, route }) => {
         formDataToSend.append('dateOfBirth', formData.dateOfBirth.trim());
       }
       formDataToSend.append('email', formData.email.trim());
+      formDataToSend.append('emailVerificationToken', emailVerificationToken);
       formDataToSend.append('phone', formData.phone);
       formDataToSend.append('password', formData.password);
       formDataToSend.append('address', formData.address.trim());
       formDataToSend.append('role', 'resident');
       formDataToSend.append('selectedLot', formData.selectedLot);
       formDataToSend.append('countryCode', formData.countryCode);
+      formDataToSend.append('noVehicles', formData.noVehicles.toString());
+      formDataToSend.append('soloResident', formData.soloResident.toString());
       
       // Handle vehicles with car images
-      const vehiclesWithoutImages = formData.vehicles.map(vehicle => ({
-        plateNumber: vehicle.plateNumber,
-        make: vehicle.make,
-        model: vehicle.model,
-        color: vehicle.color
-      }));
+      const vehiclesWithoutImages = formData.noVehicles
+        ? []
+        : formData.vehicles.map(vehicle => ({
+            plateNumber: vehicle.plateNumber,
+            make: vehicle.make,
+            model: vehicle.model,
+            color: vehicle.color
+          })).filter(vehicle => vehicle.plateNumber || vehicle.make || vehicle.model || vehicle.color);
       formDataToSend.append('vehicles', JSON.stringify(vehiclesWithoutImages));
       
       // Add car images separately
-      for (let index = 0; index < formData.vehicles.length; index++) {
+      for (let index = 0; !formData.noVehicles && index < formData.vehicles.length; index++) {
         const vehicle = formData.vehicles[index];
         if (vehicle.carImage) {
           const filename = `vehicle-${index + 1}-car.jpg`;
@@ -708,7 +780,17 @@ const RegisterScreen = ({ navigation, route }) => {
         }
       }
       
-      formDataToSend.append('familyMembers', JSON.stringify(formData.familyMembers || []));
+      const validFamilyMembers = formData.soloResident
+        ? []
+        : formData.familyMembers
+            .filter(member => member.name || member.relationship || member.otherRelationship || member.age || member.phone)
+            .map(member => ({
+              name: member.name,
+              relationship: member.relationship === 'Other' ? member.otherRelationship : member.relationship,
+              age: member.age,
+              phone: member.phone,
+            }));
+      formDataToSend.append('familyMembers', JSON.stringify(validFamilyMembers));
       if (ocrIdNumber.trim()) {
         formDataToSend.append('idNumber', ocrIdNumber.trim());
       }
@@ -824,6 +906,28 @@ const RegisterScreen = ({ navigation, route }) => {
       return <Ionicons name="close-circle" size={20} color={themeColors.error} />;
     }
     return null;
+  };
+
+  const verifyRegistrationOtp = async () => {
+    if (!/^\d{6}$/.test(emailOtp.trim())) {
+      Alert.alert('Invalid code', 'Enter the six-digit verification code.');
+      return;
+    }
+    setEmailOtpLoading(true);
+    try {
+      const response = await api.post('/auth/registration-otp/verify', {
+        email: formData.email.trim().toLowerCase(),
+        code: emailOtp.trim(),
+      });
+      setEmailVerificationToken(response.data.verificationToken);
+      setEmailOtpOpen(false);
+      setEmailOtp('');
+      Alert.alert('Email verified', 'Tap Create Account again to finish registration.');
+    } catch (error) {
+      Alert.alert('Verification failed', error.response?.data?.error || 'Invalid or expired verification code');
+    } finally {
+      setEmailOtpLoading(false);
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -1028,6 +1132,10 @@ const RegisterScreen = ({ navigation, route }) => {
 
         {registrationMode && (!showIdUploadStep && (registrationMode !== 'ocr' || ocrStepCompleted)) && (
           <View style={[styles.formCard, shadows.medium]}>
+          <View style={styles.parityStepHeader}>
+            <Text style={styles.parityStepTitle}>Resident registration</Text>
+            <Text style={styles.parityStepSubtitle}>{REGISTRATION_STEPS.map(step => step.label).join('  •  ')}</Text>
+          </View>
           <View style={styles.inputContainer}>
             <Ionicons name="person" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput style={styles.input} placeholder="First Name" value={formData.firstName} onChangeText={(text) => handleChange('firstName', text)} />
@@ -1153,6 +1261,18 @@ const RegisterScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               ))}
             </View>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="ID Number"
+                value={formData.idNumber}
+                onChangeText={(text) => {
+                  handleChange('idNumber', text);
+                  setOcrIdNumber(text);
+                }}
+              />
+            </View>
+            {errors.idNumber && <Text style={styles.errorText}>{errors.idNumber}</Text>}
             <View style={styles.ocrBtnRow}>
               <TouchableOpacity style={styles.ocrBtn} onPress={() => pickIdImage('front')} disabled={ocrLoading}>
                 <Text style={styles.ocrBtnText}>{idDocs.frontUri ? 'Front selected' : 'Pick front'}</Text>
@@ -1170,6 +1290,8 @@ const RegisterScreen = ({ navigation, route }) => {
                 OCR will run automatically once both front and back ID images are selected.
               </Text>
             )}
+            {errors.frontImage && <Text style={styles.errorText}>{errors.frontImage}</Text>}
+            {errors.backImage && <Text style={styles.errorText}>{errors.backImage}</Text>}
           </View>
 
           <View style={styles.ocrBox}>
@@ -1387,6 +1509,7 @@ const RegisterScreen = ({ navigation, route }) => {
                       onChangeText={(text) => handleArrayFieldChange('familyMembers', index, 'name', text)}
                     />
                   </View>
+                  {errors[`familyName_${index}`] && <Text style={styles.errorText}>{errors[`familyName_${index}`]}</Text>}
 
                   <View style={[styles.inputContainer, { marginBottom: 8 }]}>
                     <TextInput
@@ -1396,6 +1519,21 @@ const RegisterScreen = ({ navigation, route }) => {
                       onChangeText={(text) => handleArrayFieldChange('familyMembers', index, 'relationship', text)}
                     />
                   </View>
+                  {errors[`familyRelationship_${index}`] && <Text style={styles.errorText}>{errors[`familyRelationship_${index}`]}</Text>}
+
+                  {member.relationship === 'Other' && (
+                    <>
+                      <View style={[styles.inputContainer, { marginBottom: 8 }]}>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Specify relationship"
+                          value={member.otherRelationship}
+                          onChangeText={(text) => handleArrayFieldChange('familyMembers', index, 'otherRelationship', text)}
+                        />
+                      </View>
+                      {errors[`familyOtherRelationship_${index}`] && <Text style={styles.errorText}>{errors[`familyOtherRelationship_${index}`]}</Text>}
+                    </>
+                  )}
 
                   <View style={[styles.inputContainer, { marginBottom: 8 }]}>
                     <TextInput
@@ -1416,6 +1554,7 @@ const RegisterScreen = ({ navigation, route }) => {
                       keyboardType="phone-pad"
                     />
                   </View>
+                  {errors[`familyPhone_${index}`] && <Text style={styles.errorText}>{errors[`familyPhone_${index}`]}</Text>}
                 </View>
               ))}
 
@@ -1508,8 +1647,8 @@ const RegisterScreen = ({ navigation, route }) => {
             </>
           )}
 
-          <TouchableOpacity style={[styles.submitButton, (loading || loadingLots || availableLots.length === 0) && styles.submitButtonDisabled]} onPress={handleSubmit} disabled={loading || loadingLots || availableLots.length === 0}>
-            {loading ? <ActivityIndicator color="white" /> : <Text style={styles.submitButtonText}>Create Account</Text>}
+          <TouchableOpacity style={[styles.submitButton, (loading || emailOtpLoading || loadingLots || availableLots.length === 0) && styles.submitButtonDisabled]} onPress={handleSubmit} disabled={loading || emailOtpLoading || loadingLots || availableLots.length === 0}>
+            {loading || emailOtpLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitButtonText}>{emailVerificationToken ? 'Create Account' : 'Verify Email & Continue'}</Text>}
           </TouchableOpacity>
 
           <View style={styles.loginLink}>
@@ -1521,6 +1660,32 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         )}
       </ScrollView>
+
+      {/* Country Code Dropdown Modal */}
+      <Modal visible={emailOtpOpen} animationType="fade" transparent onRequestClose={() => setEmailOtpOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.successModal, { alignItems: 'stretch' }]}>
+            <Text style={styles.successTitle}>Verify your email</Text>
+            <Text style={styles.ocrSub}>Enter the six-digit code sent to {formData.email.trim().toLowerCase()}.</Text>
+            <View style={[styles.inputContainer, { marginTop: 16 }]}>
+              <TextInput
+                style={[styles.input, { textAlign: 'center', fontSize: 22, letterSpacing: 8 }]}
+                value={emailOtp}
+                onChangeText={(text) => setEmailOtp(text.replace(/\D/g, '').slice(0, 6))}
+                keyboardType="number-pad"
+                maxLength={6}
+                placeholder="000000"
+              />
+            </View>
+            <TouchableOpacity style={[styles.submitButton, emailOtpLoading && styles.submitButtonDisabled]} onPress={verifyRegistrationOtp} disabled={emailOtpLoading}>
+              {emailOtpLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitButtonText}>Verify Code</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.mapButton, { marginTop: 10 }]} onPress={() => setEmailOtpOpen(false)}>
+              <Text style={styles.mapButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Country Code Dropdown Modal */}
       <Modal visible={showCountryCodeDropdown} animationType="slide" transparent onRequestClose={() => setShowCountryCodeDropdown(false)}>

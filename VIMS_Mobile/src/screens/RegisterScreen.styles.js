@@ -141,6 +141,9 @@ export const styles = StyleSheet.create({
   submitButton: { backgroundColor: themeColors.primaryDeep, borderRadius: 18, paddingVertical: 17, alignItems: 'center', marginTop: 8, shadowColor: '#061a11', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 12, elevation: 5 },
   submitButtonDisabled: { opacity: 0.6 },
   submitButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  parityStepHeader: { marginBottom: 18, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  parityStepTitle: { fontSize: 18, fontWeight: '800', color: themeColors.textPrimary },
+  parityStepSubtitle: { marginTop: 6, fontSize: 11, lineHeight: 17, color: themeColors.textSecondary },
 
   loginLink: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: themeColors.border },
   loginText: { color: themeColors.textSecondary, fontSize: 14 },

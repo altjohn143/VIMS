@@ -7,6 +7,7 @@ import MobileTabBar from '../components/MobileTabBar';
 
 // Auth Screens
 import LoginScreen from '../screens/LoginScreen';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import PendingApprovalScreen from '../screens/PendingApprovalScreen';
 import PublicLotMapScreen from '../screens/PublicLotMapScreen';
@@ -31,9 +32,8 @@ import AdminReservationsScreen from '../screens/admin/AdminReservationsScreen';
 import AdminVisitorManagementScreen from '../screens/admin/AdminVisitorManagementScreen';
 import AdminVisitorReportsScreen from '../screens/admin/AdminVisitorReportsScreen';
 import AdminVerificationQueueScreen from '../screens/admin/AdminVerificationQueueScreen';
-import AdminReportSchedulesScreen from '../screens/admin/AdminReportSchedulesScreen';
-import AdminReportsScreen from '../screens/admin/AdminReportsScreen';
 import AdminAnnouncementsScreen from '../screens/admin/AdminAnnouncementsScreen';
+import AdminLotManagementScreen from '../screens/admin/AdminLotManagementScreen';
 import ArchivedUsersScreen from '../screens/admin/ArchivedUsersScreen';
 import ArchivedAnnouncementsScreen from '../screens/admin/ArchivedAnnouncementsScreen';
 import ArchivedServiceRequestsScreen from '../screens/admin/ArchivedServiceRequestsScreen';
@@ -129,6 +129,7 @@ const AppNavigator = () => {
       {!user ? (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
           <Stack.Screen name="PublicLots" component={PublicLotMapScreen} />
@@ -147,9 +148,8 @@ const AppNavigator = () => {
               <Stack.Screen name="AdminVisitorReports" component={AdminVisitorReportsScreen} />
               <Stack.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} />
               <Stack.Screen name="AdminReservations" component={AdminReservationsScreen} />
-              <Stack.Screen name="AdminReportSchedules" component={AdminReportSchedulesScreen} />
-              <Stack.Screen name="AdminReports" component={AdminReportsScreen} />
               <Stack.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} />
+              <Stack.Screen name="AdminLotManagement" component={AdminLotManagementScreen} />
               <Stack.Screen name="ArchivedUsers" component={ArchivedUsersScreen} />
               <Stack.Screen name="ArchivedAnnouncements" component={ArchivedAnnouncementsScreen} />
               <Stack.Screen name="ArchivedServiceRequests" component={ArchivedServiceRequestsScreen} />

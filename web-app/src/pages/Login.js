@@ -1673,6 +1673,7 @@ const Login = () => {
   const [lockTimer, setLockTimer] = useState(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotEmailError, setForgotEmailError] = useState('');
   const { login, loading } = useAuth();
   const navigate = useNavigate();
   const timerRef = useRef(null);
@@ -1730,7 +1731,12 @@ const Login = () => {
     return e;
   };
 
-  const handleLoginFailed = () => {
+  const handleLoginFailed = (result) => {
+    if (result?.requiresApproval) {
+      setErrors({ submit: result.error || 'Account pending admin approval.' });
+      return;
+    }
+
     const n = loginAttempts + 1; setLoginAttempts(n); localStorage.setItem('loginAttempts', n.toString());
     if (n >= 3) { setIsLocked(true); localStorage.setItem('lockTime', Date.now().toString()); startLockTimer(300); setErrors({ submit: 'Too many failed attempts. Account locked for 5 minutes.' }); }
     else setErrors({ submit: `Invalid credentials. Attempt ${n} of 3.` });
@@ -1743,15 +1749,16 @@ const Login = () => {
     if (Object.keys(ve).length > 0) { setErrors(ve); return; }
     const result = await login(formData.email, formData.password, selectedRole);
     if (result.success) { localStorage.removeItem('loginAttempts'); localStorage.removeItem('lockTime'); setLoginAttempts(0); setTimeout(() => navigate('/dashboard'), 100); }
-    else handleLoginFailed();
+    else handleLoginFailed(result);
   };
 
   const handleForgotPassword = async () => {
-    if (!formData.email) {
-      alert('Please enter your email address');
+    if (!formData.email.trim()) {
+      setForgotEmailError('Email is required');
       return;
     }
 
+    setForgotEmailError('');
     setForgotLoading(true);
 
     try {
@@ -1772,6 +1779,11 @@ const Login = () => {
     } finally {
       setForgotLoading(false);
     }
+  };
+
+  const closeForgotPassword = () => {
+    setShowForgotPassword(false);
+    setForgotEmailError('');
   };
 
   const formatTime = (s) => { if (!s) return '0:00'; return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`; };
@@ -2089,6 +2101,8 @@ const Login = () => {
                 {errors.submit && (
                   <Alert
                     severity="warning"
+                    role="alert"
+                    aria-live="assertive"
                     sx={{
                       mb: 2,
                       borderRadius: '16px',
@@ -2252,7 +2266,7 @@ const Login = () => {
 
       <Dialog
         open={showForgotPassword}
-        onClose={() => setShowForgotPassword(false)}
+        onClose={closeForgotPassword}
         PaperProps={{
           sx: {
             borderRadius: '24px',
@@ -2286,12 +2300,20 @@ const Login = () => {
             type="email"
             name="email"
             value={formData.email}
-            onChange={handleChange}
+            onChange={(event) => {
+              handleChange(event);
+              if (forgotEmailError) setForgotEmailError('');
+            }}
+            required
+            error={Boolean(forgotEmailError)}
+            helperText={forgotEmailError}
+            aria-describedby={forgotEmailError ? 'reset-email-error' : undefined}
+            FormHelperTextProps={{ id: 'reset-email-error', role: 'alert', 'aria-live': 'assertive' }}
             InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" /></InputAdornment> }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, bgcolor: '#f8fafc', borderTop: '1px solid rgba(15,23,42,0.08)' }}>
-          <Button onClick={() => setShowForgotPassword(false)} sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '12px', color: hubColors.textMuted }}>Cancel</Button>
+          <Button onClick={closeForgotPassword} sx={{ textTransform: 'none', fontWeight: 800, borderRadius: '12px', color: hubColors.textMuted }}>Cancel</Button>
           <Button
             onClick={handleForgotPassword}
             variant="contained"

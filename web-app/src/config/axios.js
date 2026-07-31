@@ -24,11 +24,19 @@ axios.interceptors.request.use(
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const requestUrl = error.config?.url || '';
+    const isLoginRequest = /\/auth\/login(?:[/?#]|$)/.test(requestUrl);
+    const hadAuthenticatedSession = Boolean(localStorage.getItem('token'));
+
+    if (error.response?.status === 401 && !isLoginRequest && hadAuthenticatedSession) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
-    } else if (error.response?.status === 403 && error.response?.data?.requiresApproval) {
+    } else if (
+      error.response?.status === 403
+      && error.response?.data?.requiresApproval
+      && !isLoginRequest
+    ) {
       window.location.href = '/pending-approval';
     }
     return Promise.reject(error);

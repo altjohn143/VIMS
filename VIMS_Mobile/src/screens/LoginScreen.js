@@ -424,7 +424,7 @@ const LoginScreen = ({ navigation }) => {
                 {/* Forgot Password Link - Clean */}
                 <TouchableOpacity 
                   style={styles.forgotPasswordContainer} 
-                  onPress={showModal}
+                  onPress={() => navigation.navigate('ResetPassword')}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.forgotPasswordText}>Forgot Password?</Text>

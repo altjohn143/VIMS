@@ -15,6 +15,7 @@ import {
   Alert,
   Divider,
   FormControl,
+  FormHelperText,
   InputLabel,
   Select,
   MenuItem,
@@ -324,6 +325,22 @@ const Register = () => {
       }
       return { ...prev, familyMembers };
     });
+
+    const errorKeyByField = {
+      name: `familyName_${index}`,
+      relationship: `familyRelationship_${index}`,
+      otherRelationship: `familyOtherRelationship_${index}`,
+      phone: `familyPhone_${index}`
+    };
+    const errorKey = errorKeyByField[field];
+    if (errorKey) {
+      setErrors(prev => {
+        if (!prev[errorKey]) return prev;
+        const next = { ...prev };
+        delete next[errorKey];
+        return next;
+      });
+    }
   };
 
   const addVehicle = () => setFormData(prev => ({ ...prev, vehicles: [...prev.vehicles, EMPTY_VEHICLE] }));
@@ -334,6 +351,15 @@ const Register = () => {
   const removeFamilyMember = (index) =>
     setFormData(prev => ({ ...prev, familyMembers: prev.familyMembers.filter((_, i) => i !== index) }));
 
+  const clearValidationError = (key) => {
+    setErrors(prev => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
   // Handle lot selection from the map
   const handleLotSelectFromMap = (lot) => {
     if (lot.status !== 'vacant') {
@@ -343,6 +369,12 @@ const Register = () => {
 
     setFormData(prev => ({ ...prev, selectedLot: lot.lotId, address: lot.address }));
     setSelectedLotDetails(lot);
+    setErrors(prev => {
+      if (!prev.selectedLot) return prev;
+      const next = { ...prev };
+      delete next.selectedLot;
+      return next;
+    });
     toast.success(`Lot ${lot.lotId} selected!`);
   };
 
@@ -1292,7 +1324,7 @@ const Register = () => {
                   value={formData.password}
                   onChange={handleChange}
                   error={!!errors.password}
-                  helperText={errors.password || 'Min. 8 chars with uppercase, lowercase & numbers'}
+                  helperText={errors.password || 'Min. 12 characters with uppercase, lowercase, number & special character'}
                   required
                   InputProps={{
                     endAdornment: (
@@ -1632,7 +1664,7 @@ const Register = () => {
                       />
                     </Grid>
                     <Grid item xs={12} sm={3}>
-                      <FormControl fullWidth error={!!errors[`familyRelationship_${index}`]}>
+                      <FormControl fullWidth required error={!!errors[`familyRelationship_${index}`]}>
                         <InputLabel>Relationship</InputLabel>
                         <Select
                           value={member.relationship}
@@ -1643,6 +1675,11 @@ const Register = () => {
                             <MenuItem key={option} value={option}>{option}</MenuItem>
                           ))}
                         </Select>
+                        {errors[`familyRelationship_${index}`] && (
+                          <FormHelperText role="alert">
+                            {errors[`familyRelationship_${index}`]}
+                          </FormHelperText>
+                        )}
                       </FormControl>
                     </Grid>
                     {member.relationship === 'Other' && (
@@ -1699,7 +1736,13 @@ const Register = () => {
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={4}>
-                  <Button variant="outlined" component="label" fullWidth>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    color={errors.frontImage ? 'error' : 'primary'}
+                    aria-describedby={errors.frontImage ? 'manual-front-image-error' : undefined}
+                  >
                     <ImageIcon sx={{ mr: 1 }} />
                     Upload ID Front
                     <input
@@ -1711,6 +1754,7 @@ const Register = () => {
                         setOcrUnavailable(false);
                         setLastOcrSignature('');
                         setOcrIdNumber('');
+                        if (file) clearValidationError('frontImage');
                         setIdDocs((prev) => {
                           const next = { ...prev, frontImage: file };
                           if (registrationMode === 'ocr') {
@@ -1744,6 +1788,11 @@ const Register = () => {
                       No file selected
                     </Typography>
                   )}
+                  {errors.frontImage && (
+                    <Typography id="manual-front-image-error" role="alert" variant="caption" sx={{ mt: 0.5, color: themeColors.error, display: 'block' }}>
+                      {errors.frontImage}
+                    </Typography>
+                  )}
                 </Grid>
                 <Grid item xs={12}>
                 <FormControl fullWidth sx={{ mb: 2 }}>
@@ -1770,7 +1819,13 @@ const Register = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={4}>
-                  <Button variant="outlined" component="label" fullWidth>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    color={errors.backImage ? 'error' : 'primary'}
+                    aria-describedby={errors.backImage ? 'manual-back-image-error' : undefined}
+                  >
                     <ImageIcon sx={{ mr: 1 }} />
                     Upload ID Back
                     <input
@@ -1782,6 +1837,7 @@ const Register = () => {
                         setOcrUnavailable(false);
                         setLastOcrSignature('');
                         setOcrIdNumber('');
+                        if (file) clearValidationError('backImage');
                         setIdDocs((prev) => {
                           const next = { ...prev, backImage: file };
                           if (registrationMode === 'ocr') {
@@ -1813,6 +1869,11 @@ const Register = () => {
                   ) : (
                     <Typography variant="caption" sx={{ mt: 0.5, color: themeColors.textSecondary }}>
                       No file selected
+                    </Typography>
+                  )}
+                  {errors.backImage && (
+                    <Typography id="manual-back-image-error" role="alert" variant="caption" sx={{ mt: 0.5, color: themeColors.error, display: 'block' }}>
+                      {errors.backImage}
                     </Typography>
                   )}
                 </Grid>
@@ -2073,7 +2134,13 @@ const Register = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <Button variant="outlined" component="label" fullWidth>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                color={errors.frontImage ? 'error' : 'primary'}
+                aria-describedby={errors.frontImage ? 'ocr-front-image-error' : undefined}
+              >
                 <ImageIcon sx={{ mr: 1 }} />
                 Upload ID Front
                 <input
@@ -2085,6 +2152,7 @@ const Register = () => {
                     setOcrUnavailable(false);
                     setLastOcrSignature('');
                     setOcrIdNumber('');
+                    if (file) clearValidationError('frontImage');
                     setIdDocs((prev) => {
                       const next = { ...prev, frontImage: file };
                       if (registrationMode === 'ocr') {
@@ -2118,9 +2186,20 @@ const Register = () => {
                   No file selected
                 </Typography>
               )}
+              {errors.frontImage && (
+                <Typography id="ocr-front-image-error" role="alert" variant="caption" sx={{ mt: 0.5, color: themeColors.error, display: 'block' }}>
+                  {errors.frontImage}
+                </Typography>
+              )}
             </Grid>
             <Grid item xs={12} sm={6}>
-              <Button variant="outlined" component="label" fullWidth>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                color={errors.backImage ? 'error' : 'primary'}
+                aria-describedby={errors.backImage ? 'ocr-back-image-error' : undefined}
+              >
                 <ImageIcon sx={{ mr: 1 }} />
                 Upload ID Back
                 <input
@@ -2132,6 +2211,7 @@ const Register = () => {
                     setOcrUnavailable(false);
                     setLastOcrSignature('');
                     setOcrIdNumber('');
+                    if (file) clearValidationError('backImage');
                     setIdDocs((prev) => {
                       const next = { ...prev, backImage: file };
                       if (registrationMode === 'ocr') {
@@ -2163,6 +2243,11 @@ const Register = () => {
               ) : (
                 <Typography variant="caption" sx={{ mt: 0.5, color: themeColors.textSecondary }}>
                   No file selected
+                </Typography>
+              )}
+              {errors.backImage && (
+                <Typography id="ocr-back-image-error" role="alert" variant="caption" sx={{ mt: 0.5, color: themeColors.error, display: 'block' }}>
+                  {errors.backImage}
                 </Typography>
               )}
             </Grid>

@@ -434,6 +434,7 @@ const DashboardScreen = ({ navigation }) => {
         { title: 'User Management', subtitle: 'View and manage users',     icon: 'people-outline',           screen: 'UsersTab',       color: '#7c3aed', bg: '#f5f3ff' },
         { title: 'Approvals',       subtitle: 'Review pending requests',   icon: 'checkmark-circle-outline', screen: 'AdminApprovals', color: '#d97706', bg: '#fffbeb' },
         { title: 'Visitor Logs',    subtitle: 'Full visitor history',      icon: 'qr-code-outline',          screen: 'VisitorsTab',    color: '#16a34a', bg: '#f0fdf4' },
+        { title: 'Lot Management',  subtitle: 'View lot inventory',        icon: 'map-outline',              screen: 'AdminLotManagement', color: '#059669', bg: '#ecfdf5' },
         { title: 'AI Assistant',    subtitle: 'Ask VIMS questions',        icon: 'sparkles-outline',         screen: 'Chatbot',        color: '#2563eb', bg: '#eff6ff' },
       ],
     },

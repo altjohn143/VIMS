@@ -134,6 +134,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [lastOcrAt, setLastOcrAt] = useState(0);
   const [ocrIdNumber, setOcrIdNumber] = useState('');
   const [registrationMode, setRegistrationMode] = useState(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [showIdUploadStep, setShowIdUploadStep] = useState(false);
   const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
 
@@ -696,10 +697,44 @@ const RegisterScreen = ({ navigation, route }) => {
     return newErrors;
   };
 
+  const getStepForError = (field) => {
+    if (['firstName', 'lastName', 'middleName', 'dateOfBirth'].includes(field)) return 0;
+    if (['email', 'phone', 'password', 'confirmPassword'].includes(field)) return 1;
+    if (['selectedLot', 'address'].includes(field)) return 2;
+    if (String(field).startsWith('vehicle_')) return 3;
+    if (String(field).startsWith('family')) return 4;
+    if (['idNumber', 'frontImage', 'backImage'].includes(field)) return 5;
+    return currentStepIndex;
+  };
+
+  const validateCurrentStep = () => {
+    const allErrors = validate();
+    const currentErrors = Object.fromEntries(
+      Object.entries(allErrors).filter(([field]) => getStepForError(field) === currentStepIndex)
+    );
+    setErrors((previous) => ({ ...previous, ...currentErrors }));
+    if (Object.keys(currentErrors).length > 0) {
+      Alert.alert('Validation Error', `Please complete Step ${currentStepIndex + 1}: ${REGISTRATION_STEPS[currentStepIndex].label}`);
+      return false;
+    }
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (!validateCurrentStep()) return;
+    setCurrentStepIndex((previous) => Math.min(previous + 1, REGISTRATION_STEPS.length - 1));
+  };
+
+  const handleBackStep = () => {
+    setCurrentStepIndex((previous) => Math.max(previous - 1, 0));
+  };
+
   const handleSubmit = async () => {
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      const firstErrorStep = getStepForError(Object.keys(validationErrors)[0]);
+      if (Number.isInteger(firstErrorStep)) setCurrentStepIndex(firstErrorStep);
       Alert.alert('Validation Error', 'Please check all fields');
       return;
     }
@@ -947,6 +982,10 @@ const RegisterScreen = ({ navigation, route }) => {
   const getStatusConfig = (status) => statusConfig[status] || statusConfig.vacant;
 
   const selectedCountry = getSelectedCountry();
+  const activeStep = REGISTRATION_STEPS[currentStepIndex];
+  const currentStepKey = activeStep.key;
+  const isLastStep = currentStepIndex === REGISTRATION_STEPS.length - 1;
+  const stepProgress = ((currentStepIndex + 1) / REGISTRATION_STEPS.length) * 100;
 
   return (
     <View style={styles.container}>
@@ -983,6 +1022,7 @@ const RegisterScreen = ({ navigation, route }) => {
             <View>
               <TouchableOpacity style={styles.modeCard} onPress={() => {
                 setRegistrationMode('manual');
+                setCurrentStepIndex(0);
                 setShowIdUploadStep(false);
                 setOcrStepCompleted(false);
               }}>
@@ -997,6 +1037,7 @@ const RegisterScreen = ({ navigation, route }) => {
 
               <TouchableOpacity style={styles.modeCard} onPress={() => {
                 setRegistrationMode('ocr');
+                setCurrentStepIndex(0);
                 setShowIdUploadStep(true);
                 setOcrStepCompleted(false);
               }}>
@@ -1019,7 +1060,10 @@ const RegisterScreen = ({ navigation, route }) => {
                   ? 'Please fill in your fields manually. Your ID upload will be used for verification only and will not trigger OCR automatically.'
                   : 'Upload your ID images to automatically populate your name, date of birth, and ID number where possible.'}
               </Text>
-              <TouchableOpacity style={styles.selectedModeChangeButton} onPress={() => setRegistrationMode(null)}>
+              <TouchableOpacity style={styles.selectedModeChangeButton} onPress={() => {
+                setRegistrationMode(null);
+                setCurrentStepIndex(0);
+              }}>
                 <Text style={styles.selectedModeChangeText}>Change registration method</Text>
               </TouchableOpacity>
             </View>
@@ -1121,6 +1165,7 @@ const RegisterScreen = ({ navigation, route }) => {
                 onPress={() => {
                   setShowIdUploadStep(false);
                   setRegistrationMode('manual');
+                  setCurrentStepIndex(0);
                   setOcrStepCompleted(false);
                 }}
               >
@@ -1133,9 +1178,33 @@ const RegisterScreen = ({ navigation, route }) => {
         {registrationMode && (!showIdUploadStep && (registrationMode !== 'ocr' || ocrStepCompleted)) && (
           <View style={[styles.formCard, shadows.medium]}>
           <View style={styles.parityStepHeader}>
-            <Text style={styles.parityStepTitle}>Resident registration</Text>
-            <Text style={styles.parityStepSubtitle}>{REGISTRATION_STEPS.map(step => step.label).join('  •  ')}</Text>
+            <Text style={styles.parityStepTitle}>Step {currentStepIndex + 1} of {REGISTRATION_STEPS.length}: {activeStep.label}</Text>
+            <View style={styles.stepperRow}>
+              {REGISTRATION_STEPS.map((step, index) => (
+                <View key={step.key} style={styles.stepperItem}>
+                  <View style={[
+                    styles.stepperCircle,
+                    index < currentStepIndex && styles.stepperCircleDone,
+                    index === currentStepIndex && styles.stepperCircleActive,
+                  ]}>
+                    <Text style={[
+                      styles.stepperCircleText,
+                      index <= currentStepIndex && styles.stepperCircleTextActive,
+                    ]}>{index < currentStepIndex ? '✓' : index + 1}</Text>
+                  </View>
+                  <Text style={[
+                    styles.stepperLabel,
+                    index === currentStepIndex && styles.stepperLabelActive,
+                  ]}>{step.label}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.stepProgressTrack}>
+              <View style={[styles.stepProgressFill, { width: `${stepProgress}%` }]} />
+            </View>
           </View>
+          {currentStepKey === 'info' && (
+          <>
           <View style={styles.inputContainer}>
             <Ionicons name="person" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput style={styles.input} placeholder="First Name" value={formData.firstName} onChangeText={(text) => handleChange('firstName', text)} />
@@ -1232,14 +1301,18 @@ const RegisterScreen = ({ navigation, route }) => {
               </View>
             </View>
           </Modal>
+          </>
+          )}
 
+          {currentStepKey === 'id' && (
+          <>
           <View style={styles.ocrBox}>
             <View style={styles.ocrTitleRow}>
-              <Text style={styles.ocrTitle}>ID OCR Autofill (optional)</Text>
+              <Text style={styles.ocrTitle}>Verify ID</Text>
               {ocrLoading ? <ActivityIndicator size="small" color={themeColors.primary} /> : null}
             </View>
             <Text style={styles.ocrSub}>
-              Upload front/back ID images to autofill name and DOB. OCR runs on the backend (fast + stable).
+              Upload the front and back of your valid ID. ID scan mode autofills readable fields; manual mode uses these uploads for verification.
             </Text>
             <Text style={styles.sectionLabel}>ID document type</Text>
             <View style={styles.idTypeRow}>
@@ -1293,7 +1366,11 @@ const RegisterScreen = ({ navigation, route }) => {
             {errors.frontImage && <Text style={styles.errorText}>{errors.frontImage}</Text>}
             {errors.backImage && <Text style={styles.errorText}>{errors.backImage}</Text>}
           </View>
+          </>
+          )}
 
+          {currentStepKey === 'photo' && (
+          <>
           <View style={styles.ocrBox}>
             <View style={styles.ocrTitleRow}>
               <Text style={styles.ocrTitle}>Profile Picture (optional)</Text>
@@ -1317,7 +1394,11 @@ const RegisterScreen = ({ navigation, route }) => {
               </View>
             )}
           </View>
+          </>
+          )}
 
+          {currentStepKey === 'email' && (
+          <>
           <View style={styles.inputContainer}>
             <Ionicons name="mail" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput style={styles.input} placeholder="Email Address" value={formData.email} onChangeText={(text) => handleChange('email', text)} keyboardType="email-address" autoCapitalize="none" />
@@ -1354,7 +1435,11 @@ const RegisterScreen = ({ navigation, route }) => {
             </Text>
             {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
           </View>
+          </>
+          )}
 
+          {currentStepKey === 'lot' && (
+          <>
           {/* Address Input */}
           <View style={styles.inputContainer}>
             <Ionicons name="location" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
@@ -1379,7 +1464,11 @@ const RegisterScreen = ({ navigation, route }) => {
             )}
           </View>
           {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
+          </>
+          )}
 
+          {currentStepKey === 'vehicles' && (
+          <>
           <View style={styles.toggleRow}>
             <TouchableOpacity
               style={[styles.toggleOption, formData.noVehicles && styles.toggleOptionActive]}
@@ -1393,6 +1482,7 @@ const RegisterScreen = ({ navigation, route }) => {
               <Text style={styles.toggleOptionText}>No vehicles to register</Text>
             </TouchableOpacity>
 
+            {false && (
             <TouchableOpacity
               style={[styles.toggleOption, formData.soloResident && styles.toggleOptionActive]}
               onPress={toggleSoloResident}
@@ -1404,6 +1494,7 @@ const RegisterScreen = ({ navigation, route }) => {
               />
               <Text style={styles.toggleOptionText}>Solo resident / no family members</Text>
             </TouchableOpacity>
+            )}
           </View>
 
           {!formData.noVehicles && (
@@ -1487,6 +1578,25 @@ const RegisterScreen = ({ navigation, route }) => {
             </View>
           )}
 
+          </>
+          )}
+
+          {currentStepKey === 'family' && (
+          <>
+          <View style={styles.toggleRow}>
+            <TouchableOpacity
+              style={[styles.toggleOption, formData.soloResident && styles.toggleOptionActive]}
+              onPress={toggleSoloResident}
+            >
+              <Ionicons
+                name={formData.soloResident ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                size={20}
+                color={formData.soloResident ? themeColors.primary : themeColors.textSecondary}
+              />
+              <Text style={styles.toggleOptionText}>Solo resident / no family members</Text>
+            </TouchableOpacity>
+          </View>
+
           {!formData.soloResident && (
             <View style={styles.arraySection}>
               <Text style={styles.sectionLabel}>Family Members</Text>
@@ -1565,6 +1675,12 @@ const RegisterScreen = ({ navigation, route }) => {
             </View>
           )}
 
+          </>
+          )}
+
+          {currentStepKey === 'email' && (
+          <>
+
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
             <TextInput style={styles.input} placeholder="Password" value={formData.password} onChangeText={(text) => handleChange('password', text)} secureTextEntry={!showPassword} />
@@ -1582,7 +1698,11 @@ const RegisterScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
           {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+          </>
+          )}
 
+          {currentStepKey === 'lot' && (
+          <>
           <Text style={styles.sectionLabel}>Select Your Lot</Text>
           
           {loadingLots ? (
@@ -1646,10 +1766,32 @@ const RegisterScreen = ({ navigation, route }) => {
               </View>
             </>
           )}
+          </>
+          )}
 
-          <TouchableOpacity style={[styles.submitButton, (loading || emailOtpLoading || loadingLots || availableLots.length === 0) && styles.submitButtonDisabled]} onPress={handleSubmit} disabled={loading || emailOtpLoading || loadingLots || availableLots.length === 0}>
-            {loading || emailOtpLoading ? <ActivityIndicator color="white" /> : <Text style={styles.submitButtonText}>{emailVerificationToken ? 'Create Account' : 'Verify Email & Continue'}</Text>}
-          </TouchableOpacity>
+          <View style={styles.stepButtonRow}>
+            <TouchableOpacity
+              style={[styles.stepBackButton, currentStepIndex === 0 && styles.stepButtonDisabled]}
+              onPress={handleBackStep}
+              disabled={currentStepIndex === 0 || loading}
+            >
+              <Text style={styles.stepBackButtonText}>Back</Text>
+            </TouchableOpacity>
+
+            {isLastStep ? (
+              <TouchableOpacity
+                style={[styles.stepNextButton, (loading || emailOtpLoading || loadingLots || availableLots.length === 0) && styles.submitButtonDisabled]}
+                onPress={handleSubmit}
+                disabled={loading || emailOtpLoading || loadingLots || availableLots.length === 0}
+              >
+                {loading || emailOtpLoading ? <ActivityIndicator color="white" /> : <Text style={styles.stepNextButtonText}>{emailVerificationToken ? 'Create Account' : 'Verify Email & Continue'}</Text>}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.stepNextButton} onPress={handleNextStep} disabled={loading}>
+                <Text style={styles.stepNextButtonText}>Next: {REGISTRATION_STEPS[currentStepIndex + 1].label}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <View style={styles.loginLink}>
             <Text style={styles.loginText}>Already have an account?</Text>

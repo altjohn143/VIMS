@@ -42,6 +42,8 @@ const ResetPassword = () => {
   const [token, setToken] = useState('');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [otpError, setOtpError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -54,10 +56,24 @@ const ResetPassword = () => {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!email || !/^\d{6}$/.test(otp)) {
-      setError('Enter your email and the six-digit verification code.');
+    const nextErrors = {};
+    if (!email.trim()) {
+      nextErrors.email = 'Email is required';
+    }
+    if (!otp.trim()) {
+      nextErrors.otp = 'Verification code is required';
+    } else if (!/^\d{6}$/.test(otp)) {
+      nextErrors.otp = 'Verification code must be exactly 6 digits';
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setEmailError(nextErrors.email || '');
+      setOtpError(nextErrors.otp || '');
+      setError(nextErrors.otp || nextErrors.email);
       return;
     }
+    setEmailError('');
+    setOtpError('');
     setLoading(true);
     setError('');
     try {
@@ -167,9 +183,14 @@ const ResetPassword = () => {
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             <Box component="form" onSubmit={handleVerifyOtp}>
               <TextField fullWidth label="Email" value={email}
-                onChange={(e) => setEmail(e.target.value)} sx={{ mb: 2 }} />
+                onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                error={Boolean(emailError)}
+                helperText={emailError}
+                sx={{ mb: 2 }} />
               <TextField fullWidth label="Verification code" value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
+                error={Boolean(otpError)}
+                helperText={otpError}
                 inputProps={{ inputMode: 'numeric', maxLength: 6 }} sx={{ mb: 2 }} />
               <Button type="submit" fullWidth variant="contained" disabled={loading}
                 sx={{ backgroundColor: themeColors.primary, borderRadius: 2, py: 1.5, mb: 1 }}>

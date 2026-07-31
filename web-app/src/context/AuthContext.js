@@ -192,8 +192,15 @@ const login = async (email, password, expectedRole) => {
       toast.success('Login successful!');
       return { success: true, user };
     }
+
+    clearAuthData();
+    return {
+      success: false,
+      error: response.data?.error || 'Invalid credentials'
+    };
   } catch (error) {
     console.error('Login error:', error);
+    clearAuthData();
     
     // Check for pending approval error (403 status)
     if (error.response?.status === 403 && error.response?.data?.requiresApproval) {

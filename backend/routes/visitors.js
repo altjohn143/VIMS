@@ -1038,15 +1038,27 @@ router.get('/stats/daily', protect, async (req, res) => {
 // Get all visitors (admin only - includes security approvals)
 router.get('/admin/all', protect, authorize('admin'), async (req, res) => {
   try {
-    const { status, startDate, endDate, residentId } = req.query;
+    const { status, startDate, endDate, date, residentId, visitorName } = req.query;
     
     let filter = {};
     
     // Filter by status
-    if (status) filter.status = status;
+    if (status && status !== 'all') filter.status = status;
+
+    if (visitorName) {
+      filter.visitorName = { $regex: visitorName.trim(), $options: 'i' };
+    }
+
+    if (date) {
+      const selectedDate = new Date(date);
+      selectedDate.setHours(0, 0, 0, 0);
+      const selectedDateEnd = new Date(date);
+      selectedDateEnd.setHours(23, 59, 59, 999);
+      filter.expectedArrival = { $gte: selectedDate, $lte: selectedDateEnd };
+    }
     
     // Filter by date range
-    if (startDate || endDate) {
+    if (!date && (startDate || endDate)) {
       filter.createdAt = {};
       if (startDate) {
         const start = new Date(startDate);

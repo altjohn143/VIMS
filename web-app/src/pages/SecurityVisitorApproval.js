@@ -19,7 +19,8 @@ import {
   CircularProgress,
   AppBar,
   Toolbar,
-  IconButton
+  IconButton,
+  Alert
 } from '@mui/material';
 import {
   CheckCircle as ApproveIcon,
@@ -61,6 +62,7 @@ const SecurityVisitorApproval = () => {
   const [openRejectDialog, setOpenRejectDialog] = useState(false);
   const [securityNotes, setSecurityNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [approvalError, setApprovalError] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -152,6 +154,21 @@ const SecurityVisitorApproval = () => {
 
   const handleApprove = async () => {
     if (!selectedVisitor) return;
+
+    const missingFields = [];
+    if (!selectedVisitor.visitorName?.trim()) missingFields.push('visitor name');
+    if (!selectedVisitor.visitorPhone?.trim()) missingFields.push('visitor phone');
+    if (!selectedVisitor.purpose?.trim()) missingFields.push('purpose of visit');
+    if (!selectedVisitor.expectedArrival) missingFields.push('expected arrival');
+    if (!selectedVisitor.expectedDeparture) missingFields.push('expected departure');
+    if (!selectedVisitor.residentId) missingFields.push('resident details');
+
+    if (missingFields.length > 0) {
+      const message = `Missing required visitor information: ${missingFields.join(', ')}.`;
+      setApprovalError(message);
+      toast.error(message);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -162,6 +179,7 @@ const SecurityVisitorApproval = () => {
       if (response.data.success) {
         toast.success('Visitor approved successfully!');
         setOpenApproveDialog(false);
+        setApprovalError('');
         setSecurityNotes('');
         await fetchPendingVisitors();
       }
@@ -657,6 +675,7 @@ const SecurityVisitorApproval = () => {
                         fullWidth
                         onClick={() => {
                           setSelectedVisitor(visitor);
+                          setApprovalError('');
                           setOpenApproveDialog(true);
                         }}
                         sx={{ 
@@ -729,7 +748,12 @@ const SecurityVisitorApproval = () => {
             <Typography variant="body2" sx={{ color: themeColors.textSecondary, gutterBottom: 2 }}>
               Visiting: {selectedVisitor?.residentId?.firstName} {selectedVisitor?.residentId?.lastName}
             </Typography>
-            
+            {approvalError && (
+              <Alert severity="error" sx={{ mt: 2, mb: 1, borderRadius: 2 }}>
+                {approvalError}
+              </Alert>
+            )}
+             
             <TextField
               fullWidth
               label="Security Notes (Optional)"

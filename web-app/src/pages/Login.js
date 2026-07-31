@@ -1753,8 +1753,14 @@ const Login = () => {
   };
 
   const handleForgotPassword = async () => {
-    if (!formData.email.trim()) {
+    const resetEmail = formData.email.trim().toLowerCase();
+
+    if (!resetEmail) {
       setForgotEmailError('Email is required');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(resetEmail)) {
+      setForgotEmailError('Please enter a valid email address');
       return;
     }
 
@@ -1767,13 +1773,13 @@ const Login = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: formData.email.toLowerCase() })
+        body: JSON.stringify({ email: resetEmail })
       });
 
       const data = await response.json();
       alert(data.message || 'If your email is registered, you will receive a verification code.');
       setShowForgotPassword(false);
-      navigate(`/reset-password?email=${encodeURIComponent(formData.email.toLowerCase())}`);
+      navigate(`/reset-password?email=${encodeURIComponent(resetEmail)}`);
     } catch (error) {
       alert('Failed to send reset email. Please try again.');
     } finally {

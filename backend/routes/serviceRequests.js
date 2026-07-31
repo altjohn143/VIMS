@@ -939,7 +939,8 @@ router.get('/archived', protect, authorize('admin'), async (req, res) => {
 // Export service requests data (CSV or PDF format)
 router.get('/export', protect, authorize('admin', 'security'), async (req, res) => {
   try {
-    const { format = 'pdf', status, category, priority, assignedTo, startDate, endDate } = req.query;
+    const { format = 'pdf', status, category, priority, assignedTo, startDate, endDate, timezoneOffset = '0' } = req.query;
+    const timezoneOffsetMinutes = Number(timezoneOffset) || 0;
 
     // Build filter based on user role and query parameters
     let filter = {};

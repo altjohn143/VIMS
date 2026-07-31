@@ -203,13 +203,21 @@ const AdminUserManagement = () => {
     // Search filter
     if (search) {
       const query = search.toLowerCase();
-      filtered = filtered.filter(user => 
-        user.firstName?.toLowerCase().includes(query) ||
-        user.lastName?.toLowerCase().includes(query) ||
-        user.email?.toLowerCase().includes(query) ||
-        user.phone?.includes(query) ||
-        user.houseNumber?.toLowerCase().includes(query)
-      );
+      const terms = query.split(/\s+/).filter(Boolean);
+      filtered = filtered.filter(user => {
+        const searchableText = [
+          user.firstName,
+          user.middleName,
+          user.lastName,
+          `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`,
+          `${user.firstName || ''} ${user.lastName || ''}`,
+          user.email,
+          user.phone,
+          user.houseNumber
+        ].join(' ').toLowerCase();
+
+        return terms.every(term => searchableText.includes(term));
+      });
     }
 
     // Role filter

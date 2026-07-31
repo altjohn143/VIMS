@@ -417,8 +417,8 @@ const Register = () => {
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     
     if (registrationMode === 'ocr' && !formData.idNumber.trim()) newErrors.idNumber = 'ID number is required';
-    if (!idDocs.frontImage) newErrors.frontImage = 'Please upload the front side of your ID';
-    if (!idDocs.backImage) newErrors.backImage = 'Please upload the back side of your ID';
+    if (!idDocs.frontImage) newErrors.frontImage = 'ID Front image is required';
+    if (!idDocs.backImage) newErrors.backImage = 'ID Back image is required';
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot from the map or dropdown';
 
     if (formData.middleName.trim() && formData.middleName.length > 50) {

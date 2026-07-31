@@ -98,6 +98,14 @@ const SecurityVisitorLogs = () => {
   const [selectedVisitor, setSelectedVisitor] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [scanInProgress, setScanInProgress] = useState(false);
+  const [manualEntryOpen, setManualEntryOpen] = useState(false);
+  const [manualEntry, setManualEntry] = useState({
+    visitorName: '',
+    visitorPhone: '',
+    vehicleNumber: '',
+    purpose: ''
+  });
+  const [manualEntryErrors, setManualEntryErrors] = useState({});
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
@@ -330,8 +338,29 @@ const SecurityVisitorLogs = () => {
 
   // Handle search button click
   const handleSearch = () => {
-    // Trigger the search effect
     setPage(0);
+    fetchVisitors();
+  };
+
+  const handleManualEntryChange = (field, value) => {
+    setManualEntry((prev) => ({ ...prev, [field]: value }));
+    setManualEntryErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const handleManualEntrySubmit = (event) => {
+    event.preventDefault();
+    const nextErrors = {};
+    if (!manualEntry.visitorName.trim()) nextErrors.visitorName = 'Visitor name is required';
+    if (!manualEntry.visitorPhone.trim()) nextErrors.visitorPhone = 'Visitor phone is required';
+    if (!manualEntry.vehicleNumber.trim()) nextErrors.vehicleNumber = 'Vehicle plate number is required';
+    if (!manualEntry.purpose.trim()) nextErrors.purpose = 'Purpose of visit is required';
+
+    if (Object.keys(nextErrors).length > 0) {
+      setManualEntryErrors(nextErrors);
+      return;
+    }
+
+    toast.error('Use an approved visitor record to log entry or exit.');
   };
 
   // Format date
@@ -558,13 +587,17 @@ const SecurityVisitorLogs = () => {
 
   // Handle print visitor pass
   const handlePrintPass = (visitor) => {
-    if (!visitor.qrCode || !visitor.qrCodeVisible) {
+    if (!visitor.qrCode) {
       toast.error('QR code not available for printing');
       return;
     }
 
     try {
       const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast.error('Popup blocked. Please allow popups to print the visitor pass.');
+        return;
+      }
       const now = new Date();
       const departureDate = new Date(visitor.expectedDeparture);
       const isExpired = now > departureDate;
@@ -713,29 +746,6 @@ const SecurityVisitorLogs = () => {
     }
   };
 
-  const handleSecurityScanAction = async (visitor) => {
-    if (!visitor) return;
-
-    const scanValue = visitor.qrToken || visitor.qrCode;
-    if (!scanValue) {
-      toast.error('Unable to process this visitor scan');
-      return;
-    }
-
-    setScanInProgress(true);
-    try {
-      const response = await axios.post('/api/visitors/scan-action', { scanValue });
-      if (response.data.success) {
-        toast.success(response.data.message || 'Visitor scan action completed');
-        fetchVisitors();
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to process visitor scan action');
-    } finally {
-      setScanInProgress(false);
-    }
-  };
-
   // Get title based on selected tab - UPDATED FOR 3 TABS
   const getTitle = () => {
     switch(selectedTab) {
@@ -762,6 +772,40 @@ const SecurityVisitorLogs = () => {
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) return 'Invalid timestamp';
     return date.toLocaleString();
+  };
+
+  const handleLogEntry = async (visitor) => {
+    if (!visitor?._id) return;
+
+    setScanInProgress(true);
+    try {
+      const response = await axios.put(`/api/visitors/${visitor._id}/entry`, {});
+      if (response.data.success) {
+        toast.success(response.data.message || 'Visitor checked in successfully');
+        fetchVisitors();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to check in visitor');
+    } finally {
+      setScanInProgress(false);
+    }
+  };
+
+  const handleLogExit = async (visitor) => {
+    if (!visitor?._id) return;
+
+    setScanInProgress(true);
+    try {
+      const response = await axios.put(`/api/visitors/${visitor._id}/exit`, {});
+      if (response.data.success) {
+        toast.success(response.data.message || 'Visitor checked out successfully');
+        fetchVisitors();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to check out visitor');
+    } finally {
+      setScanInProgress(false);
+    }
   };
 
   const recentActivities = useMemo(() => {
@@ -1357,6 +1401,24 @@ const SecurityVisitorLogs = () => {
             >
               {loading ? 'Loading...' : 'Refresh'}
             </Button>
+            <Button
+              variant="contained"
+              startIcon={<CarIcon />}
+              onClick={() => {
+                setManualEntryOpen(true);
+                setManualEntryErrors({});
+              }}
+              disabled={loading}
+              sx={{
+                borderRadius: 2.5,
+                textTransform: 'none',
+                fontWeight: 600,
+                bgcolor: themeColors.primary,
+                '&:hover': { bgcolor: themeColors.primaryDark }
+              }}
+            >
+              Manual Entry
+            </Button>
           </Box>
         </Box>
 
@@ -1561,8 +1623,8 @@ const SecurityVisitorLogs = () => {
                           <IconButton
                             size="small"
                             color="primary"
-                            onClick={() => handleSecurityScanAction(visitor)}
-                            title="Log Entry"
+                            onClick={() => handleLogEntry(visitor)}
+                            title="Check In Visitor"
                             disabled={scanInProgress}
                             sx={{
                               color: themeColors.textSecondary,
@@ -1580,14 +1642,14 @@ const SecurityVisitorLogs = () => {
                           <IconButton
                             size="small"
                             color="success"
-                            onClick={() => handleSecurityScanAction(visitor)}
-                            title={visitor.residentDepartureConfirmedAt ? 'Log Exit' : 'Awaiting resident departure confirmation'}
-                            disabled={scanInProgress || !visitor.residentDepartureConfirmedAt}
+                            onClick={() => handleLogExit(visitor)}
+                            title="Check Out Visitor"
+                            disabled={scanInProgress}
                             sx={{
                               color: themeColors.textSecondary,
                               '&:hover': {
-                                color: visitor.residentDepartureConfirmedAt ? themeColors.success : themeColors.warning,
-                                bgcolor: visitor.residentDepartureConfirmedAt ? themeColors.success + '10' : themeColors.warning + '10'
+                                color: themeColors.success,
+                                bgcolor: themeColors.success + '10'
                               }
                             }}
                           >
@@ -1595,7 +1657,7 @@ const SecurityVisitorLogs = () => {
                           </IconButton>
                         )}
 
-                        {visitor.qrCodeVisible && visitor.qrCode && (
+                        {visitor.qrCode && ['approved', 'active', 'completed'].includes(visitor.status) && (
                           <IconButton
                             size="small"
                             onClick={() => handlePrintPass(visitor)}
@@ -1642,6 +1704,108 @@ const SecurityVisitorLogs = () => {
             }}
           />
         )}
+
+        {/* Manual Entry Validation Dialog */}
+        <Dialog
+          open={manualEntryOpen}
+          onClose={() => setManualEntryOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: '18px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              border: `1px solid ${themeColors.border}`
+            }
+          }}
+        >
+          <DialogTitle sx={{
+            fontWeight: 700,
+            color: themeColors.textPrimary,
+            borderBottom: `1px solid ${themeColors.border}`
+          }}>
+            Manual Visitor / Vehicle Entry
+          </DialogTitle>
+          <Box component="form" onSubmit={handleManualEntrySubmit}>
+            <DialogContent>
+              <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+                Use this form to validate required visitor and vehicle entry details before saving.
+              </Alert>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Visitor Name"
+                    value={manualEntry.visitorName}
+                    onChange={(event) => handleManualEntryChange('visitorName', event.target.value)}
+                    error={Boolean(manualEntryErrors.visitorName)}
+                    helperText={manualEntryErrors.visitorName}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Visitor Phone"
+                    value={manualEntry.visitorPhone}
+                    onChange={(event) => handleManualEntryChange('visitorPhone', event.target.value)}
+                    error={Boolean(manualEntryErrors.visitorPhone)}
+                    helperText={manualEntryErrors.visitorPhone}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Vehicle Plate Number"
+                    value={manualEntry.vehicleNumber}
+                    onChange={(event) => handleManualEntryChange('vehicleNumber', event.target.value)}
+                    error={Boolean(manualEntryErrors.vehicleNumber)}
+                    helperText={manualEntryErrors.vehicleNumber}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Purpose of Visit"
+                    value={manualEntry.purpose}
+                    onChange={(event) => handleManualEntryChange('purpose', event.target.value)}
+                    error={Boolean(manualEntryErrors.purpose)}
+                    helperText={manualEntryErrors.purpose}
+                    required
+                  />
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
+              <Button
+                onClick={() => setManualEntryOpen(false)}
+                sx={{
+                  color: themeColors.textSecondary,
+                  borderRadius: 2.5,
+                  textTransform: 'none',
+                  fontWeight: 700
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                sx={{
+                  bgcolor: themeColors.primary,
+                  borderRadius: 2.5,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  '&:hover': { bgcolor: themeColors.primaryDark }
+                }}
+              >
+                Save Entry
+              </Button>
+            </DialogActions>
+          </Box>
+        </Dialog>
 
         {/* View Details Dialog */}
         <Dialog
@@ -1767,7 +1931,7 @@ const SecurityVisitorLogs = () => {
                   </Typography>
                   {getStatusChip(selectedVisitor)}
                 </Grid>
-                {selectedVisitor.qrCode && selectedVisitor.qrCodeVisible && (
+                {selectedVisitor.qrCode && ['approved', 'active', 'completed'].includes(selectedVisitor.status) && (
                   <Grid item xs={12}>
                     <Divider sx={{ my: 2 }} />
                     <Typography variant="subtitle2" sx={{ color: themeColors.textSecondary }} gutterBottom>

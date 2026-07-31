@@ -26,7 +26,8 @@ import {
   InputLabel,
   Select,
   MenuItem as SelectMenuItem,
-  InputAdornment
+  InputAdornment,
+  Alert
 } from '@mui/material';
 import {
   Assessment as ReportIcon,
@@ -73,8 +74,20 @@ const AdminVisitorReports = () => {
   const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [dateRangeError, setDateRangeError] = useState('');
+
+  const hasInvalidDateRange = useCallback(() => (
+    startDate && endDate && new Date(startDate) > new Date(endDate)
+  ), [startDate, endDate]);
 
   const fetchReportData = useCallback(async () => {
+    if (hasInvalidDateRange()) {
+      setDateRangeError('Start Date cannot be after End Date');
+      setLoading(false);
+      return;
+    }
+
+    setDateRangeError('');
     setLoading(true);
     try {
       const params = {};
@@ -109,7 +122,7 @@ const AdminVisitorReports = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, reportType]);
+  }, [startDate, endDate, reportType, hasInvalidDateRange]);
 
   useEffect(() => {
     fetchReportData();
@@ -117,7 +130,7 @@ const AdminVisitorReports = () => {
 
   useEffect(() => {
     setPage(0);
-  }, [startDate, endDate, reportType]);
+  }, [startDate, endDate, reportType, hasInvalidDateRange]);
 
   useEffect(() => {
     if (page > 0 && page * rowsPerPage >= recentVisitors.length) {
@@ -128,6 +141,12 @@ const AdminVisitorReports = () => {
   const paginatedRecentVisitors = recentVisitors.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const handleExport = async () => {
+    if (hasInvalidDateRange()) {
+      setDateRangeError('Start Date cannot be after End Date');
+      toast.error('Start Date cannot be after End Date');
+      return;
+    }
+
     setExporting(true);
     try {
       // Prepare data for export
@@ -410,6 +429,13 @@ const AdminVisitorReports = () => {
                   {exporting ? 'Exporting...' : 'Export'}
                 </Button>
               </Grid>
+              {dateRangeError && (
+                <Grid item xs={12}>
+                  <Alert severity="error" sx={{ borderRadius: 2 }}>
+                    {dateRangeError}
+                  </Alert>
+                </Grid>
+              )}
             </Grid>
           </CardContent>
         </Card>

@@ -29,6 +29,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  FormHelperText,
   Menu,
   Tabs,
   Tab,
@@ -59,7 +60,8 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import ReportToolbar from '../components/ReportToolbar';
-import { getBackendApiUrl } from '../utils/api';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -90,11 +92,12 @@ const AdminServiceRequests = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [processForm, setProcessForm] = useState({
-    status: 'under-review',
+    status: '',
     adminNotes: '',
     assignedTo: '',
     estimatedCompletion: ''
   });
+  const [processActionError, setProcessActionError] = useState('');
 
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -394,49 +397,45 @@ const paginatedRequests = useMemo(
 
   const handleExportPdf = useCallback(async () => {
     try {
-      const timezoneOffset = new Date().getTimezoneOffset();
-      const response = await fetch(getBackendApiUrl(`/api/service-requests/export?format=pdf&timezoneOffset=${timezoneOffset}`), {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      if (!filteredRequests.length) {
+        toast.error('No service requests to export');
+        return;
+      }
+
+      const pdf = new jsPDF({ orientation: 'landscape' });
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Admin Service Requests Report', 14, 14);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+      pdf.text(`Displayed records exported: ${filteredRequests.length}`, 14, 28);
+
+      autoTable(pdf, {
+        startY: 34,
+        head: [['Title', 'Resident', 'Category', 'Priority', 'Status', 'Assigned To', 'Location', 'Created']],
+        body: filteredRequests.map((request) => [
+          request.title || 'Untitled',
+          request.residentId ? `${request.residentId.firstName || ''} ${request.residentId.lastName || ''}`.trim() : 'Unknown',
+          request.category || 'N/A',
+          request.priority || 'N/A',
+          request.status || 'N/A',
+          request.assignedTo ? `${request.assignedTo.firstName || ''} ${request.assignedTo.lastName || ''}`.trim() : 'Unassigned',
+          request.location || 'N/A',
+          formatShortDate(request.createdAt)
+        ]),
+        styles: { fontSize: 8 }
       });
 
-      if (!response.ok) {
-        const text = await response.text();
-        let message = 'Export failed';
-        try {
-          const errorData = JSON.parse(text);
-          message = errorData.error || message;
-        } catch {
-          message = text || message;
-        }
-        throw new Error(message);
-      }
-
-      if (!response.headers.get('content-type')?.includes('application/pdf')) {
-        const text = await response.text();
-        throw new Error(text || 'Export failed: invalid PDF response');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const exportTime = new Date();
       const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-      a.download = `VIMS_Service_Requests_Export_${timestamp}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      pdf.save(`VIMS_Service_Requests_Export_${timestamp}.pdf`);
 
       toast.success('PDF exported successfully');
     } catch (error) {
       console.error('Export error:', error);
       toast.error(error.message || 'Failed to export PDF');
     }
-  }, []);
+  }, [filteredRequests, formatShortDate]);
 
   const handleMenuOpen = useCallback((event, request) => {
     setAnchorEl(event.currentTarget);
@@ -451,19 +450,25 @@ const paginatedRequests = useMemo(
     if (!selectedRequest) return;
     
     setProcessForm({
-      status: selectedRequest.status === 'pending' ? 'under-review' : selectedRequest.status,
+      status: '',
       adminNotes: selectedRequest.adminNotes || '',
       assignedTo: selectedRequest.assignedTo?._id || '',
       estimatedCompletion: selectedRequest.estimatedCompletion 
         ? new Date(selectedRequest.estimatedCompletion).toISOString().split('T')[0] 
         : ''
     });
+    setProcessActionError('');
     setOpenProcessDialog(true);
     handleMenuClose();
   }, [selectedRequest, handleMenuClose]);
 
   const handleProcessSubmit = useCallback(async () => {
     if (!selectedRequest?._id) return;
+
+    if (!processForm.status) {
+      setProcessActionError('Please select a processing action');
+      return;
+    }
     
     try {
       setLoading(true);
@@ -1534,7 +1539,7 @@ const paginatedRequests = useMemo(
               </Box>
             )}
             <Box sx={{ mt: 2 }}>
-              <FormControl fullWidth margin="normal">
+              <FormControl fullWidth margin="normal" error={Boolean(processActionError)}>
                 <InputLabel sx={{
                   color: themeColors.textSecondary,
                   '&.Mui-focused': { color: themeColors.primary }
@@ -1543,7 +1548,10 @@ const paginatedRequests = useMemo(
                 </InputLabel>
                 <Select
                   value={processForm.status}
-                  onChange={(e) => setProcessForm(prev => ({...prev, status: e.target.value}))}
+                  onChange={(e) => {
+                    setProcessForm(prev => ({...prev, status: e.target.value}));
+                    setProcessActionError('');
+                  }}
                   label="Action"
                   sx={{
                     borderRadius: 2,
@@ -1555,11 +1563,15 @@ const paginatedRequests = useMemo(
                     }
                   }}
                 >
+                  <MenuItem value="">Select processing action</MenuItem>
                   <MenuItem value="under-review">Mark as Under Review</MenuItem>
                   <MenuItem value="assigned">Assign to Staff</MenuItem>
                   <MenuItem value="rejected">Reject Request</MenuItem>
                   <MenuItem value="cancelled">Cancel Request</MenuItem>
                 </Select>
+                {processActionError && (
+                  <FormHelperText>{processActionError}</FormHelperText>
+                )}
               </FormControl>
               
               {processForm.status === 'assigned' && !isEmergency(selectedRequest) && (

@@ -92,6 +92,7 @@ const AdminVisitorManagement = () => {
   const [exportLoading, setExportLoading] = useState(false);
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
+  const [exportDateError, setExportDateError] = useState('');
 
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -107,6 +108,18 @@ const AdminVisitorManagement = () => {
   };
 
   // Wrap fetchVisitors in useCallback to prevent infinite re-renders
+  const buildActiveFilters = useCallback((overrides = {}) => {
+    const filters = {};
+    const nextSearch = Object.prototype.hasOwnProperty.call(overrides, 'searchTerm') ? overrides.searchTerm : searchTerm;
+    const nextStatus = Object.prototype.hasOwnProperty.call(overrides, 'statusFilter') ? overrides.statusFilter : statusFilter;
+    const nextDate = Object.prototype.hasOwnProperty.call(overrides, 'dateFilter') ? overrides.dateFilter : dateFilter;
+
+    if (nextSearch?.trim()) filters.visitorName = nextSearch.trim();
+    if (nextStatus && nextStatus !== 'all') filters.status = nextStatus;
+    if (nextDate) filters.date = nextDate;
+    return filters;
+  }, [searchTerm, statusFilter, dateFilter]);
+
   const fetchVisitors = useCallback(async (filters = {}) => {
     setLoading(true);
     try {
@@ -153,19 +166,15 @@ const AdminVisitorManagement = () => {
   }, [fetchVisitors, fetchStats, getCurrentUser, navigate]);
 
   const handleSearch = () => {
-    const filters = {};
-    if (searchTerm) filters.visitorName = searchTerm;
-    if (statusFilter !== 'all') filters.status = statusFilter;
-    if (dateFilter) filters.date = dateFilter;
-    
-    fetchVisitors(filters);
+    setPage(0);
+    fetchVisitors(buildActiveFilters());
   };
 
   const handleClearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
     setDateFilter('');
-    fetchVisitors();
+    fetchVisitors(buildActiveFilters({ searchTerm: '', statusFilter: 'all', dateFilter: '' }));
   };
 
   const handleMenuOpen = (event, visitor) => {
@@ -196,7 +205,7 @@ const AdminVisitorManagement = () => {
     
     if (response.data.success) {
       toast.success('Visitor approved (override)');
-      fetchVisitors();
+      fetchVisitors(buildActiveFilters());
       fetchStats();
     }
   } catch (error) {
@@ -225,7 +234,7 @@ const handleReject = async () => {
     
     if (response.data.success) {
       toast.success('Visitor rejected (override)');
-      fetchVisitors();
+      fetchVisitors(buildActiveFilters());
       fetchStats();
     }
   } catch (error) {
@@ -236,9 +245,24 @@ const handleReject = async () => {
 };
 
   const handleExport = async () => {
+    setExportDateError('');
+    if (exportStartDate && exportEndDate && new Date(exportStartDate) > new Date(exportEndDate)) {
+      setExportDateError('Start Date cannot be after End Date');
+      return;
+    }
+
     setExportLoading(true);
     try {
-      const rows = visitors.map((v) => ({
+      const start = exportStartDate ? new Date(`${exportStartDate}T00:00:00`) : null;
+      const end = exportEndDate ? new Date(`${exportEndDate}T23:59:59.999`) : null;
+      const exportRows = visitors.filter((v) => {
+        const recordDate = v.expectedArrival ? new Date(v.expectedArrival) : new Date(v.createdAt);
+        if (start && recordDate < start) return false;
+        if (end && recordDate > end) return false;
+        return true;
+      });
+
+      const rows = exportRows.map((v) => ({
         id: v._id,
         visitorName: v.visitorName,
         resident: `${v.residentId?.firstName || ''} ${v.residentId?.lastName || ''}`.trim(),
@@ -249,7 +273,7 @@ const handleReject = async () => {
       }));
 
       const pdf = new jsPDF({ orientation: 'landscape' });
-      pdf.text('Visitor Report', 14, 14);
+      pdf.text('Visitor Data Report', 14, 14);
       autoTable(pdf, {
         startY: 20,
         head: [['Visitor', 'Resident', 'House', 'Status', 'Arrival', 'Departure']],
@@ -258,7 +282,7 @@ const handleReject = async () => {
       });
       const exportTime = new Date();
       const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-      pdf.save(`visitors_export_${timestamp}.pdf`);
+      pdf.save(`visitor-data-report_${timestamp}.pdf`);
 
       toast.success(`Exported ${rows.length} visitors to PDF`);
       setExportDialogOpen(false);
@@ -1047,13 +1071,19 @@ const handleReject = async () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <Alert severity="info" sx={{ 
+      {exportDateError ? (
+        <Alert severity="error" sx={{ borderRadius: '12px' }}>
+          {exportDateError}
+        </Alert>
+      ) : (
+        <Alert severity="info" sx={{ 
                   borderRadius: '12px',
                   backgroundColor: themeColors.info + '15',
                   border: `1px solid ${themeColors.info}30`
                 }}>
-                  Leave dates empty to export all data. Data will be exported as JSON.
+                  Leave dates empty to export the current visitor-data report list as PDF.
                 </Alert>
+      )}
               </Grid>
             </Grid>
           </DialogContent>

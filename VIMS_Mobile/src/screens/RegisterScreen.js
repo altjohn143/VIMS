@@ -646,7 +646,7 @@ const RegisterScreen = ({ navigation, route }) => {
     if (availability.phone === false) newErrors.phone = 'This phone number is already registered';
 
     if (!formData.password) newErrors.password = 'Password is required';
-    else if (formData.password.length < 12) newErrors.password = 'Password must be at least 12 characters';
+    else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(formData.password)) newErrors.password = 'Password must contain uppercase, lowercase, number, and special character';
 
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm your password';

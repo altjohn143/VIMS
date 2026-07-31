@@ -1755,7 +1755,7 @@ const AdminUserManagement = () => {
                 type="password"
                 value={newUserForm.password}
                 onChange={(e) => setNewUserForm((prev) => ({ ...prev, password: e.target.value }))}
-                helperText="Must be at least 12 chars with uppercase, lowercase, number, and symbol"
+                helperText="Must be at least 8 chars with uppercase, lowercase, number, and symbol"
               />
             </Grid>
             <Grid item xs={12} sm={6}>

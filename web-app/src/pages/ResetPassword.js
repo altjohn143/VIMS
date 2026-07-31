@@ -27,7 +27,7 @@ const themeColors = {
 };
 
 const isStrongPassword = (password) =>
-  /^(?=.{12,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(password);
+  /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(password);
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -111,7 +111,7 @@ const ResetPassword = () => {
     }
 
     if (!isStrongPassword(formData.password)) {
-      setError('Password must be 12-128 characters and contain uppercase, lowercase, number, and special character');
+      setError('Password must be 8-128 characters and contain uppercase, lowercase, number, and special character');
       return;
     }
 

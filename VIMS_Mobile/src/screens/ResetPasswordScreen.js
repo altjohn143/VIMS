@@ -16,7 +16,7 @@ import { themeColors, shadows } from '../utils/theme';
 import api from '../utils/api';
 
 const isStrongPassword = (password) =>
-  /^(?=.{12,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(password);
+  /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(password);
 
 const ResetPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -80,7 +80,7 @@ const ResetPasswordScreen = ({ navigation }) => {
     if (!isStrongPassword(password)) {
       Alert.alert(
         'Weak password',
-        'Password must be 12-128 characters and contain uppercase, lowercase, number, and special character.'
+        'Password must be 8-128 characters and contain uppercase, lowercase, number, and special character.'
       );
       return;
     }
@@ -188,7 +188,7 @@ const ResetPasswordScreen = ({ navigation }) => {
               <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={19} color={themeColors.textSecondary} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.helper}>Use at least 12 characters with uppercase, lowercase, number, and special character.</Text>
+          <Text style={styles.helper}>Use at least 8 characters with uppercase, lowercase, number, and special character.</Text>
 
           <TouchableOpacity style={[styles.primaryButton, (!resetToken || loading) && styles.disabled]} onPress={resetPassword} disabled={!resetToken || loading}>
             {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Reset Password</Text>}

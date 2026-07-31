@@ -234,7 +234,7 @@ async function autoSeedDatabase() {
       await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
       console.log('Removed existing admin/security accounts');
       
-      // Use compliant password for production seeding (must be 12+ chars with uppercase, lowercase, number, special char)
+      // Use compliant password for production seeding (must be 8+ chars with uppercase, lowercase, number, special char)
       const compliantPassword = 'SecureVIMS@123';
       
       // Create Admin with compliant password

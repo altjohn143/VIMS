@@ -235,8 +235,8 @@ const ProfileScreen = ({ navigation }) => {
       return;
     }
 
-    if (passwordData.newPassword.length < 12 || !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(passwordData.newPassword)) {
-      Alert.alert('Error', 'Password must be at least 12 characters with uppercase, lowercase, number, and special character');
+    if (passwordData.newPassword.length < 8 || !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(passwordData.newPassword)) {
+      Alert.alert('Error', 'Password must be at least 8 characters with uppercase, lowercase, number, and special character');
       return;
     }
 

@@ -8,7 +8,7 @@ import {
   CircularProgress, Alert, Dialog, DialogTitle, DialogContent,
   DialogActions, IconButton, InputAdornment, Divider, Grid,
   Card, CardContent, Chip, Avatar,
-  Drawer, List, ListItemButton, ListItemText
+  Drawer, List, ListItemButton, ListItemText, Snackbar
 } from '@mui/material';
 import {
   Visibility, VisibilityOff, Security as SecurityIcon,
@@ -1674,6 +1674,7 @@ const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotEmailError, setForgotEmailError] = useState('');
+  const [loginToast, setLoginToast] = useState({ open: false, message: '' });
   const { login, loading } = useAuth();
   const navigate = useNavigate();
   const timerRef = useRef(null);
@@ -1722,13 +1723,32 @@ const Login = () => {
 
   const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: '' }); };
 
+  const showLoginToast = (message) => {
+    setLoginToast({ open: true, message });
+  };
+
+  const closeLoginToast = () => {
+    setLoginToast((current) => ({ ...current, open: false }));
+  };
+
   const validate = () => {
     const e = {};
-    if (!formData.email) e.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) e.email = 'Email is invalid';
-    if (!formData.password) e.password = 'Password is required';
-    else if (formData.password.length < 6) e.password = 'Password must be at least 6 characters';
+    const email = formData.email.trim();
+    const password = formData.password.trim();
+    if (!email) e.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Email is invalid';
+    if (!password) e.password = 'Password is required';
+    else if (password.length < 6) e.password = 'Password must be at least 6 characters';
     return e;
+  };
+
+  const getValidationToastMessage = (validationErrors) => {
+    if (validationErrors.email === 'Email is required' && validationErrors.password === 'Password is required') {
+      return 'Email and password are required.';
+    }
+    if (validationErrors.email) return validationErrors.email;
+    if (validationErrors.password) return validationErrors.password;
+    return 'Please check the login form and try again.';
   };
 
   const handleLoginFailed = (result) => {
@@ -1746,7 +1766,11 @@ const Login = () => {
     e.preventDefault();
     if (isLocked) { setErrors({ submit: `Account locked. Try again in ${formatTime(lockTimer)}` }); return; }
     const ve = validate();
-    if (Object.keys(ve).length > 0) { setErrors(ve); return; }
+    if (Object.keys(ve).length > 0) {
+      setErrors(ve);
+      showLoginToast(getValidationToastMessage(ve));
+      return;
+    }
     const result = await login(formData.email, formData.password, selectedRole);
     if (result.success) { localStorage.removeItem('loginAttempts'); localStorage.removeItem('lockTime'); setLoginAttempts(0); setTimeout(() => navigate('/dashboard'), 100); }
     else handleLoginFailed(result);
@@ -1924,7 +1948,7 @@ const Login = () => {
             <Box sx={{ color: 'white', animation: 'fadeUpSoft 0.65s ease' }}>
               <Button
                 startIcon={<ArrowBackIcon />}
-                onClick={() => { setSelectedRole(null); setErrors({}); setFormData({ email: '', password: '' }); }}
+                onClick={() => { setSelectedRole(null); setErrors({}); setFormData({ email: '', password: '' }); closeLoginToast(); }}
                 sx={{
                   mb: 3,
                   color: 'rgba(255,255,255,0.88)',
@@ -2330,6 +2354,32 @@ const Login = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={loginToast.open}
+        autoHideDuration={4200}
+        onClose={closeLoginToast}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={closeLoginToast}
+          severity="warning"
+          variant="filled"
+          role="alert"
+          aria-live="assertive"
+          sx={{
+            width: '100%',
+            borderRadius: '14px',
+            bgcolor: '#b45309',
+            color: 'white',
+            fontWeight: 800,
+            boxShadow: '0 16px 40px rgba(15,23,42,0.28)',
+            '& .MuiAlert-icon': { color: '#fff7ed' }
+          }}
+        >
+          {loginToast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

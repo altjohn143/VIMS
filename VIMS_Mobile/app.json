@@ -24,7 +24,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0f4d28"
       },
-      "package": "com.yourcompany.vims",
+      "package": "com.westville.vims",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"

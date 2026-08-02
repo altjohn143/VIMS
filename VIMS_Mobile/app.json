@@ -22,7 +22,8 @@
         "NSCameraUsageDescription": "Allow VIMS to access your camera to scan visitor QR codes, take profile photos, and capture ID or vehicle photos.",
         "NSPhotoLibraryUsageDescription": "Allow VIMS to access your photo library to upload IDs, receipts, profile pictures, and vehicle photos.",
         "NSPhotoLibraryAddUsageDescription": "Allow VIMS to save or share generated visitor QR codes and exported documents.",
-        "NSMicrophoneUsageDescription": "Allow VIMS to access your microphone only when camera capture requires it."
+        "NSMicrophoneUsageDescription": "Allow VIMS to access your microphone only when camera capture requires it.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

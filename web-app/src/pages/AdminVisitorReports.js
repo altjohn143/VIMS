@@ -83,6 +83,10 @@ const AdminVisitorReports = () => {
   const fetchReportData = useCallback(async () => {
     if (hasInvalidDateRange()) {
       setDateRangeError('Start Date cannot be after End Date');
+      setStats(null);
+      setTrendData([]);
+      setStatusBreakdown([]);
+      setRecentVisitors([]);
       setLoading(false);
       return;
     }

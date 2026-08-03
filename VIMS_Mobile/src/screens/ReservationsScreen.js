@@ -26,6 +26,7 @@ const ReservationsScreen = ({ navigation }) => {
   const [availability, setAvailability] = useState([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
+  const [cancellingReservationId, setCancellingReservationId] = useState(null);
 
   const [formData, setFormData] = useState({
     description: '',
@@ -138,6 +139,39 @@ const ReservationsScreen = ({ navigation }) => {
     );
   };
 
+  const validateReservationSchedule = () => {
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return 'Please select a valid start and end schedule.';
+    }
+
+    if (end <= start) {
+      return 'End date and time must be after the start date and time.';
+    }
+
+    return '';
+  };
+
+  const fetchScheduleConflictsForSubmit = async () => {
+    const selectedResources = formData.items.filter((item) => item.resourceType && item.resourceName);
+    const responses = await Promise.all(selectedResources.map((item) => (
+      api.get('/reservations/availability', {
+        params: {
+          resourceType: item.resourceType,
+          resourceName: item.resourceName,
+          startDate: formData.startDate.toISOString(),
+          endDate: formData.endDate.toISOString(),
+        },
+      })
+    )));
+
+    return responses.flatMap((response) => response.data?.data || []).filter((slot) =>
+      rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
+    );
+  };
+
   const handleAddItem = () => {
     if (!currentItem.resourceName) {
       Alert.alert('Error', 'Please select a resource');
@@ -202,6 +236,12 @@ const ReservationsScreen = ({ navigation }) => {
       return;
     }
 
+    const scheduleError = validateReservationSchedule();
+    if (scheduleError) {
+      Alert.alert('Invalid Schedule', scheduleError);
+      return;
+    }
+
     if (getSelectedScheduleConflicts().length > 0) {
       Alert.alert('Schedule Unavailable', 'One or more selected items are already reserved for this date and time.');
       return;
@@ -209,26 +249,41 @@ const ReservationsScreen = ({ navigation }) => {
 
     setSubmitting(true);
     try {
+      const latestConflicts = await fetchScheduleConflictsForSubmit();
+      if (latestConflicts.length > 0) {
+        Alert.alert('Schedule Unavailable', 'One or more selected items are already reserved for this date and time.');
+        return;
+      }
+
       const data = {
         ...formData,
         startDate: formData.startDate.toISOString(),
         endDate: formData.endDate.toISOString(),
       };
 
-      await api.post('/reservations', data);
+      const response = await api.post('/reservations', data);
+      if (!response.data?.success) {
+        Alert.alert(
+          response.status === 409 ? 'Schedule Unavailable' : 'Error',
+          response.data?.error || 'Failed to submit reservation request'
+        );
+        return;
+      }
       Alert.alert('Success', 'Reservation request submitted successfully');
       setModalVisible(false);
       fetchReservations();
       resetForm();
     } catch (error) {
       console.error('Error creating reservation:', error);
-      Alert.alert('Error', 'Failed to submit reservation request');
+      Alert.alert('Error', error.response?.data?.error || 'Failed to submit reservation request');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleCancelReservation = async (reservationId) => {
+    if (cancellingReservationId) return;
+
     Alert.alert(
       'Cancel Reservation',
       'Are you sure you want to cancel this reservation?',
@@ -238,6 +293,7 @@ const ReservationsScreen = ({ navigation }) => {
           text: 'Yes',
           style: 'destructive',
           onPress: async () => {
+            setCancellingReservationId(reservationId);
             try {
               const response = await api.put(`/reservations/${reservationId}/status`, { status: 'cancelled' });
               if (response.data?.success) {
@@ -248,7 +304,9 @@ const ReservationsScreen = ({ navigation }) => {
               }
             } catch (error) {
               console.error('Error cancelling reservation:', error);
-              Alert.alert('Error', 'Failed to cancel reservation');
+              Alert.alert('Error', error.response?.data?.error || 'Failed to cancel reservation');
+            } finally {
+              setCancellingReservationId(null);
             }
           },
         },
@@ -348,6 +406,53 @@ const ReservationsScreen = ({ navigation }) => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const renderPlatformDateTimePicker = ({ visible, title, value, mode, minimumDate, onDismiss, onChange }) => {
+    if (!visible) return null;
+
+    const picker = (
+      <DateTimePicker
+        value={value}
+        mode={mode}
+        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+        minimumDate={minimumDate}
+        onChange={(event, selectedValue) => {
+          if (event?.type === 'dismissed') {
+            onDismiss();
+            return;
+          }
+          if (selectedValue) {
+            onChange(selectedValue);
+          }
+          if (Platform.OS !== 'ios') {
+            onDismiss();
+          }
+        }}
+        style={Platform.OS === 'ios' ? styles.iosPicker : undefined}
+      />
+    );
+
+    if (Platform.OS !== 'ios') return picker;
+
+    return (
+      <Modal transparent animationType="fade" visible={visible} onRequestClose={onDismiss}>
+        <View style={styles.iosPickerOverlay}>
+          <View style={styles.iosPickerCard}>
+            <View style={styles.iosPickerHeader}>
+              <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
+                <Text style={styles.iosPickerCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.iosPickerTitle}>{title}</Text>
+              <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
+                <Text style={styles.iosPickerDoneText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            {picker}
+          </View>
+        </View>
+      </Modal>
+    );
   };
 
   if (loading) {
@@ -526,11 +631,14 @@ const ReservationsScreen = ({ navigation }) => {
                   <View style={styles.buttonContainer}>
                     {reservation.status === 'pending' && (
                       <TouchableOpacity
-                        style={styles.cardCancelButton}
+                        style={[styles.cardCancelButton, cancellingReservationId === reservation._id && styles.submitButtonDisabled]}
                         onPress={() => handleCancelReservation(reservation._id)}
+                        disabled={cancellingReservationId === reservation._id}
                       >
                         <Ionicons name="close-circle" size={16} color="#b91c1c" />
-                        <Text style={styles.cardCancelButtonText}>Cancel</Text>
+                        <Text style={styles.cardCancelButtonText}>
+                          {cancellingReservationId === reservation._id ? 'Cancelling...' : 'Cancel'}
+                        </Text>
                       </TouchableOpacity>
                     )}
 
@@ -804,67 +912,51 @@ const ReservationsScreen = ({ navigation }) => {
       </Modal>
 
       {/* Date/Time Pickers */}
-      {showStartDatePicker && (
-        <DateTimePicker
-          value={formData.startDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, date) => {
-            setShowStartDatePicker(false);
-            if (date) {
-              setFormData({ ...formData, startDate: date });
-            }
-          }}
-          minimumDate={new Date()}
-        />
-      )}
+      {renderPlatformDateTimePicker({
+        visible: showStartDatePicker,
+        title: 'Select Start Date',
+        value: formData.startDate,
+        mode: 'date',
+        minimumDate: new Date(),
+        onDismiss: () => setShowStartDatePicker(false),
+        onChange: (date) => setFormData({ ...formData, startDate: date }),
+      })}
 
-      {showStartTimePicker && (
-        <DateTimePicker
-          value={formData.startDate}
-          mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, time) => {
-            setShowStartTimePicker(false);
-            if (time) {
-              const newDate = new Date(formData.startDate);
-              newDate.setHours(time.getHours(), time.getMinutes());
-              setFormData({ ...formData, startDate: newDate });
-            }
-          }}
-        />
-      )}
+      {renderPlatformDateTimePicker({
+        visible: showStartTimePicker,
+        title: 'Select Start Time',
+        value: formData.startDate,
+        mode: 'time',
+        onDismiss: () => setShowStartTimePicker(false),
+        onChange: (time) => {
+          const newDate = new Date(formData.startDate);
+          newDate.setHours(time.getHours(), time.getMinutes());
+          setFormData({ ...formData, startDate: newDate });
+        },
+      })}
 
-      {showEndDatePicker && (
-        <DateTimePicker
-          value={formData.endDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, date) => {
-            setShowEndDatePicker(false);
-            if (date) {
-              setFormData({ ...formData, endDate: date });
-            }
-          }}
-          minimumDate={formData.startDate}
-        />
-      )}
+      {renderPlatformDateTimePicker({
+        visible: showEndDatePicker,
+        title: 'Select End Date',
+        value: formData.endDate,
+        mode: 'date',
+        minimumDate: formData.startDate,
+        onDismiss: () => setShowEndDatePicker(false),
+        onChange: (date) => setFormData({ ...formData, endDate: date }),
+      })}
 
-      {showEndTimePicker && (
-        <DateTimePicker
-          value={formData.endDate}
-          mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, time) => {
-            setShowEndTimePicker(false);
-            if (time) {
-              const newDate = new Date(formData.endDate);
-              newDate.setHours(time.getHours(), time.getMinutes());
-              setFormData({ ...formData, endDate: newDate });
-            }
-          }}
-        />
-      )}
+      {renderPlatformDateTimePicker({
+        visible: showEndTimePicker,
+        title: 'Select End Time',
+        value: formData.endDate,
+        mode: 'time',
+        onDismiss: () => setShowEndTimePicker(false),
+        onChange: (time) => {
+          const newDate = new Date(formData.endDate);
+          newDate.setHours(time.getHours(), time.getMinutes());
+          setFormData({ ...formData, endDate: newDate });
+        },
+      })}
     </View>
   );
 };
@@ -1379,6 +1471,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 3,
   },
+  iosPickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
+  iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
+  iosPickerTitle: { flex: 1, textAlign: 'center', color: '#1e293b', fontSize: 15, fontWeight: '800' },
+  iosPickerCancelText: { color: '#64748b', fontSize: 15, fontWeight: '700' },
+  iosPickerDoneText: { color: '#166534', fontSize: 15, fontWeight: '800' },
+  iosPicker: { backgroundColor: 'white' },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',

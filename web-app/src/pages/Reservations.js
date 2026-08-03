@@ -320,6 +320,12 @@ const Reservations = () => {
       return;
     }
 
+    const scheduleError = validateReservationSchedule();
+    if (scheduleError) {
+      setSnackbar({ open: true, message: scheduleError, severity: 'error' });
+      return;
+    }
+
     if (getSelectedScheduleConflicts().length > 0) {
       setSnackbar({ open: true, message: 'One or more selected items are already reserved for this date and time.', severity: 'error' });
       return;
@@ -327,6 +333,12 @@ const Reservations = () => {
 
     try {
       const token = localStorage.getItem('token');
+      const latestConflicts = await fetchScheduleConflictsForSubmit();
+      if (latestConflicts.length > 0) {
+        setSnackbar({ open: true, message: 'Schedule Unavailable: one or more selected items are already reserved for this date and time.', severity: 'error' });
+        return;
+      }
+
       const data = {
         ...formData,
         startDate: formData.startDate.toISOString(),
@@ -342,7 +354,13 @@ const Reservations = () => {
       handleCloseDialog();
     } catch (error) {
       console.error('Error creating reservation:', error);
-      setSnackbar({ open: true, message: 'Failed to submit reservation request', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: error.response?.status === 409
+          ? `Schedule Unavailable: ${error.response?.data?.error || 'The selected schedule conflicts with an existing reservation.'}`
+          : error.response?.data?.error || 'Failed to submit reservation request',
+        severity: 'error'
+      });
     }
   };
 
@@ -429,6 +447,41 @@ const Reservations = () => {
     const selectedKeys = new Set(formData.items.map((item) => `${item.resourceType}:${item.resourceName}`));
     return availability.filter((slot) =>
       selectedKeys.has(`${slot.resourceType}:${slot.resourceName}`) &&
+      rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
+    );
+  };
+
+  const validateReservationSchedule = () => {
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return 'Please select a valid start and end schedule.';
+    }
+
+    if (end <= start) {
+      return 'End date and time must be after the start date and time.';
+    }
+
+    return '';
+  };
+
+  const fetchScheduleConflictsForSubmit = async () => {
+    const token = localStorage.getItem('token');
+    const selectedResources = formData.items.filter((item) => item.resourceType && item.resourceName);
+    const responses = await Promise.all(selectedResources.map((item) =>
+      axios.get('/api/reservations/availability', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: {
+          resourceType: item.resourceType,
+          resourceName: item.resourceName,
+          startDate: formData.startDate.toISOString(),
+          endDate: formData.endDate.toISOString()
+        }
+      })
+    ));
+
+    return responses.flatMap((response) => response.data?.data || []).filter((slot) =>
       rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
     );
   };

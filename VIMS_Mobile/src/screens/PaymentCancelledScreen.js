@@ -20,7 +20,7 @@ const PaymentCancelledScreen = ({ navigation, route }) => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          navigation.navigate('Payments');
+          navigation.navigate('ResidentDashboard', { screen: 'PaymentsTab' });
           return 0;
         }
         return prev - 1;
@@ -31,11 +31,7 @@ const PaymentCancelledScreen = ({ navigation, route }) => {
   }, [navigation]);
 
   const handleRetry = () => {
-    if (paymentId) {
-      navigation.navigate('Payments');
-    } else {
-      navigation.navigate('Payments');
-    }
+    navigation.navigate('ResidentDashboard', { screen: 'PaymentsTab' });
   };
 
   const handleGoToDashboard = () => {

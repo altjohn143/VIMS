@@ -45,6 +45,7 @@ const VisitorManagementScreen = ({ navigation }) => {
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [cancellingVisitorId, setCancellingVisitorId] = useState(null);
   const qrRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -147,36 +148,55 @@ const VisitorManagementScreen = ({ navigation }) => {
     setShowDatePicker(true);
   };
 
+  const closeDateTimePicker = () => {
+    setShowDatePicker(false);
+    setPickerMode('date');
+    setPendingDateValue(null);
+  };
+
+  const applySelectedDatePart = (selectedDate) => {
+    const currentValue = formData[datePickerField] || new Date();
+    const mergedDate = new Date(selectedDate);
+    mergedDate.setHours(currentValue.getHours(), currentValue.getMinutes(), 0, 0);
+    setPendingDateValue(mergedDate);
+    setPickerMode('time');
+  };
+
+  const applySelectedTimePart = (selectedTime) => {
+    const baseDate = pendingDateValue || formData[datePickerField] || new Date();
+    const mergedDateTime = new Date(baseDate);
+    mergedDateTime.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+    setFormData(prev => ({ ...prev, [datePickerField]: mergedDateTime }));
+    closeDateTimePicker();
+  };
+
   const handleDateChange = (event, selectedDate) => {
     if (!selectedDate || event?.type === 'dismissed') {
-      setShowDatePicker(false);
-      setPickerMode('date');
-      setPendingDateValue(null);
+      closeDateTimePicker();
       return;
     }
 
     if (Platform.OS === 'android') {
       if (pickerMode === 'date') {
-        const currentValue = formData[datePickerField] || new Date();
-        const mergedDate = new Date(selectedDate);
-        mergedDate.setHours(currentValue.getHours(), currentValue.getMinutes(), 0, 0);
-        setPendingDateValue(mergedDate);
-        setPickerMode('time');
+        applySelectedDatePart(selectedDate);
         setShowDatePicker(true);
         return;
       }
 
-      const baseDate = pendingDateValue || formData[datePickerField] || new Date();
-      const mergedDateTime = new Date(baseDate);
-      mergedDateTime.setHours(selectedDate.getHours(), selectedDate.getMinutes(), 0, 0);
-      setFormData(prev => ({ ...prev, [datePickerField]: mergedDateTime }));
-      setPendingDateValue(null);
-      setPickerMode('date');
-      setShowDatePicker(false);
+      applySelectedTimePart(selectedDate);
       return;
     }
 
-    setFormData(prev => ({ ...prev, [datePickerField]: selectedDate }));
+    setPendingDateValue(selectedDate);
+  };
+
+  const handleIosPickerDone = () => {
+    if (pickerMode === 'date') {
+      applySelectedDatePart(pendingDateValue || formData[datePickerField] || new Date());
+      return;
+    }
+
+    applySelectedTimePart(pendingDateValue || formData[datePickerField] || new Date());
   };
 
   const handleCreateVisitor = async () => {
@@ -235,6 +255,8 @@ const VisitorManagementScreen = ({ navigation }) => {
   };
 
   const handleCancelRequest = async (visitorId) => {
+    if (cancellingVisitorId) return;
+
     Alert.alert(
       'Cancel Request',
       'Are you sure you want to cancel this visitor request?',
@@ -244,14 +266,19 @@ const VisitorManagementScreen = ({ navigation }) => {
           text: 'Yes',
           style: 'destructive',
           onPress: async () => {
+            setCancellingVisitorId(visitorId);
             try {
               const response = await api.put(`/visitors/${visitorId}/status`, { status: 'cancelled' });
               if (response.data.success) {
                 Alert.alert('Success', 'Visitor request cancelled');
-                fetchVisitors();
+                await fetchVisitors();
+              } else {
+                Alert.alert('Error', response.data?.error || 'Failed to cancel request');
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to cancel request');
+              Alert.alert('Error', error.response?.data?.error || 'Failed to cancel request');
+            } finally {
+              setCancellingVisitorId(null);
             }
           },
         },
@@ -451,8 +478,16 @@ const VisitorManagementScreen = ({ navigation }) => {
                 </TouchableOpacity>
               )}
               {isPending && (
-                <TouchableOpacity style={styles.iconButton} onPress={() => handleCancelRequest(item._id)}>
-                  <Ionicons name="close-circle" size={20} color={themeColors.error} />
+                <TouchableOpacity
+                  style={[styles.iconButton, cancellingVisitorId === item._id && styles.iconButtonDisabled]}
+                  onPress={() => handleCancelRequest(item._id)}
+                  disabled={cancellingVisitorId === item._id}
+                >
+                  {cancellingVisitorId === item._id ? (
+                    <ActivityIndicator size="small" color={themeColors.error} />
+                  ) : (
+                    <Ionicons name="close-circle" size={20} color={themeColors.error} />
+                  )}
                 </TouchableOpacity>
               )}
             </View>
@@ -877,13 +912,47 @@ const VisitorManagementScreen = ({ navigation }) => {
       </Modal>
 
       {/* Date Picker */}
-      {showDatePicker && (
+      {showDatePicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={pendingDateValue || formData[datePickerField] || new Date()}
-          mode={Platform.OS === 'android' ? pickerMode : 'datetime'}
+          mode={pickerMode}
           display="default"
           onChange={handleDateChange}
         />
+      )}
+
+      {showDatePicker && Platform.OS === 'ios' && (
+        <Modal
+          transparent
+          animationType="fade"
+          visible={showDatePicker}
+          onRequestClose={closeDateTimePicker}
+        >
+          <View style={styles.iosPickerOverlay}>
+            <View style={styles.iosPickerCard}>
+              <View style={styles.iosPickerHeader}>
+                <TouchableOpacity onPress={closeDateTimePicker} style={styles.iosPickerAction}>
+                  <Text style={styles.iosPickerCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles.iosPickerTitle}>
+                  {pickerMode === 'date' ? 'Select Date' : 'Select Time'}
+                </Text>
+                <TouchableOpacity onPress={handleIosPickerDone} style={styles.iosPickerAction}>
+                  <Text style={styles.iosPickerDoneText}>
+                    {pickerMode === 'date' ? 'Next' : 'Done'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={pendingDateValue || formData[datePickerField] || new Date()}
+                mode={pickerMode}
+                display="spinner"
+                onChange={handleDateChange}
+                style={styles.iosPicker}
+              />
+            </View>
+          </View>
+        </Modal>
       )}
 
       <Modal
@@ -1155,6 +1224,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: themeColors.primary + '10',
   },
+  iconButtonDisabled: {
+    opacity: 0.5,
+  },
   fab: {
     position: 'absolute',
     bottom: 20,
@@ -1278,6 +1350,51 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     color: themeColors.textPrimary,
+  },
+  iosPickerOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  iosPickerCard: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingBottom: 24,
+  },
+  iosPickerHeader: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
+  },
+  iosPickerAction: {
+    minWidth: 68,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  iosPickerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: themeColors.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  iosPickerCancelText: {
+    color: themeColors.textSecondary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  iosPickerDoneText: {
+    color: themeColors.primary,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  iosPicker: {
+    backgroundColor: 'white',
   },
   helperText: {
     color: themeColors.textSecondary,

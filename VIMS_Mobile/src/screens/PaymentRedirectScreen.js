@@ -4,10 +4,10 @@ import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
   ActivityIndicator,
   Alert,
   Linking,
-  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors } from '../utils/theme';
@@ -17,6 +17,7 @@ const PaymentRedirectScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [countdown, setCountdown] = useState(5);
+  const [checkoutOpened, setCheckoutOpened] = useState(false);
   
   const { paymentId, method } = route.params || {};
 
@@ -32,6 +33,7 @@ const PaymentRedirectScreen = ({ navigation, route }) => {
         const supported = await Linking.canOpenURL(response.data.checkoutUrl);
         if (supported) {
           await Linking.openURL(response.data.checkoutUrl);
+          setCheckoutOpened(true);
         } else {
           setError('Cannot open payment URL');
         }
@@ -60,7 +62,7 @@ const PaymentRedirectScreen = ({ navigation, route }) => {
     if (error && countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     } else if (error && countdown === 0) {
-      navigation.navigate('Payments');
+      navigation.navigate('ResidentDashboard', { screen: 'PaymentsTab' });
     }
     return () => clearTimeout(timer);
   }, [error, countdown, navigation]);
@@ -72,7 +74,16 @@ const PaymentRedirectScreen = ({ navigation, route }) => {
   const handleRetry = () => {
     setLoading(true);
     setError(null);
+    setCheckoutOpened(false);
     initPayment();
+  };
+
+  const handleCancelled = () => {
+    navigation.replace('PaymentCancelled', { paymentId });
+  };
+
+  const handleViewPayments = () => {
+    navigation.navigate('ResidentDashboard', { screen: 'PaymentsTab' });
   };
 
   if (loading) {
@@ -104,6 +115,30 @@ const PaymentRedirectScreen = ({ navigation, route }) => {
             </TouchableOpacity>
             <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
               <Text style={styles.backButtonText}>Back to Payments</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (checkoutOpened) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={[styles.errorIcon, { backgroundColor: themeColors.primary + '15' }]}>
+            <Ionicons name="open-outline" size={50} color={themeColors.primary} />
+          </View>
+          <Text style={styles.title}>Payment Page Opened</Text>
+          <Text style={styles.message}>
+            Complete the payment in the secure checkout page. If you cancelled or returned without paying, mark it cancelled here.
+          </Text>
+          <View style={styles.stackedButtons}>
+            <TouchableOpacity style={styles.retryButton} onPress={handleViewPayments}>
+              <Text style={styles.retryButtonText}>Back to Payments</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.backButton} onPress={handleCancelled}>
+              <Text style={styles.backButtonText}>Payment Cancelled</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -168,6 +203,11 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: 12,
+  },
+  stackedButtons: {
+    width: '100%',
+    gap: 12,
+    marginTop: 24,
   },
   retryButton: {
     backgroundColor: themeColors.primary,

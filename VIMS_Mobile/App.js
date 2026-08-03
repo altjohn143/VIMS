@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { themeColors, navigationTheme, shadows } from './src/utils/theme';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 const LoadingScreen = () => (
   <View style={styles.loadingScreen}>
@@ -19,9 +20,11 @@ const LoadingScreen = () => (
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 

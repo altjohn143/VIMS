@@ -11,7 +11,12 @@ import {
   Chip,
   AppBar,
   Toolbar,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Stack
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +36,7 @@ const Notifications = () => {
   };
 
   const [rows, setRows] = useState([]);
+  const [selectedNotification, setSelectedNotification] = useState(null);
   const navigate = useNavigate();
 
   const load = async () => {
@@ -48,6 +54,34 @@ const Notifications = () => {
     await axios.put('/api/notifications/read-all');
     toast.success('Marked all as read');
     load();
+  };
+
+  const markRead = async (notification) => {
+    if (!notification?._id || notification.readAt) return;
+    await axios.put(`/api/notifications/${notification._id}/read`);
+    setRows((prev) =>
+      prev.map((row) => row._id === notification._id ? { ...row, readAt: row.readAt || new Date().toISOString() } : row)
+    );
+  };
+
+  const openNotificationDetails = async (notification) => {
+    setSelectedNotification(notification);
+    try {
+      await markRead(notification);
+    } catch {
+      toast.error('Failed to mark notification as read');
+    }
+  };
+
+  const getRelatedRecordId = (notification) => {
+    const metadata = notification?.metadata || {};
+    return metadata.visitorId ||
+      metadata.paymentId ||
+      metadata.serviceRequestId ||
+      metadata.announcementId ||
+      metadata.reservationId ||
+      metadata.recordId ||
+      null;
   };
 
   return (
@@ -156,6 +190,8 @@ const Notifications = () => {
               <ListItem
                 key={n._id}
                 divider
+                button
+                onClick={() => openNotificationDetails(n)}
                 sx={{
                   alignItems: 'flex-start',
                   py: 1.6,
@@ -185,6 +221,51 @@ const Notifications = () => {
             ))}
           </List>
         </Paper>
+
+        <Dialog
+          open={Boolean(selectedNotification)}
+          onClose={() => setSelectedNotification(null)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: '18px' } }}
+        >
+          <DialogTitle sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+            {selectedNotification?.title || 'Notification'}
+          </DialogTitle>
+          <DialogContent dividers>
+            <Stack spacing={2}>
+              <Typography sx={{ color: themeColors.textPrimary }}>
+                {selectedNotification?.body || 'No additional details were provided.'}
+              </Typography>
+              <Box>
+                <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 800, textTransform: 'uppercase' }}>
+                  Type
+                </Typography>
+                <Typography sx={{ color: themeColors.textPrimary, fontWeight: 700 }}>
+                  {selectedNotification?.type ? String(selectedNotification.type).replace(/_/g, ' ') : 'general'}
+                </Typography>
+              </Box>
+              {getRelatedRecordId(selectedNotification) && (
+                <Box>
+                  <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 800, textTransform: 'uppercase' }}>
+                    Related record
+                  </Typography>
+                  <Typography sx={{ color: themeColors.textPrimary, fontWeight: 700, wordBreak: 'break-all' }}>
+                    {getRelatedRecordId(selectedNotification)}
+                  </Typography>
+                </Box>
+              )}
+              <Typography variant="caption" sx={{ color: themeColors.textSecondary }}>
+                {selectedNotification?.createdAt ? new Date(selectedNotification.createdAt).toLocaleString() : ''}
+              </Typography>
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setSelectedNotification(null)} variant="contained" sx={{ textTransform: 'none', bgcolor: themeColors.primary, '&:hover': { bgcolor: themeColors.primaryDark } }}>
+              Done
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );

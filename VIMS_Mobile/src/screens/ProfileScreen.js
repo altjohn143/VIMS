@@ -64,6 +64,38 @@ const ProfileScreen = ({ navigation }) => {
   const [documentPreviewUrls, setDocumentPreviewUrls] = useState({ front: null, back: null, selfie: null });
   const [loadingDocuments, setLoadingDocuments] = useState(false);
 
+  const validateProfile = () => {
+    const requiredFields = [
+      ['firstName', 'First name'],
+      ['lastName', 'Last name'],
+      ['email', 'Email'],
+      ['phone', 'Phone number'],
+      ['houseNumber', 'House number'],
+    ];
+
+    for (const [field, label] of requiredFields) {
+      if (!String(formData[field] || '').trim()) {
+        return `${label} is required.`;
+      }
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      return 'Please enter a valid email address.';
+    }
+
+    const phoneDigits = String(formData.phone || '').replace(/\D/g, '');
+    if (!/^09\d{9}$/.test(phoneDigits) && !/^\d{10}$/.test(phoneDigits)) {
+      return 'Please enter a valid phone number.';
+    }
+
+    const emergencyPhone = String(formData.emergencyContact?.phone || '').replace(/\D/g, '');
+    if (formData.emergencyContact?.phone && emergencyPhone.length < 10) {
+      return 'Please enter a valid emergency contact phone number.';
+    }
+
+    return '';
+  };
+
   useEffect(() => {
     loadUserProfile();
   }, []);
@@ -183,9 +215,23 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleSaveProfile = async () => {
+    const validationError = validateProfile();
+    if (validationError) {
+      Alert.alert('Invalid Profile', validationError);
+      return;
+    }
+
     setSaving(true);
     try {
-      const response = await api.put('/users/profile', formData);
+      const payload = {
+        ...formData,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        phone: String(formData.phone || '').replace(/\D/g, ''),
+        houseNumber: formData.houseNumber.trim(),
+      };
+      const response = await api.put('/users/profile', payload);
       if (response.data.success) {
         if (selectedPhotoUri) {
           await uploadProfilePhoto(selectedPhotoUri);
@@ -193,6 +239,8 @@ const ProfileScreen = ({ navigation }) => {
         } else {
           Alert.alert('Success', 'Profile updated successfully');
         }
+      } else {
+        Alert.alert('Error', response.data?.error || 'Failed to update profile');
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to update profile');
@@ -202,6 +250,11 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const requestMoveOut = async () => {
+    if (moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved') {
+      Alert.alert('Move-out Request Exists', 'You already have an active move-out request.');
+      return;
+    }
+
     if (!moveOutReason.trim()) {
       Alert.alert('Reason required', 'Please explain why you are requesting to move out.');
       return;
@@ -243,7 +296,11 @@ const ProfileScreen = ({ navigation }) => {
     setSaving(true);
     try {
       if (!passwordOtpSent) {
-        await api.post('/auth/change-password-otp/request', { currentPassword: passwordData.currentPassword });
+        const otpResponse = await api.post('/auth/change-password-otp/request', { currentPassword: passwordData.currentPassword });
+        if (!otpResponse.data?.success) {
+          Alert.alert('Incorrect Password', otpResponse.data?.error || 'The current password you entered is incorrect.');
+          return;
+        }
         setPasswordOtpSent(true);
         Alert.alert('Code sent', 'A six-digit verification code was sent to your email.');
         return;
@@ -253,6 +310,10 @@ const ProfileScreen = ({ navigation }) => {
         return;
       }
       const verification = await api.post('/auth/change-password-otp/verify', { code: passwordOtp });
+      if (!verification.data?.success || !verification.data?.verificationToken) {
+        Alert.alert('Invalid code', verification.data?.error || 'The verification code is invalid or expired.');
+        return;
+      }
       const response = await api.put('/auth/change-password', {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
@@ -265,6 +326,8 @@ const ProfileScreen = ({ navigation }) => {
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         setPasswordOtp('');
         setPasswordOtpSent(false);
+      } else {
+        Alert.alert('Error', response.data?.error || 'Failed to change password');
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to change password');

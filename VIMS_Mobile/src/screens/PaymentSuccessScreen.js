@@ -43,7 +43,7 @@ const PaymentSuccessScreen = ({ navigation, route }) => {
   }, [paymentId, verifyPayment]);
 
   const handleGoToPayments = () => {
-    navigation.navigate('Payments');
+    navigation.navigate('ResidentDashboard', { screen: 'PaymentsTab' });
   };
 
   const handleGoToDashboard = () => {

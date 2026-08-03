@@ -12,6 +12,7 @@ import {
   TextInput,
   ScrollView,
   Image,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -30,6 +31,8 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
   const [form, setForm] = useState(emptyForm);
   const [processing, setProcessing] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [schedulePickerMode, setSchedulePickerMode] = useState('date');
+  const [pendingScheduleDate, setPendingScheduleDate] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -111,6 +114,63 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const openSchedulePicker = () => {
+    setPendingScheduleDate(form.scheduledAt || new Date());
+    setSchedulePickerMode('date');
+    setShowDatePicker(true);
+  };
+
+  const closeSchedulePicker = () => {
+    setShowDatePicker(false);
+    setSchedulePickerMode('date');
+    setPendingScheduleDate(null);
+  };
+
+  const applyScheduleDatePart = (selectedDate) => {
+    const currentValue = form.scheduledAt || new Date();
+    const mergedDate = new Date(selectedDate);
+    mergedDate.setHours(currentValue.getHours(), currentValue.getMinutes(), 0, 0);
+    setPendingScheduleDate(mergedDate);
+    setSchedulePickerMode('time');
+  };
+
+  const applyScheduleTimePart = (selectedTime) => {
+    const baseDate = pendingScheduleDate || form.scheduledAt || new Date();
+    const mergedDateTime = new Date(baseDate);
+    mergedDateTime.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+    setForm((p) => ({ ...p, scheduledAt: mergedDateTime }));
+    closeSchedulePicker();
+  };
+
+  const handleScheduleDateChange = (event, selectedDate) => {
+    if (!selectedDate || event?.type === 'dismissed') {
+      closeSchedulePicker();
+      return;
+    }
+
+    if (Platform.OS === 'android') {
+      if (schedulePickerMode === 'date') {
+        applyScheduleDatePart(selectedDate);
+        setShowDatePicker(true);
+        return;
+      }
+
+      applyScheduleTimePart(selectedDate);
+      return;
+    }
+
+    setPendingScheduleDate(selectedDate);
+  };
+
+  const handleIosScheduleDone = () => {
+    if (schedulePickerMode === 'date') {
+      applyScheduleDatePart(pendingScheduleDate || form.scheduledAt || new Date());
+      return;
+    }
+
+    applyScheduleTimePart(pendingScheduleDate || form.scheduledAt || new Date());
   };
 
   const toggleStatus = async (id, currentStatus, action) => {
@@ -364,7 +424,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
                   <Text style={styles.label}>Schedule Date & Time</Text>
                   <TouchableOpacity
                     style={styles.datePickerBtn}
-                    onPress={() => setShowDatePicker(true)}
+                    onPress={openSchedulePicker}
                   >
                     <Ionicons name="calendar" size={18} color={themeColors.primary} />
                     <Text style={styles.datePickerText}>
@@ -374,19 +434,44 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
                 </>
               )}
 
-              {showDatePicker && (
+              {showDatePicker && Platform.OS === 'android' && (
                 <DateTimePicker
-                  value={form.scheduledAt || new Date()}
-                  mode="datetime"
+                  value={pendingScheduleDate || form.scheduledAt || new Date()}
+                  mode={schedulePickerMode}
                   display="default"
                   minimumDate={new Date()}
-                  onChange={(event, selectedDate) => {
-                    setShowDatePicker(false);
-                    if (selectedDate) {
-                      setForm((p) => ({ ...p, scheduledAt: selectedDate }));
-                    }
-                  }}
+                  onChange={handleScheduleDateChange}
                 />
+              )}
+
+              {showDatePicker && Platform.OS === 'ios' && (
+                <Modal transparent animationType="fade" visible={showDatePicker} onRequestClose={closeSchedulePicker}>
+                  <View style={styles.iosPickerOverlay}>
+                    <View style={styles.iosPickerCard}>
+                      <View style={styles.iosPickerHeader}>
+                        <TouchableOpacity onPress={closeSchedulePicker} style={styles.iosPickerAction}>
+                          <Text style={styles.iosPickerCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.iosPickerTitle}>
+                          {schedulePickerMode === 'date' ? 'Select Date' : 'Select Time'}
+                        </Text>
+                        <TouchableOpacity onPress={handleIosScheduleDone} style={styles.iosPickerAction}>
+                          <Text style={styles.iosPickerDoneText}>
+                            {schedulePickerMode === 'date' ? 'Next' : 'Done'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <DateTimePicker
+                        value={pendingScheduleDate || form.scheduledAt || new Date()}
+                        mode={schedulePickerMode}
+                        display="spinner"
+                        minimumDate={new Date()}
+                        onChange={handleScheduleDateChange}
+                        style={styles.iosPicker}
+                      />
+                    </View>
+                  </View>
+                </Modal>
               )}
 
               <View style={styles.modalActions}>
@@ -487,6 +572,14 @@ const styles = StyleSheet.create({
 
   datePickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 12, marginTop: 8, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc' },
   datePickerText: { fontSize: 14, color: themeColors.textPrimary, fontWeight: '600' },
+  iosPickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
+  iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
+  iosPickerTitle: { flex: 1, textAlign: 'center', color: themeColors.textPrimary, fontSize: 15, fontWeight: '800' },
+  iosPickerCancelText: { color: themeColors.textSecondary, fontSize: 15, fontWeight: '700' },
+  iosPickerDoneText: { color: themeColors.primary, fontSize: 15, fontWeight: '800' },
+  iosPicker: { backgroundColor: 'white' },
 });
 
 export default AdminAnnouncementsScreen;

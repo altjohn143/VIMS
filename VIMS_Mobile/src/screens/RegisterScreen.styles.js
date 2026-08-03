@@ -263,6 +263,14 @@ export const styles = StyleSheet.create({
   successMessage: { fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
   successButton: { backgroundColor: themeColors.success, paddingVertical: 14, paddingHorizontal: 30, borderRadius: 10, width: '100%' },
   successButtonText: { color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  iosPickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
+  iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
+  iosPickerTitle: { flex: 1, textAlign: 'center', color: themeColors.textPrimary, fontSize: 15, fontWeight: '800' },
+  iosPickerCancelText: { color: themeColors.textSecondary, fontSize: 15, fontWeight: '700' },
+  iosPickerDoneText: { color: themeColors.primary, fontSize: 15, fontWeight: '800' },
+  iosPicker: { backgroundColor: 'white' },
 
   // Photo upload styles
   photoSection: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: themeColors.border },

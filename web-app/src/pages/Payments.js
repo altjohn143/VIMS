@@ -104,6 +104,15 @@ const Payments = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
 
+  const hasActivePaymentAttempt = useCallback((payment) => (
+    payment?.status === 'paid' ||
+    (payment?.status === 'pending' && !!(payment?.paymentMethod || payment?.referenceNumber || payment?.receiptImage))
+  ), []);
+
+  const showExistingPaymentAttemptToast = useCallback(() => {
+    toast.error('This invoice already has a pending or completed payment. Please wait for verification or refresh the payment list.');
+  }, []);
+
   // Define fetchData with useCallback to prevent infinite loops
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -156,16 +165,35 @@ const Payments = () => {
   }, [activeTab, page, payments, rowsPerPage]);
 
   const handlePayClick = useCallback((payment) => {
+    if (hasActivePaymentAttempt(payment)) {
+      showExistingPaymentAttemptToast();
+      fetchData();
+      return;
+    }
+
     setSelectedPayment(payment);
     setPaymentMethodOpen(true);
-  }, []);
+  }, [fetchData, hasActivePaymentAttempt, showExistingPaymentAttemptToast]);
 
   const handleQRPhPayment = useCallback(() => {
+    if (hasActivePaymentAttempt(selectedPayment)) {
+      setPaymentMethodOpen(false);
+      showExistingPaymentAttemptToast();
+      fetchData();
+      return;
+    }
+
     setPaymentMethodOpen(false);
     setQrDialogOpen(true);
-  }, []);
+  }, [fetchData, hasActivePaymentAttempt, selectedPayment, showExistingPaymentAttemptToast]);
 
   const handleCashPayment = useCallback(async () => {
+    if (processing || hasActivePaymentAttempt(selectedPayment)) {
+      showExistingPaymentAttemptToast();
+      fetchData();
+      return;
+    }
+
     setPaymentMethodOpen(false);
     setProcessing(true);
     try {
@@ -177,6 +205,8 @@ const Payments = () => {
         toast.success('Cash payment selected. Please pay at the admin office.');
         setCashDialogOpen(true);
         fetchData();
+      } else {
+        toast.error(response.data?.error || 'Failed to process cash payment');
       }
     } catch (error) {
       console.error('Cash payment error:', error);
@@ -184,9 +214,11 @@ const Payments = () => {
     } finally {
       setProcessing(false);
     }
-  }, [selectedPayment, fetchData]);
+  }, [fetchData, hasActivePaymentAttempt, processing, selectedPayment, showExistingPaymentAttemptToast]);
 
   const handleUploadReceipt = useCallback(async () => {
+    if (processing) return;
+
     if (!referenceNumber.trim()) {
       toast.error('Please enter your reference number');
       return;
@@ -199,6 +231,15 @@ const Payments = () => {
     
     setProcessing(true);
     try {
+      const latestPaymentResponse = await axios.get(`/api/payments/${selectedPayment._id}`);
+      const latestPayment = latestPaymentResponse.data?.data;
+      if (!latestPaymentResponse.data?.success || hasActivePaymentAttempt(latestPayment)) {
+        setQrDialogOpen(false);
+        showExistingPaymentAttemptToast();
+        fetchData();
+        return;
+      }
+
       const formData = new FormData();
       formData.append('referenceNumber', referenceNumber);
       formData.append('receipt', uploadedReceipt);
@@ -215,6 +256,8 @@ const Payments = () => {
         setReferenceNumber('');
         setUploadedReceipt(null);
         fetchData();
+      } else {
+        toast.error(response.data?.error || 'Failed to submit payment');
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -222,7 +265,7 @@ const Payments = () => {
     } finally {
       setProcessing(false);
     }
-  }, [referenceNumber, uploadedReceipt, selectedPayment, fetchData]);
+  }, [fetchData, hasActivePaymentAttempt, processing, referenceNumber, selectedPayment, showExistingPaymentAttemptToast, uploadedReceipt]);
 
   const handlePrintReceipt = useCallback(() => {
     const printContent = document.getElementById('receipt-content');

@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   FlatList,
   Platform
@@ -307,6 +308,15 @@ const RegisterScreen = ({ navigation, route }) => {
     setDobTemp(start);
     setDobPickerOpen(true);
   }, [formData.dateOfBirth]);
+
+  const closeDobPicker = useCallback(() => {
+    setDobPickerOpen(false);
+  }, []);
+
+  const applyDobPicker = useCallback(() => {
+    if (dobTemp) handleChange('dateOfBirth', formatYyyyMmDd(dobTemp));
+    setDobPickerOpen(false);
+  }, [dobTemp]);
 
   const pickIdImage = useCallback(async (side) => {
     try {
@@ -988,8 +998,17 @@ const RegisterScreen = ({ navigation, route }) => {
   const stepProgress = ((currentStepIndex + 1) / REGISTRATION_STEPS.length) * 100;
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+      >
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
           <Text style={styles.backText}>Back to Login</Text>
@@ -1244,7 +1263,7 @@ const RegisterScreen = ({ navigation, route }) => {
             )}
           </View>
 
-          {dobPickerOpen && Platform.OS !== 'web' ? (
+          {dobPickerOpen && Platform.OS === 'android' ? (
             <DateTimePicker
               mode="date"
               value={dobTemp || new Date()}
@@ -1264,6 +1283,41 @@ const RegisterScreen = ({ navigation, route }) => {
               }}
             />
           ) : null}
+
+          <Modal
+            visible={dobPickerOpen && Platform.OS === 'ios'}
+            transparent
+            animationType="fade"
+            onRequestClose={closeDobPicker}
+          >
+            <View style={styles.iosPickerOverlay}>
+              <View style={styles.iosPickerCard}>
+                <View style={styles.iosPickerHeader}>
+                  <TouchableOpacity onPress={closeDobPicker} style={styles.iosPickerAction}>
+                    <Text style={styles.iosPickerCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.iosPickerTitle}>Select Date of Birth</Text>
+                  <TouchableOpacity onPress={applyDobPicker} style={styles.iosPickerAction}>
+                    <Text style={styles.iosPickerDoneText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  mode="date"
+                  value={dobTemp || new Date()}
+                  maximumDate={new Date()}
+                  display="spinner"
+                  onChange={(event, selectedDate) => {
+                    if (event?.type === 'dismissed') {
+                      closeDobPicker();
+                      return;
+                    }
+                    if (selectedDate) setDobTemp(selectedDate);
+                  }}
+                  style={styles.iosPicker}
+                />
+              </View>
+            </View>
+          </Modal>
 
           <Modal
             visible={dobPickerOpen && Platform.OS === 'web'}
@@ -1289,13 +1343,12 @@ const RegisterScreen = ({ navigation, route }) => {
                 <TouchableOpacity
                   style={[styles.submitButton, { marginTop: 12 }]}
                   onPress={() => {
-                    if (dobTemp) handleChange('dateOfBirth', formatYyyyMmDd(dobTemp));
-                    setDobPickerOpen(false);
+                    applyDobPicker();
                   }}
                 >
                   <Text style={styles.submitButtonText}>Done</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.mapButton, { marginTop: 10 }]} onPress={() => setDobPickerOpen(false)}>
+                <TouchableOpacity style={[styles.mapButton, { marginTop: 10 }]} onPress={closeDobPicker}>
                   <Text style={[styles.mapButtonText, { fontWeight: '900' }]}>Cancel</Text>
                 </TouchableOpacity>
               </View>
@@ -1874,7 +1927,7 @@ const RegisterScreen = ({ navigation, route }) => {
         onSelectLot={handleLotSelect}
       />
 
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

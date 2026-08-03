@@ -22,6 +22,9 @@ import api from '../utils/api';
 const { width } = Dimensions.get('window');
 const MAP_CANVAS_WIDTH = Math.max(width - 32, 720);
 const MAP_CANVAS_HEIGHT = MAP_CANVAS_WIDTH * (1024 / 1536);
+const MIN_MAP_ZOOM = 0.75;
+const MAX_MAP_ZOOM = 2.25;
+const MAP_ZOOM_STEP = 0.25;
 const LOT_MAP_IMAGE = require('../../assets/lotbettermap.jpg');
 
 const PublicLotMapScreen = ({ navigation }) => {
@@ -35,6 +38,7 @@ const PublicLotMapScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [mapZoom, setMapZoom] = useState(1);
   
   // TOUR STATE
   const [tourPhotoIndex, setTourPhotoIndex] = useState(0);
@@ -129,6 +133,16 @@ const PublicLotMapScreen = ({ navigation }) => {
     occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', icon: 'close-circle' },
     reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', icon: 'time' },
   };
+
+  const getStatusConfig = (status) => statusConfig[status] || statusConfig.reserved;
+
+  const updateMapZoom = (nextZoom) => {
+    setMapZoom(Math.max(MIN_MAP_ZOOM, Math.min(MAX_MAP_ZOOM, Number(nextZoom.toFixed(2)))));
+  };
+
+  const zoomIn = () => updateMapZoom(mapZoom + MAP_ZOOM_STEP);
+  const zoomOut = () => updateMapZoom(mapZoom - MAP_ZOOM_STEP);
+  const resetZoom = () => updateMapZoom(1);
 
   // VIRTUAL TOUR PHOTO CATEGORIES
   const tourPhotoCategories = {
@@ -236,7 +250,7 @@ const PublicLotMapScreen = ({ navigation }) => {
   };
 
   const renderLotBox = ({ item }) => {
-    const config = statusConfig[item.status];
+    const config = getStatusConfig(item.status);
     
     return (
       <TouchableOpacity
@@ -359,10 +373,36 @@ const PublicLotMapScreen = ({ navigation }) => {
                 {selectedPhase === 'all' ? 'ALL PHASES' : `PHASE ${selectedPhase}`}
               </Text>
               <Text style={styles.mapSectionSubtitle}>
-                Swipe sideways to explore the actual lot plan
+                Swipe to explore. Use zoom controls to inspect lot positions.
               </Text>
             </View>
             <Text style={styles.mapResultCount}>{phaseFilteredLots.length} shown</Text>
+          </View>
+
+          <View style={styles.mapZoomBar}>
+            <TouchableOpacity
+              style={[styles.mapZoomButton, mapZoom <= MIN_MAP_ZOOM && styles.mapZoomButtonDisabled]}
+              onPress={zoomOut}
+              disabled={mapZoom <= MIN_MAP_ZOOM}
+              accessibilityLabel="Zoom map out"
+            >
+              <Ionicons name="remove" size={18} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.mapZoomReset}
+              onPress={resetZoom}
+              accessibilityLabel="Reset map zoom"
+            >
+              <Text style={styles.mapZoomText}>{Math.round(mapZoom * 100)}%</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.mapZoomButton, mapZoom >= MAX_MAP_ZOOM && styles.mapZoomButtonDisabled]}
+              onPress={zoomIn}
+              disabled={mapZoom >= MAX_MAP_ZOOM}
+              accessibilityLabel="Zoom map in"
+            >
+              <Ionicons name="add" size={18} color="white" />
+            </TouchableOpacity>
           </View>
 
           <ScrollView
@@ -370,10 +410,18 @@ const PublicLotMapScreen = ({ navigation }) => {
             showsHorizontalScrollIndicator
             contentContainerStyle={styles.mapScrollContent}
           >
-            <View style={[styles.mapCanvas, { width: MAP_CANVAS_WIDTH, height: MAP_CANVAS_HEIGHT }]}>
+            <View
+              style={[
+                styles.mapCanvas,
+                {
+                  width: MAP_CANVAS_WIDTH * mapZoom,
+                  height: MAP_CANVAS_HEIGHT * mapZoom,
+                },
+              ]}
+            >
               <Image source={LOT_MAP_IMAGE} style={styles.mapPlanImage} resizeMode="contain" />
               {phaseFilteredLots.map((lot) => {
-                const cfg = statusConfig[lot.status] || statusConfig.vacant;
+                const cfg = getStatusConfig(lot.status);
                 const position = lot.mapPosition;
                 const isSelected = selectedLot?.lotId === lot.lotId;
 
@@ -396,7 +444,20 @@ const PublicLotMapScreen = ({ navigation }) => {
                       },
                       isSelected && styles.activeMapLotSquare,
                     ]}
-                  />
+                  >
+                    <Text
+                      style={[
+                        styles.mapLotLabel,
+                        {
+                          color: isSelected ? '#ffffff' : cfg.color,
+                          fontSize: Math.max(7, Math.min(13, 9 * mapZoom)),
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {lot.lotNumber}
+                    </Text>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -441,10 +502,10 @@ const PublicLotMapScreen = ({ navigation }) => {
                   <Text style={styles.lotDetailTitle}>
                     Lot {selectedLot.lotNumber} - Block {selectedLot.block}
                   </Text>
-                  <View style={[styles.lotStatusBadge, { backgroundColor: statusConfig[selectedLot.status].bg }]}>
-                    <Ionicons name={statusConfig[selectedLot.status].icon} size={16} color={statusConfig[selectedLot.status].color} />
-                    <Text style={[styles.lotStatusText, { color: statusConfig[selectedLot.status].color }]}>
-                      {statusConfig[selectedLot.status].label}
+                  <View style={[styles.lotStatusBadge, { backgroundColor: getStatusConfig(selectedLot.status).bg }]}>
+                    <Ionicons name={getStatusConfig(selectedLot.status).icon} size={16} color={getStatusConfig(selectedLot.status).color} />
+                    <Text style={[styles.lotStatusText, { color: getStatusConfig(selectedLot.status).color }]}>
+                      {getStatusConfig(selectedLot.status).label}
                     </Text>
                   </View>
                 </View>
@@ -837,6 +898,41 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
+  mapZoomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+  },
+  mapZoomButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: themeColors.primary,
+  },
+  mapZoomButtonDisabled: {
+    opacity: 0.4,
+  },
+  mapZoomReset: {
+    minWidth: 64,
+    height: 36,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  mapZoomText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '900',
+  },
   mapScrollContent: {
     backgroundColor: '#020617',
   },
@@ -858,10 +954,17 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     minWidth: 3,
     minHeight: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeMapLotSquare: {
     borderWidth: 2,
     elevation: 5,
+  },
+  mapLotLabel: {
+    fontWeight: '900',
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   mapContainer: {
     marginBottom: 24,

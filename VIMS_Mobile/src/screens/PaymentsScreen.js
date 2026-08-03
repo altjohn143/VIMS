@@ -51,6 +51,18 @@ const PaymentsScreen = ({ navigation }) => {
 
   const { user } = useAuth();
 
+  const hasActivePaymentAttempt = (payment) => (
+    payment?.status === 'paid' ||
+    (payment?.status === 'pending' && !!(payment?.paymentMethod || payment?.referenceNumber || payment?.receiptImage))
+  );
+
+  const showExistingPaymentAttemptAlert = () => {
+    Alert.alert(
+      'Payment Already Submitted',
+      'This invoice already has a pending or completed payment. Please wait for verification or refresh the payment list.'
+    );
+  };
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -86,16 +98,35 @@ const PaymentsScreen = ({ navigation }) => {
   };
 
   const handlePayClick = (payment) => {
+    if (hasActivePaymentAttempt(payment)) {
+      showExistingPaymentAttemptAlert();
+      fetchData();
+      return;
+    }
+
     setSelectedPayment(payment);
     setShowPaymentMethod(true);
   };
 
   const handleQRPhPayment = () => {
+    if (hasActivePaymentAttempt(selectedPayment)) {
+      setShowPaymentMethod(false);
+      showExistingPaymentAttemptAlert();
+      fetchData();
+      return;
+    }
+
     setShowPaymentMethod(false);
     setShowQRDialog(true);
   };
 
   const handleCashPayment = async () => {
+    if (processing || hasActivePaymentAttempt(selectedPayment)) {
+      showExistingPaymentAttemptAlert();
+      fetchData();
+      return;
+    }
+
     setShowPaymentMethod(false);
     setProcessing(true);
     try {
@@ -107,6 +138,8 @@ const PaymentsScreen = ({ navigation }) => {
         Alert.alert('Cash Payment', 'Please pay at the admin office to complete your payment.');
         setShowCashDialog(true);
         fetchData();
+      } else {
+        Alert.alert('Error', response.data?.error || 'Failed to process cash payment');
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to process cash payment');
@@ -140,6 +173,8 @@ const PaymentsScreen = ({ navigation }) => {
   };
 
   const handleUploadReceipt = async () => {
+    if (processing) return;
+
     if (!referenceNumber.trim()) {
       Alert.alert('Error', 'Please enter your reference number');
       return;
@@ -149,9 +184,18 @@ const PaymentsScreen = ({ navigation }) => {
       Alert.alert('Error', 'Please upload your payment receipt/screenshot');
       return;
     }
-    
+
     setProcessing(true);
     try {
+      const latestPaymentResponse = await api.get(`/payments/${selectedPayment._id}`);
+      const latestPayment = latestPaymentResponse.data?.data;
+      if (!latestPaymentResponse.data?.success || hasActivePaymentAttempt(latestPayment)) {
+        setShowQRDialog(false);
+        showExistingPaymentAttemptAlert();
+        fetchData();
+        return;
+      }
+
       const formData = new FormData();
       formData.append('referenceNumber', referenceNumber);
       formData.append('paymentId', selectedPayment._id);
@@ -172,6 +216,8 @@ const PaymentsScreen = ({ navigation }) => {
         setReferenceNumber('');
         setUploadedReceipt(null);
         fetchData();
+      } else {
+        Alert.alert('Error', response.data?.error || 'Failed to submit payment');
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to submit payment');

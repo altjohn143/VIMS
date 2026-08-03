@@ -610,7 +610,7 @@ const DashboardScreen = ({ navigation }) => {
                   style={styles.dropdownItem}
                   onPress={() => {
                     closeDropdown();
-                    navigation.navigate('Dashboard');
+                    navigation.navigate('DashboardTab');
                   }}
                   activeOpacity={0.7}
                 >

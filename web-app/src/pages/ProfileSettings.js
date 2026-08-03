@@ -311,6 +311,15 @@ const ProfileSettings = () => {
 
   const submitMoveOutRequest = async () => {
     if (!user) return;
+    if (moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved') {
+      toast.error('You already have an active move-out request.');
+      return;
+    }
+    if (!moveOutReason.trim()) {
+      toast.error('Please explain why you are requesting to move out.');
+      return;
+    }
+
     try {
       setMoveOutSubmitting(true);
       const token = localStorage.getItem('token') || '';
@@ -668,9 +677,17 @@ const ProfileSettings = () => {
     setSaving(true);
     try {
       if (!passwordOtpSent) {
-        await axios.post('/api/auth/change-password-otp/request', {
+        const otpResponse = await axios.post('/api/auth/change-password-otp/request', {
           currentPassword: passwordData.currentPassword
         });
+        if (!otpResponse.data?.success) {
+          toast.error(otpResponse.data?.error || 'The current password you entered is incorrect.');
+          setPasswordErrors(prev => ({
+            ...prev,
+            currentPassword: 'Current password is incorrect'
+          }));
+          return;
+        }
         setPasswordOtpSent(true);
         toast.success('A verification code was sent to your email.');
         return;
@@ -684,6 +701,10 @@ const ProfileSettings = () => {
       const verification = await axios.post('/api/auth/change-password-otp/verify', {
         code: passwordOtp
       });
+      if (!verification.data?.success || !verification.data?.verificationToken) {
+        toast.error(verification.data?.error || 'The verification code is invalid or expired.');
+        return;
+      }
       const response = await axios.put('/api/auth/change-password', {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
@@ -693,6 +714,8 @@ const ProfileSettings = () => {
       if (response.data.success) {
         toast.success('Password changed successfully!');
         handleClosePasswordDialog();
+      } else {
+        toast.error(response.data?.error || 'Failed to change password');
       }
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'Failed to change password';

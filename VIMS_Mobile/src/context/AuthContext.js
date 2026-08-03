@@ -34,6 +34,14 @@ export const AuthProvider = ({ children }) => {
     return normalizedUser;
   };
 
+  const clearStoredSession = async () => {
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
+    delete api.defaults.headers.common['Authorization'];
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
   const syncPushToken = async () => {
     try {
       const result = await registerForPushNotifications();
@@ -52,18 +60,37 @@ export const AuthProvider = ({ children }) => {
       
       if (token && userData) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        const storedUser = JSON.parse(userData);
-        setUser(storedUser);
-        setIsAuthenticated(true);
+        let storedUser = null;
+        try {
+          storedUser = JSON.parse(userData);
+        } catch {
+          await clearStoredSession();
+          return;
+        }
 
         const response = await api.get('/auth/me');
         if (response.data?.success && response.data?.user) {
-          await persistUser(response.data.user, storedUser);
+          const serverUser = response.data.user;
+          const storedId = storedUser?._id || storedUser?.id;
+          const serverId = serverUser?._id || serverUser?.id;
+          const sameStoredSession =
+            !storedId ||
+            !serverId ||
+            (String(storedId) === String(serverId) && (!storedUser?.role || storedUser.role === serverUser.role));
+
+          await persistUser(serverUser, sameStoredSession ? storedUser : null);
+          setIsAuthenticated(true);
+        } else {
+          await clearStoredSession();
+          return;
         }
         syncPushToken();
+      } else {
+        await clearStoredSession();
       }
     } catch (error) {
       console.error('Error loading stored data:', error);
+      await clearStoredSession();
     } finally {
       setIsLoading(false);
     }
@@ -157,9 +184,7 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
       await AsyncStorage.removeItem('pushToken');
-      delete api.defaults.headers.common['Authorization'];
-      setUser(null);
-      setIsAuthenticated(false);
+      await clearStoredSession();
     } catch (error) {
       console.error('Logout error:', error);
     }

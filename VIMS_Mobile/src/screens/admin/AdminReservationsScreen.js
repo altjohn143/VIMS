@@ -351,6 +351,52 @@ const AdminReservationsScreen = ({ navigation }) => {
     });
   };
 
+  const renderPlatformDateTimePicker = ({ visible, title, value, mode, onDismiss, onChange }) => {
+    if (!visible) return null;
+
+    const picker = (
+      <DateTimePicker
+        value={value}
+        mode={mode}
+        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+        onChange={(event, selectedValue) => {
+          if (event?.type === 'dismissed') {
+            onDismiss();
+            return;
+          }
+          if (selectedValue) {
+            onChange(selectedValue);
+          }
+          if (Platform.OS !== 'ios') {
+            onDismiss();
+          }
+        }}
+        style={Platform.OS === 'ios' ? styles.iosPicker : undefined}
+      />
+    );
+
+    if (Platform.OS !== 'ios') return picker;
+
+    return (
+      <Modal transparent animationType="fade" visible={visible} onRequestClose={onDismiss}>
+        <View style={styles.iosPickerOverlay}>
+          <View style={styles.iosPickerCard}>
+            <View style={styles.iosPickerHeader}>
+              <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
+                <Text style={styles.iosPickerCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.iosPickerTitle}>{title}</Text>
+              <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
+                <Text style={styles.iosPickerDoneText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            {picker}
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -893,65 +939,49 @@ const AdminReservationsScreen = ({ navigation }) => {
       </Modal>
 
       {/* Date/Time Pickers */}
-      {showStartDatePicker && (
-        <DateTimePicker
-          value={formData.startDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, date) => {
-            setShowStartDatePicker(false);
-            if (date) {
-              setFormData({ ...formData, startDate: date });
-            }
-          }}
-        />
-      )}
+      {renderPlatformDateTimePicker({
+        visible: showStartDatePicker,
+        title: 'Select Start Date',
+        value: formData.startDate,
+        mode: 'date',
+        onDismiss: () => setShowStartDatePicker(false),
+        onChange: (date) => setFormData({ ...formData, startDate: date }),
+      })}
 
-      {showStartTimePicker && (
-        <DateTimePicker
-          value={formData.startDate}
-          mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, time) => {
-            setShowStartTimePicker(false);
-            if (time) {
-              const newDate = new Date(formData.startDate);
-              newDate.setHours(time.getHours(), time.getMinutes());
-              setFormData({ ...formData, startDate: newDate });
-            }
-          }}
-        />
-      )}
+      {renderPlatformDateTimePicker({
+        visible: showStartTimePicker,
+        title: 'Select Start Time',
+        value: formData.startDate,
+        mode: 'time',
+        onDismiss: () => setShowStartTimePicker(false),
+        onChange: (time) => {
+          const newDate = new Date(formData.startDate);
+          newDate.setHours(time.getHours(), time.getMinutes());
+          setFormData({ ...formData, startDate: newDate });
+        },
+      })}
 
-      {showEndDatePicker && (
-        <DateTimePicker
-          value={formData.endDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, date) => {
-            setShowEndDatePicker(false);
-            if (date) {
-              setFormData({ ...formData, endDate: date });
-            }
-          }}
-        />
-      )}
+      {renderPlatformDateTimePicker({
+        visible: showEndDatePicker,
+        title: 'Select End Date',
+        value: formData.endDate,
+        mode: 'date',
+        onDismiss: () => setShowEndDatePicker(false),
+        onChange: (date) => setFormData({ ...formData, endDate: date }),
+      })}
 
-      {showEndTimePicker && (
-        <DateTimePicker
-          value={formData.endDate}
-          mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, time) => {
-            setShowEndTimePicker(false);
-            if (time) {
-              const newDate = new Date(formData.endDate);
-              newDate.setHours(time.getHours(), time.getMinutes());
-              setFormData({ ...formData, endDate: newDate });
-            }
-          }}
-        />
-      )}
+      {renderPlatformDateTimePicker({
+        visible: showEndTimePicker,
+        title: 'Select End Time',
+        value: formData.endDate,
+        mode: 'time',
+        onDismiss: () => setShowEndTimePicker(false),
+        onChange: (time) => {
+          const newDate = new Date(formData.endDate);
+          newDate.setHours(time.getHours(), time.getMinutes());
+          setFormData({ ...formData, endDate: newDate });
+        },
+      })}
     </View>
   );
 };
@@ -1294,6 +1324,14 @@ const styles = StyleSheet.create({
   submitButtonDisabled: {
     backgroundColor: '#9ca3af',
   },
+  iosPickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
+  iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
+  iosPickerTitle: { flex: 1, textAlign: 'center', color: '#1e293b', fontSize: 15, fontWeight: '800' },
+  iosPickerCancelText: { color: '#64748b', fontSize: 15, fontWeight: '700' },
+  iosPickerDoneText: { color: '#166534', fontSize: 15, fontWeight: '800' },
+  iosPicker: { backgroundColor: 'white' },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',

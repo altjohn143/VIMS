@@ -8,6 +8,8 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -20,6 +22,7 @@ const NotificationsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingAll, setProcessingAll] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -93,6 +96,26 @@ const NotificationsScreen = ({ navigation }) => {
     }
   }, [unreadCount]);
 
+  const getNotificationRecordLabel = useCallback((notification) => {
+    const metadata = notification?.metadata || {};
+    const relatedId =
+      metadata.visitorId ||
+      metadata.paymentId ||
+      metadata.serviceRequestId ||
+      metadata.announcementId ||
+      metadata.reservationId ||
+      metadata.recordId;
+
+    if (!relatedId) return null;
+    return String(relatedId);
+  }, []);
+
+  const openNotification = useCallback((item) => {
+    if (!item) return;
+    if (!item.readAt && item._id) markRead(item._id);
+    setSelectedNotification(item);
+  }, [markRead]);
+
   const renderItem = ({ item }) => {
     const isUnread = !item?.readAt;
     return (
@@ -102,9 +125,7 @@ const NotificationsScreen = ({ navigation }) => {
           shadows.small,
           isUnread ? styles.cardUnread : null,
         ]}
-        onPress={() => {
-          if (isUnread && item?._id) markRead(item._id);
-        }}
+        onPress={() => openNotification(item)}
         activeOpacity={0.85}
       >
         <View style={styles.cardHeader}>
@@ -185,6 +206,58 @@ const NotificationsScreen = ({ navigation }) => {
           </View>
         }
       />
+
+      <Modal
+        visible={!!selectedNotification}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedNotification(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.detailModal}>
+            <View style={styles.detailHeader}>
+              <View style={styles.detailIconWrap}>
+                <Ionicons name="notifications-outline" size={20} color={themeColors.primary} />
+              </View>
+              <View style={styles.detailTitleWrap}>
+                <Text style={styles.detailTitle} numberOfLines={2}>
+                  {selectedNotification?.title || 'Notification'}
+                </Text>
+                <Text style={styles.detailTime}>{formatWhen(selectedNotification?.createdAt)}</Text>
+              </View>
+              <TouchableOpacity style={styles.detailCloseBtn} onPress={() => setSelectedNotification(null)}>
+                <Ionicons name="close" size={22} color={themeColors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.detailBodyWrap} contentContainerStyle={styles.detailBodyContent}>
+              <Text style={styles.detailBodyText}>
+                {selectedNotification?.body || 'No additional details were provided.'}
+              </Text>
+
+              <View style={styles.detailMetaRow}>
+                <Text style={styles.detailMetaLabel}>Type</Text>
+                <Text style={styles.detailMetaValue}>
+                  {selectedNotification?.type ? String(selectedNotification.type).replace(/_/g, ' ') : 'general'}
+                </Text>
+              </View>
+
+              {getNotificationRecordLabel(selectedNotification) ? (
+                <View style={styles.detailMetaRow}>
+                  <Text style={styles.detailMetaLabel}>Related record</Text>
+                  <Text style={styles.detailMetaValue} numberOfLines={1}>
+                    {getNotificationRecordLabel(selectedNotification)}
+                  </Text>
+                </View>
+              ) : null}
+            </ScrollView>
+
+            <TouchableOpacity style={styles.detailDoneBtn} onPress={() => setSelectedNotification(null)}>
+              <Text style={styles.detailDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -271,6 +344,59 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyTitle: { marginTop: 14, fontSize: 18, fontWeight: '700', color: themeColors.textPrimary },
   emptyText: { marginTop: 6, fontSize: 13, color: themeColors.textSecondary, textAlign: 'center', paddingHorizontal: 28 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.45)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  detailModal: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    maxHeight: '78%',
+    overflow: 'hidden',
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
+  },
+  detailIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: themeColors.primary + '12',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailTitleWrap: { flex: 1, minWidth: 0 },
+  detailTitle: { color: themeColors.textPrimary, fontSize: 16, fontWeight: '900' },
+  detailTime: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '600', marginTop: 3 },
+  detailCloseBtn: { padding: 6 },
+  detailBodyWrap: { maxHeight: 320 },
+  detailBodyContent: { padding: 16, gap: 12 },
+  detailBodyText: { color: themeColors.textPrimary, fontSize: 14, lineHeight: 21 },
+  detailMetaRow: {
+    padding: 12,
+    borderRadius: 6,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: themeColors.border,
+  },
+  detailMetaLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+  detailMetaValue: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800', marginTop: 4 },
+  detailDoneBtn: {
+    margin: 16,
+    marginTop: 0,
+    backgroundColor: themeColors.primary,
+    borderRadius: 6,
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  detailDoneText: { color: 'white', fontSize: 14, fontWeight: '900' },
 });
 
 export default NotificationsScreen;

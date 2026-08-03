@@ -88,6 +88,7 @@ const VisitorManagement = () => {
   const [confirmError, setConfirmError] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [cancellingVisitorId, setCancellingVisitorId] = useState(null);
   const [formData, setFormData] = useState({
     visitorName: '',
     visitorPhone: '',
@@ -395,6 +396,26 @@ const VisitorManagement = () => {
     } finally {
       setConfirmingArrival(false);
       setConfirmingVisitorId(null);
+    }
+  };
+
+  const handleCancelRequest = async (visitorId) => {
+    if (cancellingVisitorId) return;
+    if (!window.confirm('Are you sure you want to cancel this visitor request?')) return;
+
+    setCancellingVisitorId(visitorId);
+    try {
+      const response = await axios.put(`/api/visitors/${visitorId}/status`, { status: 'cancelled' });
+      if (response.data?.success) {
+        toast.success('Visitor request cancelled');
+        await Promise.all([fetchMyVisitors(), fetchAllVisitors()]);
+      } else {
+        toast.error(response.data?.error || 'Failed to cancel visitor request');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to cancel visitor request');
+    } finally {
+      setCancellingVisitorId(null);
     }
   };
 
@@ -1324,13 +1345,15 @@ const VisitorManagement = () => {
                                 size="small" 
                                 color="error" 
                                 title="Cancel Request"
+                                onClick={() => handleCancelRequest(visitor._id)}
+                                disabled={cancellingVisitorId === visitor._id}
                                 sx={{
                                   '&:hover': {
                                     backgroundColor: themeColors.error + '20'
                                   }
                                 }}
                               >
-                                <CancelIcon />
+                                {cancellingVisitorId === visitor._id ? <CircularProgress size={18} color="error" /> : <CancelIcon />}
                               </IconButton>
                             )}
                           </Box>

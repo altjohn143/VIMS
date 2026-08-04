@@ -56,8 +56,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { getBackendApiUrl } from '../utils/api';
 
 const AdminVisitorManagement = () => {
   // Dashboard Theme Colors
@@ -244,7 +243,7 @@ const handleReject = async () => {
   handleMenuClose();
 };
 
-  const handleExport = async () => {
+  const handleExport = async (fileFormat = 'pdf') => {
     setExportDateError('');
     if (exportStartDate && exportEndDate && new Date(exportStartDate) > new Date(exportEndDate)) {
       setExportDateError('Start Date cannot be after End Date');
@@ -253,41 +252,56 @@ const handleReject = async () => {
 
     setExportLoading(true);
     try {
-      const start = exportStartDate ? new Date(`${exportStartDate}T00:00:00`) : null;
-      const end = exportEndDate ? new Date(`${exportEndDate}T23:59:59.999`) : null;
-      const exportRows = visitors.filter((v) => {
-        const recordDate = v.expectedArrival ? new Date(v.expectedArrival) : new Date(v.createdAt);
-        if (start && recordDate < start) return false;
-        if (end && recordDate > end) return false;
-        return true;
+      const timezoneOffset = new Date().getTimezoneOffset();
+      const params = new URLSearchParams({
+        format: fileFormat,
+        timezoneOffset: String(timezoneOffset)
       });
 
-      const rows = exportRows.map((v) => ({
-        id: v._id,
-        visitorName: v.visitorName,
-        resident: `${v.residentId?.firstName || ''} ${v.residentId?.lastName || ''}`.trim(),
-        house: v.residentId?.houseNumber || '',
-        status: v.status,
-        expectedArrival: formatDate(v.expectedArrival),
-        expectedDeparture: formatDate(v.expectedDeparture)
-      }));
+      if (exportStartDate) params.set('startDate', exportStartDate);
+      if (exportEndDate) params.set('endDate', exportEndDate);
 
-      const pdf = new jsPDF({ orientation: 'landscape' });
-      pdf.text('Visitor Data Report', 14, 14);
-      autoTable(pdf, {
-        startY: 20,
-        head: [['Visitor', 'Resident', 'House', 'Status', 'Arrival', 'Departure']],
-        body: rows.map((r) => [r.visitorName, r.resident, r.house, r.status, r.expectedArrival, r.expectedDeparture]),
-        styles: { fontSize: 8 }
+      const response = await fetch(getBackendApiUrl(`/api/visitors/admin/export?${params.toString()}`), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem('token')}`
+        }
       });
+
+      if (!response.ok) {
+        const text = await response.text();
+        let message = 'Export failed';
+        try {
+          const errorData = JSON.parse(text);
+          message = errorData.error || message;
+        } catch {
+          message = text || message;
+        }
+        throw new Error(message);
+      }
+
+      const expectedType = fileFormat === 'pdf' ? 'application/pdf' : 'text/csv';
+      if (!response.headers.get('content-type')?.includes(expectedType)) {
+        const text = await response.text();
+        throw new Error(text || `Export failed: invalid ${fileFormat.toUpperCase()} response`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
       const exportTime = new Date();
       const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-      pdf.save(`visitor-data-report_${timestamp}.pdf`);
+      a.href = url;
+      a.download = `VIMS_Visitors_Export_${timestamp}.${fileFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
-      toast.success(`Exported ${rows.length} visitors to PDF`);
+      toast.success(`Visitors exported to ${fileFormat.toUpperCase()}`);
       setExportDialogOpen(false);
     } catch (error) {
-      toast.error('Failed to export data');
+      toast.error(error.message || `Failed to export ${fileFormat.toUpperCase()}`);
       console.error('Error exporting data:', error);
     } finally {
       setExportLoading(false);
@@ -1076,12 +1090,12 @@ const handleReject = async () => {
           {exportDateError}
         </Alert>
       ) : (
-        <Alert severity="info" sx={{ 
+                <Alert severity="info" sx={{ 
                   borderRadius: '12px',
                   backgroundColor: themeColors.info + '15',
                   border: `1px solid ${themeColors.info}30`
                 }}>
-                  Leave dates empty to export the current visitor-data report list as PDF.
+                  Leave dates empty to export all visitor records. Choose PDF for a formatted report or CSV for spreadsheet import.
                 </Alert>
       )}
               </Grid>
@@ -1104,7 +1118,24 @@ const handleReject = async () => {
             </Button>
             <Button
               variant="contained"
-              onClick={handleExport}
+              onClick={() => handleExport('csv')}
+              disabled={exportLoading}
+              startIcon={exportLoading ? <CircularProgress size={20} /> : <DownloadIcon />}
+              sx={{ 
+                borderRadius: '12px',
+                bgcolor: themeColors.primaryDark,
+                '&:hover': {
+                  bgcolor: themeColors.primary
+                },
+                fontWeight: 700,
+                textTransform: 'none'
+              }}
+            >
+              {exportLoading ? 'Exporting...' : 'Export CSV'}
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => handleExport('pdf')}
               disabled={exportLoading}
               startIcon={exportLoading ? <CircularProgress size={20} /> : <DownloadIcon />}
               sx={{ 
@@ -1117,7 +1148,7 @@ const handleReject = async () => {
                 textTransform: 'none'
               }}
             >
-              {exportLoading ? 'Exporting...' : 'Export'}
+              {exportLoading ? 'Exporting...' : 'Export PDF'}
             </Button>
           </DialogActions>
         </Dialog>

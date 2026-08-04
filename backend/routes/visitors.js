@@ -1390,17 +1390,27 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
 // Export visitors data (CSV or PDF format)
 router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
   try {
-    const { startDate, endDate, format = 'json', timezoneOffset = '0' } = req.query;
+    const { startDate, endDate, status, format = 'json', timezoneOffset = '0' } = req.query;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     let filter = {};
 
-    if (startDate && endDate) {
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = start;
+      }
+      if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      filter.createdAt = { $gte: start, $lte: end };
+        filter.createdAt.$lte = end;
+      }
     }
 
     const visitors = await Visitor.find(filter)
@@ -1408,45 +1418,88 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
       .populate('approvedBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
 
+    const pdfReportService = require('../services/pdfReportService');
+    const formatExportDate = (value) => (
+      value ? new Date(value).toLocaleString('en-US') : 'N/A'
+    );
+    const formatPersonName = (person) => (
+      person ? `${person.firstName || ''} ${person.lastName || ''}`.trim() || 'N/A' : 'N/A'
+    );
+    const exportRows = visitors.map((visitor) => ({
+      'Visitor ID': visitor._id.toString(),
+      'Visitor Name': visitor.visitorName || 'N/A',
+      'Phone': visitor.visitorPhone || 'N/A',
+      'Vehicle': visitor.vehicleNumber || 'N/A',
+      'Companions': visitor.numberOfCompanions ?? 0,
+      'Purpose': visitor.purpose || 'N/A',
+      'Resident': formatPersonName(visitor.residentId),
+      'Resident Email': visitor.residentId?.email || 'N/A',
+      'House': visitor.residentId?.houseNumber || 'N/A',
+      'Status': visitor.status || 'N/A',
+      'Expected Arrival': formatExportDate(visitor.expectedArrival),
+      'Expected Departure': formatExportDate(visitor.expectedDeparture),
+      'Entry Time': formatExportDate(visitor.actualEntry),
+      'Exit Time': formatExportDate(visitor.actualExit),
+      'Approved By': visitor.approvedBy
+        ? `${formatPersonName(visitor.approvedBy)}${visitor.approvedBy.role ? ` (${visitor.approvedBy.role})` : ''}`
+        : 'N/A',
+      'Approval Time': formatExportDate(visitor.approvedAt),
+      'Rejection Reason': visitor.rejectionReason || 'N/A',
+      'Created At': formatExportDate(visitor.createdAt),
+      'Security Notes': visitor.securityNotes || 'N/A'
+    }));
+
+    const pdfColumns = [
+      { header: 'Visitor Name', key: 'Visitor Name', width: 18 },
+      { header: 'Phone', key: 'Phone', width: 15 },
+      { header: 'Vehicle', key: 'Vehicle', width: 12 },
+      { header: 'Resident', key: 'Resident', width: 18 },
+      { header: 'House', key: 'House', width: 10 },
+      { header: 'Purpose', key: 'Purpose', width: 22 },
+      { header: 'Status', key: 'Status', width: 12 },
+      { header: 'Expected Arrival', key: 'Expected Arrival', width: 18 },
+      { header: 'Expected Departure', key: 'Expected Departure', width: 18 },
+      { header: 'Approved By', key: 'Approved By', width: 18 },
+      { header: 'Created At', key: 'Created At', width: 18 }
+    ];
+
+    const csvColumns = [
+      { header: 'Visitor ID', key: 'Visitor ID' },
+      { header: 'Visitor Name', key: 'Visitor Name' },
+      { header: 'Phone', key: 'Phone' },
+      { header: 'Vehicle', key: 'Vehicle' },
+      { header: 'Companions', key: 'Companions' },
+      { header: 'Purpose', key: 'Purpose' },
+      { header: 'Resident', key: 'Resident' },
+      { header: 'Resident Email', key: 'Resident Email' },
+      { header: 'House', key: 'House' },
+      { header: 'Status', key: 'Status' },
+      { header: 'Expected Arrival', key: 'Expected Arrival' },
+      { header: 'Expected Departure', key: 'Expected Departure' },
+      { header: 'Entry Time', key: 'Entry Time' },
+      { header: 'Exit Time', key: 'Exit Time' },
+      { header: 'Approved By', key: 'Approved By' },
+      { header: 'Approval Time', key: 'Approval Time' },
+      { header: 'Rejection Reason', key: 'Rejection Reason' },
+      { header: 'Created At', key: 'Created At' },
+      { header: 'Security Notes', key: 'Security Notes' }
+    ];
+
+    const reportTitle = 'Visitor Management Report';
+    const todayStamp = new Date().toISOString().split('T')[0];
+
     if (format === 'pdf') {
-      const pdfReportService = require('../services/pdfReportService');
-
-      const columns = [
-        { key: 'visitorName', label: 'Visitor Name', width: 14 },
-        { key: 'visitorPhone', label: 'Phone', width: 10 },
-        { key: 'vehicleNumber', label: 'Vehicle', width: 10 },
-        { key: 'numberOfCompanions', label: 'Companions', width: 8 },
-        { key: 'purpose', label: 'Purpose', width: 18 },
-        { key: 'residentName', label: 'Resident', width: 12 },
-        { key: 'residentHouse', label: 'House', width: 7 },
-        { key: 'status', label: 'Status', width: 8 },
-        { key: 'expectedArrival', label: 'Expected Arrival', width: 12 },
-        { key: 'actualEntry', label: 'Entry Time', width: 8 },
-        { key: 'approvedByName', label: 'Approved By', width: 10 }
-      ];
-
-      const reportData = visitors.map((v) => ({
-        visitorName: v.visitorName || 'N/A',
-        visitorPhone: v.visitorPhone || 'N/A',
-        vehicleNumber: v.vehicleNumber || 'N/A',
-        numberOfCompanions: v.numberOfCompanions ?? 0,
-        purpose: v.purpose || 'N/A',
-        residentName: v.residentId ? `${v.residentId.firstName || ''} ${v.residentId.lastName || ''}`.trim() : 'N/A',
-        residentHouse: v.residentId?.houseNumber || 'N/A',
-        status: v.status || 'N/A',
-        expectedArrival: v.expectedArrival ? new Date(v.expectedArrival).toLocaleString() : 'N/A',
-        actualEntry: v.actualEntry ? new Date(v.actualEntry).toLocaleString() : 'N/A',
-        approvedByName: v.approvedBy ? `${v.approvedBy.firstName || ''} ${v.approvedBy.lastName || ''} (${v.approvedBy.role || ''})`.trim() : 'N/A'
-      }));
-
-      const filename = `VIMS_Visitors_Export_${new Date().toISOString().split('T')[0]}.pdf`;
+      const filename = `VIMS_Visitors_Export_${todayStamp}.pdf`;
       const pdfBuffer = await pdfReportService.generateDataReport(
-        'VIMS Visitors Export Report',
-        reportData,
-        columns,
+        reportTitle,
+        exportRows,
+        pdfColumns,
         {
           creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role },
           timezoneOffsetMinutes,
+          layout: 'landscape',
+          margin: 36,
+          table: { headerFontSize: 8, bodyFontSize: 7.5, cellPadding: 3, maxRows: 120 },
           persistFilename: filename,
           persistSubdir: 'pdf-exports'
         }
@@ -1458,61 +1511,19 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
       return res.send(pdfBuffer);
     }
 
-    const csvData = visitors.map(v => ({
-      'Visitor ID': v._id,
-      'Visitor Name': v.visitorName,
-      'Visitor Phone': v.visitorPhone,
-      'Purpose': v.purpose,
-      'Vehicle Number': v.vehicleNumber || 'N/A',
-      'Companions': v.numberOfCompanions ?? 0,
-      'Resident Name': `${v.residentId?.firstName || ''} ${v.residentId?.lastName || ''}`,
-      'Resident House': v.residentId?.houseNumber || 'N/A',
-      'Expected Arrival': v.expectedArrival,
-      'Expected Departure': v.expectedDeparture,
-      'Actual Entry': v.actualEntry || 'N/A',
-      'Actual Exit': v.actualExit || 'N/A',
-      'Status': v.status,
-      'Approved By': v.approvedBy ? `${v.approvedBy.firstName} ${v.approvedBy.lastName} (${v.approvedBy.role})` : 'N/A',
-      'Approval Time': v.approvedAt || 'N/A',
-      'Rejection Reason': v.rejectionReason || 'N/A',
-      'Created At': v.createdAt,
-      'Security Notes': v.securityNotes || 'N/A'
-    }));
-
     if (format === 'csv') {
-      const pdfReportService = require('../services/pdfReportService');
-      const columns = Object.keys(csvData[0] || {
-        'Visitor ID': '',
-        'Visitor Name': '',
-        'Visitor Phone': '',
-        Purpose: '',
-        'Vehicle Number': '',
-        Companions: '',
-        'Resident Name': '',
-        'Resident House': '',
-        'Expected Arrival': '',
-        'Expected Departure': '',
-        'Actual Entry': '',
-        'Actual Exit': '',
-        Status: '',
-        'Approved By': '',
-        'Approval Time': '',
-        'Rejection Reason': '',
-        'Created At': '',
-        'Security Notes': ''
-      }).map((key) => ({ header: key, key }));
-      const csvContent = pdfReportService.generateCsvReport('VIMS Visitors Export Report', csvData, columns, { creator: req.user, timezoneOffsetMinutes });
+      const csvContent = pdfReportService.generateCsvReport(reportTitle, exportRows, csvColumns, { creator: req.user, timezoneOffsetMinutes });
 
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitors_Export_${new Date().toISOString().split('T')[0]}.csv"`);
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitors_Export_${todayStamp}.csv"`);
       return res.send(csvContent);
     }
 
     res.json({
       success: true,
-      data: csvData,
-      filename: `visitors_export_${new Date().toISOString().split('T')[0]}.json`,
-      count: csvData.length
+      data: exportRows,
+      filename: `VIMS_Visitors_Export_${todayStamp}.json`,
+      count: exportRows.length
     });
 
   } catch (error) {

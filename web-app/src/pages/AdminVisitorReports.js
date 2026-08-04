@@ -43,8 +43,7 @@ import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tool
 import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { getBackendApiUrl } from '../utils/api';
 
 const themeColors = {
   primary: '#166534',
@@ -144,7 +143,7 @@ const AdminVisitorReports = () => {
 
   const paginatedRecentVisitors = recentVisitors.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  const handleExport = async () => {
+  const handleExport = async (fileFormat = 'pdf') => {
     if (hasInvalidDateRange()) {
       setDateRangeError('Start Date cannot be after End Date');
       toast.error('Start Date cannot be after End Date');
@@ -153,76 +152,56 @@ const AdminVisitorReports = () => {
 
     setExporting(true);
     try {
-      // Prepare data for export
-      const exportData = {
-        generatedAt: new Date().toLocaleString(),
-        dateRange: startDate && endDate ? `${startDate} to ${endDate}` : 'All time',
-        reportType: reportType !== 'all' ? reportType : 'All statuses',
-        statistics: stats?.totals || {},
-        recentVisitors: recentVisitors.map(v => ({
-          visitorName: v.visitorName,
-          resident: `${v.residentId?.firstName || ''} ${v.residentId?.lastName || ''}`.trim(),
-          purpose: v.purpose,
-          status: v.status,
-          expectedArrival: new Date(v.expectedArrival).toLocaleString(),
-          approvedBy: v.approvedBy ? `${v.approvedBy.firstName} (${v.approvedBy.role})` : 'N/A'
-        }))
-      };
-
-      // Export to PDF
-      const pdf = new jsPDF({ orientation: 'portrait' });
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('VISITOR MANAGEMENT REPORT', 14, 15);
-
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(10);
-      pdf.text(`Generated: ${exportData.generatedAt}`, 14, 25);
-      pdf.text(`Date Range: ${exportData.dateRange}`, 14, 32);
-      pdf.text(`Report Type: ${exportData.reportType}`, 14, 39);
-
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('STATISTICS', 14, 52);
-
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
-      const statRows = [
-        ['Total Visitors:', exportData.statistics.totalVisitors || 0],
-        ['Approved:', exportData.statistics.approvedVisitors || 0],
-        ['Pending:', exportData.statistics.pendingVisitors || 0],
-        ['Rejected:', exportData.statistics.rejectedVisitors || 0],
-        ['Active Now:', exportData.statistics.activeVisitors || 0]
-      ];
-
-      let yPos = 59;
-      statRows.forEach(row => {
-        pdf.text(`${row[0]} ${row[1]}`, 14, yPos);
-        yPos += 7;
+      const timezoneOffset = new Date().getTimezoneOffset();
+      const params = new URLSearchParams({
+        format: fileFormat,
+        timezoneOffset: String(timezoneOffset)
       });
 
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('RECENT VISITORS', 14, yPos + 7);
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
+      if (reportType !== 'all') params.set('status', reportType);
 
-      autoTable(pdf, {
-        startY: yPos + 14,
-        head: [['Visitor', 'Resident', 'Purpose', 'Status', 'Arrival', 'Approved By']],
-        body: exportData.recentVisitors.map(r => [
-          r.visitorName,
-          r.resident,
-          r.purpose,
-          r.status,
-          r.expectedArrival,
-          r.approvedBy
-        ]),
-        styles: { fontSize: 7 },
-        columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 20 } }
+      const response = await fetch(getBackendApiUrl(`/api/visitors/admin/export?${params.toString()}`), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem('token')}`
+        }
       });
 
+      if (!response.ok) {
+        const text = await response.text();
+        let message = 'Export failed';
+        try {
+          const errorData = JSON.parse(text);
+          message = errorData.error || message;
+        } catch {
+          message = text || message;
+        }
+        throw new Error(message);
+      }
+
+      const expectedType = fileFormat === 'pdf' ? 'application/pdf' : 'text/csv';
+      if (!response.headers.get('content-type')?.includes(expectedType)) {
+        const text = await response.text();
+        throw new Error(text || `Export failed: invalid ${fileFormat.toUpperCase()} response`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
       const exportTime = new Date();
       const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-      pdf.save(`visitor_report_${timestamp}.pdf`);
-      toast.success('Report exported successfully to PDF');
+      a.href = url;
+      a.download = `VIMS_Visitors_Export_${timestamp}.${fileFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success(`Visitor report exported to ${fileFormat.toUpperCase()}`);
     } catch (error) {
-      toast.error('Failed to export report');
+      toast.error(error.message || `Failed to export ${fileFormat.toUpperCase()}`);
       console.error('Error exporting report:', error);
     } finally {
       setExporting(false);
@@ -417,21 +396,40 @@ const AdminVisitorReports = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={3}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="contained"
-                  onClick={handleExport}
+                  onClick={() => handleExport('csv')}
                   disabled={exporting}
-                  fullWidth
                   startIcon={exporting ? <CircularProgress size={20} /> : <DownloadIcon />}
                   sx={{
+                    flex: 1,
+                    borderRadius: '12px',
+                    bgcolor: themeColors.primaryDark,
+                    '&:hover': { bgcolor: themeColors.primary },
+                    fontWeight: 700,
+                    textTransform: 'none'
+                  }}
+                >
+                  CSV
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={() => handleExport('pdf')}
+                  disabled={exporting}
+                  startIcon={exporting ? <CircularProgress size={20} /> : <DownloadIcon />}
+                  sx={{
+                    flex: 1,
                     borderRadius: '12px',
                     bgcolor: themeColors.primary,
                     '&:hover': { bgcolor: themeColors.primaryDark },
-                    fontWeight: 700
+                    fontWeight: 700,
+                    textTransform: 'none'
                   }}
                 >
-                  {exporting ? 'Exporting...' : 'Export'}
+                  PDF
                 </Button>
+                </Box>
               </Grid>
               {dateRangeError && (
                 <Grid item xs={12}>

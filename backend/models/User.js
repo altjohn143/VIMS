@@ -145,7 +145,8 @@ const userSchema = new mongoose.Schema({
     make: String,
     model: String,
     color: String,
-    carImage: String
+    carImage: String,
+    carImagePublicId: String
   }],
 
   familyMembers: [{

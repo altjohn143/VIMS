@@ -62,8 +62,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { getBackendApiUrl } from '../utils/api';
 
 const AdminPayments = () => {
   const themeColors = {
@@ -300,69 +299,62 @@ const AdminPayments = () => {
 
 
 
-  const handleExportPdf = () => {
+  const handleExportFile = async (fileFormat = 'pdf') => {
     if (payments.length === 0) {
       toast.error('No data to export');
       return;
     }
-    const doc = new jsPDF({ orientation: 'landscape' });
-    doc.text('Payments Report', 14, 14);
-    autoTable(doc, {
-      startY: 20,
-      head: [['Invoice', 'Resident', 'House', 'Amount', 'Status', 'Method', 'Due Date']],
-      body: payments.map((p) => ([
-        p.invoiceNumber,
-        `${p.residentId?.firstName || ''} ${p.residentId?.lastName || ''}`.trim(),
-        p.residentId?.houseNumber || 'N/A',
-        p.amount,
-        p.status,
-        p.paymentMethod || '',
-        p.dueDate ? new Date(p.dueDate).toLocaleDateString() : ''
-      ])),
-      styles: { fontSize: 8 }
-    });
-    const exportTime = new Date();
-    const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-    doc.save(`payments_export_${timestamp}.pdf`);
-    toast.success('PDF exported');
-  };
+    setProcessing(true);
+    try {
+      const params = new URLSearchParams({
+        format: fileFormat,
+        timezoneOffset: String(new Date().getTimezoneOffset())
+      });
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (paymentTypeFilter !== 'all') params.set('paymentType', paymentTypeFilter);
+      if (paymentMethodFilter !== 'all') params.set('paymentMethod', paymentMethodFilter);
 
-  const handleExportCsv = () => {
-    if (payments.length === 0) {
-      toast.error('No data to export');
-      return;
+      const response = await fetch(getBackendApiUrl(`/api/payments?${params.toString()}`), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        let message = 'Export failed';
+        try {
+          const errorData = JSON.parse(text);
+          message = errorData.error || message;
+        } catch {
+          message = text || message;
+        }
+        throw new Error(message);
+      }
+
+      const expectedType = fileFormat === 'pdf' ? 'application/pdf' : 'text/csv';
+      if (!response.headers.get('content-type')?.includes(expectedType)) {
+        const text = await response.text();
+        throw new Error(text || `Export failed: invalid ${fileFormat.toUpperCase()} response`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('Z')[0];
+      a.href = url;
+      a.download = `VIMS_Payments_Report_${timestamp}.${fileFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(`${fileFormat.toUpperCase()} exported`);
+    } catch (error) {
+      toast.error(error.message || `Failed to export ${fileFormat.toUpperCase()}`);
+    } finally {
+      setProcessing(false);
     }
-    const exportTime = new Date();
-    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-    const rows = [
-      ['Publisher', 'VIMS - Village Integrated Management System'],
-      ['Report', 'Payments Report'],
-      ['Generated At', exportTime.toLocaleString()],
-      ['Total Records', payments.length],
-      [],
-      ['Invoice', 'Resident', 'House', 'Amount', 'Status', 'Method', 'Due Date'],
-      ...payments.map((p) => ([
-        p.invoiceNumber,
-        `${p.residentId?.firstName || ''} ${p.residentId?.lastName || ''}`.trim(),
-        p.residentId?.houseNumber || 'N/A',
-        p.amount,
-        p.status,
-        p.paymentMethod || '',
-        p.dueDate ? new Date(p.dueDate).toLocaleDateString() : ''
-      ]))
-    ];
-    const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-    a.href = url;
-    a.download = `payments_export_${timestamp}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    toast.success('CSV exported');
   };
 
   const handleViewReceiptImage = async (payment) => {
@@ -690,10 +682,10 @@ const AdminPayments = () => {
               <Button variant="outlined" startIcon={<SendIcon />} onClick={() => setReminderDialogOpen(true)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
                 Send Reminders
               </Button>
-              <Button variant="outlined" onClick={handleExportPdf} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+              <Button variant="outlined" onClick={() => handleExportFile('pdf')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
                 Export PDF
               </Button>
-              <Button variant="outlined" onClick={handleExportCsv} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+              <Button variant="outlined" onClick={() => handleExportFile('csv')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
                 Export CSV
               </Button>
               <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchPayments} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>

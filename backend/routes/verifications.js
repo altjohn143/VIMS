@@ -10,6 +10,7 @@ const { extractIdFieldsFromImagePaths } = require('../services/openaiIdOcrServic
 const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
+const { uploadImageBuffer } = require('../services/cloudinaryService');
 
 const router = express.Router();
 
@@ -27,6 +28,11 @@ const createFileMeta = (file) => {
     buffer: file.buffer,
     mimetype: file.mimetype || 'image/jpeg'
   };
+};
+
+const uploadIdDocument = async (fileMeta) => {
+  if (!fileMeta?.buffer) return null;
+  return uploadImageBuffer(fileMeta.buffer, { folder: 'vims/ids' });
 };
 
 // SECURITY: File filter with magic byte validation
@@ -124,6 +130,10 @@ router.post(
 
       const frontImage = frontMeta.filename;
       const backImage = backMeta.filename;
+      const [frontCloudinary, backCloudinary] = await Promise.all([
+        uploadIdDocument(frontMeta),
+        uploadIdDocument(backMeta)
+      ]);
 
       const frontPath = path.join(idsDir, frontMeta.filename);
       const backPath = path.join(idsDir, backMeta.filename);
@@ -163,9 +173,13 @@ router.post(
             residentDisplayName: snapName,
             documentType: req.body.documentType || 'valid_id',
             frontImage,
+            frontImageUrl: frontCloudinary?.secure_url || null,
+            frontImagePublicId: frontCloudinary?.public_id || null,
             frontImageData: frontMeta.buffer,
             frontImageMimeType: frontMeta.mimetype,
             backImage,
+            backImageUrl: backCloudinary?.secure_url || null,
+            backImagePublicId: backCloudinary?.public_id || null,
             backImageData: backMeta.buffer,
             backImageMimeType: backMeta.mimetype,
             status: 'manual_review',
@@ -174,9 +188,13 @@ router.post(
           });
         } else {
           verification.frontImage = frontImage;
+          verification.frontImageUrl = frontCloudinary?.secure_url || null;
+          verification.frontImagePublicId = frontCloudinary?.public_id || null;
           verification.frontImageData = frontMeta.buffer;
           verification.frontImageMimeType = frontMeta.mimetype;
           verification.backImage = backImage;
+          verification.backImageUrl = backCloudinary?.secure_url || null;
+          verification.backImagePublicId = backCloudinary?.public_id || null;
           verification.backImageData = backMeta.buffer;
           verification.backImageMimeType = backMeta.mimetype;
           verification.residentEmail = snapEmail;
@@ -213,18 +231,26 @@ router.post(
           residentDisplayName: snapName,
           documentType: req.body.documentType || 'valid_id',
           frontImage,
+          frontImageUrl: frontCloudinary?.secure_url || null,
+          frontImagePublicId: frontCloudinary?.public_id || null,
           frontImageData: frontMeta.buffer,
           frontImageMimeType: frontMeta.mimetype,
           backImage,
+          backImageUrl: backCloudinary?.secure_url || null,
+          backImagePublicId: backCloudinary?.public_id || null,
           backImageData: backMeta.buffer,
           backImageMimeType: backMeta.mimetype,
           status: 'queued_ai'
         });
       } else {
         verification.frontImage = frontImage;
+        verification.frontImageUrl = frontCloudinary?.secure_url || null;
+        verification.frontImagePublicId = frontCloudinary?.public_id || null;
         verification.frontImageData = frontMeta.buffer;
         verification.frontImageMimeType = frontMeta.mimetype;
         verification.backImage = backImage;
+        verification.backImageUrl = backCloudinary?.secure_url || null;
+        verification.backImagePublicId = backCloudinary?.public_id || null;
         verification.backImageData = backMeta.buffer;
         verification.backImageMimeType = backMeta.mimetype;
         verification.residentEmail = snapEmail;

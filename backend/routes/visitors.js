@@ -781,7 +781,8 @@ router.get('/debug/all', async (req, res) => {
 router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
   try {
     await notifyResidentOverstays();
-    const { status, date } = req.query;
+    const { status, date, format = 'json', timezoneOffset = '0' } = req.query;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
     
     let filter = {};
     
@@ -795,9 +796,81 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
     }
     
     const visitors = await Visitor.find(filter)
-      .populate('residentId', 'firstName lastName houseNumber')
-      .populate('approvedBy', 'firstName lastName')
+      .populate('residentId', 'firstName lastName houseNumber email')
+      .populate('approvedBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
+
+    if (format === 'pdf' || format === 'csv') {
+      const pdfReportService = require('../services/pdfReportService');
+      const formatExportDate = (value) => (
+        value ? new Date(value).toLocaleString('en-US') : 'N/A'
+      );
+      const formatPersonName = (person) => (
+        person ? `${person.firstName || ''} ${person.lastName || ''}`.trim() || 'N/A' : 'N/A'
+      );
+      const rows = visitors.map((visitor) => ({
+        'Visitor Name': visitor.visitorName || 'N/A',
+        'Phone': visitor.visitorPhone || 'N/A',
+        'Resident': formatPersonName(visitor.residentId),
+        'House': visitor.residentId?.houseNumber || 'N/A',
+        'Purpose': visitor.purpose || 'N/A',
+        'Status': visitor.status || 'N/A',
+        'Expected Arrival': formatExportDate(visitor.expectedArrival),
+        'Expected Departure': formatExportDate(visitor.expectedDeparture),
+        'Entry Time': formatExportDate(visitor.actualEntry),
+        'Exit Time': formatExportDate(visitor.actualExit),
+        'Approved By': visitor.approvedBy
+          ? `${formatPersonName(visitor.approvedBy)}${visitor.approvedBy.role ? ` (${visitor.approvedBy.role})` : ''}`
+          : 'N/A',
+        'Created At': formatExportDate(visitor.createdAt)
+      }));
+      const columns = [
+        { header: 'Visitor Name', key: 'Visitor Name', width: 18 },
+        { header: 'Phone', key: 'Phone', width: 14 },
+        { header: 'Resident', key: 'Resident', width: 18 },
+        { header: 'House', key: 'House', width: 10 },
+        { header: 'Purpose', key: 'Purpose', width: 22 },
+        { header: 'Status', key: 'Status', width: 12 },
+        { header: 'Expected Arrival', key: 'Expected Arrival', width: 18 },
+        { header: 'Entry Time', key: 'Entry Time', width: 18 },
+        { header: 'Exit Time', key: 'Exit Time', width: 18 },
+        { header: 'Approved By', key: 'Approved By', width: 18 }
+      ];
+      const title = 'Visitor Logs Report';
+      const todayStamp = new Date().toISOString().split('T')[0];
+
+      if (format === 'pdf') {
+        const pdfBuffer = await pdfReportService.generateDataReport(title, rows, columns, {
+          creator: req.user,
+          timezoneOffsetMinutes,
+          layout: 'landscape',
+          margin: 36,
+          table: { headerFontSize: 8, bodyFontSize: 7.5, cellPadding: 3, maxRows: 120 }
+        });
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitor_Logs_${todayStamp}.pdf"`);
+        return res.send(pdfBuffer);
+      }
+
+      const csvColumns = Object.keys(rows[0] || {
+        'Visitor Name': '',
+        Phone: '',
+        Resident: '',
+        House: '',
+        Purpose: '',
+        Status: '',
+        'Expected Arrival': '',
+        'Expected Departure': '',
+        'Entry Time': '',
+        'Exit Time': '',
+        'Approved By': '',
+        'Created At': ''
+      }).map((key) => ({ header: key, key }));
+      const csvContent = pdfReportService.generateCsvReport(title, rows, csvColumns, { creator: req.user, timezoneOffsetMinutes });
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitor_Logs_${todayStamp}.csv"`);
+      return res.send(csvContent);
+    }
     
     res.json({
       success: true,

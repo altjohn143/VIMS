@@ -13,6 +13,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
@@ -191,33 +192,46 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     }
   };
 
-  const handleExport = async () => {
+  const handleExportFile = async (fileFormat = 'pdf') => {
     try {
-      const data = filteredVisitors.map(v => ({
-        'Visitor Name': v.visitorName,
-        'Phone': v.visitorPhone,
-        'Resident': `${v.residentId?.firstName} ${v.residentId?.lastName}`,
-        'House': v.residentId?.houseNumber,
-        'Purpose': v.purpose,
-        'Status': v.status,
-        'Arrival': formatDate(v.expectedArrival),
-        'Entry': v.actualEntry ? formatDate(v.actualEntry) : 'Not entered',
-        'Exit': v.actualExit ? formatDate(v.actualExit) : 'Not exited',
-      }));
-
-      const csvString = JSON.stringify(data, null, 2);
-      const fileUri = FileSystem.documentDirectory + `visitor_logs_${format(new Date(), 'yyyy-MM-dd')}.json`;
-      
-      await FileSystem.writeAsStringAsync(fileUri, csvString, {
-        encoding: FileSystem.EncodingType.UTF8,
+      const token = await AsyncStorage.getItem('token');
+      const params = new URLSearchParams({
+        format: fileFormat,
+        timezoneOffset: String(new Date().getTimezoneOffset())
       });
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (dateFilter) params.set('date', dateFilter);
+
+      const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
+      const fileUri = `${FileSystem.documentDirectory}VIMS_Visitor_Logs_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${fileFormat}`;
+      const download = await FileSystem.downloadAsync(
+        `${baseUrl}/visitors?${params.toString()}`,
+        fileUri,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
+      if (download.status < 200 || download.status >= 300) {
+        throw new Error(`Export server returned status ${download.status}`);
+      }
 
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
+        await Sharing.shareAsync(download.uri, {
+          mimeType: fileFormat === 'pdf' ? 'application/pdf' : 'text/csv',
+          dialogTitle: `Share Visitor Logs ${fileFormat.toUpperCase()}`
+        });
+      } else {
+        Alert.alert('Export ready', `Saved to ${download.uri}`);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to export data');
+      Alert.alert('Export Failed', error.message || `Failed to export ${fileFormat.toUpperCase()}`);
     }
+  };
+
+  const handleExport = () => {
+    Alert.alert('Export Visitor Logs', 'Choose an export format.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'CSV', onPress: () => handleExportFile('csv') },
+      { text: 'PDF', onPress: () => handleExportFile('pdf') },
+    ]);
   };
 
 

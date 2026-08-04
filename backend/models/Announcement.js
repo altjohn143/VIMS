@@ -38,6 +38,10 @@ const announcementSchema = new mongoose.Schema(
     ,image: {
       type: String,
       default: ''
+    },
+    imagePublicId: {
+      type: String,
+      default: ''
     }
   },
   { timestamps: true }

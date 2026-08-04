@@ -14,7 +14,8 @@ const paymentSchema = new mongoose.Schema({
   dueDate: { type: Date, required: true },
   billingPeriod: { month: Number, year: Number },
   receiptNumber: { type: String, sparse: true },
-  receiptImage: { type: String, default: null }, // Added: stores the filename of uploaded receipt
+  receiptImage: { type: String, default: null },
+  receiptImagePublicId: { type: String, default: null },
   receiptAi: {
     fraudScore: { type: Number, min: 0, max: 1, default: null },
     flags: { type: [String], default: [] },

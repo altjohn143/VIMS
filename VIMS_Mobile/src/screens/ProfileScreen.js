@@ -399,12 +399,14 @@ const ProfileScreen = ({ navigation }) => {
 
   const buildDocumentUrl = (filename) => {
     if (!filename) return null;
+    if (/^https?:\/\//i.test(String(filename))) return filename;
     const baseUrl = api.defaults.baseURL?.replace(/\/api$/, '') || '';
     return `${baseUrl}/api/verifications/my-files/${filename}`;
   };
 
   const buildVehicleUrl = (filename) => {
     if (!filename) return null;
+    if (/^https?:\/\//i.test(String(filename))) return filename;
     const apiBaseUrl = api.defaults.baseURL || '';
     const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '');
     return `${baseUrl}/uploads/vehicle-photos/${filename}`;

@@ -8,9 +8,13 @@ const identityVerificationSchema = new mongoose.Schema(
     residentDisplayName: { type: String, default: '' },
     documentType: { type: String, default: 'valid_id' },
     frontImage: { type: String, default: null },
+    frontImageUrl: { type: String, default: null },
+    frontImagePublicId: { type: String, default: null },
     frontImageData: { type: Buffer, default: null },
     frontImageMimeType: { type: String, default: null },
     backImage: { type: String, default: null },
+    backImageUrl: { type: String, default: null },
+    backImagePublicId: { type: String, default: null },
     backImageData: { type: Buffer, default: null },
     backImageMimeType: { type: String, default: null },
     /** True once front/back ID passed automated checks (OCR/AI). Does NOT grant login — User.isApproved does. */

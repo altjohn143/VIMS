@@ -712,6 +712,7 @@ const AdminUserManagement = () => {
 
   const buildVehicleUrl = (filename) => {
     if (!filename) return null;
+    if (/^https?:\/\//i.test(String(filename))) return filename;
     return getBackendApiUrl(`/uploads/vehicle-photos/${filename}`);
   };
 

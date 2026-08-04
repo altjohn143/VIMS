@@ -244,7 +244,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
     setSelectedImageUri(null);
     setShowImageViewer(true);
 
-    const previewUri = await getProtectedImageDataUrl(`/payments/receipt-image/${payment.receiptImage}`);
+    const previewUri = await getProtectedImageDataUrl(`/payments/receipt-image/payment/${payment._id}`);
     if (previewUri) {
       setSelectedImageUri(previewUri);
     } else {

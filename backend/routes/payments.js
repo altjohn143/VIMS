@@ -7,6 +7,7 @@ const { protect, authorize } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { analyzeReceiptFraud } = require('../services/openaiReceiptFraudService');
+const { uploadImageBuffer } = require('../services/cloudinaryService');
 
 const MONTHLY_DUES_AMOUNT_KEY = 'monthly_dues_amount';
 
@@ -208,19 +209,8 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true, mode: 0o755 });
 }
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, 'receipt-' + uniqueSuffix + ext);
-  }
-});
-
 const upload = multer({ 
-  storage: storage, 
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
@@ -232,7 +222,7 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
     console.log('=== DEBUG UPLOAD ===');
     console.log('Payment ID received:', paymentId);
     console.log('Reference number:', referenceNumber);
-    console.log('File received:', receiptFile ? `Yes (${receiptFile.filename})` : 'No');
+    console.log('File received:', receiptFile ? `Yes (${receiptFile.originalname})` : 'No');
     
     // Validate paymentId format
     if (!paymentId || paymentId === 'undefined' || paymentId === 'null') {
@@ -251,14 +241,26 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
     payment.paymentMethod = 'qrph';
     payment.referenceNumber = referenceNumber;
     payment.status = 'pending';
-    payment.receiptImage = receiptFile ? receiptFile.filename : null; // Store the filename
-    payment.notes = `QRPh payment submitted. Receipt: ${receiptFile ? receiptFile.filename : 'No receipt uploaded'}`;
-    if (receiptFile?.filename) {
+    let tempReceiptPath = null;
+    if (receiptFile?.buffer) {
+      const uploadedReceipt = await uploadImageBuffer(receiptFile.buffer, {
+        folder: 'vims/receipts'
+      });
+      payment.receiptImage = uploadedReceipt.secure_url;
+      payment.receiptImagePublicId = uploadedReceipt.public_id;
+    } else {
+      payment.receiptImage = null;
+      payment.receiptImagePublicId = null;
+    }
+    payment.notes = `QRPh payment submitted. Receipt: ${payment.receiptImage || 'No receipt uploaded'}`;
+    if (receiptFile?.buffer) {
       try {
         const resident = await User.findById(req.user.id).select('firstName lastName houseNumber email');
-        const receiptAbsPath = path.join(uploadDir, receiptFile.filename);
+        const tempName = `receipt-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(receiptFile.originalname || '.jpg')}`;
+        tempReceiptPath = path.join(uploadDir, tempName);
+        await fs.promises.writeFile(tempReceiptPath, receiptFile.buffer);
         const analysis = await analyzeReceiptFraud({
-          receiptAbsPath,
+          receiptAbsPath: tempReceiptPath,
           paymentContext: {
             expectedAmount: payment.amount,
             expectedReferenceNumber: referenceNumber || '',
@@ -289,6 +291,9 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
           model: ''
         };
       }
+      finally {
+        if (tempReceiptPath) fs.promises.unlink(tempReceiptPath).catch(() => {});
+      }
     }
     await payment.save();
     
@@ -312,6 +317,10 @@ router.get('/receipt-image/payment/:paymentId', protect, authorize('admin'), asy
     const payment = await Payment.findById(req.params.paymentId).select('receiptImage');
     if (!payment || !payment.receiptImage) {
       return res.status(404).json({ success: false, error: 'Receipt not found' });
+    }
+
+    if (/^https?:\/\//i.test(payment.receiptImage)) {
+      return res.redirect(payment.receiptImage);
     }
 
     const safeFilename = path.basename(payment.receiptImage);
@@ -340,6 +349,10 @@ router.get('/receipt-image/:filename', protect, authorize('admin'), async (req, 
   try {
     let { filename } = req.params;
     filename = decodeURIComponent(filename);
+
+    if (/^https?:\/\//i.test(filename)) {
+      return res.redirect(filename);
+    }
 
     // Security: Prevent directory traversal
     const safeFilename = path.basename(filename);

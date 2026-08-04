@@ -18,7 +18,7 @@ const { protect } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
-const { uploadImagePath } = require('../services/cloudinaryService');
+const { uploadImageBuffer } = require('../services/cloudinaryService');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -203,28 +203,8 @@ const vehicleImageUpload = multer({
   }
 });
 
-const registerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = file.fieldname === 'profilePhoto'
-      ? path.join(__dirname, '../uploads/profile-photos')
-      : path.join(__dirname, '../uploads/vehicle-photos');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    if (file.fieldname === 'profilePhoto') {
-      cb(null, `registration_${uniqueSuffix}_${file.originalname}`);
-    } else {
-      cb(null, `vehicle_${uniqueSuffix}_${file.originalname}`);
-    }
-  }
-});
-
 const registerUpload = multer({
-  storage: registerStorage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
@@ -508,24 +488,11 @@ router.post('/register', registerUpload.fields([
       profilePhoto: profilePhotoFile
         ? {
             originalname: profilePhotoFile.originalname,
-            filename: profilePhotoFile.filename,
             mimetype: profilePhotoFile.mimetype,
-            size: profilePhotoFile.size,
-            destination: profilePhotoFile.destination,
-            path: profilePhotoFile.path
+            size: profilePhotoFile.size
           }
         : null
     });
-
-    // Handle profile photo upload
-    if (profilePhotoFile) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('📸 Profile photo uploaded and stored at:', path.join(__dirname, '../uploads/profile-photos', profilePhotoFile.filename));
-      } else {
-        console.warn('⚠️ Skipping local file save in production - profile photo metadata saved to DB only');
-      }
-      userData.profilePhoto = profilePhotoFile.filename;
-    }
 
     // Add house information for residents using selected lot
     if (userRole === 'resident') {
@@ -590,19 +557,20 @@ router.post('/register', registerUpload.fields([
       const validVehicles = noVehicles
         ? []
         : Array.isArray(vehicles)
-          ? vehicles.map((v, index) => {
+          ? await Promise.all(vehicles.map(async (v, index) => {
               const vehicleData = { ...v };
               // Check for uploaded vehicle image
               const vehicleImageKey = `vehicleImage_${index}`;
               if (req.files && req.files[vehicleImageKey] && req.files[vehicleImageKey][0]) {
                 const imageFile = req.files[vehicleImageKey][0];
-                vehicleData.carImage = imageFile.filename;
-                if (process.env.NODE_ENV !== 'production') {
-                  console.log(`🚗 Vehicle ${index + 1} image uploaded:`, imageFile.filename);
-                }
+                const uploadedVehicleImage = await uploadImageBuffer(imageFile.buffer, {
+                  folder: 'vims/vehicles'
+                });
+                vehicleData.carImage = uploadedVehicleImage.secure_url;
+                vehicleData.carImagePublicId = uploadedVehicleImage.public_id;
               }
               return vehicleData;
-            }).filter(v => v && (v.plateNumber || v.make || v.model || v.color))
+            })).then((rows) => rows.filter(v => v && (v.plateNumber || v.make || v.model || v.color)))
           : [];
 
       const validFamilyMembers = Array.isArray(familyMembers)
@@ -621,15 +589,11 @@ router.post('/register', registerUpload.fields([
 
     // Replace the temporary local filename with a permanent Cloudinary URL.
     if (profilePhotoFile) {
-      try {
-        const uploadedPhoto = await uploadImagePath(profilePhotoFile.path, {
-          folder: 'vims/profiles'
-        });
-        userData.profilePhoto = uploadedPhoto.secure_url;
-        userData.profilePhotoPublicId = uploadedPhoto.public_id;
-      } finally {
-        fs.promises.unlink(profilePhotoFile.path).catch(() => {});
-      }
+      const uploadedPhoto = await uploadImageBuffer(profilePhotoFile.buffer, {
+        folder: 'vims/profiles'
+      });
+      userData.profilePhoto = uploadedPhoto.secure_url;
+      userData.profilePhotoPublicId = uploadedPhoto.public_id;
     }
 
     // Create user

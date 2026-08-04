@@ -4,26 +4,10 @@ const Announcement = require('../models/Announcement');
 const { protect, authorize } = require('../middleware/auth');
 const ActivityNotificationService = require('../services/activityNotificationService');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-const uploadDir = path.join(__dirname, '../uploads/announcements');
-fs.mkdirSync(uploadDir, { recursive: true });
-
-// Multer storage config for announcement images
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, 'announcement-' + uniqueSuffix + ext);
-  }
-});
+const { uploadImageBuffer } = require('../services/cloudinaryService');
 
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     // Accept only image files
     if (!file.mimetype.startsWith('image/')) {
@@ -38,7 +22,9 @@ const router = express.Router();
 const withImageUrl = (req, row) => {
   const obj = typeof row.toObject === 'function' ? row.toObject() : row;
   if (obj.image) {
-    obj.imageUrl = `${req.protocol}://${req.get('host')}/uploads/announcements/${obj.image}`;
+    obj.imageUrl = /^https?:\/\//i.test(obj.image)
+      ? obj.image
+      : `${req.protocol}://${req.get('host')}/uploads/announcements/${obj.image}`;
   }
   return obj;
 };
@@ -220,8 +206,13 @@ router.post('/', protect, authorize('admin'), upload.single('image'), async (req
     }
 
     let image = '';
+    let imagePublicId = '';
     if (req.file) {
-      image = req.file.filename;
+      const uploadedImage = await uploadImageBuffer(req.file.buffer, {
+        folder: 'vims/announcements'
+      });
+      image = uploadedImage.secure_url;
+      imagePublicId = uploadedImage.public_id;
     }
 
     const row = await Announcement.create({
@@ -232,7 +223,8 @@ router.post('/', protect, authorize('admin'), upload.single('image'), async (req
       scheduledAt: status === 'scheduled' ? new Date(scheduledAt) : null,
       publishedAt: status === 'published' ? new Date() : null,
       createdBy: req.user._id,
-      image
+      image,
+      imagePublicId
     });
 
     res.status(201).json({ success: true, data: withImageUrl(req, row) });

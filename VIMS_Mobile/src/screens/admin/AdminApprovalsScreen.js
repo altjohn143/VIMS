@@ -14,7 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
@@ -291,7 +291,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, roleLayouts.admin.screen]}>
         <ActivityIndicator size="large" color={themeColors.primary} />
         <Text style={styles.loadingText}>Loading pending approvals...</Text>
       </View>
@@ -299,8 +299,8 @@ const AdminApprovalsScreen = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, roleLayouts.admin.screen]}>
+      <View style={[styles.header, roleLayouts.admin.header]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
@@ -327,7 +327,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
         data={pendingUsers}
         renderItem={renderUserCard}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[roleLayouts.admin.content, styles.listContainer]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -598,14 +598,13 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: themeColors.primaryDeep,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    paddingTop: 54,
+    paddingBottom: 22,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    gap: 12,
+    borderBottomRightRadius: 34,
   },
   headerRight: {
     flexDirection: 'row',
@@ -618,6 +617,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 20,
     fontWeight: '800',
+    flex: 1,
   },
   refreshButton: {
     flexDirection: 'row',
@@ -635,9 +635,11 @@ const styles = StyleSheet.create({
   },
   statsCard: {
     backgroundColor: 'white',
-    margin: 16,
-    padding: 20,
-    borderRadius: 18,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 0,
+    padding: 16,
+    borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -655,11 +657,11 @@ const styles = StyleSheet.create({
     color: themeColors.primary,
   },
   listContainer: {
-    padding: 16,
+    paddingBottom: 32,
   },
   userCard: {
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,

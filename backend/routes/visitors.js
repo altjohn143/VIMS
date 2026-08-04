@@ -1458,7 +1458,6 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
       return res.send(pdfBuffer);
     }
 
-    // Convert to CSV format for JSON response
     const csvData = visitors.map(v => ({
       'Visitor ID': v._id,
       'Visitor Name': v.visitorName,
@@ -1479,6 +1478,35 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
       'Created At': v.createdAt,
       'Security Notes': v.securityNotes || 'N/A'
     }));
+
+    if (format === 'csv') {
+      const pdfReportService = require('../services/pdfReportService');
+      const columns = Object.keys(csvData[0] || {
+        'Visitor ID': '',
+        'Visitor Name': '',
+        'Visitor Phone': '',
+        Purpose: '',
+        'Vehicle Number': '',
+        Companions: '',
+        'Resident Name': '',
+        'Resident House': '',
+        'Expected Arrival': '',
+        'Expected Departure': '',
+        'Actual Entry': '',
+        'Actual Exit': '',
+        Status: '',
+        'Approved By': '',
+        'Approval Time': '',
+        'Rejection Reason': '',
+        'Created At': '',
+        'Security Notes': ''
+      }).map((key) => ({ header: key, key }));
+      const csvContent = pdfReportService.generateCsvReport('VIMS Visitors Export Report', csvData, columns, { creator: req.user, timezoneOffsetMinutes });
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitors_Export_${new Date().toISOString().split('T')[0]}.csv"`);
+      return res.send(csvContent);
+    }
 
     res.json({
       success: true,

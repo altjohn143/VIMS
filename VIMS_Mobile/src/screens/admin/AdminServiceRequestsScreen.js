@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
@@ -222,18 +222,18 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     setPriorityFilter('all');
   };
 
-  const handleExportPdf = async () => {
+  const handleExportFile = async (fileFormat = 'pdf') => {
     setExporting(true);
     try {
       const params = new URLSearchParams();
-      params.append('format', 'pdf');
+      params.append('format', fileFormat);
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
       if (priorityFilter !== 'all') params.append('priority', priorityFilter);
       params.append('timezoneOffset', String(new Date().getTimezoneOffset()));
       const token = await AsyncStorage.getItem('token');
       const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
-      const fileUri = `${FileSystem.documentDirectory}service_requests_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}service_requests_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${fileFormat}`;
       const download = await FileSystem.downloadAsync(
         `${baseUrl}/service-requests/export?${params.toString()}`,
         fileUri,
@@ -241,12 +241,15 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
       );
       if (download.status < 200 || download.status >= 300) throw new Error(`Export server returned status ${download.status}`);
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, { mimeType: 'application/pdf', dialogTitle: 'Share Service Requests PDF' });
+        await Sharing.shareAsync(fileUri, {
+          mimeType: fileFormat === 'pdf' ? 'application/pdf' : 'text/csv',
+          dialogTitle: `Share Service Requests ${fileFormat.toUpperCase()}`
+        });
       } else {
-        Alert.alert('Export Complete', `PDF saved to ${fileUri}`);
+        Alert.alert('Export Complete', `${fileFormat.toUpperCase()} saved to ${fileUri}`);
       }
     } catch (error) {
-      Alert.alert('Export Failed', error.response?.data?.error || error.message || 'Failed to export PDF');
+      Alert.alert('Export Failed', error.response?.data?.error || error.message || `Failed to export ${fileFormat.toUpperCase()}`);
     } finally {
       setExporting(false);
     }
@@ -484,11 +487,15 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
             <Ionicons name="archive-outline" size={20} color={themeColors.primaryDeep} />
             <Text style={styles.queueToolText}>Archived</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleExportPdf} style={styles.queueTool} disabled={exporting}>
+          <TouchableOpacity onPress={() => handleExportFile('pdf')} style={styles.queueTool} disabled={exporting}>
             {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : (
-              <Ionicons name="download-outline" size={20} color={themeColors.primaryDeep} />
+              <Ionicons name="document-text-outline" size={20} color={themeColors.primaryDeep} />
             )}
-            <Text style={styles.queueToolText}>Export</Text>
+            <Text style={styles.queueToolText}>PDF</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleExportFile('csv')} style={styles.queueTool} disabled={exporting}>
+            <Ionicons name="grid-outline" size={20} color={themeColors.primaryDeep} />
+            <Text style={styles.queueToolText}>CSV</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -909,10 +916,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
+  container: roleLayouts.admin.screen,
   queueHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   queueHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   queueEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
@@ -941,15 +945,15 @@ const styles = StyleSheet.create({
   cancelledMetadata: { marginTop: 8, padding: 9, borderRadius: 10, backgroundColor: themeColors.error + '10' },
   cancelledMetaText: { color: themeColors.error, fontSize: 11, fontWeight: '700' },
   header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    ...roleLayouts.admin.header,
+    paddingTop: 54,
+    paddingBottom: 22,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 34,
   },
   headerRight: {
   flexDirection: 'row',
@@ -1061,8 +1065,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   requestCard: {
-    backgroundColor: 'white',
-    borderRadius: 18,
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: 12,
     padding: 18,
     marginBottom: 14,
     borderTopWidth: 4,

@@ -392,30 +392,56 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
       .populate('residentId', 'firstName lastName houseNumber')
       .sort({ createdAt: -1 });
 
+    const reportData = payments.map((payment) => ({
+      Resident: payment.residentId ? `${payment.residentId.firstName || ''} ${payment.residentId.lastName || ''}`.trim() : 'Unknown',
+      House: payment.residentId?.houseNumber || 'N/A',
+      Amount: payment.amount,
+      Type: payment.paymentType,
+      Method: payment.paymentMethod || 'N/A',
+      Status: payment.status,
+      'Due Date': payment.dueDate ? payment.dueDate.toLocaleDateString() : 'N/A',
+      Created: payment.createdAt ? payment.createdAt.toLocaleDateString() : 'N/A'
+    }));
+
+    const reportColumns = [
+      { key: 'Resident', label: 'Resident', width: 20 },
+      { key: 'House', label: 'House', width: 10 },
+      { key: 'Amount', label: 'Amount', width: 12 },
+      { key: 'Type', label: 'Type', width: 14 },
+      { key: 'Method', label: 'Method', width: 14 },
+      { key: 'Status', label: 'Status', width: 12 },
+      { key: 'Due Date', label: 'Due Date', width: 14 },
+      { key: 'Created', label: 'Created', width: 14 }
+    ];
+
     if (format === 'pdf') {
       // Import PDF service
       const pdfReportService = require('../services/pdfReportService');
 
-      const columns = [
-        { key: 'residentId.firstName', label: 'Resident' },
-        { key: 'residentId.houseNumber', label: 'House' },
-        { key: 'amount', label: 'Amount' },
-        { key: 'paymentType', label: 'Type' },
-        { key: 'status', label: 'Status' },
-        { key: 'dueDate', label: 'Due Date' },
-        { key: 'createdAt', label: 'Created' }
-      ];
-
       const pdfBuffer = await pdfReportService.generateDataReport(
         'VIMS Payments Report',
-        payments,
-        columns,
+        reportData,
+        reportColumns,
         { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role }, timezoneOffsetMinutes }
       );
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Payments_Report_${new Date().toISOString().split('T')[0]}.pdf"`);
       return res.send(pdfBuffer);
+    }
+
+    if (format === 'csv') {
+      const pdfReportService = require('../services/pdfReportService');
+      const csvContent = pdfReportService.generateCsvReport(
+        'VIMS Payments Report',
+        reportData,
+        reportColumns,
+        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role }, timezoneOffsetMinutes }
+      );
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Payments_Report_${new Date().toISOString().split('T')[0]}.csv"`);
+      return res.send(csvContent);
     }
 
     // Regular JSON response with pagination

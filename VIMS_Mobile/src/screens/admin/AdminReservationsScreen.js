@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import api from '../../utils/api';
-import { themeColors } from '../../utils/theme';
+import { themeColors, roleLayouts } from '../../utils/theme';
 
 const AdminReservationsScreen = ({ navigation }) => {
   const [reservations, setReservations] = useState([]);
@@ -988,10 +988,7 @@ const AdminReservationsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
+  container: roleLayouts.admin.screen,
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1018,6 +1015,7 @@ const styles = StyleSheet.create({
   headerIconButton: { flexDirection: 'row', height: 36, paddingHorizontal: 11, borderRadius: 10, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: themeColors.border },
   headerIconButtonText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '800' },
   header: {
+    ...roleLayouts.admin.header,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1025,7 +1023,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 20,
     backgroundColor: '#edf7f1',
-    borderBottomRightRadius: 42,
+    borderBottomRightRadius: 34,
   },
   backButton: {
     padding: 8,
@@ -1045,7 +1043,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   statsStrip: { gap: 9, paddingBottom: 16 },
-  statCard: { width: 104, padding: 13, backgroundColor: 'white', borderRadius: 15, borderWidth: 1, borderColor: '#e2e8f0' },
+  statCard: { width: 104, padding: 13, backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: themeColors.border },
   statValue: { fontSize: 22, fontWeight: '900' },
   statLabel: { color: '#64748b', fontSize: 10, fontWeight: '800', marginTop: 3 },
   searchRow: { flexDirection: 'row', gap: 9, marginBottom: 12 },
@@ -1087,8 +1085,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   reservationCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: 12,
     padding: 18,
     marginBottom: 14,
     borderLeftWidth: 5,

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
@@ -183,10 +183,10 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
       params.append('timezoneOffset', String(new Date().getTimezoneOffset()));
 
       let fileUri;
-      if (exportFormat === 'pdf') {
+      if (exportFormat === 'pdf' || exportFormat === 'csv') {
         const token = await AsyncStorage.getItem('token');
         const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
-        fileUri = `${FileSystem.documentDirectory}visitors_export_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.pdf`;
+        fileUri = `${FileSystem.documentDirectory}visitors_export_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${exportFormat}`;
         const download = await FileSystem.downloadAsync(
           `${baseUrl}/visitors/admin/export?${params.toString()}`,
           fileUri,
@@ -195,19 +195,11 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
         if (download.status < 200 || download.status >= 300) {
           throw new Error(`Export server returned status ${download.status}`);
         }
-      } else {
-        const response = await api.get(`/visitors/admin/export?${params.toString()}`);
-        if (!response.data?.success) throw new Error(response.data?.error || 'Export failed');
-        const jsonString = JSON.stringify(response.data.data, null, 2);
-        fileUri = `${FileSystem.documentDirectory}visitors_export_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.json`;
-        await FileSystem.writeAsStringAsync(fileUri, jsonString, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
       }
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
-          mimeType: exportFormat === 'pdf' ? 'application/pdf' : 'application/json',
+          mimeType: exportFormat === 'pdf' ? 'application/pdf' : 'text/csv',
           dialogTitle: `Share Visitor ${exportFormat.toUpperCase()} Export`,
         });
       } else {
@@ -640,7 +632,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
             <View style={styles.exportFormatRow}>
               {[
                 ['pdf', 'PDF report', 'document-text-outline'],
-                ['json', 'JSON data', 'code-slash-outline'],
+                ['csv', 'CSV data', 'grid-outline'],
               ].map(([value, label, icon]) => (
                 <TouchableOpacity
                   key={value}
@@ -691,10 +683,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
+  container: roleLayouts.admin.screen,
   flowHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   flowHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   flowEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
@@ -709,15 +698,15 @@ const styles = StyleSheet.create({
   flowSummaryValue: { textAlign: 'center', color: themeColors.primaryDeep, fontSize: 21, fontWeight: '900' },
   flowSummaryLabel: { color: themeColors.textSecondary, fontSize: 10, fontWeight: '800', marginTop: 2 },
   header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    ...roleLayouts.admin.header,
+    paddingTop: 54,
+    paddingBottom: 22,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 44,
-    borderBottomRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 34,
   },
   headerRight: {
   flexDirection: 'row',
@@ -748,10 +737,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginRight: 10,
     minWidth: 108,
-    backgroundColor: '#edf7f1',
-    borderRadius: 999,
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   statValue: {
     fontSize: 18,
@@ -823,7 +814,7 @@ const styles = StyleSheet.create({
   advancedFilterToggle: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
   advancedFilterToggleText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
   activeFilterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.warning },
-  exportModalCard: { width: '92%', maxWidth: 520, backgroundColor: 'white', borderRadius: 24, padding: 20 },
+  exportModalCard: { width: '92%', maxWidth: 520, backgroundColor: 'white', borderRadius: 12, padding: 20 },
   exportHelper: { color: themeColors.textSecondary, fontSize: 12, marginTop: 3 },
   exportLabel: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800', marginTop: 16, marginBottom: 8 },
   exportFormatRow: { flexDirection: 'row', gap: 10 },
@@ -837,8 +828,8 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 18,
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 14,
     borderLeftWidth: 3,
     borderLeftColor: themeColors.primary,

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../utils/api';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 
 const officerName = (officer) =>
   `${officer?.firstName || ''} ${officer?.lastName || ''}`.trim() || 'Unassigned officer';
@@ -320,9 +320,9 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
+  container: roleLayouts.security.screen,
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  topBar: { backgroundColor: themeColors.primaryDeep, paddingTop: 52, paddingHorizontal: 16, paddingBottom: 24, flexDirection: 'row', alignItems: 'center', borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  topBar: { ...roleLayouts.security.header, gap: 10 },
   headerButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   titleBlock: { flex: 1, marginLeft: 8 },
@@ -330,11 +330,11 @@ const styles = StyleSheet.create({
   headerTitle: { color: 'white', fontSize: 23, fontWeight: '900', marginTop: 2 },
   list: { padding: 16, paddingBottom: 32 },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  summaryCard: { width: '48%', backgroundColor: 'white', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: themeColors.border },
+  summaryCard: { width: '48%', backgroundColor: 'white', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: themeColors.border },
   summaryValue: { fontSize: 25, fontWeight: '900', color: themeColors.textPrimary, marginTop: 8 },
   summaryLabel: { fontSize: 12, color: themeColors.textSecondary, fontWeight: '700', marginTop: 2 },
   sectionTitle: { fontSize: 18, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 12, marginTop: 4 },
-  card: { backgroundColor: 'white', borderRadius: 20, padding: 17, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border },
+  card: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border },
   cardHeading: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   cardHeadingText: { flex: 1, minWidth: 0 },
   avatar: { width: 42, height: 42, borderRadius: 14, backgroundColor: themeColors.primary + '18', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
@@ -350,13 +350,13 @@ const styles = StyleSheet.create({
   routeButton: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: themeColors.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 6 },
   routeButtonText: { color: 'white', fontSize: 12, fontWeight: '900' },
   notes: { color: themeColors.textPrimary, fontSize: 13, lineHeight: 19, marginTop: 9, paddingTop: 9, borderTopWidth: 1, borderTopColor: themeColors.border },
-  coverageCard: { backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 18 },
+  coverageCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 18, borderWidth: 1, borderColor: themeColors.border },
   coverageRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   coverageName: { fontWeight: '900', color: themeColors.textPrimary },
   empty: { alignItems: 'center', paddingVertical: 48 },
   emptyTitle: { color: themeColors.textPrimary, fontWeight: '800', fontSize: 16, marginTop: 12 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  routeSheet: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18 },
+  routeSheet: { backgroundColor: 'white', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 18 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   modalTitle: { fontSize: 18, fontWeight: '900', color: themeColors.textPrimary },
   modalSubtitle: { fontSize: 12, fontWeight: '700', color: themeColors.textSecondary, marginTop: 2 },

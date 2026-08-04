@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
 import api from '../../utils/api';
-import { themeColors } from '../../utils/theme';
+import { themeColors, roleLayouts } from '../../utils/theme';
 
 const SecurityQrScannerScreen = () => {
   const [hasPermission, setHasPermission] = useState(false);
@@ -148,15 +148,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#0b1220',
   },
   header: {
-    paddingTop: 56,
-    paddingBottom: 22,
-    paddingHorizontal: 16,
-    backgroundColor: themeColors.primaryDeep,
+    ...roleLayouts.security.header,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
   },
   headerTitle: {
     color: 'white',

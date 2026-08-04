@@ -243,7 +243,8 @@ router.get('/assignments', protect, authorize('admin', 'security'), async (req, 
 // Export patrol logs data (CSV or PDF format)
 router.get('/export', protect, authorize('security', 'admin'), async (req, res) => {
   try {
-    const { format = 'pdf', phase, status, startDate, endDate } = req.query;
+    const { format = 'pdf', phase, status, startDate, endDate, timezoneOffset = 0 } = req.query;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     // Build filter based on user role and query parameters
     let filter = {};
@@ -307,10 +308,8 @@ router.get('/export', protect, authorize('security', 'admin'), async (req, res) 
       return res.send(pdfBuffer);
     }
 
-    // CSV format
-    const csvData = data.map(row => columns.map(col => `"${row[col.key] || ''}"`).join(','));
-    const csvHeader = columns.map(col => `"${col.header}"`).join(',');
-    const csvContent = [csvHeader, ...csvData].join('\n');
+    const pdfReportService = require('../services/pdfReportService');
+    const csvContent = pdfReportService.generateCsvReport(title, data, columns, { creator: req.user, timezoneOffsetMinutes });
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="VIMS_Patrol_Logs_Export_${new Date().toISOString().split('T')[0]}.csv"`);

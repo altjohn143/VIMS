@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import api from '../utils/api';
-import { themeColors } from '../utils/theme';
+import { themeColors, roleLayouts } from '../utils/theme';
 
 const issueTypes = [
   'Noise complaint',
@@ -352,22 +352,18 @@ const ComplaintsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
+  container: roleLayouts.resident.screen,
   header: {
-    paddingTop: 52,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    ...roleLayouts.resident.headerLight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: themeColors.background,
-    borderBottomRightRadius: 44,
   },
   headerTitle: { fontSize: 17, fontWeight: '800', color: themeColors.textPrimary },
   content: { flex: 1 },
   contentInner: { padding: 14, paddingBottom: 28 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  statBox: { width: '48%', backgroundColor: themeColors.cardBackground, borderRadius: 6, padding: 16, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
+  statBox: { width: '48%', backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: themeColors.border, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
   statValue: { fontSize: 24, fontWeight: '900', color: themeColors.primary },
   statLabel: { color: themeColors.textSecondary, fontWeight: '700', marginTop: 2 },
   primaryBtn: {
@@ -383,7 +379,7 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontWeight: '800' },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary, marginTop: 18, marginBottom: 10 },
   emptyText: { color: themeColors.textSecondary, textAlign: 'center', paddingVertical: 18 },
-  card: { backgroundColor: themeColors.cardBackground, borderRadius: 6, padding: 18, borderLeftWidth: 5, borderLeftColor: themeColors.primary, marginBottom: 10 },
+  card: { backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: themeColors.border, borderLeftWidth: 4, borderLeftColor: themeColors.primary, marginBottom: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   cardTitleWrap: { flex: 1 },
   cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary },

@@ -378,6 +378,28 @@ ${payments.slice(0, 10).map(p => `- ${p.user?.firstName} ${p.user?.lastName} (${
       return res.send(pdfBuffer);
     }
 
+    if (format === 'csv') {
+      const csvRows = [
+        { Label: 'Period', Value: period },
+        { Label: 'Year', Value: year },
+        { Label: 'Month', Value: reportData.month || 'N/A' },
+        { Label: 'Total Revenue', Value: totalRevenue },
+        { Label: 'Number of Payments', Value: paymentCount },
+        { Label: 'Total Residents', Value: totalUsers },
+        { Label: 'New Residents', Value: newUsers },
+        { Label: 'Report Analysis', Value: reportData.report }
+      ];
+      const csvContent = pdfReportService.generateCsvReport(
+        'VIMS Financial Report',
+        csvRows,
+        [{ key: 'Label', label: 'Label' }, { key: 'Value', label: 'Value' }],
+        { creator: req.user, timezoneOffsetMinutes }
+      );
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Financial_Report_${period}_${year}${month ? '_' + month : ''}.csv"`);
+      return res.send(csvContent);
+    }
+
     return res.json({
       success: true,
       data: reportData
@@ -459,6 +481,27 @@ ${visitors.slice(0, 15).map(v => `- ${v.visitorName} visiting ${v.user?.firstNam
       return res.send(pdfBuffer);
     }
 
+    if (format === 'csv') {
+      const csvRows = [
+        { Label: 'Period', Value: period },
+        { Label: 'Date', Value: date },
+        { Label: 'Total Visitors', Value: totalVisitors },
+        { Label: 'Approved Visitors', Value: approvedVisitors },
+        { Label: 'Pending Visitors', Value: pendingVisitors },
+        { Label: 'Rejected Visitors', Value: rejectedVisitors },
+        { Label: 'Report Analysis', Value: reportData.report }
+      ];
+      const csvContent = pdfReportService.generateCsvReport(
+        'VIMS Visitor Security Report',
+        csvRows,
+        [{ key: 'Label', label: 'Label' }, { key: 'Value', label: 'Value' }],
+        { creator: req.user, timezoneOffsetMinutes }
+      );
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Visitor_Report_${period}_${date.replace(/-/g, '_')}.csv"`);
+      return res.send(csvContent);
+    }
+
     return res.json({
       success: true,
       data: reportData
@@ -538,6 +581,27 @@ ${incidents.slice(0, 10).map(i => `- ${i.title}: ${i.description.substring(0, 10
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Incident_Report_${period}_${date.replace(/-/g, '_')}.pdf"`);
       return res.send(pdfBuffer);
+    }
+
+    if (format === 'csv') {
+      const csvRows = [
+        { Label: 'Period', Value: period },
+        { Label: 'Date', Value: date },
+        { Label: 'Total Incidents', Value: totalIncidents },
+        { Label: 'Resolved Incidents', Value: resolvedIncidents },
+        { Label: 'Pending Incidents', Value: pendingIncidents },
+        { Label: 'Urgent Incidents', Value: urgentIncidents },
+        { Label: 'Report Analysis', Value: reportData.report }
+      ];
+      const csvContent = pdfReportService.generateCsvReport(
+        'VIMS Incident Analysis Report',
+        csvRows,
+        [{ key: 'Label', label: 'Label' }, { key: 'Value', label: 'Value' }],
+        { creator: req.user, timezoneOffsetMinutes }
+      );
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Incident_Report_${period}_${date.replace(/-/g, '_')}.csv"`);
+      return res.send(csvContent);
     }
 
     return res.json({

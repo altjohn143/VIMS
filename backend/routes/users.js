@@ -1026,10 +1026,8 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
       return res.send(pdfBuffer);
     }
 
-    // CSV format
-    const csvData = data.map(row => columns.map(col => `"${row[col.key] || ''}"`).join(','));
-    const csvHeader = columns.map(col => `"${col.header}"`).join(',');
-    const csvContent = [csvHeader, ...csvData].join('\n');
+    const pdfReportService = require('../services/pdfReportService');
+    const csvContent = pdfReportService.generateCsvReport(title, data, columns, { creator: req.user, timezoneOffsetMinutes });
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="VIMS_Users_Export_${new Date().toISOString().split('T')[0]}.csv"`);

@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { themeColors, radii, shadows } from '../utils/theme';
+import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import api from '../utils/api';
@@ -968,10 +968,7 @@ const styles = StyleSheet.create({
   availabilityFilterChipActive: { backgroundColor: '#166534' },
   availabilityFilterText: { color: '#64748b', fontSize: 11, fontWeight: '800' },
   availabilityFilterTextActive: { color: 'white' },
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
+  container: roleLayouts.resident.screen,
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -984,15 +981,10 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   header: {
+    ...roleLayouts.resident.header,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 24,
-    backgroundColor: themeColors.primaryDeep,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 48,
   },
   backButton: {
     padding: 8,
@@ -1108,8 +1100,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   reservationCard: {
-    backgroundColor: '#fff',
-    borderRadius: radii.lg,
+    backgroundColor: roleLayouts.resident.card.backgroundColor,
+    borderRadius: 12,
     padding: 18,
     marginBottom: 12,
     shadowColor: '#000',

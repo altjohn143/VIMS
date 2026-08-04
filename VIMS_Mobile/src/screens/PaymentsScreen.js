@@ -17,7 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import UserDropdownMenu from '../components/UserDropdownMenu';
-import { themeColors, radii, shadows } from '../utils/theme';
+import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import api from '../utils/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -695,20 +695,12 @@ const styles = StyleSheet.create({
   pageDisabled: { opacity: 0.35 },
   pageButtonText: { color: themeColors.primaryDeep, fontWeight: '800', fontSize: 12 },
   pageText: { color: themeColors.textSecondary, fontWeight: '700', fontSize: 11 },
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
+  container: roleLayouts.resident.screen,
   header: {
-    backgroundColor: themeColors.primaryDark,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    ...roleLayouts.resident.header,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 46,
   },
   backButton: {
     padding: 8,
@@ -737,7 +729,7 @@ const styles = StyleSheet.create({
   },
   coloredStatCard: {
     flex: 1,
-    borderRadius: radii.lg,
+    borderRadius: 12,
     padding: 13,
     position: 'relative',
     overflow: 'hidden',
@@ -824,8 +816,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: 'white',
-    borderRadius: radii.lg,
+    backgroundColor: roleLayouts.resident.card.backgroundColor,
+    borderRadius: 12,
     padding: 5,
     borderWidth: 1,
     borderColor: themeColors.border,

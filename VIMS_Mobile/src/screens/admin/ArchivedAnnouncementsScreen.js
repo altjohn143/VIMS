@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 
 const ArchivedAnnouncementsScreen = ({ navigation }) => {
   const [announcements, setAnnouncements] = useState([]);
@@ -247,15 +247,9 @@ const ArchivedAnnouncementsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
+  container: roleLayouts.admin.screen,
   header: {
-    backgroundColor: themeColors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    ...roleLayouts.admin.header,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -275,10 +269,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
   },
-  statsContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
+  statsContainer: { paddingHorizontal: 16, paddingVertical: 16 },
   statCard: {
     backgroundColor: themeColors.cardBackground,
     borderRadius: 12,
@@ -296,15 +287,12 @@ const styles = StyleSheet.create({
     color: themeColors.textSecondary,
     marginTop: 4,
   },
-  listContainer: {
-    padding: 20,
-  },
+  listContainer: { padding: 16, paddingBottom: 32 },
   card: {
     backgroundColor: themeColors.cardBackground,
-    borderRadius: 6,
-    padding: 18,
-    marginBottom: 8,
-    opacity: 0.88,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     borderLeftWidth: 4,
     borderLeftColor: themeColors.textMuted,
   },

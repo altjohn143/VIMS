@@ -634,10 +634,10 @@ const AdminUserManagement = () => {
     navigate('/dashboard');
   };
 
-  const handleExportPdf = async () => {
+  const handleExportFile = async (fileFormat = 'pdf') => {
     try {
       const timezoneOffset = new Date().getTimezoneOffset();
-      const response = await fetch(getBackendApiUrl(`/api/users/export?format=pdf&timezoneOffset=${timezoneOffset}`), {
+      const response = await fetch(getBackendApiUrl(`/api/users/export?format=${fileFormat}&timezoneOffset=${timezoneOffset}`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${sessionStorage.getItem('token')}`
@@ -656,9 +656,10 @@ const AdminUserManagement = () => {
         throw new Error(message);
       }
 
-      if (!response.headers.get('content-type')?.includes('application/pdf')) {
+      const expectedType = fileFormat === 'pdf' ? 'application/pdf' : 'text/csv';
+      if (!response.headers.get('content-type')?.includes(expectedType)) {
         const text = await response.text();
-        throw new Error(text || 'Export failed: invalid PDF response');
+        throw new Error(text || `Export failed: invalid ${fileFormat.toUpperCase()} response`);
       }
 
       const blob = await response.blob();
@@ -667,16 +668,16 @@ const AdminUserManagement = () => {
       a.href = url;
       const exportTime = new Date();
       const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-      a.download = `VIMS_Users_Export_${timestamp}.pdf`;
+      a.download = `VIMS_Users_Export_${timestamp}.${fileFormat}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success('PDF exported successfully');
+      toast.success(`${fileFormat.toUpperCase()} exported successfully`);
     } catch (error) {
       console.error('Export error:', error);
-      toast.error(error.message || 'Failed to export PDF');
+      toast.error(error.message || `Failed to export ${fileFormat.toUpperCase()}`);
     }
   };
 
@@ -1078,7 +1079,7 @@ const AdminUserManagement = () => {
 
         {/* Export Toolbar */}
         <Box sx={{ mt: 2, mb: 2 }}>
-          <ReportToolbar onExportPdf={handleExportPdf} />
+          <ReportToolbar onExportPdf={() => handleExportFile('pdf')} onExportCsv={() => handleExportFile('csv')} />
         </Box>
 
         {/* Users Table */}

@@ -327,6 +327,44 @@ const AdminPayments = () => {
     toast.success('PDF exported');
   };
 
+  const handleExportCsv = () => {
+    if (payments.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+    const exportTime = new Date();
+    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['Publisher', 'VIMS - Village Integrated Management System'],
+      ['Report', 'Payments Report'],
+      ['Generated At', exportTime.toLocaleString()],
+      ['Total Records', payments.length],
+      [],
+      ['Invoice', 'Resident', 'House', 'Amount', 'Status', 'Method', 'Due Date'],
+      ...payments.map((p) => ([
+        p.invoiceNumber,
+        `${p.residentId?.firstName || ''} ${p.residentId?.lastName || ''}`.trim(),
+        p.residentId?.houseNumber || 'N/A',
+        p.amount,
+        p.status,
+        p.paymentMethod || '',
+        p.dueDate ? new Date(p.dueDate).toLocaleDateString() : ''
+      ]))
+    ];
+    const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
+    a.href = url;
+    a.download = `payments_export_${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    toast.success('CSV exported');
+  };
+
   const handleViewReceiptImage = async (payment) => {
     if (!payment?.receiptImage) {
       toast.error('No receipt image available for this payment');
@@ -654,6 +692,9 @@ const AdminPayments = () => {
               </Button>
               <Button variant="outlined" onClick={handleExportPdf} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
                 Export PDF
+              </Button>
+              <Button variant="outlined" onClick={handleExportCsv} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+                Export CSV
               </Button>
               <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchPayments} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
                 Refresh

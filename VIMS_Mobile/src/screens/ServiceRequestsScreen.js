@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { themeColors, radii, shadows } from '../utils/theme';
+import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import api from '../utils/api';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../components/UserDropdownMenu';
@@ -778,20 +778,12 @@ const styles = StyleSheet.create({
   rowChoiceActive: { backgroundColor: themeColors.primaryDeep },
   rowChoiceText: { color: themeColors.textSecondary, fontWeight: '800' },
   rowChoiceTextActive: { color: 'white' },
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
+  container: roleLayouts.resident.screen,
   header: {
-    backgroundColor: themeColors.nav,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    ...roleLayouts.resident.header,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
   },
   headerRight: {
   flexDirection: 'row',
@@ -829,7 +821,7 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.nav,
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 22,
+    borderRadius: 12,
   },
   coloredStatCard: {
     flexGrow: 1,
@@ -921,8 +913,8 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   requestCard: {
-    backgroundColor: 'white',
-    borderRadius: radii.lg,
+    backgroundColor: roleLayouts.resident.card.backgroundColor,
+    borderRadius: 12,
     padding: 18,
     marginBottom: 12,
     borderWidth: 1,

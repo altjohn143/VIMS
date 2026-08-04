@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api, { getProtectedImageDataUrl } from '../../utils/api';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -142,15 +142,15 @@ const AdminPaymentsScreen = ({ navigation }) => {
     }
   };
 
-  const handleExportPdf = async () => {
+  const handleExportFile = async (fileFormat = 'pdf') => {
     setExporting(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const params = new URLSearchParams({ format: 'pdf', timezoneOffset: String(new Date().getTimezoneOffset()) });
+      const params = new URLSearchParams({ format: fileFormat, timezoneOffset: String(new Date().getTimezoneOffset()) });
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (paymentTypeFilter !== 'all') params.set('paymentType', paymentTypeFilter);
       if (paymentMethodFilter !== 'all') params.set('paymentMethod', paymentMethodFilter);
-      const target = `${FileSystem.cacheDirectory}VIMS_Payments_${new Date().toISOString().slice(0, 10)}.pdf`;
+      const target = `${FileSystem.cacheDirectory}VIMS_Payments_${new Date().toISOString().slice(0, 10)}.${fileFormat}`;
       const result = await FileSystem.downloadAsync(
         `${api.defaults.baseURL}/payments?${params.toString()}`,
         target,
@@ -161,9 +161,12 @@ const AdminPaymentsScreen = ({ navigation }) => {
         Alert.alert('Export ready', `Saved to ${result.uri}`);
         return;
       }
-      await Sharing.shareAsync(result.uri, { mimeType: 'application/pdf', dialogTitle: 'Export payments report' });
+      await Sharing.shareAsync(result.uri, {
+        mimeType: fileFormat === 'pdf' ? 'application/pdf' : 'text/csv',
+        dialogTitle: `Export payments ${fileFormat.toUpperCase()}`
+      });
     } catch (error) {
-      Alert.alert('Export failed', 'The payments PDF could not be generated.');
+      Alert.alert('Export failed', `The payments ${fileFormat.toUpperCase()} could not be generated.`);
     } finally {
       setExporting(false);
     }
@@ -438,11 +441,15 @@ const AdminPaymentsScreen = ({ navigation }) => {
           <Ionicons name="settings-outline" size={20} color={themeColors.primaryDeep} />
           <Text style={styles.ledgerActionSecondaryText}>Set dues</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={handleExportPdf} disabled={exporting}>
+        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={() => handleExportFile('pdf')} disabled={exporting}>
           {exporting
             ? <ActivityIndicator size="small" color={themeColors.primaryDeep} />
-            : <Ionicons name="download-outline" size={20} color={themeColors.primaryDeep} />}
-          <Text style={styles.ledgerActionSecondaryText}>Export</Text>
+            : <Ionicons name="document-text-outline" size={20} color={themeColors.primaryDeep} />}
+          <Text style={styles.ledgerActionSecondaryText}>PDF</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={() => handleExportFile('csv')} disabled={exporting}>
+          <Ionicons name="grid-outline" size={20} color={themeColors.primaryDeep} />
+          <Text style={styles.ledgerActionSecondaryText}>CSV</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.ledgerActionSecondary} onPress={onRefresh}>
           <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
@@ -805,10 +812,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
+  container: roleLayouts.admin.screen,
   ledgerHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 46, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   ledgerEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
   ledgerTitle: { color: themeColors.textPrimary, fontSize: 24, fontWeight: '800', letterSpacing: -0.7, marginTop: 1 },
@@ -862,15 +866,15 @@ const styles = StyleSheet.create({
   detailSectionTitle: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900', marginTop: 18, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.6 },
   detailBody: { color: themeColors.textSecondary, fontSize: 13, lineHeight: 20 },
   header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    ...roleLayouts.admin.header,
+    paddingTop: 54,
+    paddingBottom: 22,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderBottomRightRadius: 34,
   },
   backButton: {
     padding: 8,
@@ -985,8 +989,8 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   paymentCard: {
-    backgroundColor: 'white',
-    borderRadius: 2,
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: 12,
     paddingVertical: 18,
     paddingHorizontal: 14,
     marginBottom: 6,

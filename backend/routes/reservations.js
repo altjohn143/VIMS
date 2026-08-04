@@ -522,7 +522,8 @@ router.put('/:id/complete-use', protect, authorize('resident'), async (req, res)
 // Export reservations data (CSV or PDF format)
 router.get('/export', protect, async (req, res) => {
   try {
-    const { format = 'pdf', resourceType, status, startDate, endDate } = req.query;
+    const { format = 'pdf', resourceType, status, startDate, endDate, timezoneOffset = 0 } = req.query;
+    const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     // Build filter based on query parameters
     let filter = {};
@@ -586,10 +587,8 @@ router.get('/export', protect, async (req, res) => {
       return res.send(pdfBuffer);
     }
 
-    // CSV format
-    const csvData = data.map(row => columns.map(col => `"${row[col.key] || ''}"`).join(','));
-    const csvHeader = columns.map(col => `"${col.header}"`).join(',');
-    const csvContent = [csvHeader, ...csvData].join('\n');
+    const pdfReportService = require('../services/pdfReportService');
+    const csvContent = pdfReportService.generateCsvReport(title, data, columns, { creator: req.user, timezoneOffsetMinutes });
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="VIMS_Reservations_Export_${new Date().toISOString().split('T')[0]}.csv"`);

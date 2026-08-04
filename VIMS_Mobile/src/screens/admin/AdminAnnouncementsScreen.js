@@ -498,7 +498,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: roleLayouts.admin.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { ...roleLayouts.admin.header, paddingTop: 56, paddingHorizontal: 20, paddingBottom: 24, justifyContent: 'space-between' },
+  header: { ...roleLayouts.admin.header, paddingTop: 54, paddingHorizontal: 18, paddingBottom: 22, justifyContent: 'space-between' },
   backButton: { padding: 8 },
   headerTitleWrap: { flex: 1, minWidth: 0 },
   headerTitle: { color: 'white', fontSize: 23, fontWeight: '900' },
@@ -507,8 +507,8 @@ const styles = StyleSheet.create({
   headerIconButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerIconButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
 
-  listContainer: { padding: 16, paddingBottom: 24 },
-  card: { backgroundColor: '#f9fcfa', borderRadius: 24, padding: 18, marginBottom: 16, borderTopWidth: 6, borderTopColor: themeColors.primary },
+  listContainer: { padding: 16, paddingBottom: 32 },
+  card: { backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
   cardTitle: { flex: 1, minWidth: 0, fontSize: 15, fontWeight: '900', color: themeColors.textPrimary },
   badge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   emptyText: { marginTop: 6, fontSize: 13, color: themeColors.textSecondary, textAlign: 'center' },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 16, maxHeight: '88%' },
+  modalCard: { backgroundColor: 'white', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '88%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10 },
   modalTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary },
   label: { marginTop: 10, fontSize: 12, color: themeColors.textSecondary, fontWeight: '800' },

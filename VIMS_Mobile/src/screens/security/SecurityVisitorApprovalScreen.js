@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.nav,
     margin: 16,
     padding: 20,
-    borderRadius: 24,
+    borderRadius: 12,
   },
   statsLabel: {
     fontSize: 14,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 22,
+    borderRadius: 12,
     padding: 18,
     marginBottom: 14,
     borderTopWidth: 5,

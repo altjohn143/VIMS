@@ -1237,7 +1237,7 @@ const styles = StyleSheet.create({
 
   /* Section Cards */
   sectionCard: {
-    backgroundColor: '#fff', borderRadius: 22,
+    backgroundColor: themeColors.cardBackground, borderRadius: 12,
     borderWidth: 1, borderColor: themeColors.border, overflow: 'hidden', ...shadows.small,
   },
   quickActionsCard: { flexDirection: 'row', flexWrap: 'wrap' },
@@ -1314,7 +1314,7 @@ const styles = StyleSheet.create({
     height: '72%',
     minHeight: 470,
     backgroundColor: '#fff',
-    borderRadius: 22,
+    borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(15,23,42,0.10)',

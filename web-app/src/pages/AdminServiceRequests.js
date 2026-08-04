@@ -61,8 +61,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import ReportToolbar from '../components/ReportToolbar';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { getBackendApiUrl } from '../utils/api';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -397,47 +396,61 @@ const paginatedRequests = useMemo(
 
 
 
-  const handleExportPdf = useCallback(async () => {
+  const handleExportFile = useCallback(async (fileFormat = 'pdf') => {
     try {
       if (!filteredRequests.length) {
         toast.error('No service requests to export');
         return;
       }
 
-      const pdf = new jsPDF({ orientation: 'landscape' });
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Admin Service Requests Report', 14, 14);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
-      pdf.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
-      pdf.text(`Displayed records exported: ${filteredRequests.length}`, 14, 28);
-
-      autoTable(pdf, {
-        startY: 34,
-        head: [['Title', 'Resident', 'Category', 'Priority', 'Status', 'Assigned To', 'Location', 'Created']],
-        body: filteredRequests.map((request) => [
-          request.title || 'Untitled',
-          request.residentId ? `${request.residentId.firstName || ''} ${request.residentId.lastName || ''}`.trim() : 'Unknown',
-          request.category || 'N/A',
-          request.priority || 'N/A',
-          request.status || 'N/A',
-          request.assignedTo ? `${request.assignedTo.firstName || ''} ${request.assignedTo.lastName || ''}`.trim() : 'Unassigned',
-          request.location || 'N/A',
-          formatShortDate(request.createdAt)
-        ]),
-        styles: { fontSize: 8 }
+      const params = new URLSearchParams({
+        format: fileFormat,
+        timezoneOffset: String(new Date().getTimezoneOffset())
       });
+      if (activeTab !== 'all') params.set('status', activeTab);
+      if (categoryFilter !== 'all') params.set('category', categoryFilter);
+      if (priorityFilter !== 'all') params.set('priority', priorityFilter);
 
+      const response = await fetch(getBackendApiUrl(`/api/service-requests/export?${params.toString()}`), {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` }
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        let message = 'Export failed';
+        try {
+          const errorData = JSON.parse(text);
+          message = errorData.error || message;
+        } catch {
+          message = text || message;
+        }
+        throw new Error(message);
+      }
+
+      const expectedType = fileFormat === 'pdf' ? 'application/pdf' : 'text/csv';
+      if (!response.headers.get('content-type')?.includes(expectedType)) {
+        const text = await response.text();
+        throw new Error(text || `Export failed: invalid ${fileFormat.toUpperCase()} response`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
       const exportTime = new Date();
       const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-      pdf.save(`VIMS_Service_Requests_Export_${timestamp}.pdf`);
+      a.download = `VIMS_Service_Requests_Export_${timestamp}.${fileFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
-      toast.success('PDF exported successfully');
+      toast.success(`${fileFormat.toUpperCase()} exported successfully`);
     } catch (error) {
       console.error('Export error:', error);
-      toast.error(error.message || 'Failed to export PDF');
+      toast.error(error.message || `Failed to export ${fileFormat.toUpperCase()}`);
     }
-  }, [filteredRequests, formatShortDate]);
+  }, [activeTab, categoryFilter, filteredRequests.length, priorityFilter]);
 
   const handleMenuOpen = useCallback((event, request) => {
     setAnchorEl(event.currentTarget);
@@ -1052,7 +1065,7 @@ const paginatedRequests = useMemo(
               Service Requests Management
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <ReportToolbar onExportPdf={handleExportPdf} />
+              <ReportToolbar onExportPdf={() => handleExportFile('pdf')} onExportCsv={() => handleExportFile('csv')} />
               <Button
                 startIcon={<BuildIcon />}
                 variant="outlined"

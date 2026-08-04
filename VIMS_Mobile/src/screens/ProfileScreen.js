@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
-import { themeColors, shadows } from '../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../utils/theme';
 import api, { getProtectedImageDataUrl } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UserDropdownMenu from '../components/UserDropdownMenu';
@@ -931,13 +931,13 @@ const ProfileScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
+  container: roleLayouts.resident.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { backgroundColor: themeColors.background, paddingTop: 52, paddingBottom: 14, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  header: { ...roleLayouts.resident.headerLight, width: '100%' },
   backButton: { padding: 8 },
   headerTitle: { color: themeColors.textPrimary, fontSize: 21, fontWeight: '900', letterSpacing: -0.4 },
   content: { paddingTop: 16, paddingHorizontal: 16, paddingBottom: 24 },
-  profileCard: { backgroundColor: '#e7f5ec', borderRadius: 22, padding: 18, alignItems: 'center', marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },
+  profileCard: { backgroundColor: themeColors.primaryWash, borderRadius: 12, padding: 18, alignItems: 'center', marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },
   avatarContainer: { marginBottom: 8, alignItems: 'center' },
   avatar: { width: 76, height: 76, borderRadius: 24, backgroundColor: themeColors.primary, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: 'white', fontSize: 28, fontWeight: '700' },

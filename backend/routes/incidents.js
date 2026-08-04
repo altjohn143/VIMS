@@ -15,30 +15,54 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(200);
 
+    const reportData = incidents.map((incident) => ({
+      Title: incident.title,
+      Description: incident.description,
+      Severity: incident.severity,
+      Status: incident.status,
+      Location: incident.location || 'N/A',
+      'Reported By': incident.reportedBy ? `${incident.reportedBy.firstName || ''} ${incident.reportedBy.lastName || ''}`.trim() : 'Unknown',
+      Created: incident.createdAt ? incident.createdAt.toLocaleDateString() : 'N/A'
+    }));
+
+    const reportColumns = [
+      { key: 'Title', label: 'Title', width: 18 },
+      { key: 'Description', label: 'Description', width: 28 },
+      { key: 'Severity', label: 'Severity', width: 10 },
+      { key: 'Status', label: 'Status', width: 10 },
+      { key: 'Location', label: 'Location', width: 16 },
+      { key: 'Reported By', label: 'Reported By', width: 16 },
+      { key: 'Created', label: 'Created', width: 12 }
+    ];
+
     if (format === 'pdf') {
       // Import PDF service
       const pdfReportService = require('../services/pdfReportService');
 
-      const columns = [
-        { key: 'title', label: 'Title' },
-        { key: 'description', label: 'Description' },
-        { key: 'severity', label: 'Severity' },
-        { key: 'status', label: 'Status' },
-        { key: 'location', label: 'Location' },
-        { key: 'reportedBy.firstName', label: 'Reported By' },
-        { key: 'createdAt', label: 'Created' }
-      ];
-
       const pdfBuffer = await pdfReportService.generateDataReport(
         'VIMS Incidents Report',
-        incidents,
-        columns,
+        reportData,
+        reportColumns,
         { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role }, timezoneOffsetMinutes }
       );
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Incidents_Report_${new Date().toISOString().split('T')[0]}.pdf"`);
       return res.send(pdfBuffer);
+    }
+
+    if (format === 'csv') {
+      const pdfReportService = require('../services/pdfReportService');
+      const csvContent = pdfReportService.generateCsvReport(
+        'VIMS Incidents Report',
+        reportData,
+        reportColumns,
+        { creator: { firstName: req.user.firstName, lastName: req.user.lastName, role: req.user.role }, timezoneOffsetMinutes }
+      );
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Incidents_Report_${new Date().toISOString().split('T')[0]}.csv"`);
+      return res.send(csvContent);
     }
 
     res.json({ success: true, count: incidents.length, data: incidents });

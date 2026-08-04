@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
@@ -294,14 +294,14 @@ const AdminUserManagementScreen = ({ navigation }) => {
     }
   };
 
-  const handleExportPdf = async () => {
+  const handleExportFile = async (fileFormat = 'pdf') => {
     setExporting(true);
     try {
-      const fileUri = `${FileSystem.documentDirectory}user_management_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}user_management_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${fileFormat}`;
       const token = await AsyncStorage.getItem('token');
       const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
       const download = await FileSystem.downloadAsync(
-        `${baseUrl}/users/export?format=pdf&timezoneOffset=${new Date().getTimezoneOffset()}`,
+        `${baseUrl}/users/export?format=${fileFormat}&timezoneOffset=${new Date().getTimezoneOffset()}`,
         fileUri,
         { headers: token ? { Authorization: `Bearer ${token}` } : {} }
       );
@@ -309,12 +309,15 @@ const AdminUserManagementScreen = ({ navigation }) => {
         throw new Error(`Export server returned status ${download.status}`);
       }
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, { mimeType: 'application/pdf', dialogTitle: 'Export User Management PDF' });
+        await Sharing.shareAsync(fileUri, {
+          mimeType: fileFormat === 'pdf' ? 'application/pdf' : 'text/csv',
+          dialogTitle: `Export User Management ${fileFormat.toUpperCase()}`
+        });
       } else {
-        Alert.alert('Export Complete', `PDF saved to ${fileUri}`);
+        Alert.alert('Export Complete', `${fileFormat.toUpperCase()} saved to ${fileUri}`);
       }
     } catch (error) {
-      Alert.alert('Export Failed', error.response?.data?.error || error.message || 'Failed to export PDF');
+      Alert.alert('Export Failed', error.response?.data?.error || error.message || `Failed to export ${fileFormat.toUpperCase()}`);
     } finally {
       setExporting(false);
     }
@@ -595,11 +598,15 @@ const AdminUserManagementScreen = ({ navigation }) => {
             <Ionicons name="shield-checkmark-outline" size={20} color={themeColors.primaryDeep} />
             <Text style={styles.directoryIconActionText}>Verifications</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleExportPdf} style={styles.directoryIconAction} disabled={exporting}>
+          <TouchableOpacity onPress={() => handleExportFile('pdf')} style={styles.directoryIconAction} disabled={exporting}>
             {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : (
-              <Ionicons name="download-outline" size={20} color={themeColors.primaryDeep} />
+              <Ionicons name="document-text-outline" size={20} color={themeColors.primaryDeep} />
             )}
-            <Text style={styles.directoryIconActionText}>Export</Text>
+            <Text style={styles.directoryIconActionText}>PDF</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleExportFile('csv')} style={styles.directoryIconAction} disabled={exporting}>
+            <Ionicons name="grid-outline" size={20} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>CSV</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1351,10 +1358,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
+  container: roleLayouts.admin.screen,
   directoryHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   directoryTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   directoryEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
@@ -1385,21 +1389,21 @@ const styles = StyleSheet.create({
   inlineActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
   modalHelper: { color: themeColors.textSecondary, fontSize: 13, marginTop: 4, marginBottom: 12 },
   notesInput: { minHeight: 100, textAlignVertical: 'top' },
-  documentModalCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, width: '94%', maxHeight: '88%' },
+  documentModalCard: { backgroundColor: 'white', borderRadius: 12, padding: 20, width: '94%', maxHeight: '88%' },
   documentLoading: { minHeight: 260, alignItems: 'center', justifyContent: 'center', gap: 12 },
   documentBlock: { marginBottom: 18 },
   documentImage: { width: '100%', height: 230, borderRadius: 16, backgroundColor: themeColors.surfaceMuted },
   documentMissing: { height: 130, borderRadius: 16, backgroundColor: themeColors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    ...roleLayouts.admin.header,
+    paddingTop: 54,
+    paddingBottom: 22,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 42,
+    borderBottomRightRadius: 34,
   },
   headerRight: {
     flexDirection: 'row',
@@ -1504,8 +1508,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   userCard: {
-    backgroundColor: 'white',
-    borderRadius: 4,
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 14,
     marginBottom: 8,

@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 
 const AdminVerificationQueueScreen = ({ navigation }) => {
@@ -200,15 +200,15 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, roleLayouts.admin.screen]}>
         <ActivityIndicator size="large" color={themeColors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, roleLayouts.admin.screen]}>
+      <View style={[styles.header, roleLayouts.admin.header]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
@@ -227,7 +227,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsBar}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsBar} contentContainerStyle={styles.chipsContent}>
         {statusChips.map((c) => (
           <TouchableOpacity
             key={c.key}
@@ -243,7 +243,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
         data={rows}
         renderItem={renderItem}
         keyExtractor={(item) => item?._id || String(Math.random())}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[roleLayouts.admin.content, styles.listContainer]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -412,15 +412,13 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     backgroundColor: themeColors.primaryDeep,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    paddingTop: 54,
+    paddingBottom: 22,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 12,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomRightRadius: 34,
   },
   backButton: { padding: 8 },
   headerTitleWrap: { flex: 1, minWidth: 0 },
@@ -430,9 +428,10 @@ const styles = StyleSheet.create({
   headerIconButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerIconButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
 
-  chipsBar: { backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  chipsBar: { backgroundColor: themeColors.background, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  chipsContent: { paddingHorizontal: 16 },
   chip: {
-    marginLeft: 12,
+    marginRight: 10,
     marginVertical: 12,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -445,14 +444,16 @@ const styles = StyleSheet.create({
   chipText: { color: themeColors.textSecondary, fontWeight: '700', fontSize: 12 },
   chipTextActive: { color: 'white' },
 
-  listContainer: { padding: 16, paddingBottom: 24 },
+  listContainer: { paddingBottom: 32 },
   card: {
-    backgroundColor: 'white',
-    borderRadius: 22,
-    padding: 18,
-    marginBottom: 14,
-    borderBottomWidth: 5,
-    borderBottomColor: themeColors.warning,
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.warning,
   },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
   userBlock: { flex: 1, minWidth: 0 },
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   emptyText: { marginTop: 6, fontSize: 13, color: themeColors.textSecondary, textAlign: 'center' },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 16, maxHeight: '88%' },
+  modalCard: { backgroundColor: 'white', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '88%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10 },
   modalTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary },
   detailHeadline: { fontSize: 18, fontWeight: '900', color: themeColors.textPrimary, marginTop: 6 },
@@ -479,14 +480,14 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: themeColors.border,
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginTop: 8,
     backgroundColor: '#f8fafc',
   },
   actionsRow: { flexDirection: 'row', gap: 12, marginTop: 14, marginBottom: 10 },
-  actionBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  actionBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   approveBtn: { backgroundColor: themeColors.success },
   rejectBtn: { backgroundColor: themeColors.error },
   actionBtnDisabled: { opacity: 0.6 },
@@ -495,7 +496,7 @@ const styles = StyleSheet.create({
   viewDocsButton: {
     marginTop: 14,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 8,
     backgroundColor: themeColors.primary,
     alignItems: 'center',
     justifyContent: 'center'
@@ -516,7 +517,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxHeight: '90%',
     backgroundColor: 'white',
-    borderRadius: 18,
+    borderRadius: 12,
     padding: 16
   },
   idModalContent: {
@@ -534,7 +535,7 @@ const styles = StyleSheet.create({
   idImage: {
     width: '100%',
     height: 220,
-    borderRadius: 14,
+    borderRadius: 8,
     resizeMode: 'cover',
     backgroundColor: '#f3f5f7'
   },

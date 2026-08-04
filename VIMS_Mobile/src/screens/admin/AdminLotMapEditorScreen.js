@@ -17,7 +17,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../utils/api';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 
 const emptyPosition = {
   left: '',
@@ -328,8 +328,8 @@ const AdminLotMapEditorScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
-  header: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 18, paddingBottom: 22, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomRightRadius: 34 },
+  container: roleLayouts.admin.screen,
+  header: { ...roleLayouts.admin.header },
   headerButton: { height: 40, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', flexDirection: 'row', alignItems: 'center', gap: 5 },
   headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   headerCopy: { flex: 1 },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   filterChipText: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
   filterChipTextActive: { color: 'white' },
   listContent: { padding: 16, paddingBottom: 36 },
-  lotCard: { backgroundColor: 'white', borderRadius: 16, padding: 14, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
+  lotCard: { backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: themeColors.border, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
   lotCardTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' },
   lotTitle: { color: themeColors.textPrimary, fontSize: 16, fontWeight: '900' },
   lotMeta: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '700', marginTop: 3 },
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   loadingText: { color: themeColors.textSecondary, fontWeight: '700' },
   emptyText: { color: themeColors.textSecondary, fontSize: 14, textAlign: 'center', marginTop: 20 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
-  editorSheet: { backgroundColor: 'white', borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 20, maxHeight: '88%' },
+  editorSheet: { backgroundColor: 'white', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, maxHeight: '88%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 16 },
   modalTitle: { color: themeColors.textPrimary, fontSize: 22, fontWeight: '900' },
   modalSubtitle: { color: themeColors.textSecondary, fontSize: 12, marginTop: 3, maxWidth: 260 },

@@ -14,7 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { themeColors, radii, shadows } from '../utils/theme';
+import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import api from '../utils/api';
 import QRCode from 'react-native-qrcode-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -992,20 +992,12 @@ const styles = StyleSheet.create({
   pageText: { color: themeColors.textSecondary, fontWeight: '700', fontSize: 11 },
   shareQrButton: { marginHorizontal: 24, marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 12, borderRadius: 12, backgroundColor: themeColors.primaryDeep },
   shareQrText: { color: 'white', fontWeight: '900' },
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
+  container: roleLayouts.resident.screen,
   header: {
-    backgroundColor: themeColors.primary,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    ...roleLayouts.resident.header,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 48,
-    borderBottomRightRadius: 18,
   },
   headerRight: {
   flexDirection: 'row',
@@ -1136,8 +1128,8 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   visitorCard: {
-    backgroundColor: 'white',
-    borderRadius: radii.lg,
+    backgroundColor: roleLayouts.resident.card.backgroundColor,
+    borderRadius: 12,
     padding: 18,
     marginBottom: 12,
     borderWidth: 1,

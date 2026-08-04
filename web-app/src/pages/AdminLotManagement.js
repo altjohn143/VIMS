@@ -149,11 +149,11 @@ const AdminLotManagement = () => {
     navigate('/dashboard');
   };
 
-  const handleExportPdf = async () => {
+  const handleExportFile = async (fileFormat = 'pdf') => {
     try {
       const timezoneOffset = new Date().getTimezoneOffset();
       const params = new URLSearchParams({
-        format: 'pdf',
+        format: fileFormat,
         timezoneOffset: String(timezoneOffset)
       });
 
@@ -177,7 +177,7 @@ const AdminLotManagement = () => {
         }
       });
 
-      console.log('PDF Export Response:', {
+      console.log(`${fileFormat.toUpperCase()} Export Response:`, {
         status: response.status,
         statusText: response.statusText,
         contentType: response.headers.get('content-type'),
@@ -196,13 +196,14 @@ const AdminLotManagement = () => {
         throw new Error(message);
       }
 
-      if (!response.headers.get('content-type')?.includes('application/pdf')) {
+      const expectedType = fileFormat === 'pdf' ? 'application/pdf' : 'text/csv';
+      if (!response.headers.get('content-type')?.includes(expectedType)) {
         const text = await response.text();
-        throw new Error(text || 'Export failed: invalid PDF response');
+        throw new Error(text || `Export failed: invalid ${fileFormat.toUpperCase()} response`);
       }
 
       const blob = await response.blob();
-      console.log('PDF Blob:', {
+      console.log(`${fileFormat.toUpperCase()} Blob:`, {
         size: blob.size,
         type: blob.type
       });
@@ -212,16 +213,16 @@ const AdminLotManagement = () => {
       a.href = url;
       const exportTime = new Date();
       const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-      a.download = `VIMS_Lots_Export_${timestamp}.pdf`;
+      a.download = `VIMS_Lots_Export_${timestamp}.${fileFormat}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success('PDF exported successfully');
+      toast.success(`${fileFormat.toUpperCase()} exported successfully`);
     } catch (error) {
       console.error('Export error:', error);
-      toast.error(error.message || 'Failed to export PDF');
+      toast.error(error.message || `Failed to export ${fileFormat.toUpperCase()}`);
     }
   };
 
@@ -470,7 +471,7 @@ const AdminLotManagement = () => {
 
         {/* Export Toolbar */}
         <Box sx={{ mt: 2, mb: 2 }}>
-          <ReportToolbar onExportPdf={handleExportPdf} />
+          <ReportToolbar onExportPdf={() => handleExportFile('pdf')} onExportCsv={() => handleExportFile('csv')} />
         </Box>
 
         {/* Lots Table */}

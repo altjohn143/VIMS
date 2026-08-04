@@ -429,6 +429,7 @@ const AdminReservationsScreen = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerIconButton} onPress={handleRefresh}>
               <Ionicons name="refresh" size={19} color={themeColors.primaryDeep} />
+              <Text style={styles.headerIconButtonText}>Refresh</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1014,7 +1015,8 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', gap: 7, alignItems: 'center' },
   headerPrimaryButton: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: themeColors.accent, paddingHorizontal: 11, height: 36, borderRadius: 10 },
   headerPrimaryText: { color: themeColors.primaryDeep, fontWeight: '900', fontSize: 12 },
-  headerIconButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: themeColors.border },
+  headerIconButton: { flexDirection: 'row', height: 36, paddingHorizontal: 11, borderRadius: 10, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: themeColors.border },
+  headerIconButtonText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '800' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

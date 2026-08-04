@@ -34,6 +34,7 @@ import AdminVisitorReportsScreen from '../screens/admin/AdminVisitorReportsScree
 import AdminVerificationQueueScreen from '../screens/admin/AdminVerificationQueueScreen';
 import AdminAnnouncementsScreen from '../screens/admin/AdminAnnouncementsScreen';
 import AdminLotManagementScreen from '../screens/admin/AdminLotManagementScreen';
+import AdminLotMapEditorScreen from '../screens/admin/AdminLotMapEditorScreen';
 import ArchivedUsersScreen from '../screens/admin/ArchivedUsersScreen';
 import ArchivedAnnouncementsScreen from '../screens/admin/ArchivedAnnouncementsScreen';
 import ArchivedServiceRequestsScreen from '../screens/admin/ArchivedServiceRequestsScreen';
@@ -74,6 +75,11 @@ const ResidentTabs = () => {
       <Tab.Screen name="ServicesTab" component={ServiceRequestsScreen} options={{ title: 'Services' }} />
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
       <Tab.Screen name="PaymentsTab" component={PaymentsScreen} options={{ title: 'Payments' }} />
+      <Tab.Screen name="Complaints" component={ComplaintsScreen} options={{ title: 'Complaints' }} />
+      <Tab.Screen name="Announcements" component={AnnouncementsScreen} options={{ title: 'News' }} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Alerts' }} />
+      <Tab.Screen name="PublicLots" component={PublicLotMapScreen} options={{ title: 'Lots' }} />
+      <Tab.Screen name="Chatbot" component={ChatbotScreen} options={{ title: 'Assistant' }} />
     </Tab.Navigator>
   );
 };
@@ -95,6 +101,17 @@ const AdminTabs = () => {
       <Tab.Screen name="ServicesTab" component={AdminServiceRequestsScreen} options={{ title: 'Services' }} />
       <Tab.Screen name="PaymentsTab" component={AdminPaymentsScreen} options={{ title: 'Payments' }} />
       <Tab.Screen name="LogsTab" component={AdminReservationsScreen} options={{ title: 'Reservations' }} />
+      <Tab.Screen name="AdminApprovals" component={AdminApprovalsScreen} options={{ title: 'Approvals' }} />
+      <Tab.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} options={{ title: 'Verify' }} />
+      <Tab.Screen name="AdminVisitorReports" component={AdminVisitorReportsScreen} options={{ title: 'Reports' }} />
+      <Tab.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} options={{ title: 'Posts' }} />
+      <Tab.Screen name="AdminLotManagement" component={AdminLotManagementScreen} options={{ title: 'Lots' }} />
+      <Tab.Screen name="AdminLotMapEditor" component={AdminLotMapEditorScreen} options={{ title: 'Map Edit' }} />
+      <Tab.Screen name="ArchivedUsers" component={ArchivedUsersScreen} options={{ title: 'Old Users' }} />
+      <Tab.Screen name="ArchivedServiceRequests" component={ArchivedServiceRequestsScreen} options={{ title: 'Old Svcs' }} />
+      <Tab.Screen name="ArchivedAnnouncements" component={ArchivedAnnouncementsScreen} options={{ title: 'Old Posts' }} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Alerts' }} />
+      <Tab.Screen name="Chatbot" component={ChatbotScreen} options={{ title: 'Assistant' }} />
     </Tab.Navigator>
   );
 };
@@ -115,6 +132,15 @@ const SecurityTabs = () => {
       <Tab.Screen name="ScannerTab" component={SecurityQrScannerScreen} options={{ title: 'Scanner' }} />
       <Tab.Screen name="LogsTab" component={SecurityVisitorLogsScreen} options={{ title: 'Logs' }} />
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <Tab.Screen name="SecurityServiceRequests" component={SecurityServiceRequestsScreen} options={{ title: 'Services' }} />
+      <Tab.Screen name="SecurityPatrolSchedule" component={SecurityPatrolScheduleScreen} options={{ title: 'Patrol' }} />
+      <Tab.Screen name="SecurityIncidents" component={SecurityIncidentsScreen} options={{ title: 'Incidents' }} />
+      <Tab.Screen name="TeamPerformanceTab" component={HeadOfficerTeamScreen} options={{ title: 'Team' }} />
+      <Tab.Screen name="PersonnelTab" component={HeadOfficerTeamScreen} options={{ title: 'People' }} />
+      <Tab.Screen name="AnalyticsTab" component={HeadOfficerTeamScreen} options={{ title: 'Analytics' }} />
+      <Tab.Screen name="Announcements" component={AnnouncementsScreen} options={{ title: 'News' }} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Alerts' }} />
+      <Tab.Screen name="Chatbot" component={ChatbotScreen} options={{ title: 'Assistant' }} />
     </Tab.Navigator>
   );
 };
@@ -132,7 +158,6 @@ const AppNavigator = () => {
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-          <Stack.Screen name="PublicLots" component={PublicLotMapScreen} />
         </>
       ) : !user.isApproved ? (
         <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
@@ -150,6 +175,7 @@ const AppNavigator = () => {
               <Stack.Screen name="AdminReservations" component={AdminReservationsScreen} />
               <Stack.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} />
               <Stack.Screen name="AdminLotManagement" component={AdminLotManagementScreen} />
+              <Stack.Screen name="AdminLotMapEditor" component={AdminLotMapEditorScreen} />
               <Stack.Screen name="ArchivedUsers" component={ArchivedUsersScreen} />
               <Stack.Screen name="ArchivedAnnouncements" component={ArchivedAnnouncementsScreen} />
               <Stack.Screen name="ArchivedServiceRequests" component={ArchivedServiceRequestsScreen} />
@@ -165,6 +191,7 @@ const AppNavigator = () => {
       <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Complaints" component={ComplaintsScreen} />
+      <Stack.Screen name="PublicLots" component={PublicLotMapScreen} />
       <Stack.Screen name="SecurityServiceRequests" component={SecurityServiceRequestsScreen} />
       <Stack.Screen name="SecurityPatrolSchedule" component={SecurityPatrolScheduleScreen} />
       <Stack.Screen name="SecurityIncidents" component={SecurityIncidentsScreen} />

@@ -51,6 +51,7 @@ import {
   Search as SearchIcon,
   Star as StarIcon,
   Cancel as CancelIcon,
+  Archive as ArchiveIcon,
   Settings as SettingsIcon,
   QrCodeScanner as QrCodeScannerIcon,
   AdminPanelSettings as AdminIcon
@@ -86,6 +87,7 @@ const AdminServiceRequests = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [openProcessDialog, setOpenProcessDialog] = useState(false);
   const [openCompleteDialog, setOpenCompleteDialog] = useState(false);
+  const [openArchiveDialog, setOpenArchiveDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [stats, setStats] = useState({});
@@ -537,6 +539,35 @@ const paginatedRequests = useMemo(
       }
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to update status');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedRequest, fetchAllRequests, fetchDashboardStats]);
+
+  const handleOpenArchive = useCallback(() => {
+    if (!selectedRequest) return;
+    setOpenArchiveDialog(true);
+    handleMenuClose();
+  }, [selectedRequest, handleMenuClose]);
+
+  const handleArchiveRequest = useCallback(async () => {
+    if (!selectedRequest?._id) return;
+
+    try {
+      setLoading(true);
+      const response = await axios.delete(`/api/service-requests/${selectedRequest._id}`, {
+        data: { reason: 'Archived by admin' }
+      });
+
+      if (response.data.success) {
+        toast.success('Service request archived successfully');
+        setOpenArchiveDialog(false);
+        setSelectedRequest(null);
+        fetchAllRequests();
+        fetchDashboardStats();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to archive service request');
     } finally {
       setLoading(false);
     }
@@ -1490,7 +1521,34 @@ const paginatedRequests = useMemo(
               Mark as Completed
             </MenuItem>
           )}
+          <Divider />
+          <MenuItem onClick={handleOpenArchive} sx={{ py: 1.5, color: themeColors.error }}>
+            <ArchiveIcon sx={{ mr: 1, color: themeColors.error }} />
+            Archive Request
+          </MenuItem>
         </Menu>
+
+        <Dialog
+          open={openArchiveDialog}
+          onClose={() => setOpenArchiveDialog(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Archive Service Request</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary">
+              Are you sure you want to archive "{selectedRequest?.title}"? This will remove it from the active queue and keep it in archived service requests.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenArchiveDialog(false)} disabled={loading}>
+              Cancel
+            </Button>
+            <Button onClick={handleArchiveRequest} color="error" variant="contained" disabled={loading}>
+              {loading ? 'Archiving...' : 'Archive'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Process Request Dialog */}
         <Dialog 

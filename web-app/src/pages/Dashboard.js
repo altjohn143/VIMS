@@ -527,7 +527,7 @@ const Dashboard = () => {
       if (!user?.id) return;
 
       try {
-        const token = localStorage.getItem('token') || '';
+        const token = sessionStorage.getItem('token') || '';
         const response = await axios.get('/api/users/profile', {
           headers: {
             Authorization: `Bearer ${token}`
@@ -2704,3 +2704,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

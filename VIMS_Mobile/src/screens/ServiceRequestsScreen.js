@@ -345,7 +345,8 @@ const ServiceRequestsScreen = ({ navigation }) => {
   </View>
   <View style={styles.headerRight}>
     <TouchableOpacity onPress={fetchRequests} style={styles.refreshButton}>
-      <Ionicons name="refresh" size={24} color="white" />
+      <Ionicons name="refresh" size={16} color="white" />
+      <Text style={styles.headerActionText}>Refresh</Text>
     </TouchableOpacity>
     <UserDropdownMenu navigation={navigation} />
   </View>
@@ -398,6 +399,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
         </View>
         <TouchableOpacity style={[styles.directoryFilterButton, (categoryFilter !== 'all' || priorityFilter !== 'all') && styles.directoryFilterActive]} onPress={() => setShowFilterModal(true)}>
           <Ionicons name="options-outline" size={20} color={(categoryFilter !== 'all' || priorityFilter !== 'all') ? 'white' : themeColors.primaryDeep} />
+          <Text style={[styles.directoryFilterText, (categoryFilter !== 'all' || priorityFilter !== 'all') && styles.directoryFilterTextActive]}>Filter</Text>
         </TouchableOpacity>
       </View>
 
@@ -447,7 +449,8 @@ const ServiceRequestsScreen = ({ navigation }) => {
       </Modal>
 
       <TouchableOpacity style={styles.fab} onPress={() => setShowCreateModal(true)}>
-        <Ionicons name="add" size={30} color="white" />
+        <Ionicons name="add" size={20} color="white" />
+        <Text style={styles.fabText}>New Request</Text>
       </TouchableOpacity>
 
       {/* Create Request Modal */}
@@ -759,8 +762,10 @@ const styles = StyleSheet.create({
   directorySearchRow: { flexDirection: 'row', gap: 9, paddingHorizontal: 20, paddingBottom: 12 },
   directorySearch: { flex: 1, height: 46, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white' },
   directorySearchInput: { flex: 1, color: themeColors.textPrimary },
-  directoryFilterButton: { width: 46, height: 46, borderRadius: 13, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  directoryFilterButton: { height: 46, minWidth: 82, paddingHorizontal: 12, borderRadius: 13, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   directoryFilterActive: { backgroundColor: themeColors.primaryDeep },
+  directoryFilterText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
+  directoryFilterTextActive: { color: 'white' },
   pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16 },
   pageButton: { paddingHorizontal: 14, paddingVertical: 9, backgroundColor: themeColors.primarySoft, borderRadius: 10 },
   pageDisabled: { opacity: 0.35 },
@@ -804,8 +809,16 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: { color: 'rgba(255,255,255,0.66)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   refreshButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
   },
+  headerActionText: { color: 'white', fontSize: 12, fontWeight: '800' },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1037,18 +1050,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    width: 56,
+    minWidth: 146,
     height: 56,
     borderRadius: 28,
     backgroundColor: themeColors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 18,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
+  fabText: { color: 'white', fontSize: 13, fontWeight: '900' },
   emptyContainer: {
     alignItems: 'flex-start',
     justifyContent: 'flex-start',

@@ -535,6 +535,7 @@ const ProfileScreen = ({ navigation }) => {
               )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.photoButton} onPress={pickProfileImage} disabled={uploadingPhoto}>
+              <Ionicons name="camera-outline" size={15} color={themeColors.primary} />
               <Text style={styles.photoButtonText}>{uploadingPhoto ? 'Uploading...' : 'Change Photo'}</Text>
             </TouchableOpacity>
           </View>
@@ -629,7 +630,7 @@ const ProfileScreen = ({ navigation }) => {
             <View key={index} style={styles.vehicleEditor}>
               <View style={styles.vehicleEditorHeader}>
                 <Text style={styles.vehicleEditorTitle}>Vehicle {index + 1}</Text>
-                {formData.vehicles.length > 1 && <TouchableOpacity onPress={() => removeVehicle(index)}><Ionicons name="trash-outline" size={19} color={themeColors.error} /></TouchableOpacity>}
+                {formData.vehicles.length > 1 && <TouchableOpacity style={styles.removeInlineButton} onPress={() => removeVehicle(index)}><Ionicons name="trash-outline" size={16} color={themeColors.error} /><Text style={styles.removeInlineText}>Remove</Text></TouchableOpacity>}
               </View>
               {[
                 ['Plate number', 'plateNumber'],
@@ -656,7 +657,7 @@ const ProfileScreen = ({ navigation }) => {
             <View key={index} style={styles.vehicleEditor}>
               <View style={styles.vehicleEditorHeader}>
                 <Text style={styles.vehicleEditorTitle}>Family Member {index + 1}</Text>
-                {formData.familyMembers.length > 1 && <TouchableOpacity onPress={() => removeFamilyMember(index)}><Ionicons name="trash-outline" size={19} color={themeColors.error} /></TouchableOpacity>}
+                {formData.familyMembers.length > 1 && <TouchableOpacity style={styles.removeInlineButton} onPress={() => removeFamilyMember(index)}><Ionicons name="trash-outline" size={16} color={themeColors.error} /><Text style={styles.removeInlineText}>Remove</Text></TouchableOpacity>}
               </View>
               {[
                 ['Full name', 'name', 'default'],
@@ -778,7 +779,10 @@ const ProfileScreen = ({ navigation }) => {
                 {moveOutSubmitting ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text style={styles.moveOutButtonText}>Request</Text>
+                  <>
+                    <Ionicons name="exit-outline" size={16} color="white" />
+                    <Text style={styles.moveOutButtonText}>Request</Text>
+                  </>
                 )}
               </TouchableOpacity>
             </View>
@@ -795,7 +799,7 @@ const ProfileScreen = ({ navigation }) => {
         </View>
 
         <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSaveProfile} disabled={saving}>
-          {saving ? <ActivityIndicator color="white" /> : <Text style={styles.saveButtonText}>Save Profile Changes</Text>}
+          {saving ? <ActivityIndicator color="white" /> : <><Ionicons name="save-outline" size={18} color="white" /><Text style={styles.saveButtonText}>Save Profile Changes</Text></>}
         </TouchableOpacity>
       </ScrollView>
 
@@ -938,7 +942,7 @@ const styles = StyleSheet.create({
   avatar: { width: 76, height: 76, borderRadius: 24, backgroundColor: themeColors.primary, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: 'white', fontSize: 28, fontWeight: '700' },
   avatarButton: { borderRadius: 50, overflow: 'hidden' },
-  photoButton: { marginTop: 8, backgroundColor: 'white', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: '#c7e5d4' },
+  photoButton: { marginTop: 8, backgroundColor: 'white', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 12, borderWidth: 1, borderColor: '#c7e5d4', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   photoButtonText: { color: themeColors.primary, fontWeight: '700' },
   userName: { fontSize: 19, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 6 },
   roleBadge: { backgroundColor: themeColors.accent, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 16, marginBottom: 8 },
@@ -950,6 +954,8 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   addInlineButton: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: themeColors.primary, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
   addInlineText: { color: 'white', fontWeight: '800', fontSize: 12 },
+  removeInlineButton: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: themeColors.errorSoft, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 6 },
+  removeInlineText: { color: themeColors.error, fontWeight: '800', fontSize: 12 },
   vehicleEditor: { padding: 14, borderRadius: 14, backgroundColor: themeColors.surfaceMuted, borderWidth: 1, borderColor: themeColors.border, marginBottom: 11 },
   vehicleEditorHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   vehicleEditorTitle: { color: themeColors.primaryDeep, fontWeight: '900', fontSize: 14 },
@@ -960,7 +966,7 @@ const styles = StyleSheet.create({
   moveOutRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   moveOutStatusPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: themeColors.warning + '15', borderWidth: 1, borderColor: themeColors.warning + '35' },
   moveOutStatusText: { fontSize: 12, fontWeight: '700', color: themeColors.warning, textTransform: 'capitalize' },
-  moveOutButton: { backgroundColor: themeColors.warning, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, minWidth: 92, alignItems: 'center' },
+  moveOutButton: { backgroundColor: themeColors.warning, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, minWidth: 112, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   moveOutButtonDisabled: { opacity: 0.6 },
   moveOutButtonText: { color: 'white', fontSize: 13, fontWeight: '800' },
   inputGroup: { marginBottom: 16 },
@@ -969,7 +975,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, paddingVertical: 12, fontSize: 16, color: themeColors.textPrimary, marginLeft: 8 },
   securityButton: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: themeColors.surfaceTint, borderRadius: 17, borderWidth: 1, borderColor: themeColors.border },
   securityButtonText: { flex: 1, fontSize: 16, color: themeColors.textPrimary, marginLeft: 12 },
-  saveButton: { backgroundColor: themeColors.primaryDeep, padding: 17, borderRadius: 18, marginTop: 8, marginBottom: 32, alignItems: 'center', ...shadows.medium },
+  saveButton: { backgroundColor: themeColors.primaryDeep, padding: 17, borderRadius: 18, marginTop: 8, marginBottom: 32, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, ...shadows.medium },
   saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },

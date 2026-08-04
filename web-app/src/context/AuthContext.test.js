@@ -57,8 +57,8 @@ test('finishes bootstrap as signed out when no token is stored', async () => {
 });
 
 test('restores and validates an existing session', async () => {
-  localStorage.setItem('token', 'stored-token');
-  localStorage.setItem('lastActivityAt', String(Date.now()));
+  sessionStorage.setItem('token', 'stored-token');
+  sessionStorage.setItem('lastActivityAt', String(Date.now()));
   axios.get.mockResolvedValue({
     data: {
       success: true,
@@ -103,14 +103,14 @@ test('logs in, stores the token, and refreshes the authoritative user', async ()
     { email: 'resident@example.com', password: 'secret', expectedRole: 'resident' },
     { headers: { 'Content-Type': 'application/json' } }
   );
-  expect(localStorage.getItem('token')).toBe('new-token');
+  expect(sessionStorage.getItem('token')).toBe('new-token');
   expect(axios.defaults.headers.common.Authorization).toBe('Bearer new-token');
 });
 
 test('clears a stored session when server validation fails', async () => {
-  localStorage.setItem('token', 'invalid-token');
-  localStorage.setItem('user', JSON.stringify({ email: 'old@example.com' }));
-  localStorage.setItem('lastActivityAt', String(Date.now()));
+  sessionStorage.setItem('token', 'invalid-token');
+  sessionStorage.setItem('user', JSON.stringify({ email: 'old@example.com' }));
+  sessionStorage.setItem('lastActivityAt', String(Date.now()));
   axios.get.mockRejectedValue(new Error('Unauthorized'));
 
   renderAuth();
@@ -118,8 +118,9 @@ test('clears a stored session when server validation fails', async () => {
     expect(screen.getByTestId('bootstrapping')).toHaveTextContent('false');
   });
 
-  expect(localStorage.getItem('token')).toBeNull();
-  expect(localStorage.getItem('user')).toBeNull();
+  expect(sessionStorage.getItem('token')).toBeNull();
+  expect(sessionStorage.getItem('user')).toBeNull();
   expect(axios.get).toHaveBeenCalledWith('/api/auth/me');
   expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
 });
+

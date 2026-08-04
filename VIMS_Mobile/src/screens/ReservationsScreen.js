@@ -486,7 +486,8 @@ const ReservationsScreen = ({ navigation }) => {
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <Ionicons name="add" size={16} color="#fff" />
+          <Text style={styles.headerActionText}>New</Text>
         </TouchableOpacity>
       </View>
 
@@ -1007,8 +1008,13 @@ const styles = StyleSheet.create({
   addButton: {
     backgroundColor: themeColors.accent,
     borderRadius: radii.round,
-    padding: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
+  headerActionText: { color: '#fff', fontSize: 12, fontWeight: '900' },
   content: {
     flex: 1,
     padding: 18,

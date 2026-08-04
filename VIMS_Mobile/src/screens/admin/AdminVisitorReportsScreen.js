@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 
 const AdminVisitorReportsScreen = ({ navigation }) => {
@@ -135,6 +135,7 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={load} style={styles.headerIconButton}>
             <Ionicons name="refresh" size={22} color="white" />
+            <Text style={styles.headerIconButtonText}>Refresh</Text>
           </TouchableOpacity>
           <LogoutButton navigation={navigation} color="white" size={24} />
         </View>
@@ -251,26 +252,16 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
+  container: roleLayouts.admin.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
+  header: { ...roleLayouts.admin.header, paddingTop: 56, paddingHorizontal: 20, paddingBottom: 24, justifyContent: 'space-between' },
   backButton: { padding: 8 },
   headerTitleWrap: { flex: 1, minWidth: 0 },
   headerTitle: { color: 'white', fontSize: 23, fontWeight: '900' },
   headerSubtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIconButton: { padding: 8 },
+  headerIconButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
+  headerIconButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
 
   content: { flex: 1, padding: 16 },
 

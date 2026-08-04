@@ -30,7 +30,7 @@ const PaymentRedirect = () => {
   
   const initPayMongoPayment = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       
       const response = await axios.post(
         `${API_URL}/payments/create-paymongo-session`,

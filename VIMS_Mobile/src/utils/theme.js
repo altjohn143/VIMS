@@ -7,8 +7,8 @@ export const themeColors = {
   primaryLight: '#39A66F',
   primarySoft: '#DDF1E6',
   primaryWash: '#F0F7F3',
-  accent: '#D6F36A',
-  accentSoft: '#F1F9CF',
+  accent: '#DDF1E6',
+  accentSoft: '#F0F7F3',
   nav: '#0A3F2B',
   navActive: '#176B45',
   navMuted: '#789488',
@@ -80,6 +80,68 @@ export const mobilePatterns = {
   insetCard: { backgroundColor: themeColors.surfaceTint, borderRadius: radii.md, borderWidth: 1, borderColor: themeColors.border },
 };
 
+export const roleLayouts = {
+  resident: {
+    screen: { flex: 1, backgroundColor: themeColors.background },
+    header: {
+      backgroundColor: themeColors.primaryDeep,
+      paddingTop: 56,
+      paddingHorizontal: 16,
+      paddingBottom: 18,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderBottomRightRadius: 34,
+    },
+    headerLight: {
+      backgroundColor: themeColors.background,
+      paddingTop: 52,
+      paddingHorizontal: 18,
+      paddingBottom: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderBottomWidth: 1,
+      borderBottomColor: themeColors.border,
+    },
+    content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 },
+    card: { backgroundColor: themeColors.cardBackground, borderRadius: radii.lg, borderWidth: 1, borderColor: themeColors.border, ...shadows.small },
+  },
+  admin: {
+    screen: { flex: 1, backgroundColor: themeColors.background },
+    header: {
+      backgroundColor: themeColors.primaryDeep,
+      paddingTop: 54,
+      paddingHorizontal: 18,
+      paddingBottom: 22,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderBottomRightRadius: 34,
+    },
+    content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 },
+    card: { backgroundColor: themeColors.cardBackground, borderRadius: radii.md, borderWidth: 1, borderColor: themeColors.border, ...shadows.small },
+    toolButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
+  },
+  security: {
+    screen: { flex: 1, backgroundColor: themeColors.background },
+    header: {
+      backgroundColor: themeColors.primaryDeep,
+      paddingTop: 56,
+      paddingHorizontal: 16,
+      paddingBottom: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30,
+    },
+    content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32 },
+    card: { backgroundColor: themeColors.cardBackground, borderRadius: radii.lg, borderWidth: 1, borderColor: themeColors.border, ...shadows.small },
+    toolButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
+  },
+};
+
 export const componentStyles = {
   screen: { flex: 1, backgroundColor: themeColors.background },
   content: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
@@ -92,9 +154,9 @@ export const pinterestTheme = { canvas: themeColors.background, cardRadius: radi
 
 export const statCardStyles = [
   { bg: '#176B45', light: 'rgba(255,255,255,0.12)', accent: '#DDF5E9' },
-  { bg: '#246B91', light: 'rgba(255,255,255,0.12)', accent: '#E1F0F7' },
-  { bg: '#B86517', light: 'rgba(255,255,255,0.12)', accent: '#FFF0D8' },
-  { bg: '#BE3E46', light: 'rgba(255,255,255,0.12)', accent: '#FCE7E8' },
+  { bg: '#105437', light: 'rgba(255,255,255,0.12)', accent: '#EAF3ED' },
+  { bg: '#0A3F2B', light: 'rgba(255,255,255,0.12)', accent: '#F0F7F3' },
+  { bg: '#39A66F', light: 'rgba(255,255,255,0.12)', accent: '#DDF1E6' },
 ];
 
 export const navigationTheme = {

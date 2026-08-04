@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import api from '../../utils/api';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 
 const SecurityServiceRequestsScreen = ({ navigation }) => {
@@ -110,7 +110,16 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     (req) => {
       const assignedId = req?.assignedTo?._id || req?.assignedTo;
       const myId = user?.id || user?._id;
-      return Boolean(myId && assignedId && String(assignedId) === String(myId));
+      const isHeadOfficer =
+        user?.securityLevel === 'head-officer' ||
+        String(user?.email || '').toLowerCase() === 'security@vims.com';
+      return Boolean(
+        myId &&
+        (
+          (assignedId && String(assignedId) === String(myId)) ||
+          (isHeadOfficer && req?.category === 'security')
+        )
+      );
     },
     [user]
   );
@@ -177,12 +186,14 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={16} color="white" />
+          <Text style={styles.headerButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Service Requests</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={load} style={styles.headerIconButton}>
-            <Ionicons name="refresh" size={22} color="white" />
+            <Ionicons name="refresh" size={16} color="white" />
+            <Text style={styles.headerButtonText}>Refresh</Text>
           </TouchableOpacity>
           <LogoutButton navigation={navigation} color="white" size={24} />
         </View>
@@ -268,14 +279,14 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
                   onPress={() => updateStatus(selected._id, 'in-progress')}
                   style={[styles.actionBtn, styles.inProgressBtn, (processing || !canUpdate(selected)) && styles.disabled]}
                 >
-                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.actionText}>In Progress</Text>}
+                  {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="time-outline" size={16} color="white" /><Text style={styles.actionText}>In Progress</Text></>}
                 </TouchableOpacity>
                 <TouchableOpacity
                   disabled={processing || !selected?._id || !canUpdate(selected)}
                   onPress={() => updateStatus(selected._id, 'completed')}
                   style={[styles.actionBtn, styles.completedBtn, (processing || !canUpdate(selected)) && styles.disabled]}
                 >
-                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.actionText}>Completed</Text>}
+                  {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="checkmark-circle-outline" size={16} color="white" /><Text style={styles.actionText}>Completed</Text></>}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -287,23 +298,14 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
+  container: roleLayouts.security.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
-  backButton: { padding: 8 },
+  header: { ...roleLayouts.security.header, paddingHorizontal: 20, paddingBottom: 24 },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerTitle: { color: 'white', fontSize: 23, fontWeight: '900', flex: 1, textAlign: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIconButton: { padding: 8 },
+  headerIconButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
+  headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   filters: { backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: themeColors.border, padding: 12 },
   searchBox: {
     flexDirection: 'row',
@@ -354,7 +356,7 @@ const styles = StyleSheet.create({
   dBody: { fontSize: 14, color: themeColors.textPrimary, lineHeight: 22 },
   note: { fontSize: 12, color: themeColors.textSecondary, marginBottom: 10, textAlign: 'center' },
   actionsRow: { flexDirection: 'row', gap: 12, marginTop: 6, marginBottom: 10 },
-  actionBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  actionBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   inProgressBtn: { backgroundColor: themeColors.info },
   completedBtn: { backgroundColor: themeColors.success },
   actionText: { color: 'white', fontWeight: '900' },

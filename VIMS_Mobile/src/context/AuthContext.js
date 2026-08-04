@@ -1,10 +1,12 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import api from '../utils/api';
 import { registerForPushNotifications, unregisterPushToken } from '../utils/notifications';
 
 const AuthContext = createContext({});
+const APP_CLOSED_SESSION_GRACE_MS = 5000;
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -15,6 +17,32 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     loadStoredData();
+  }, []);
+
+  useEffect(() => {
+    let currentState = AppState.currentState;
+
+    const handleAppStateChange = async (nextState) => {
+      const wasBackgrounded = currentState.match(/inactive|background/);
+
+      if (nextState.match(/inactive|background/)) {
+        await AsyncStorage.setItem('lastBackgroundedAt', String(Date.now()));
+      }
+
+      if (wasBackgrounded && nextState === 'active') {
+        const lastBackgroundedAt = Number(await AsyncStorage.getItem('lastBackgroundedAt') || 0);
+        if (lastBackgroundedAt && Date.now() - lastBackgroundedAt > APP_CLOSED_SESSION_GRACE_MS) {
+          await clearStoredSession();
+          await AsyncStorage.removeItem('pushToken');
+          await AsyncStorage.removeItem('lastBackgroundedAt');
+        }
+      }
+
+      currentState = nextState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
   }, []);
 
   const normalizeUser = (incomingUser, previousUser = null) => {
@@ -37,6 +65,7 @@ export const AuthProvider = ({ children }) => {
   const clearStoredSession = async () => {
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
+    await AsyncStorage.removeItem('lastBackgroundedAt');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setIsAuthenticated(false);
@@ -57,6 +86,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
+      const lastBackgroundedAt = Number(await AsyncStorage.getItem('lastBackgroundedAt') || 0);
+
+      if (token && lastBackgroundedAt && Date.now() - lastBackgroundedAt > APP_CLOSED_SESSION_GRACE_MS) {
+        await clearStoredSession();
+        return;
+      }
       
       if (token && userData) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;

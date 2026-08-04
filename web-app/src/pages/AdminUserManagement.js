@@ -178,7 +178,7 @@ const AdminUserManagement = () => {
     setDocumentModalOpen(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get(`/api/verifications/admin/${user.verificationId}/images`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -257,7 +257,7 @@ const AdminUserManagement = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       
       const response = await axios.get('/api/users', {
         headers: {
@@ -294,7 +294,7 @@ const AdminUserManagement = () => {
 
   const loadSecurityAssignments = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get('/api/patrols/assignments', {
         headers: {
           Authorization: `Bearer ${token}`
@@ -356,7 +356,7 @@ const AdminUserManagement = () => {
     
     try {
       setProcessing(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       
       const response = await axios.delete(`/api/users/${selectedUser._id}`, {
         headers: {
@@ -384,7 +384,7 @@ const AdminUserManagement = () => {
   const handleToggleStatus = async (user) => {
     try {
       setProcessing(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const newStatus = !user.isActive;
       
       const response = await axios.put(`/api/users/${user._id}/status`, 
@@ -418,7 +418,7 @@ const AdminUserManagement = () => {
     
     try {
       setProcessing(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       
       if (user.isApproved) {
         // If already approved, we need to unapprove - but we don't have a route for that
@@ -475,7 +475,7 @@ const AdminUserManagement = () => {
 
     try {
       setCreateProcessing(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.post(
         '/api/users',
         {
@@ -546,7 +546,7 @@ const AdminUserManagement = () => {
 
     try {
       setAssignmentProcessing(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const payload = {
         securityLevel: assignmentForm.securityLevel,
         headOfficerId: assignmentForm.securityLevel === 'personnel' ? assignmentForm.headOfficerId || null : null,
@@ -598,7 +598,7 @@ const AdminUserManagement = () => {
     if (!selectedUser) return;
     try {
       setProcessing(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const url =
         moveOutAction === 'approve'
           ? `/api/users/${selectedUser._id}/move-out/approve`
@@ -640,7 +640,7 @@ const AdminUserManagement = () => {
       const response = await fetch(getBackendApiUrl(`/api/users/export?format=pdf&timezoneOffset=${timezoneOffset}`), {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
         }
       });
 
@@ -2102,3 +2102,4 @@ const AdminUserManagement = () => {
 };
 
 export default AdminUserManagement;
+

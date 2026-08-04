@@ -16,7 +16,7 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 
 const initialForm = { phase: '', area: '', checkpoint: '', notes: '', status: 'completed' };
@@ -143,12 +143,14 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={16} color="white" />
+          <Text style={styles.headerButtonText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Patrol Logs</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={load} style={styles.headerIconButton}>
-            <Ionicons name="refresh" size={22} color="white" />
+            <Ionicons name="refresh" size={16} color="white" />
+            <Text style={styles.headerButtonText}>Refresh</Text>
           </TouchableOpacity>
           <LogoutButton navigation={navigation} color="white" size={24} />
         </View>
@@ -193,7 +195,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
               </Picker>
             </View>
             <TouchableOpacity style={[styles.primaryBtn, styles.formSubmitBtn, processing && styles.disabled]} onPress={submit} disabled={processing}>
-              {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryText}>Submit Patrol Log</Text>}
+              {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="walk-outline" size={16} color="white" /><Text style={styles.primaryText}>Submit Patrol Log</Text></>}
             </TouchableOpacity>
             <Text style={styles.sectionTitle}>Patrol Logs</Text>
           </View>
@@ -289,7 +291,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
                   <Text style={styles.secondaryText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.primaryBtn, processing && styles.disabled]} onPress={submit} disabled={processing}>
-                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.primaryText}>Submit</Text>}
+                  {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="walk-outline" size={16} color="white" /><Text style={styles.primaryText}>Submit</Text></>}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -301,24 +303,14 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
+  container: roleLayouts.security.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
-  backButton: { padding: 8 },
+  header: { ...roleLayouts.security.header, paddingHorizontal: 20, paddingBottom: 24, gap: 10 },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerTitle: { color: 'white', fontSize: 23, fontWeight: '900', flex: 1, textAlign: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIconButton: { padding: 8 },
+  headerIconButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
+  headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   listContainer: { padding: 16, paddingBottom: 24 },
   formCard: { backgroundColor: 'white', borderRadius: 22, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 8, marginTop: 4 },
@@ -344,7 +336,7 @@ const styles = StyleSheet.create({
   actionsRow: { flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 10 },
   secondaryBtn: { flex: 1, backgroundColor: '#f1f5f9', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   secondaryText: { fontWeight: '900', color: themeColors.textSecondary },
-  primaryBtn: { flex: 1, backgroundColor: themeColors.primary, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  primaryBtn: { flex: 1, backgroundColor: themeColors.primary, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   formSubmitBtn: { flex: 0, marginTop: 14 },
   primaryText: { fontWeight: '900', color: 'white' },
   paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 8 },

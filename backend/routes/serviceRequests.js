@@ -1,5 +1,11 @@
 const express = require('express');
 const router = express.Router();
+
+const isSecurityHeadOfficer = (user) =>
+  user?.role === 'security' && (
+    user.securityLevel === 'head-officer' ||
+    String(user.email || '').toLowerCase() === 'security@vims.com'
+  );
 const ServiceRequest = require('../models/ServiceRequest');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
@@ -130,14 +136,20 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
     let filter = { isArchived: false };
 
     if (req.user.role === 'security') {
-      filter.assignedTo = req.user.id;
+      if (isSecurityHeadOfficer(req.user)) {
+        filter.category = 'security';
+      } else {
+        filter.assignedTo = req.user.id;
+      }
     }
 
     if (status && status !== 'all') {
       filter.status = status;
     }
     
-    if (category) filter.category = category;
+    if (category && !(req.user.role === 'security' && isSecurityHeadOfficer(req.user))) {
+      filter.category = category;
+    }
     if (priority) filter.priority = priority;
     if (residentId) filter.residentId = residentId;
     
@@ -271,7 +283,8 @@ router.put('/:id/status', protect, async (req, res) => {
     }
     else if (req.user.role === 'security') {
       const assignedToId = request.assignedTo?._id?.toString() || request.assignedTo?.toString();
-      if (assignedToId !== req.user.id) {
+      const canHeadOfficerHandle = isSecurityHeadOfficer(req.user) && request.category === 'security';
+      if (assignedToId !== req.user.id && !canHeadOfficerHandle) {
         return res.status(403).json({
           success: false,
           error: 'Not assigned to this request'
@@ -280,6 +293,10 @@ router.put('/:id/status', protect, async (req, res) => {
       
       if (['in-progress', 'completed'].includes(status)) {
         request.status = status;
+        if (canHeadOfficerHandle && !request.assignedTo) {
+          request.assignedTo = req.user.id;
+          request.assignedAt = new Date();
+        }
         
         if (status === 'completed') {
           request.completedAt = new Date();

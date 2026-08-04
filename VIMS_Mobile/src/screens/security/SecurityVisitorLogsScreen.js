@@ -13,7 +13,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
@@ -29,6 +29,14 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [manualEntryOpen, setManualEntryOpen] = useState(false);
+  const [manualEntry, setManualEntry] = useState({
+    visitorName: '',
+    visitorPhone: '',
+    vehicleNumber: '',
+    purpose: '',
+  });
+  const [manualEntryErrors, setManualEntryErrors] = useState({});
   const [securityNotes, setSecurityNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -91,6 +99,26 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchVisitors();
+  };
+
+  const updateManualEntry = (field, value) => {
+    setManualEntry((previous) => ({ ...previous, [field]: value }));
+    setManualEntryErrors((previous) => ({ ...previous, [field]: '' }));
+  };
+
+  const submitManualEntry = () => {
+    const nextErrors = {};
+    if (!manualEntry.visitorName.trim()) nextErrors.visitorName = 'Visitor name is required';
+    if (!manualEntry.visitorPhone.trim()) nextErrors.visitorPhone = 'Visitor phone is required';
+    if (!manualEntry.vehicleNumber.trim()) nextErrors.vehicleNumber = 'Vehicle plate number is required';
+    if (!manualEntry.purpose.trim()) nextErrors.purpose = 'Purpose of visit is required';
+
+    if (Object.keys(nextErrors).length > 0) {
+      setManualEntryErrors(nextErrors);
+      return;
+    }
+
+    Alert.alert('Use Approved Record', 'Use an approved visitor record to log entry or exit.');
   };
 
   const filterVisitors = () => {
@@ -429,7 +457,8 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     <View style={styles.container}>
 <View style={styles.header}>
   <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="white" />
+    <Ionicons name="arrow-back" size={16} color="white" />
+    <Text style={styles.headerButtonText}>Back</Text>
   </TouchableOpacity>
   <Text style={styles.headerTitle}>Visitor Logs</Text>
   <View style={styles.headerRight}>
@@ -437,10 +466,22 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       onPress={() => navigation.navigate('ScannerTab')}
       style={styles.scannerJumpButton}
     >
-      <Ionicons name="qr-code" size={18} color="white" />
+      <Ionicons name="qr-code" size={16} color="white" />
+      <Text style={styles.headerButtonText}>Scan</Text>
     </TouchableOpacity>
     <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
-      <Ionicons name="download" size={24} color="white" />
+      <Ionicons name="download" size={16} color="white" />
+      <Text style={styles.headerButtonText}>Export</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={() => {
+        setManualEntryOpen(true);
+        setManualEntryErrors({});
+      }}
+      style={styles.manualEntryButton}
+    >
+      <Ionicons name="car-outline" size={16} color="white" />
+      <Text style={styles.headerButtonText}>Manual</Text>
     </TouchableOpacity>
     <UserDropdownMenu navigation={navigation} />
   </View>
@@ -669,6 +710,69 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         </View>
       </Modal>
 
+      <Modal
+        visible={manualEntryOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setManualEntryOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Manual Visitor / Vehicle Entry</Text>
+              <TouchableOpacity onPress={() => setManualEntryOpen(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.manualHelpText}>
+              Validate required visitor and vehicle entry details before logging an approved visitor record.
+            </Text>
+            <TextInput
+              style={[styles.modalInput, manualEntryErrors.visitorName && styles.inputError]}
+              placeholder="Visitor Name"
+              value={manualEntry.visitorName}
+              onChangeText={(value) => updateManualEntry('visitorName', value)}
+            />
+            {!!manualEntryErrors.visitorName && <Text style={styles.errorText}>{manualEntryErrors.visitorName}</Text>}
+            <TextInput
+              style={[styles.modalInput, manualEntryErrors.visitorPhone && styles.inputError]}
+              placeholder="Visitor Phone"
+              value={manualEntry.visitorPhone}
+              onChangeText={(value) => updateManualEntry('visitorPhone', value)}
+              keyboardType="phone-pad"
+            />
+            {!!manualEntryErrors.visitorPhone && <Text style={styles.errorText}>{manualEntryErrors.visitorPhone}</Text>}
+            <TextInput
+              style={[styles.modalInput, manualEntryErrors.vehicleNumber && styles.inputError]}
+              placeholder="Vehicle Plate Number"
+              value={manualEntry.vehicleNumber}
+              onChangeText={(value) => updateManualEntry('vehicleNumber', value.toUpperCase())}
+              autoCapitalize="characters"
+            />
+            {!!manualEntryErrors.vehicleNumber && <Text style={styles.errorText}>{manualEntryErrors.vehicleNumber}</Text>}
+            <TextInput
+              style={[styles.modalInput, styles.textAreaInput, manualEntryErrors.purpose && styles.inputError]}
+              placeholder="Purpose of Visit"
+              value={manualEntry.purpose}
+              onChangeText={(value) => updateManualEntry('purpose', value)}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+            {!!manualEntryErrors.purpose && <Text style={styles.errorText}>{manualEntryErrors.purpose}</Text>}
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setManualEntryOpen(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.entryButton]} onPress={submitManualEntry}>
+                <Ionicons name="car-outline" size={16} color="white" />
+                <Text style={styles.modalButtonText}>Validate</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Entry Modal */}
       <Modal
         visible={showEntryModal}
@@ -788,27 +892,20 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
-  header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 38,
-  },
+  container: roleLayouts.security.screen,
+  header: { ...roleLayouts.security.header, paddingTop: 60, paddingHorizontal: 20, paddingBottom: 24 },
   headerRight: {
   flexDirection: 'row',
   alignItems: 'center',
 },
   backButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   headerTitle: {
     color: 'white',
@@ -816,12 +913,35 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   exportButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   scannerJumpButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     marginRight: 2,
   },
+  manualEntryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    marginRight: 2,
+  },
+  headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   statsScroll: {
     backgroundColor: themeColors.nav,
   },
@@ -1184,6 +1304,10 @@ const styles = StyleSheet.create({
     color: themeColors.textPrimary,
     marginLeft: 8,
   },
+  textAreaInput: { minHeight: 88 },
+  inputError: { borderColor: themeColors.error },
+  errorText: { color: themeColors.error, fontSize: 12, fontWeight: '700', marginTop: 4 },
+  manualHelpText: { color: themeColors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: 10 },
   paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
   pageButton: { backgroundColor: themeColors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
   pageButtonDisabled: { opacity: 0.45 },

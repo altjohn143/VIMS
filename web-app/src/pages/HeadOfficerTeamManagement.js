@@ -2,19 +2,26 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Avatar,
   Box,
+  Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
   List,
   ListItem,
   ListItemText,
   Paper,
+  TextField,
   Typography
 } from '@mui/material';
 import {
   Analytics as AnalyticsIcon,
   Assignment as AssignmentIcon,
   CheckCircle as CheckCircleIcon,
+  EditLocationAlt as EditLocationAltIcon,
   People as PeopleIcon,
   ReportProblemOutlined as ReportProblemOutlinedIcon
 } from '@mui/icons-material';
@@ -31,6 +38,10 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
   const [team, setTeam] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [routeDialogOpen, setRouteDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [routeForm, setRouteForm] = useState({ assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
+  const [savingRoute, setSavingRoute] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -78,6 +89,39 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
   };
 
   const getOfficerName = (officer) => `${officer?.firstName || ''} ${officer?.lastName || ''}`.trim() || 'Unassigned officer';
+  const openRouteDialog = (member) => {
+    setSelectedMember(member);
+    setRouteForm({
+      assignedPhases: Array.isArray(member.assignedPhases) ? member.assignedPhases.join(', ') : '',
+      assignedAreas: Array.isArray(member.assignedAreas) ? member.assignedAreas.join(', ') : '',
+      patrolSchedule: member.patrolSchedule || ''
+    });
+    setRouteDialogOpen(true);
+  };
+  const saveRoute = async () => {
+    if (!selectedMember) return;
+    setSavingRoute(true);
+    try {
+      await axios.put(`/api/patrols/assign/${selectedMember._id}`, {
+        securityLevel: 'personnel',
+        assignedPhases: routeForm.assignedPhases
+          .split(',')
+          .map((value) => Number(value.trim()))
+          .filter((value) => Number.isInteger(value) && value >= 1 && value <= 5),
+        assignedAreas: routeForm.assignedAreas
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
+        patrolSchedule: routeForm.patrolSchedule.trim(),
+        headOfficerId: selectedMember.headOfficerId?._id || selectedMember.headOfficerId || null
+      });
+      setRouteDialogOpen(false);
+      setSelectedMember(null);
+      await load();
+    } finally {
+      setSavingRoute(false);
+    }
+  };
   const issueLogs = logs.filter((log) => log.status === 'issue_found');
   const completedLogs = logs.filter((log) => ['completed', 'nothing_found'].includes(log.status));
   const recentLogs = logs.slice(0, 12);
@@ -121,6 +165,15 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'flex-end' }}>
               <Chip size="small" label={member.isActive ? 'Active' : 'Inactive'} color={member.isActive ? 'success' : 'default'} />
               {!member.headOfficerId && <Chip size="small" label="Unassigned" variant="outlined" />}
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<EditLocationAltIcon />}
+                onClick={() => openRouteDialog(member)}
+                sx={{ bgcolor: themeColors.primary, textTransform: 'none', fontWeight: 800, borderRadius: '8px', '&:hover': { bgcolor: '#14532d' } }}
+              >
+                Edit Route
+              </Button>
             </Box>
           </ListItem>
         ))}
@@ -255,6 +308,39 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
       </Grid>
 
       {renderView()}
+
+      <Dialog open={routeDialogOpen} onClose={() => setRouteDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 900 }}>Edit Patrol Route</DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: 2, pt: 1 }}>
+          <Typography sx={{ color: themeColors.textSecondary, fontWeight: 700 }}>
+            {selectedMember ? getOfficerName(selectedMember) : 'Security personnel'}
+          </Typography>
+          <TextField
+            label="Phases"
+            value={routeForm.assignedPhases}
+            onChange={(event) => setRouteForm((prev) => ({ ...prev, assignedPhases: event.target.value }))}
+            helperText="Comma-separated phase numbers, for example: 1, 2, 3"
+          />
+          <TextField
+            label="Assigned Areas"
+            value={routeForm.assignedAreas}
+            onChange={(event) => setRouteForm((prev) => ({ ...prev, assignedAreas: event.target.value }))}
+            helperText="Comma-separated patrol areas"
+          />
+          <TextField
+            label="Patrol Schedule"
+            value={routeForm.patrolSchedule}
+            onChange={(event) => setRouteForm((prev) => ({ ...prev, patrolSchedule: event.target.value }))}
+            placeholder="e.g. Mon-Fri 8:00 PM - 12:00 AM"
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setRouteDialogOpen(false)} sx={{ textTransform: 'none', fontWeight: 800 }}>Cancel</Button>
+          <Button variant="contained" startIcon={<EditLocationAltIcon />} onClick={saveRoute} disabled={savingRoute} sx={{ bgcolor: themeColors.primary, textTransform: 'none', fontWeight: 800, borderRadius: '8px', '&:hover': { bgcolor: '#14532d' } }}>
+            {savingRoute ? 'Saving...' : 'Save Route'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

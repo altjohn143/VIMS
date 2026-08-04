@@ -76,6 +76,8 @@ const LoginScreen = ({ navigation }) => {
   }, [selectedRole]);
 
   const showModal = () => {
+    if (selectedRole !== 'resident') return;
+
     setShowForgotPassword(true);
     Animated.parallel([
       Animated.spring(modalScaleAnim, {
@@ -422,13 +424,15 @@ const LoginScreen = ({ navigation }) => {
                 </View>
 
                 {/* Forgot Password Link - Clean */}
-                <TouchableOpacity 
-                  style={styles.forgotPasswordContainer} 
-                  onPress={() => navigation.navigate('ResetPassword')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                </TouchableOpacity>
+                {selectedRole === 'resident' && (
+                  <TouchableOpacity 
+                    style={styles.forgotPasswordContainer} 
+                    onPress={() => navigation.navigate('ResetPassword')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                  </TouchableOpacity>
+                )}
 
                 {/* Sign In Button - Clean with subtle gradient effect */}
                 <TouchableOpacity

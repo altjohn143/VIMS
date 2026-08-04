@@ -30,13 +30,13 @@ const activeStatuses = ['pending', 'under-review', 'assigned', 'in-progress'];
 const archiveStatuses = ['completed', 'cancelled', 'rejected'];
 
 const statusMeta = {
-  pending: { label: 'Pending', color: '#f59e0b' },
-  'under-review': { label: 'Under Review', color: '#0ea5e9' },
-  assigned: { label: 'Assigned', color: '#2563eb' },
-  'in-progress': { label: 'In Progress', color: '#166534' },
-  completed: { label: 'Resolved', color: '#10b981' },
-  cancelled: { label: 'Cancelled', color: '#ef4444' },
-  rejected: { label: 'Rejected', color: '#ef4444' },
+  pending: { label: 'Pending', color: themeColors.warning },
+  'under-review': { label: 'Under Review', color: themeColors.primaryLight },
+  assigned: { label: 'Assigned', color: themeColors.primary },
+  'in-progress': { label: 'In Progress', color: themeColors.primaryDeep },
+  completed: { label: 'Resolved', color: themeColors.success },
+  cancelled: { label: 'Cancelled', color: themeColors.error },
+  rejected: { label: 'Rejected', color: themeColors.error },
 };
 
 const buildDescription = (issueType, details) => `Type: ${issueType}\n\n${details}`;
@@ -212,13 +212,13 @@ const ComplaintsScreen = ({ navigation }) => {
         <View style={styles.actions}>
           {item.status === 'pending' && (
             <TouchableOpacity style={styles.secondaryBtn} onPress={() => openEdit(item)}>
-              <Ionicons name="create-outline" size={16} color="#166534" />
+              <Ionicons name="create-outline" size={16} color={themeColors.primary} />
               <Text style={styles.secondaryBtnText}>Edit</Text>
             </TouchableOpacity>
           )}
           {activeStatuses.includes(item.status) && (
             <TouchableOpacity style={styles.dangerBtn} onPress={() => cancelComplaint(item._id)}>
-              <Ionicons name="close-circle-outline" size={16} color="#ef4444" />
+              <Ionicons name="close-circle-outline" size={16} color={themeColors.error} />
               <Text style={styles.dangerBtnText}>Cancel</Text>
             </TouchableOpacity>
           )}
@@ -255,11 +255,11 @@ const ComplaintsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#0f172a" />
+          <Ionicons name="arrow-back" size={22} color={themeColors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Complaints Form</Text>
         <TouchableOpacity onPress={openCreate}>
-          <Ionicons name="add-circle" size={26} color="#166534" />
+          <Ionicons name="add-circle" size={26} color={themeColors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -285,7 +285,7 @@ const ComplaintsScreen = ({ navigation }) => {
 
         <Text style={styles.sectionTitle}>My Complaints</Text>
         {loading ? (
-          <ActivityIndicator color="#166534" />
+          <ActivityIndicator color={themeColors.primary} />
         ) : complaints.length === 0 ? (
           <Text style={styles.emptyText}>No complaints submitted yet.</Text>
         ) : (
@@ -304,7 +304,7 @@ const ComplaintsScreen = ({ navigation }) => {
         <View style={styles.modalContainer}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#0f172a" />
+              <Ionicons name="close" size={24} color={themeColors.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{editingId ? 'Edit Complaint' : 'New Complaint'}</Text>
             <View style={{ width: 24 }} />
@@ -352,7 +352,7 @@ const ComplaintsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff8f3' },
+  container: { flex: 1, backgroundColor: themeColors.background },
   header: {
     paddingTop: 52,
     paddingHorizontal: 16,
@@ -360,18 +360,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff8f3',
+    backgroundColor: themeColors.background,
     borderBottomRightRadius: 44,
   },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: themeColors.textPrimary },
   content: { flex: 1 },
   contentInner: { padding: 14, paddingBottom: 28 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  statBox: { width: '48%', backgroundColor: '#fff', borderRadius: 6, padding: 16, borderLeftWidth: 4, borderLeftColor: '#166534' },
-  statValue: { fontSize: 24, fontWeight: '900', color: '#166534' },
-  statLabel: { color: '#64748b', fontWeight: '700', marginTop: 2 },
+  statBox: { width: '48%', backgroundColor: themeColors.cardBackground, borderRadius: 6, padding: 16, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
+  statValue: { fontSize: 24, fontWeight: '900', color: themeColors.primary },
+  statLabel: { color: themeColors.textSecondary, fontWeight: '700', marginTop: 2 },
   primaryBtn: {
-    backgroundColor: '#166534',
+    backgroundColor: themeColors.primary,
     borderRadius: 14,
     paddingVertical: 13,
     alignItems: 'center',
@@ -381,29 +381,30 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   primaryBtnText: { color: '#fff', fontWeight: '800' },
-  sectionTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', marginTop: 18, marginBottom: 10 },
-  emptyText: { color: '#64748b', textAlign: 'center', paddingVertical: 18 },
-  card: { backgroundColor: '#fff', borderRadius: 6, padding: 18, borderLeftWidth: 5, borderLeftColor: '#d97706', marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary, marginTop: 18, marginBottom: 10 },
+  emptyText: { color: themeColors.textSecondary, textAlign: 'center', paddingVertical: 18 },
+  card: { backgroundColor: themeColors.cardBackground, borderRadius: 6, padding: 18, borderLeftWidth: 5, borderLeftColor: themeColors.primary, marginBottom: 10 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   cardTitleWrap: { flex: 1 },
-  cardTitle: { fontSize: 15, fontWeight: '900', color: '#0f172a' },
-  cardMeta: { color: '#64748b', fontSize: 12, marginTop: 3 },
+  cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary },
+  cardMeta: { color: themeColors.textSecondary, fontSize: 12, marginTop: 3 },
   statusPill: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, alignSelf: 'flex-start' },
   statusText: { fontSize: 11, fontWeight: '900' },
-  description: { color: '#334155', marginTop: 12, lineHeight: 20 },
+  description: { color: themeColors.textPrimary, marginTop: 12, lineHeight: 20 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  secondaryBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
-  secondaryBtnText: { color: '#166534', fontWeight: '800' },
-  dangerBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: '#fecaca', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
-  dangerBtnText: { color: '#ef4444', fontWeight: '800' },
-  primarySmallBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#166534', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  secondaryBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: themeColors.primarySoft, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  secondaryBtnText: { color: themeColors.primary, fontWeight: '800' },
+  dangerBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: themeColors.errorSoft, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  dangerBtnText: { color: themeColors.error, fontWeight: '800' },
+  primarySmallBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: themeColors.primary, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
   primarySmallBtnText: { color: '#fff', fontWeight: '800' },
-  modalContainer: { flex: 1, backgroundColor: '#f8fafc' },
+  modalContainer: { flex: 1, backgroundColor: themeColors.background },
   form: { padding: 16, paddingBottom: 32 },
-  inputLabel: { color: '#0f172a', fontWeight: '800', marginBottom: 7, marginTop: 12 },
-  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  inputLabel: { color: themeColors.textPrimary, fontWeight: '800', marginBottom: 7, marginTop: 12 },
+  input: { backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.borderStrong, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
   textArea: { minHeight: 130 },
-  pickerWrap: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, overflow: 'hidden' },
+  pickerWrap: { backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.borderStrong, borderRadius: 12, overflow: 'hidden' },
 });
 
 export default ComplaintsScreen;
+

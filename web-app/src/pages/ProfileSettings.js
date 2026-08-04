@@ -233,7 +233,7 @@ const ProfileSettings = () => {
           return;
         }
 
-        const token = localStorage.getItem('token') || currentUser.token || '';
+        const token = sessionStorage.getItem('token') || currentUser.token || '';
 
         const response = await axios.get('/api/users/profile', {
           headers: {
@@ -322,7 +322,7 @@ const ProfileSettings = () => {
 
     try {
       setMoveOutSubmitting(true);
-      const token = localStorage.getItem('token') || '';
+      const token = sessionStorage.getItem('token') || '';
       const res = await axios.post(
         '/api/users/move-out/request',
         { reason: moveOutReason.trim() },
@@ -367,7 +367,7 @@ const ProfileSettings = () => {
       previewUrl = URL.createObjectURL(file);
       setProfilePhoto(previewUrl);
 
-      const token = localStorage.getItem('token') || '';
+      const token = sessionStorage.getItem('token') || '';
       const formData = new FormData();
       formData.append('photo', file);
 
@@ -2173,3 +2173,4 @@ const ProfileSettings = () => {
 };
 
 export default ProfileSettings;
+

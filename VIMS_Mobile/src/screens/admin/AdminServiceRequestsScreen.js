@@ -276,6 +276,39 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     );
   };
 
+  const handleArchiveRequest = (request) => {
+    if (!request?._id) return;
+
+    Alert.alert(
+      'Archive Service Request',
+      `Archive "${request.title}"? It will be removed from the active queue and kept in archived service requests.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await api.delete(`/service-requests/${request._id}`, {
+                data: { reason: 'Archived by admin' },
+              });
+              if (response.data.success) {
+                Alert.alert('Success', 'Service request archived successfully');
+                setShowDetailsModal(false);
+                setSelectedRequest(null);
+                fetchData();
+              } else {
+                Alert.alert('Error', response.data?.error || 'Failed to archive service request');
+              }
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.error || 'Failed to archive service request');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const getStatusChip = (status) => {
     const config = {
       pending: { label: 'Pending', color: themeColors.warning, icon: 'time', bg: themeColors.warning + '20' },
@@ -418,6 +451,14 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
               <Text style={styles.actionButtonText}>Complete</Text>
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.archiveButton]}
+            onPress={() => handleArchiveRequest(item)}
+          >
+            <Ionicons name="archive-outline" size={16} color="white" />
+            <Text style={styles.actionButtonText}>Archive</Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -441,11 +482,13 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('ArchivedServiceRequests')} style={styles.queueTool}>
             <Ionicons name="archive-outline" size={20} color={themeColors.primaryDeep} />
+            <Text style={styles.queueToolText}>Archived</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleExportPdf} style={styles.queueTool} disabled={exporting}>
             {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : (
               <Ionicons name="download-outline" size={20} color={themeColors.primaryDeep} />
             )}
+            <Text style={styles.queueToolText}>Export</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -704,9 +747,17 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Request Details</Text>
-              <TouchableOpacity onPress={() => setShowDetailsModal(false)}>
-                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
-              </TouchableOpacity>
+              <View style={styles.modalHeaderActions}>
+                <TouchableOpacity
+                  style={styles.modalIconButton}
+                  onPress={() => handleArchiveRequest(selectedRequest)}
+                >
+                  <Ionicons name="archive-outline" size={21} color={themeColors.error} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalIconButton} onPress={() => setShowDetailsModal(false)}>
+                  <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {selectedRequest && (
@@ -867,10 +918,11 @@ const styles = StyleSheet.create({
   queueEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
   queueTitle: { color: themeColors.textPrimary, fontSize: 30, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
   queueSubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 3 },
-  queueToolbar: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  queueToolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 },
   queueToolPrimary: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 43, paddingHorizontal: 16, borderRadius: 14, backgroundColor: themeColors.primary },
   queueToolPrimaryText: { color: 'white', fontSize: 12, fontWeight: '900' },
-  queueTool: { width: 43, height: 43, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.accent },
+  queueTool: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, height: 43, paddingHorizontal: 13, borderRadius: 14, backgroundColor: themeColors.accent },
+  queueToolText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   queueProgress: { margin: 16, padding: 16, backgroundColor: themeColors.surfaceTint, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border },
   advancedFilterToggle: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
   advancedFilterToggleText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
@@ -1132,6 +1184,9 @@ const styles = StyleSheet.create({
   completeButton: {
     backgroundColor: themeColors.success,
   },
+  archiveButton: {
+    backgroundColor: themeColors.error,
+  },
   actionButtonText: {
     color: 'white',
     fontSize: 12,
@@ -1173,6 +1228,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  modalHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalIconButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalTitle: {
     fontSize: 20,

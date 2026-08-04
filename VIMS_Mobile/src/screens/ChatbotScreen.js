@@ -93,11 +93,12 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={embedded ? onClose : () => navigation.goBack()}>
-          <Ionicons name={embedded ? 'close' : 'arrow-back'} size={22} color="#0f172a" />
+        <TouchableOpacity style={styles.headerActionButton} onPress={embedded ? onClose : () => navigation.goBack()}>
+          <Ionicons name={embedded ? 'close' : 'arrow-back'} size={16} color="#fff" />
+          <Text style={styles.headerActionText}>{embedded ? 'Close' : 'Back'}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{embedded ? 'VIMS Assistant' : 'VIMS AI Assistant'}</Text>
-        <View style={{ width: 22 }} />
+        <View style={{ minWidth: 76 }} />
       </View>
 
       <View style={styles.suggestionsContainer}>
@@ -129,7 +130,7 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
           multiline
         />
         <TouchableOpacity style={styles.sendBtn} onPress={sendMessage} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Ionicons name="send" size={18} color="#fff" />}
+          {loading ? <ActivityIndicator color="#fff" /> : <><Ionicons name="send" size={16} color="#fff" /><Text style={styles.sendBtnText}>Send</Text></>}
         </TouchableOpacity>
       </View>
     </View>
@@ -148,6 +149,8 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.nav
   },
   headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+  headerActionButton: { minWidth: 76, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
+  headerActionText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   messages: { flex: 1, padding: 12 },
   empty: { color: '#64748b', textAlign: 'center', marginTop: 20 },
   bubble: { padding: 10, borderRadius: 12, marginBottom: 10, maxWidth: '88%' },
@@ -207,12 +210,16 @@ const styles = StyleSheet.create({
   sendBtn: {
     marginLeft: 8,
     backgroundColor: '#166534',
-    width: 40,
+    minWidth: 72,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
-    justifyContent: 'center'
-  }
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 12
+  },
+  sendBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' }
 });
 
 export default ChatbotScreen;

@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -28,6 +31,10 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [routeModalOpen, setRouteModalOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [routeForm, setRouteForm] = useState({ assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
+  const [savingRoute, setSavingRoute] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -46,6 +53,44 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const openRouteModal = (member) => {
+    setSelectedMember(member);
+    setRouteForm({
+      assignedPhases: Array.isArray(member.assignedPhases) ? member.assignedPhases.join(', ') : '',
+      assignedAreas: Array.isArray(member.assignedAreas) ? member.assignedAreas.join(', ') : '',
+      patrolSchedule: member.patrolSchedule || '',
+    });
+    setRouteModalOpen(true);
+  };
+
+  const saveRoute = async () => {
+    if (!selectedMember) return;
+    setSavingRoute(true);
+    try {
+      await api.put(`/patrols/assign/${selectedMember._id}`, {
+        securityLevel: 'personnel',
+        assignedPhases: routeForm.assignedPhases
+          .split(',')
+          .map((value) => Number(value.trim()))
+          .filter((value) => Number.isInteger(value) && value >= 1 && value <= 5),
+        assignedAreas: routeForm.assignedAreas
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
+        patrolSchedule: routeForm.patrolSchedule.trim(),
+        headOfficerId: selectedMember.headOfficerId?._id || selectedMember.headOfficerId || null,
+      });
+      setRouteModalOpen(false);
+      setSelectedMember(null);
+      Alert.alert('Saved', 'Patrol route updated.');
+      load();
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update patrol route');
+    } finally {
+      setSavingRoute(false);
+    }
+  };
 
   const view = route?.name === 'PersonnelTab'
     ? 'team'
@@ -105,6 +150,10 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
       <Text style={styles.cardMeta}>Phases: {listText(item.assignedPhases, 'No phases')}</Text>
       <Text style={styles.cardMeta}>Schedule: {item.patrolSchedule || 'No patrol schedule'}</Text>
       {!item.headOfficerId && <Text style={styles.warningText}>Unassigned personnel</Text>}
+      <TouchableOpacity style={styles.routeButton} onPress={() => openRouteModal(item)}>
+        <Ionicons name="map-outline" size={16} color="white" />
+        <Text style={styles.routeButtonText}>Edit Route</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -192,14 +241,16 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={16} color="white" />
+          <Text style={styles.headerButtonText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.titleBlock}>
           <Text style={styles.eyebrow}>HEAD OFFICER</Text>
           <Text style={styles.headerTitle}>{title}</Text>
         </View>
         <TouchableOpacity onPress={load} style={styles.headerButton}>
-          <Ionicons name="refresh" size={22} color="white" />
+          <Ionicons name="refresh" size={16} color="white" />
+          <Text style={styles.headerButtonText}>Refresh</Text>
         </TouchableOpacity>
       </View>
 
@@ -217,6 +268,53 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.list}
         refreshControl={refreshControl}
       />
+
+      <Modal visible={routeModalOpen} transparent animationType="slide" onRequestClose={() => setRouteModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.routeSheet}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Edit Patrol Route</Text>
+                <Text style={styles.modalSubtitle}>{selectedMember ? officerName(selectedMember) : 'Security personnel'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setRouteModalOpen(false)} style={styles.closeButton}>
+                <Ionicons name="close" size={22} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.inputLabel}>Phases</Text>
+            <TextInput
+              style={styles.input}
+              value={routeForm.assignedPhases}
+              onChangeText={(value) => setRouteForm((prev) => ({ ...prev, assignedPhases: value }))}
+              placeholder="1, 2, 3"
+              keyboardType="numbers-and-punctuation"
+            />
+            <Text style={styles.helperText}>Comma-separated phase numbers from 1 to 5.</Text>
+            <Text style={styles.inputLabel}>Assigned Areas</Text>
+            <TextInput
+              style={styles.input}
+              value={routeForm.assignedAreas}
+              onChangeText={(value) => setRouteForm((prev) => ({ ...prev, assignedAreas: value }))}
+              placeholder="Gate 1, Clubhouse, Phase 2"
+            />
+            <Text style={styles.inputLabel}>Patrol Schedule</Text>
+            <TextInput
+              style={styles.input}
+              value={routeForm.patrolSchedule}
+              onChangeText={(value) => setRouteForm((prev) => ({ ...prev, patrolSchedule: value }))}
+              placeholder="Mon-Fri 8:00 PM - 12:00 AM"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setRouteModalOpen(false)}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.saveButton]} onPress={saveRoute} disabled={savingRoute}>
+                {savingRoute ? <ActivityIndicator color="white" /> : <><Ionicons name="save-outline" size={16} color="white" /><Text style={styles.saveText}>Save Route</Text></>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -225,7 +323,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: themeColors.background },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   topBar: { backgroundColor: themeColors.primaryDeep, paddingTop: 52, paddingHorizontal: 16, paddingBottom: 24, flexDirection: 'row', alignItems: 'center', borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
-  headerButton: { padding: 8 },
+  headerButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
+  headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   titleBlock: { flex: 1, marginLeft: 8 },
   eyebrow: { color: themeColors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
   headerTitle: { color: 'white', fontSize: 23, fontWeight: '900', marginTop: 2 },
@@ -248,12 +347,29 @@ const styles = StyleSheet.create({
   issueBadge: { backgroundColor: themeColors.warning + '25' },
   badgeText: { color: themeColors.textPrimary, fontSize: 10, fontWeight: '900', textTransform: 'capitalize' },
   warningText: { color: themeColors.warning, fontSize: 12, fontWeight: '800', marginTop: 8 },
+  routeButton: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: themeColors.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  routeButtonText: { color: 'white', fontSize: 12, fontWeight: '900' },
   notes: { color: themeColors.textPrimary, fontSize: 13, lineHeight: 19, marginTop: 9, paddingTop: 9, borderTopWidth: 1, borderTopColor: themeColors.border },
   coverageCard: { backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 18 },
   coverageRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   coverageName: { fontWeight: '900', color: themeColors.textPrimary },
   empty: { alignItems: 'center', paddingVertical: 48 },
   emptyTitle: { color: themeColors.textPrimary, fontWeight: '800', fontSize: 16, marginTop: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  routeSheet: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  modalTitle: { fontSize: 18, fontWeight: '900', color: themeColors.textPrimary },
+  modalSubtitle: { fontSize: 12, fontWeight: '700', color: themeColors.textSecondary, marginTop: 2 },
+  closeButton: { padding: 6 },
+  inputLabel: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '900', marginTop: 12, marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: themeColors.border, backgroundColor: themeColors.surfaceMuted, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, color: themeColors.textPrimary },
+  helperText: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '600', marginTop: 5 },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  modalButton: { flex: 1, minHeight: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
+  cancelButton: { backgroundColor: themeColors.surfaceMuted, borderWidth: 1, borderColor: themeColors.border },
+  saveButton: { backgroundColor: themeColors.primary },
+  cancelText: { color: themeColors.textPrimary, fontWeight: '900' },
+  saveText: { color: 'white', fontWeight: '900' },
 });
 
 export default HeadOfficerTeamScreen;

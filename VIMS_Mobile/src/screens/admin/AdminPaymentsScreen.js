@@ -424,6 +424,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
             <Text style={styles.ledgerBalanceMeta}>This month {formatCurrency(summary.monthlyCollected)}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Chatbot')} style={styles.ledgerAssistant}>
               <Ionicons name="sparkles-outline" size={18} color={themeColors.primaryDeep} />
+              <Text style={styles.ledgerAssistantText}>Assistant</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -435,14 +436,17 @@ const AdminPaymentsScreen = ({ navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity style={styles.ledgerActionSecondary} onPress={() => setShowDuesDialog(true)}>
           <Ionicons name="settings-outline" size={20} color={themeColors.primaryDeep} />
+          <Text style={styles.ledgerActionSecondaryText}>Set dues</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.ledgerActionSecondary} onPress={handleExportPdf} disabled={exporting}>
           {exporting
             ? <ActivityIndicator size="small" color={themeColors.primaryDeep} />
             : <Ionicons name="download-outline" size={20} color={themeColors.primaryDeep} />}
+          <Text style={styles.ledgerActionSecondaryText}>Export</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.ledgerActionSecondary} onPress={onRefresh}>
           <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
+          <Text style={styles.ledgerActionSecondaryText}>Refresh</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.financeSnapshot}>
@@ -814,11 +818,13 @@ const styles = StyleSheet.create({
   ledgerBalanceValue: { color: 'white', fontSize: 23, fontWeight: '800', marginTop: 2 },
   ledgerBalanceBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 },
   ledgerBalanceMeta: { color: 'rgba(255,255,255,0.66)', fontSize: 11, fontWeight: '700' },
-  ledgerAssistant: { width: 28, height: 28, borderRadius: 8, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center' },
-  ledgerActions: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
-  ledgerActionPrimary: { flex: 1, height: 40, borderRadius: 10, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  ledgerAssistant: { height: 28, paddingHorizontal: 8, borderRadius: 8, backgroundColor: themeColors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  ledgerAssistantText: { color: themeColors.primaryDeep, fontSize: 10, fontWeight: '900' },
+  ledgerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
+  ledgerActionPrimary: { height: 40, paddingHorizontal: 13, borderRadius: 10, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   ledgerActionPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },
-  ledgerActionSecondary: { width: 40, height: 40, borderRadius: 10, backgroundColor: themeColors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  ledgerActionSecondary: { height: 40, paddingHorizontal: 12, borderRadius: 10, backgroundColor: themeColors.primarySoft, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  ledgerActionSecondaryText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   financeSnapshot: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 8, backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, paddingVertical: 8 },
   snapshotItem: { flex: 1, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: themeColors.border },
   snapshotLabel: { color: themeColors.textSecondary, fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },

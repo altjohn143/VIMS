@@ -89,7 +89,7 @@ const AdminVerificationQueue = () => {
     setPreviewImages({ front: null, back: null, selfie: null });
 
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get(`/api/verifications/admin/${verificationId}/images`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -353,3 +353,4 @@ const AdminVerificationQueue = () => {
 };
 
 export default AdminVerificationQueue;
+

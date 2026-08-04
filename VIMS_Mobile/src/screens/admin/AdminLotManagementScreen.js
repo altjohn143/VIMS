@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 
 const STATUS_OPTIONS = ['all', 'vacant', 'occupied', 'reserved'];
@@ -128,14 +128,20 @@ const AdminLotManagementScreen = ({ navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="white" />
+          <Text style={styles.headerButtonText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
           <Text style={styles.headerEyebrow}>ADMIN MODULE</Text>
           <Text style={styles.headerTitle}>Lot Management</Text>
           <Text style={styles.headerSubtitle}>Monitor lot inventory, ownership, and availability.</Text>
         </View>
+        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('AdminLotMapEditor')}>
+          <Ionicons name="map-outline" size={21} color="white" />
+          <Text style={styles.headerButtonText}>Map Editor</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.headerButton} onPress={() => loadLots(true)}>
           <Ionicons name="refresh" size={22} color="white" />
+          <Text style={styles.headerButtonText}>Refresh</Text>
         </TouchableOpacity>
       </View>
 
@@ -253,9 +259,10 @@ const AdminLotManagementScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
-  header: { backgroundColor: themeColors.primaryDeep, paddingTop: 54, paddingHorizontal: 18, paddingBottom: 24, borderBottomRightRadius: 36, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerButton: { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  container: roleLayouts.admin.screen,
+  header: { ...roleLayouts.admin.header, paddingBottom: 24 },
+  headerButton: { flexDirection: 'row', height: 42, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   headerTextWrap: { flex: 1 },
   headerEyebrow: { color: '#bbf7d0', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
   headerTitle: { color: 'white', fontSize: 25, fontWeight: '900', marginTop: 2 },

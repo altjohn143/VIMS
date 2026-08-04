@@ -13,7 +13,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { themeColors, shadows } from '../../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
@@ -203,12 +203,14 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
     <View style={styles.container}>
 <View style={styles.header}>
   <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="white" />
+    <Ionicons name="arrow-back" size={16} color="white" />
+    <Text style={styles.headerButtonText}>Back</Text>
   </TouchableOpacity>
   <Text style={styles.headerTitle}>Visitor Approvals</Text>
   <View style={styles.headerRight}>
     <TouchableOpacity onPress={fetchPendingVisitors} style={styles.refreshButton}>
-      <Ionicons name="refresh" size={24} color="white" />
+      <Ionicons name="refresh" size={16} color="white" />
+      <Text style={styles.headerButtonText}>Refresh</Text>
     </TouchableOpacity>
     <UserDropdownMenu navigation={navigation} />
   </View>
@@ -355,27 +357,20 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: themeColors.background,
-  },
-  header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
+  container: roleLayouts.security.screen,
+  header: { ...roleLayouts.security.header, paddingHorizontal: 20, paddingBottom: 24 },
   headerRight: {
   flexDirection: 'row',
   alignItems: 'center',
 },
   backButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   headerTitle: {
     color: 'white',
@@ -383,8 +378,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   refreshButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
+  headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   statsCard: {
     flexDirection: 'row',
     alignItems: 'center',

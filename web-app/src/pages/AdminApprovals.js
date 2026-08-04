@@ -78,7 +78,7 @@ const AdminApprovals = () => {
   const fetchPendingApprovals = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       
       const response = await axios.get('/api/users/pending-approvals', {
         headers: {
@@ -141,7 +141,7 @@ const AdminApprovals = () => {
   const handleApprove = async (userId) => {
     try {
       setProcessing(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       
       const response = await axios.put(`/api/users/${userId}/approve`, {}, {
         headers: {
@@ -166,7 +166,7 @@ const AdminApprovals = () => {
   const handleReject = async () => {
     try {
       setProcessing(true);
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       
       const response = await axios.delete(`/api/users/${selectedUser._id}`, {
         headers: {
@@ -221,7 +221,7 @@ const AdminApprovals = () => {
     setIdImages({ front: null, back: null, selfie: null });
 
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get(`/api/verifications/admin/${verificationId}/images`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -835,3 +835,4 @@ const AdminApprovals = () => {
 };
 
 export default AdminApprovals;
+

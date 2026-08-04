@@ -31,7 +31,7 @@ const PaymentSuccess = () => {
   
   const verifyPayment = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get(
         `${API_URL}/payments/verify-paymongo-payment/${paymentId}`,
         { headers: { Authorization: `Bearer ${token}` } }

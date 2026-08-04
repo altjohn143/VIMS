@@ -426,9 +426,9 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
   const getRoleColor = (role) => {
     switch (role) {
-      case 'admin': return themeColors.primary;
-      case 'security': return themeColors.success;
-      default: return themeColors.info;
+      case 'admin': return themeColors.primaryDeep;
+      case 'security': return themeColors.primary;
+      default: return themeColors.primaryLight;
     }
   };
 
@@ -585,17 +585,21 @@ const AdminUserManagementScreen = ({ navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity onPress={fetchUsers} style={styles.directoryIconAction}>
             <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Refresh</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('ArchivedUsers')} style={styles.directoryIconAction}>
             <Ionicons name="archive-outline" size={20} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Archived</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('AdminVerificationQueue')} style={styles.directoryIconAction}>
             <Ionicons name="shield-checkmark-outline" size={20} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Verifications</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleExportPdf} style={styles.directoryIconAction} disabled={exporting}>
             {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : (
               <Ionicons name="download-outline" size={20} color={themeColors.primaryDeep} />
             )}
+            <Text style={styles.directoryIconActionText}>Export</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1356,10 +1360,11 @@ const styles = StyleSheet.create({
   directoryEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
   directoryTitle: { color: themeColors.textPrimary, fontSize: 30, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
   directorySubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 2 },
-  directoryActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
+  directoryActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 18 },
   directoryPrimaryAction: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: themeColors.primary, paddingHorizontal: 16, height: 44, borderRadius: 14 },
   directoryPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },
-  directoryIconAction: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.accent },
+  directoryIconAction: { flexDirection: 'row', height: 44, paddingHorizontal: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: themeColors.accent },
+  directoryIconActionText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   directorySummary: { marginHorizontal: 16, marginTop: 14, backgroundColor: themeColors.surfaceTint, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors.border },
   directorySummaryItem: { flex: 1, alignItems: 'center' },
   directorySummaryValue: { color: themeColors.primaryDeep, fontSize: 21, fontWeight: '900' },
@@ -1474,7 +1479,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.primaryWash,
     borderWidth: 1,
     borderColor: themeColors.border,
   },
@@ -1635,7 +1640,7 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
   },
   input: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.primaryWash,
     borderWidth: 1,
     borderColor: themeColors.border,
     borderRadius: 10,
@@ -1647,14 +1652,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   pickerContainer: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.primaryWash,
     borderWidth: 1,
     borderColor: themeColors.border,
     borderRadius: 10,
   },
   secondaryBtn: {
     flex: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: themeColors.surfaceMuted,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
@@ -1810,7 +1815,7 @@ const styles = StyleSheet.create({
   userPreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.primaryWash,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
@@ -1832,10 +1837,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 80,
     marginBottom: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.primaryWash,
   },
   cancelButton: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: themeColors.surfaceMuted,
   },
   cancelButtonText: {
     color: themeColors.textPrimary,
@@ -1845,3 +1850,4 @@ const styles = StyleSheet.create({
 });
 
 export default AdminUserManagementScreen;
+

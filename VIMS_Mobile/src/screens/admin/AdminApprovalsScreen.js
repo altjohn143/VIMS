@@ -308,9 +308,11 @@ const AdminApprovalsScreen = ({ navigation }) => {
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => navigation.navigate('AdminVerificationQueue')} style={styles.refreshButton}>
             <Ionicons name="shield-checkmark-outline" size={23} color="white" />
+            <Text style={styles.refreshButtonText}>Verifications</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={fetchPendingApprovals} style={styles.refreshButton}>
             <Ionicons name="refresh" size={24} color="white" />
+            <Text style={styles.refreshButtonText}>Refresh</Text>
           </TouchableOpacity>
           <UserDropdownMenu navigation={navigation} />
         </View>
@@ -618,7 +620,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   refreshButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  refreshButtonText: {
+    color: 'white',
+    fontSize: 11,
+    fontWeight: '800',
   },
   statsCard: {
     backgroundColor: 'white',

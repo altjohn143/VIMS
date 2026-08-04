@@ -365,6 +365,7 @@ const PaymentsScreen = ({ navigation }) => {
             style={[styles.tab, activeTab === 0 && styles.activeTab]}
             onPress={() => setActiveTab(0)}
           >
+            <Ionicons name="receipt-outline" size={15} color={activeTab === 0 ? 'white' : themeColors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 0 && styles.activeTabText]}>
               All ({payments.length})
             </Text>
@@ -373,6 +374,7 @@ const PaymentsScreen = ({ navigation }) => {
             style={[styles.tab, activeTab === 1 && styles.activeTab]}
             onPress={() => setActiveTab(1)}
           >
+            <Ionicons name="time-outline" size={15} color={activeTab === 1 ? 'white' : themeColors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 1 && styles.activeTabText]}>
               Pending ({payments.filter(p => p.status === 'pending').length})
             </Text>
@@ -381,6 +383,7 @@ const PaymentsScreen = ({ navigation }) => {
             style={[styles.tab, activeTab === 2 && styles.activeTab]}
             onPress={() => setActiveTab(2)}
           >
+            <Ionicons name="checkmark-circle-outline" size={15} color={activeTab === 2 ? 'white' : themeColors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 2 && styles.activeTabText]}>
               Paid ({payments.filter(p => p.status === 'paid').length})
             </Text>
@@ -440,6 +443,7 @@ const PaymentsScreen = ({ navigation }) => {
                     style={styles.payButton}
                     onPress={() => handlePayClick(payment)}
                   >
+                    <Ionicons name="qr-code" size={18} color="white" />
                     <Text style={styles.payButtonText}>Pay Now</Text>
                   </TouchableOpacity>
                 ) : payment.receiptNumber && (
@@ -830,6 +834,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 5,
     borderRadius: radii.md,
   },
   activeTab: {
@@ -918,6 +925,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
   },
   payButtonText: {
     color: 'white',

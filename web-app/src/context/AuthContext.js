@@ -21,20 +21,20 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
 
   const clearAuthData = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('lastActivityAt');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('lastActivityAt');
     delete axios.defaults.headers.common.Authorization;
     setIsAuthenticated(false);
     setCurrentUser(null);
   };
 
   const setLastActivity = () => {
-    localStorage.setItem('lastActivityAt', String(Date.now()));
+    sessionStorage.setItem('lastActivityAt', String(Date.now()));
   };
 
   const isSessionExpired = () => {
-    const lastActivityAt = Number(localStorage.getItem('lastActivityAt') || 0);
+    const lastActivityAt = Number(sessionStorage.getItem('lastActivityAt') || 0);
     if (!lastActivityAt) return false;
     return Date.now() - lastActivityAt > SESSION_TIMEOUT_MS;
   };
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const setAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error('Unable to load session');
     }
     const user = normalizeUserProfilePhoto(response.data.user);
-    localStorage.setItem('user', JSON.stringify(user));
+    sessionStorage.setItem('user', JSON.stringify(user));
     setCurrentUser(user);
     setIsAuthenticated(true);
     return user;
@@ -75,13 +75,13 @@ export const AuthProvider = ({ children }) => {
   const updateUser = useCallback(async (user) => {
     if (!user) return;
     const normalizedUser = normalizeUserProfilePhoto(user);
-    localStorage.setItem('user', JSON.stringify(normalizedUser));
+    sessionStorage.setItem('user', JSON.stringify(normalizedUser));
     setCurrentUser(normalizedUser);
     setIsAuthenticated(true);
   }, []);
 
   const bootstrapAuth = useCallback(async () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
       clearAuthData();
       setBootstrapping(false);
@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }) => {
     bootstrapAuth();
 
     const handleActivity = () => {
-      if (localStorage.getItem('token')) {
+      if (sessionStorage.getItem('token')) {
         setLastActivity();
       }
     };
@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }) => {
     events.forEach((event) => window.addEventListener(event, handleActivity));
 
     const intervalId = window.setInterval(() => {
-      if (!localStorage.getItem('token')) return;
+      if (!sessionStorage.getItem('token')) return;
       if (isSessionExpired()) {
         clearAuthData();
         toast.error('Session expired due to inactivity. Please log in again.');
@@ -144,9 +144,9 @@ export const AuthProvider = ({ children }) => {
         
         // Store token and user for successful registrations so the client can perform follow-up actions
         if (token) {
-          localStorage.setItem('token', token);
+          sessionStorage.setItem('token', token);
           if (user) {
-            localStorage.setItem('user', JSON.stringify(user));
+            sessionStorage.setItem('user', JSON.stringify(user));
           }
           setLastActivity();
           setAuthHeaders();
@@ -183,8 +183,8 @@ const login = async (email, password, expectedRole) => {
     if (response.data.success) {
       const { token, user } = response.data;
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('user', JSON.stringify(user));
       setLastActivity();
       setAuthHeaders();
       await refreshUser();
@@ -249,3 +249,4 @@ const login = async (email, password, expectedRole) => {
     </AuthContext.Provider>
   );
 };
+

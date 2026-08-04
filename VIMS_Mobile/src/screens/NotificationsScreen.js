@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../utils/api';
-import { themeColors, shadows } from '../utils/theme';
+import { themeColors, shadows, roleLayouts } from '../utils/theme';
 import LogoutButton from '../components/LogoutButton';
 
 const NotificationsScreen = ({ navigation }) => {
@@ -263,21 +263,10 @@ const NotificationsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
+  container: roleLayouts.resident.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  header: {
-    backgroundColor: themeColors.primaryDeep,
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
+  header: { ...roleLayouts.resident.header, paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
   backButton: { padding: 8 },
   headerTitleWrap: { flex: 1, minWidth: 0 },
   headerTitle: { color: 'white', fontSize: 23, fontWeight: '900' },

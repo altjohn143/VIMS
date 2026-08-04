@@ -128,7 +128,7 @@ const AdminPayments = () => {
   const fetchPayments = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const params = {
         page: page + 1,
         limit: rowsPerPage
@@ -158,7 +158,7 @@ const AdminPayments = () => {
   // Define fetchStats with useCallback
   const fetchStats = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get('/api/payments/admin/stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -172,7 +172,7 @@ const AdminPayments = () => {
 
   const fetchMonthlyDuesAmount = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get('/api/payments/admin/monthly-dues-amount', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -196,7 +196,7 @@ const AdminPayments = () => {
     if (!selectedPayment) return;
     setProcessing(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.put(
         `/api/payments/${selectedPayment._id}/confirm`,
         {},
@@ -226,7 +226,7 @@ const AdminPayments = () => {
 
     setProcessing(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.put(
         '/api/payments/admin/monthly-dues-amount',
         { amount },
@@ -249,7 +249,7 @@ const AdminPayments = () => {
     
     setProcessing(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       
       const response = await axios.put(
         `/api/payments/${selectedQRPhPayment._id}/confirm`,
@@ -279,7 +279,7 @@ const AdminPayments = () => {
   const handleSendReminders = async () => {
     setProcessing(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.post(
         '/api/payments/send-reminders',
         {},
@@ -1419,3 +1419,4 @@ const AdminPayments = () => {
 };
 
 export default AdminPayments;
+

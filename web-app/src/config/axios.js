@@ -9,7 +9,7 @@ axios.defaults.baseURL = API_BASE_URL;
 // Add request interceptor to add token to all requests
 axios.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,11 +26,11 @@ axios.interceptors.response.use(
   (error) => {
     const requestUrl = error.config?.url || '';
     const isLoginRequest = /\/auth\/login(?:[/?#]|$)/.test(requestUrl);
-    const hadAuthenticatedSession = Boolean(localStorage.getItem('token'));
+    const hadAuthenticatedSession = Boolean(sessionStorage.getItem('token'));
 
     if (error.response?.status === 401 && !isLoginRequest && hadAuthenticatedSession) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       window.location.href = '/login';
     } else if (
       error.response?.status === 403
@@ -44,3 +44,4 @@ axios.interceptors.response.use(
 );
 
 export default axios;
+

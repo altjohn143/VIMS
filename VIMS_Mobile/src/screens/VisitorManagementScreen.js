@@ -526,7 +526,8 @@ const VisitorManagementScreen = ({ navigation }) => {
   </View>
   <View style={styles.headerRight}>
     <TouchableOpacity onPress={() => setHistoryMode(!historyMode)} style={styles.historyButton}>
-      <Ionicons name={historyMode ? 'people' : 'time'} size={24} color="white" />
+      <Ionicons name={historyMode ? 'people' : 'time'} size={16} color="white" />
+      <Text style={styles.headerActionText}>{historyMode ? 'Active' : 'History'}</Text>
     </TouchableOpacity>
     <UserDropdownMenu navigation={navigation} />
   </View>
@@ -632,7 +633,8 @@ const VisitorManagementScreen = ({ navigation }) => {
       />
 
       <TouchableOpacity style={styles.fab} onPress={() => setShowCreateModal(true)}>
-        <Ionicons name="add" size={30} color="white" />
+        <Ionicons name="person-add" size={20} color="white" />
+        <Text style={styles.fabText}>New Pass</Text>
       </TouchableOpacity>
 
       {/* Create Visitor Modal */}
@@ -1021,8 +1023,16 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: { color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: '600', marginTop: 1 },
   historyButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
   },
+  headerActionText: { color: 'white', fontSize: 12, fontWeight: '800' },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1231,18 +1241,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    width: 56,
+    minWidth: 124,
     height: 56,
     borderRadius: 28,
     backgroundColor: themeColors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 18,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
+  fabText: { color: 'white', fontSize: 13, fontWeight: '900' },
   emptyContainer: {
     alignItems: 'flex-start',
     justifyContent: 'flex-start',

@@ -692,9 +692,9 @@ const Register = () => {
 
         // Persist token so upload-id can run immediately for pending users
         if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
+          sessionStorage.setItem('token', response.data.token);
           if (response.data.user) {
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+            sessionStorage.setItem('user', JSON.stringify(response.data.user));
           }
           axios.defaults.headers.common.Authorization = `Bearer ${response.data.token}`;
         }
@@ -2337,6 +2337,7 @@ const Register = () => {
 };
 
 export default Register;
+
 
 
 

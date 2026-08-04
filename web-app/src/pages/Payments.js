@@ -117,7 +117,7 @@ const Payments = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       
       if (!token) {
         toast.error('Please login again');
@@ -1063,3 +1063,4 @@ const Payments = () => {
 };
 
 export default Payments;
+

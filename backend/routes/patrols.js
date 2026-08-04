@@ -5,6 +5,12 @@ const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+const isHeadOfficer = (user) =>
+  user?.role === 'security' && (
+    user.securityLevel === 'head-officer' ||
+    String(user.email || '').toLowerCase() === 'security@vims.com'
+  );
+
 const getHeadOfficerScope = async (headOfficerId) => {
   const team = await User.find({
     role: 'security',
@@ -27,7 +33,7 @@ const getHeadOfficerScope = async (headOfficerId) => {
 
 router.get('/head-officer/stats', protect, authorize('security'), async (req, res) => {
   try {
-    if (req.user.securityLevel !== 'head-officer') {
+    if (!isHeadOfficer(req.user)) {
       return res.status(403).json({ success: false, error: 'Only head officers can view team stats' });
     }
 
@@ -68,7 +74,7 @@ router.get('/head-officer/stats', protect, authorize('security'), async (req, re
 
 router.get('/head-officer/team', protect, authorize('security'), async (req, res) => {
   try {
-    if (req.user.securityLevel !== 'head-officer') {
+    if (!isHeadOfficer(req.user)) {
       return res.status(403).json({ success: false, error: 'Only head officers can view team members' });
     }
 
@@ -87,7 +93,7 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
     // Filter based on security level and role
     if (req.user.role === 'security') {
       // Head officers see all patrol logs from their subordinate security personnel (excluding archived)
-      if (req.user.securityLevel === 'head-officer') {
+      if (isHeadOfficer(req.user)) {
         const { officerIds } = await getHeadOfficerScope(req.user._id);
         query.officerId = { $in: officerIds };
       } else {
@@ -123,7 +129,7 @@ router.post('/log', protect, authorize('security', 'admin'), async (req, res) =>
     
     // Validate that the security officer is assigned to this phase
     // Skip validation for head officers - they can log patrols anywhere
-    if (req.user.role === 'security' && req.user.securityLevel !== 'head-officer') {
+    if (req.user.role === 'security' && !isHeadOfficer(req.user)) {
       const user = await require('../models/User').findById(req.user._id);
       if (!user.assignedPhases.includes(phase)) {
         return res.status(403).json({ success: false, error: 'You are not assigned to patrol this phase' });
@@ -152,21 +158,37 @@ router.post('/log', protect, authorize('security', 'admin'), async (req, res) =>
   }
 });
 
-// Admin routes for managing security assignments
-router.put('/assign/:userId', protect, authorize('admin'), async (req, res) => {
+// Admin/head officer routes for managing security assignments
+router.put('/assign/:userId', protect, authorize('admin', 'security'), async (req, res) => {
   try {
     const { securityLevel = 'personnel', assignedPhases = [], assignedAreas = [], patrolSchedule = '', headOfficerId = null } = req.body;
+
+    if (req.user.role === 'security' && !isHeadOfficer(req.user)) {
+      return res.status(403).json({ success: false, error: 'Only head officers can edit patrol routes' });
+    }
     
     const user = await User.findById(req.params.userId);
     if (!user || user.role !== 'security') {
       return res.status(404).json({ success: false, error: 'Security officer not found' });
     }
+
+    if (req.user.role === 'security') {
+      if (user.securityLevel === 'head-officer') {
+        return res.status(403).json({ success: false, error: 'Head officers cannot edit other head officers' });
+      }
+      const canManage =
+        !user.headOfficerId ||
+        String(user.headOfficerId) === String(req.user._id);
+      if (!canManage) {
+        return res.status(403).json({ success: false, error: 'This officer is assigned to another head officer' });
+      }
+    }
     
     // Update security level
-    user.securityLevel = securityLevel;
+    user.securityLevel = req.user.role === 'security' ? 'personnel' : securityLevel;
     
     // For head officers, don't require assignedPhases/assignedAreas/patrolSchedule
-    if (securityLevel === 'head-officer') {
+    if (user.securityLevel === 'head-officer') {
       user.assignedPhases = [];
       user.assignedAreas = [];
       user.patrolSchedule = '';
@@ -176,7 +198,9 @@ router.put('/assign/:userId', protect, authorize('admin'), async (req, res) => {
       user.assignedPhases = assignedPhases || [];
       user.assignedAreas = assignedAreas || [];
       user.patrolSchedule = patrolSchedule || '';
-      user.headOfficerId = headOfficerId || null;
+      user.headOfficerId = req.user.role === 'security'
+        ? req.user._id
+        : headOfficerId || null;
     }
     
     await user.save();
@@ -188,9 +212,23 @@ router.put('/assign/:userId', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-router.get('/assignments', protect, authorize('admin'), async (req, res) => {
+router.get('/assignments', protect, authorize('admin', 'security'), async (req, res) => {
   try {
-    const securityOfficers = await User.find({ role: 'security', isArchived: false })
+    if (req.user.role === 'security' && !isHeadOfficer(req.user)) {
+      return res.status(403).json({ success: false, error: 'Only head officers can view patrol assignments' });
+    }
+
+    const filter = { role: 'security', isArchived: false };
+    if (req.user.role === 'security') {
+      filter.securityLevel = 'personnel';
+      filter.$or = [
+        { headOfficerId: req.user._id },
+        { headOfficerId: null },
+        { headOfficerId: { $exists: false } }
+      ];
+    }
+
+    const securityOfficers = await User.find(filter)
       .select('firstName lastName email securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId')
       .populate('headOfficerId', 'firstName lastName')
       .sort({ firstName: 1 });

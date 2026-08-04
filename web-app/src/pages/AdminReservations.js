@@ -119,7 +119,7 @@ const AdminReservations = () => {
 
   const fetchReservations = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get('/api/reservations', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -138,7 +138,7 @@ const AdminReservations = () => {
     if (!window.confirm('Are you sure you want to delete this reservation?')) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       await axios.delete(`/api/reservations/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -152,7 +152,7 @@ const AdminReservations = () => {
 
   const handleUpdateStatus = async (reservationId, status) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       await axios.put(`/api/reservations/${reservationId}`, { status }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -170,7 +170,7 @@ const AdminReservations = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.put(`/api/reservations/${reservationId}/confirm-receipt`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -257,7 +257,7 @@ const AdminReservations = () => {
 
   const handleResourceSubmit = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       await axios.post('/api/resources', resourceFormData, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -639,3 +639,4 @@ const AdminReservations = () => {
 };
 
 export default AdminReservations;
+

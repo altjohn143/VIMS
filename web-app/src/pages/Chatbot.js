@@ -875,3 +875,4 @@ const Chatbot = ({ embedded = false, onClose }) => {
 };
 
 export default Chatbot;
+

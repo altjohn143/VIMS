@@ -140,7 +140,7 @@ const Reservations = () => {
 
   const fetchReservations = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get('/api/reservations', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -157,7 +157,7 @@ const Reservations = () => {
 
   const fetchResources = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.get('/api/reservations/resources', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -226,7 +226,7 @@ const Reservations = () => {
 
     setAvailabilityLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const now = new Date();
       const endWindow = new Date();
       endWindow.setMonth(endWindow.getMonth() + 6);
@@ -332,7 +332,7 @@ const Reservations = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const latestConflicts = await fetchScheduleConflictsForSubmit();
       if (latestConflicts.length > 0) {
         setSnackbar({ open: true, message: 'Schedule Unavailable: one or more selected items are already reserved for this date and time.', severity: 'error' });
@@ -401,7 +401,7 @@ const Reservations = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const response = await axios.put(`/api/reservations/${reservation._id}/complete-use`, { action }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -467,7 +467,7 @@ const Reservations = () => {
   };
 
   const fetchScheduleConflictsForSubmit = async () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const selectedResources = formData.items.filter((item) => item.resourceType && item.resourceName);
     const responses = await Promise.all(selectedResources.map((item) =>
       axios.get('/api/reservations/availability', {
@@ -1665,3 +1665,4 @@ const Reservations = () => {
 };
 
 export default Reservations;
+

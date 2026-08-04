@@ -2212,20 +2212,22 @@ const Login = () => {
                     <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.78rem', fontWeight: 700 }}>
                       Protected community portal
                     </Typography>
-                    <Button
-                      size="small"
-                      onClick={() => setShowForgotPassword(true)}
-                      sx={{
-                        color: hubColors.lime,
-                        textTransform: 'none',
-                        fontSize: '0.8rem',
-                        fontWeight: 900,
-                        borderRadius: '999px',
-                        '&:hover': { bgcolor: 'rgba(134,239,172,0.10)' }
-                      }}
-                    >
-                      Forgot Password?
-                    </Button>
+                    {selectedRole === 'resident' && (
+                      <Button
+                        size="small"
+                        onClick={() => setShowForgotPassword(true)}
+                        sx={{
+                          color: hubColors.lime,
+                          textTransform: 'none',
+                          fontSize: '0.8rem',
+                          fontWeight: 900,
+                          borderRadius: '999px',
+                          '&:hover': { bgcolor: 'rgba(134,239,172,0.10)' }
+                        }}
+                      >
+                        Forgot Password?
+                      </Button>
+                    )}
                   </Box>
 
                   <Button

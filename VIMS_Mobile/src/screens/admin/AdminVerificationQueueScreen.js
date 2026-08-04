@@ -221,6 +221,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={load} style={styles.headerIconButton}>
             <Ionicons name="refresh" size={22} color="white" />
+            <Text style={styles.headerIconButtonText}>Refresh</Text>
           </TouchableOpacity>
           <LogoutButton navigation={navigation} color="white" size={24} />
         </View>
@@ -426,7 +427,8 @@ const styles = StyleSheet.create({
   headerTitle: { color: 'white', fontSize: 23, fontWeight: '900' },
   headerSubtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIconButton: { padding: 8 },
+  headerIconButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
+  headerIconButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
 
   chipsBar: { backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: themeColors.border },
   chip: {

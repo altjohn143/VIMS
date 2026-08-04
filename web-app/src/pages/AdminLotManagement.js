@@ -173,7 +173,7 @@ const AdminLotManagement = () => {
       const response = await fetch(getBackendApiUrl(`/api/lots/export?${params.toString()}`), {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${sessionStorage.getItem('token')}`
         }
       });
 
@@ -581,3 +581,4 @@ const AdminLotManagement = () => {
 };
 
 export default AdminLotManagement;
+

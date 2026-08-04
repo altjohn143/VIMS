@@ -97,6 +97,20 @@ const SecurityServiceRequests = () => {
     return haystack.includes(query.toLowerCase());
   });
   const paginatedRows = filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const canHandleRequest = (item) => {
+    const assignedId = item.assignedTo?._id || item.assignedTo;
+    const myId = currentUser?._id || currentUser?.id;
+    const isHeadOfficer =
+      currentUser?.securityLevel === 'head-officer' ||
+      String(currentUser?.email || '').toLowerCase() === 'security@vims.com';
+    return Boolean(
+      myId &&
+      (
+        (assignedId && String(assignedId) === String(myId)) ||
+        (isHeadOfficer && item.category === 'security')
+      )
+    );
+  };
 
   useEffect(() => {
     setPage(0);
@@ -300,7 +314,7 @@ const SecurityServiceRequests = () => {
                   <TableCell align="right">
                     <Button
                       size="small"
-                      disabled={item.assignedTo?._id !== currentUser?._id || item.status === 'completed'}
+                      disabled={!canHandleRequest(item) || item.status === 'completed'}
                       onClick={() => updateStatus(item._id, 'in-progress')}
                       sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                     >
@@ -308,7 +322,7 @@ const SecurityServiceRequests = () => {
                     </Button>
                     <Button
                       size="small"
-                      disabled={item.assignedTo?._id !== currentUser?._id || item.status === 'completed'}
+                      disabled={!canHandleRequest(item) || item.status === 'completed'}
                       onClick={() => updateStatus(item._id, 'completed')}
                       sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                     >

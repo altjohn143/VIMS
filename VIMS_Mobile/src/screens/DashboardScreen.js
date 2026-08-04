@@ -49,6 +49,14 @@ const DashboardScreen = ({ navigation }) => {
   // Animation States (Senior Developer Micro-Interactions)
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const modulePalette = {
+    primary: themeColors.primary,
+    deep: themeColors.primaryDeep,
+    light: themeColors.primaryLight,
+    soft: themeColors.primaryWash,
+    softer: themeColors.primarySoft,
+    archived: themeColors.textSecondary,
+  };
   
   const statScaleAnims = useRef([
     new Animated.Value(1),
@@ -58,7 +66,7 @@ const DashboardScreen = ({ navigation }) => {
   ]).current;
 
   const actionScaleAnims = useRef(
-    Array(10).fill(null).map(() => new Animated.Value(1))
+    Array(16).fill(null).map(() => new Animated.Value(1))
   ).current;
 
   const { logout, user: authUser } = useAuth();
@@ -394,7 +402,7 @@ const DashboardScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1a6b3c" />
+        <ActivityIndicator size="large" color={themeColors.primary} />
         <Text style={styles.loadingText}>Loading dashboard...</Text>
       </View>
     );
@@ -405,70 +413,96 @@ const DashboardScreen = ({ navigation }) => {
       title: 'Dashboard',
       icon: 'home-outline',
       stats: [
-        { label: 'Total Visitors',   value: stats.totalVisitors   || 0, icon: 'people-outline',          bg: '#2563eb' },
-        { label: "Today's Visitors", value: stats.todayVisitors   || 0, icon: 'today-outline',           bg: '#16a34a' },
-        { label: 'Active Visitors',  value: stats.activeVisitors  || 0, icon: 'radio-button-on-outline', bg: '#0284c7' },
-        { label: 'Pending',          value: stats.pendingVisitors || 0, icon: 'time-outline',            bg: '#dc2626' },
+        { label: 'Total Visitors',   value: stats.totalVisitors   || 0, icon: 'people-outline',          bg: modulePalette.primary },
+        { label: "Today's Visitors", value: stats.todayVisitors   || 0, icon: 'today-outline',           bg: modulePalette.deep },
+        { label: 'Active Visitors',  value: stats.activeVisitors  || 0, icon: 'radio-button-on-outline', bg: modulePalette.light },
+        { label: 'Pending',          value: stats.pendingVisitors || 0, icon: 'time-outline',            bg: modulePalette.primary },
       ],
       hints: ['live from users', "today's count", 'active now', 'awaiting approval'],
       quickActions: [
-        { title: 'Make Reservation', subtitle: 'Book venues and equipment',   icon: 'calendar-outline',         screen: 'ReservationsTab', color: '#7c3aed', bg: '#f5f3ff' },
-        { title: 'Visitor Pass',     subtitle: 'Manage visitor QR codes',     icon: 'qr-code-outline', screen: 'VisitorsTab', color: '#16a34a', bg: '#f0fdf4' },
-        { title: 'Service Requests', subtitle: 'Submit maintenance requests', icon: 'build-outline',   screen: 'ServicesTab', color: '#d97706', bg: '#fffbeb' },
-        { title: 'Complaints Form',  subtitle: 'Report community concerns',  icon: 'chatbox-ellipses-outline', screen: 'Complaints', color: '#dc2626', bg: '#fef2f2' },
-        { title: 'AI Assistant',     subtitle: 'Ask VIMS questions',          icon: 'sparkles-outline', screen: 'Chatbot', color: '#2563eb', bg: '#eff6ff' },
+        { title: 'Make Reservation', subtitle: 'Book venues and equipment',   icon: 'calendar-outline',         screen: 'ReservationsTab', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Visitor Pass',     subtitle: 'Manage visitor QR codes',     icon: 'qr-code-outline', screen: 'VisitorsTab', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Service Requests', subtitle: 'Submit maintenance requests', icon: 'build-outline',   screen: 'ServicesTab', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Payments',         subtitle: 'View and pay dues',           icon: 'card-outline',    screen: 'PaymentsTab', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Complaints Form',  subtitle: 'Report community concerns',  icon: 'chatbox-ellipses-outline', screen: 'Complaints', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Announcements',    subtitle: 'Read community updates',      icon: 'megaphone-outline', screen: 'Announcements', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Notifications',    subtitle: 'Check alerts and messages',   icon: 'notifications-outline', screen: 'Notifications', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Lot Map',          subtitle: 'Browse village lots',         icon: 'map-outline', screen: 'PublicLots', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'AI Assistant',     subtitle: 'Ask VIMS questions',          icon: 'sparkles-outline', screen: 'Chatbot', color: modulePalette.primary, bg: modulePalette.soft },
       ],
     },
     admin: {
       title: 'Dashboard',
       icon: 'shield-checkmark-outline',
       stats: [
-        { label: 'Total Residents',    value: stats.totalUsers        ?? 0, icon: 'people-outline',       bg: '#2563eb' },
-        { label: 'Pending Approvals',  value: stats.pendingApprovals  ?? 0, icon: 'alert-circle-outline', bg: '#16a34a' },
-        { label: 'Monthly Collection', value: formatPeso(stats.monthlyCollection ?? 0), icon: 'cash-outline',         bg: '#0284c7', prefix: '₱' },
-        { label: 'Active Issues',      value: stats.activeRequests    ?? 0, icon: 'warning-outline',      bg: '#dc2626' },
+        { label: 'Total Residents',    value: stats.totalUsers        ?? 0, icon: 'people-outline',       bg: modulePalette.primary },
+        { label: 'Pending Approvals',  value: stats.pendingApprovals  ?? 0, icon: 'alert-circle-outline', bg: modulePalette.deep },
+        { label: 'Monthly Collection', value: formatPeso(stats.monthlyCollection ?? 0), icon: 'cash-outline',         bg: modulePalette.light, prefix: '₱' },
+        { label: 'Active Issues',      value: stats.activeRequests    ?? 0, icon: 'warning-outline',      bg: modulePalette.primary },
       ],
       hints: ['all resident accounts', 'awaiting admin review', 'paid this month', 'open service requests'],
       quickActions: [
-        { title: 'Reservation Logs', subtitle: 'View reservation history', icon: 'calendar-outline',         screen: 'LogsTab',         color: '#7c3aed', bg: '#f5f3ff' },
-        { title: 'User Management', subtitle: 'View and manage users',     icon: 'people-outline',           screen: 'UsersTab',       color: '#7c3aed', bg: '#f5f3ff' },
-        { title: 'Approvals',       subtitle: 'Review pending requests',   icon: 'checkmark-circle-outline', screen: 'AdminApprovals', color: '#d97706', bg: '#fffbeb' },
-        { title: 'Visitor Logs',    subtitle: 'Full visitor history',      icon: 'qr-code-outline',          screen: 'VisitorsTab',    color: '#16a34a', bg: '#f0fdf4' },
-        { title: 'Lot Management',  subtitle: 'View lot inventory',        icon: 'map-outline',              screen: 'AdminLotManagement', color: '#059669', bg: '#ecfdf5' },
-        { title: 'AI Assistant',    subtitle: 'Ask VIMS questions',        icon: 'sparkles-outline',         screen: 'Chatbot',        color: '#2563eb', bg: '#eff6ff' },
+        { title: 'Service Requests', subtitle: 'View and assign requests', icon: 'construct-outline', screen: 'ServicesTab', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Reservation Logs', subtitle: 'View reservation history', icon: 'calendar-outline',         screen: 'LogsTab',         color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'User Management', subtitle: 'View and manage users',     icon: 'people-outline',           screen: 'UsersTab',       color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Approvals',       subtitle: 'Review pending requests',   icon: 'checkmark-circle-outline', screen: 'AdminApprovals', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Visitor Logs',    subtitle: 'Full visitor history',      icon: 'qr-code-outline',          screen: 'VisitorsTab',    color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Visitor Reports', subtitle: 'Review visitor analytics',  icon: 'analytics-outline',        screen: 'AdminVisitorReports', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Verification Queue', subtitle: 'Review identity uploads', icon: 'id-card-outline',         screen: 'AdminVerificationQueue', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Payments',        subtitle: 'Manage resident payments',  icon: 'card-outline',             screen: 'PaymentsTab', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Announcements',   subtitle: 'Post community updates',    icon: 'megaphone-outline',        screen: 'AdminAnnouncements', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Lot Management',  subtitle: 'View lot inventory',        icon: 'map-outline',              screen: 'AdminLotManagement', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Lot Map Editor',  subtitle: 'Edit public lot overlays',   icon: 'map-outline',              screen: 'AdminLotMapEditor', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Archived Users',  subtitle: 'Restore archived accounts', icon: 'archive-outline',          screen: 'ArchivedUsers', color: modulePalette.archived, bg: themeColors.surfaceMuted },
+        { title: 'Archived Services', subtitle: 'Restore service records', icon: 'file-tray-full-outline',   screen: 'ArchivedServiceRequests', color: modulePalette.archived, bg: themeColors.surfaceMuted },
+        { title: 'Archived Posts',  subtitle: 'Restore announcements',     icon: 'newspaper-outline',        screen: 'ArchivedAnnouncements', color: modulePalette.archived, bg: themeColors.surfaceMuted },
+        { title: 'Notifications',   subtitle: 'Check system alerts',       icon: 'notifications-outline',    screen: 'Notifications', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'AI Assistant',    subtitle: 'Ask VIMS questions',        icon: 'sparkles-outline',         screen: 'Chatbot',        color: modulePalette.primary, bg: modulePalette.soft },
       ],
     },
     security: {
       title: 'Dashboard',
       icon: 'lock-closed-outline',
       stats: [
-        { label: 'Visitors Today',   value: stats.visitorsToday   || 0, icon: 'today-outline',            bg: '#2563eb' },
-        { label: 'Pending Approval', value: stats.pendingApproval || 0, icon: 'alert-circle-outline',     bg: '#16a34a' },
-        { label: 'Active Now',       value: stats.activeNow       || 0, icon: 'radio-button-on-outline',  bg: '#0284c7' },
-        { label: 'Completed',        value: stats.completed       || 0, icon: 'checkmark-circle-outline', bg: '#dc2626' },
+        { label: 'Visitors Today',   value: stats.visitorsToday   || 0, icon: 'today-outline',            bg: modulePalette.primary },
+        { label: 'Pending Approval', value: stats.pendingApproval || 0, icon: 'alert-circle-outline',     bg: modulePalette.deep },
+        { label: 'Active Now',       value: stats.activeNow       || 0, icon: 'radio-button-on-outline',  bg: modulePalette.light },
+        { label: 'Completed',        value: stats.completed       || 0, icon: 'checkmark-circle-outline', bg: modulePalette.primary },
       ],
       hints: ['live today', 'awaiting review', 'inside now', 'today total'],
       quickActions: [
-        { title: 'Approvals',    subtitle: 'Review pending entries',     icon: 'checkmark-circle-outline', screen: 'ApprovalsTab', color: '#d97706', bg: '#fffbeb' },
-        { title: 'Visitor Logs', subtitle: 'Browse all visitor records', icon: 'time-outline',             screen: 'LogsTab',      color: '#2563eb', bg: '#eff6ff' },
-        { title: 'AI Assistant', subtitle: 'Ask VIMS questions',         icon: 'sparkles-outline',         screen: 'Chatbot',      color: '#16a34a', bg: '#f0fdf4' },
+        { title: 'Approvals',    subtitle: 'Review pending entries',     icon: 'checkmark-circle-outline', screen: 'ApprovalsTab', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Visitor Logs', subtitle: 'Browse all visitor records', icon: 'time-outline',             screen: 'LogsTab',      color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Service Requests', subtitle: 'Handle assigned requests', icon: 'construct-outline',       screen: 'SecurityServiceRequests', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Patrol Schedule', subtitle: 'Submit patrol logs',        icon: 'shield-checkmark-outline', screen: 'SecurityPatrolSchedule', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Incident Reports', subtitle: 'Track security incidents', icon: 'warning-outline',         screen: 'SecurityIncidents', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Announcements', subtitle: 'Read community updates',      icon: 'megaphone-outline',       screen: 'Announcements', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Notifications', subtitle: 'Check alerts and messages',   icon: 'notifications-outline',   screen: 'Notifications', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'AI Assistant', subtitle: 'Ask VIMS questions',         icon: 'sparkles-outline',         screen: 'Chatbot',      color: modulePalette.deep, bg: modulePalette.softer },
       ],
     },
     headOfficer: {
       title: 'Team Dashboard',
       icon: 'people-outline',
       stats: [
-        { label: 'Personnel Count',  value: stats.personnelCount  || 0, icon: 'people-outline',          bg: '#8b5cf6' },
-        { label: 'Active Patrols',   value: stats.activePatrols   || 0, icon: 'checkmark-circle-outline', bg: '#06b6d4' },
-        { label: 'Pending Reports',  value: stats.pendingReports  || 0, icon: 'alert-circle-outline',     bg: '#f97316' },
-        { label: 'Completed Today',  value: stats.completedToday  || 0, icon: 'checkmark-done-outline',  bg: '#10b981' },
+        { label: 'Personnel Count',  value: stats.personnelCount  || 0, icon: 'people-outline',          bg: modulePalette.primary },
+        { label: 'Active Patrols',   value: stats.activePatrols   || 0, icon: 'checkmark-circle-outline', bg: modulePalette.deep },
+        { label: 'Pending Reports',  value: stats.pendingReports  || 0, icon: 'alert-circle-outline',     bg: modulePalette.light },
+        { label: 'Completed Today',  value: stats.completedToday  || 0, icon: 'checkmark-done-outline',  bg: modulePalette.primary },
       ],
       hints: ['assigned team members', 'in progress', 'awaiting review', 'today\'s total'],
       quickActions: [
-        { title: 'Team Performance', subtitle: 'View team metrics',       icon: 'stats-chart-outline',      screen: 'TeamPerformanceTab', color: '#8b5cf6', bg: '#faf5ff' },
-        { title: 'Personnel Mgmt',   subtitle: 'Manage team members',     icon: 'people-outline',           screen: 'PersonnelTab',      color: '#06b6d4', bg: '#f0f9fa' },
-        { title: 'Patrol Analytics', subtitle: 'Review patrol data',      icon: 'document-text-outline',    screen: 'AnalyticsTab',      color: '#f97316', bg: '#fff7ed' },
-        { title: 'AI Assistant',     subtitle: 'Ask VIMS questions',      icon: 'sparkles-outline',         screen: 'Chatbot',           color: '#2563eb', bg: '#eff6ff' },
+        { title: 'Team Performance', subtitle: 'View team metrics',       icon: 'stats-chart-outline',      screen: 'TeamPerformanceTab', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Personnel Mgmt',   subtitle: 'Manage team members',     icon: 'people-outline',           screen: 'PersonnelTab',      color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Service Requests', subtitle: 'Handle assigned requests', icon: 'construct-outline',        screen: 'SecurityServiceRequests', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Patrol Schedule',  subtitle: 'Submit patrol logs',       icon: 'shield-checkmark-outline', screen: 'SecurityPatrolSchedule', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Patrol Analytics', subtitle: 'Review patrol data',      icon: 'document-text-outline',    screen: 'AnalyticsTab',      color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Visitor Approvals', subtitle: 'Review pending entries',  icon: 'checkmark-circle-outline', screen: 'ApprovalsTab', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Visitor Logs',     subtitle: 'Browse visitor records',   icon: 'time-outline',             screen: 'LogsTab', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Incident Reports', subtitle: 'Track security incidents', icon: 'warning-outline',          screen: 'SecurityIncidents', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Announcements',    subtitle: 'Read community updates',   icon: 'megaphone-outline',        screen: 'Announcements', color: modulePalette.primary, bg: modulePalette.soft },
+        { title: 'Notifications',    subtitle: 'Check alerts and messages', icon: 'notifications-outline',   screen: 'Notifications', color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'AI Assistant',     subtitle: 'Ask VIMS questions',      icon: 'sparkles-outline',         screen: 'Chatbot',           color: modulePalette.primary, bg: modulePalette.soft },
       ],
     },
   };
@@ -614,8 +648,8 @@ const DashboardScreen = ({ navigation }) => {
                   }}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.dropdownItemIcon, { backgroundColor: '#f0fdf4' }]}>
-                    <Ionicons name="grid-outline" size={17} color="#16a34a" />
+                  <View style={[styles.dropdownItemIcon, { backgroundColor: themeColors.primarySoft }]}>
+                    <Ionicons name="grid-outline" size={17} color={themeColors.primary} />
                   </View>
                   <Text style={styles.dropdownItemText}>Dashboard</Text>
                 </TouchableOpacity>
@@ -629,8 +663,8 @@ const DashboardScreen = ({ navigation }) => {
                   }}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.dropdownItemIcon, { backgroundColor: '#f0fdf4' }]}>
-                    <Ionicons name="settings-outline" size={17} color="#16a34a" />
+                  <View style={[styles.dropdownItemIcon, { backgroundColor: themeColors.primarySoft }]}>
+                    <Ionicons name="settings-outline" size={17} color={themeColors.primary} />
                   </View>
                   <Text style={styles.dropdownItemText}>Profile Settings</Text>
                 </TouchableOpacity>
@@ -662,7 +696,7 @@ const DashboardScreen = ({ navigation }) => {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a6b3c" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={themeColors.primary} />}
       >
 
         {/* ── Hero Card ── */}
@@ -677,7 +711,7 @@ const DashboardScreen = ({ navigation }) => {
           <View style={[styles.heroInner, isNarrow && styles.heroInnerNarrow]}>
             <View style={styles.heroLeft}>
               <View style={styles.heroEyebrowPill}>
-                <Ionicons name="location-sharp" size={10} color="#4ade80" />
+                <Ionicons name="location-sharp" size={10} color={themeColors.primaryLight} />
                 <Text style={styles.heroEyebrow}>WESTVILLE CASIMIRO HOMES</Text>
               </View>
               <Text style={[styles.heroTitle, isNarrow && { fontSize: 20, lineHeight: 26 }]}>
@@ -710,10 +744,10 @@ const DashboardScreen = ({ navigation }) => {
           {config.stats.map((stat, i) => {
             // Curated, beautiful gradients matching the original colors
             const gradientColors = 
-              i === 0 ? ['#e7f5ec', '#d6ecdf'] :
-              i === 1 ? ['#e8f4f1', '#d9ece8'] :
-              i === 2 ? ['#fff4df', '#f8e8c5'] :
-              ['#fff0f0', '#f8dddd'];
+              i === 0 ? [themeColors.primaryWash, themeColors.primarySoft] :
+              i === 1 ? [themeColors.cardBackground, themeColors.primaryWash] :
+              i === 2 ? [themeColors.cardBackground, themeColors.primaryWash] :
+              [themeColors.primaryWash, themeColors.surfaceTint];
 
             return (
               <Animated.View
@@ -758,7 +792,7 @@ const DashboardScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.sectionToggleWrap}>
               <Text style={styles.sectionToggleText}>{collapsedSections.quickActions ? 'Show' : 'Hide'}</Text>
-              <Ionicons name={collapsedSections.quickActions ? 'chevron-down' : 'chevron-up'} size={16} color="#6b7280" />
+              <Ionicons name={collapsedSections.quickActions ? 'chevron-down' : 'chevron-up'} size={16} color={themeColors.textSecondary} />
             </View>
           </TouchableOpacity>
           {!collapsedSections.quickActions && config.quickActions.map((action, i) => (
@@ -787,7 +821,7 @@ const DashboardScreen = ({ navigation }) => {
                   <Text style={styles.actionTitle}>{action.title}</Text>
                   <Text style={styles.actionSub}>{action.subtitle}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color="#cbd5e1" />
+                <Ionicons name="chevron-forward" size={16} color={themeColors.borderStrong} />
               </Pressable>
             </Animated.View>
           ))}
@@ -801,12 +835,12 @@ const DashboardScreen = ({ navigation }) => {
             </View>
             <View style={styles.residentOverviewGrid}>
               <TouchableOpacity style={styles.residentOverviewCard} onPress={() => navigation.navigate('PaymentsTab')}>
-                <Ionicons name="wallet-outline" size={20} color="#d97706" />
+                <Ionicons name="wallet-outline" size={20} color={themeColors.primary} />
                 <Text style={styles.residentOverviewValue}>₱{formatPeso(residentOverview.pendingDues)}</Text>
                 <Text style={styles.residentOverviewLabel}>Pending dues</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.residentOverviewCard} onPress={() => navigation.navigate('ServicesTab')}>
-                <Ionicons name="build-outline" size={20} color="#2563eb" />
+                <Ionicons name="build-outline" size={20} color={themeColors.primaryDeep} />
                 <Text style={styles.residentOverviewValue}>{residentOverview.openServices}</Text>
                 <Text style={styles.residentOverviewLabel}>Open services</Text>
               </TouchableOpacity>
@@ -819,7 +853,7 @@ const DashboardScreen = ({ navigation }) => {
             )) : <Text style={styles.analyticsEmpty}>No announcements yet</Text>}
             <Text style={[styles.feedTitle, { marginTop: 14 }]}>Upcoming community schedules</Text>
             {residentOverview.upcomingSchedules.length ? residentOverview.upcomingSchedules.map((item, index) => (
-              <View key={item.reservationId || item._id || index} style={styles.feedRow}><Ionicons name="calendar-outline" size={17} color="#7c3aed" /><View style={{ flex: 1 }}><Text style={styles.feedRowTitle} numberOfLines={1}>{item.resourceName || 'Community reservation'}</Text><Text style={styles.feedRowMeta}>{item.startDate ? new Date(item.startDate).toLocaleString() : 'Schedule pending'}</Text></View></View>
+              <View key={item.reservationId || item._id || index} style={styles.feedRow}><Ionicons name="calendar-outline" size={17} color={themeColors.primary} /><View style={{ flex: 1 }}><Text style={styles.feedRowTitle} numberOfLines={1}>{item.resourceName || 'Community reservation'}</Text><Text style={styles.feedRowMeta}>{item.startDate ? new Date(item.startDate).toLocaleString() : 'Schedule pending'}</Text></View></View>
             )) : <Text style={styles.analyticsEmpty}>No upcoming schedules</Text>}
           </View>
         )}
@@ -834,9 +868,9 @@ const DashboardScreen = ({ navigation }) => {
               </View>
             </View>
             {[
-              { title: 'Daily Visitor Activity', rows: securityAnalytics.visitors, color: '#16a34a' },
-              { title: 'Service Request Trends', rows: securityAnalytics.services, color: '#6366f1' },
-              { title: 'Incident Reports', rows: securityAnalytics.incidents, color: '#ef4444' },
+              { title: 'Daily Visitor Activity', rows: securityAnalytics.visitors, color: themeColors.primary },
+              { title: 'Service Request Trends', rows: securityAnalytics.services, color: themeColors.primaryDeep },
+              { title: 'Incident Reports', rows: securityAnalytics.incidents, color: themeColors.primaryLight },
             ].map((chart) => {
               const maxValue = Math.max(1, ...chart.rows.map((row) => row.value));
               return (
@@ -876,7 +910,7 @@ const DashboardScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Recent Activity</Text>
             <View style={styles.sectionToggleWrap}>
               <Text style={styles.sectionToggleText}>{collapsedSections.recentActivity ? 'Show' : 'Hide'}</Text>
-              <Ionicons name={collapsedSections.recentActivity ? 'chevron-down' : 'chevron-up'} size={16} color="#6b7280" />
+              <Ionicons name={collapsedSections.recentActivity ? 'chevron-down' : 'chevron-up'} size={16} color={themeColors.textSecondary} />
             </View>
           </TouchableOpacity>
           {!collapsedSections.recentActivity && (
@@ -889,8 +923,8 @@ const DashboardScreen = ({ navigation }) => {
               </View>
               {recentActivity.length === 0 ? (
                 <View style={[styles.actionRow, { borderBottomWidth: 0 }]}>
-                  <View style={[styles.actionIconWrap, { backgroundColor: '#f1f5f9' }]}>
-                    <Ionicons name="notifications-off-outline" size={16} color="#94a3b8" />
+                  <View style={[styles.actionIconWrap, { backgroundColor: themeColors.surfaceMuted }]}>
+                    <Ionicons name="notifications-off-outline" size={16} color={themeColors.textMuted} />
                   </View>
                   <View style={styles.actionBody}>
                     <Text style={styles.actionTitle}>No recent notifications</Text>
@@ -903,8 +937,8 @@ const DashboardScreen = ({ navigation }) => {
                     key={n._id || String(i)}
                     style={[styles.actionRow, i < recentActivity.length - 1 && styles.actionRowDivider]}
                   >
-                    <View style={[styles.actionIconWrap, { backgroundColor: '#eff6ff' }]}> 
-                      <Ionicons name="notifications-outline" size={16} color="#2563eb" />
+                    <View style={[styles.actionIconWrap, { backgroundColor: themeColors.primaryWash }]}> 
+                      <Ionicons name="notifications-outline" size={16} color={themeColors.primary} />
                     </View>
                     <View style={styles.actionBody}>
                       <Text style={styles.actionTitle} numberOfLines={1}>{n.title || 'Notification'}</Text>
@@ -959,17 +993,17 @@ const DashboardScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   residentOverviewGrid: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  residentOverviewCard: { flex: 1, padding: 14, borderRadius: 15, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
-  residentOverviewValue: { color: '#0f172a', fontSize: 20, fontWeight: '900', marginTop: 7 },
-  residentOverviewLabel: { color: '#64748b', fontSize: 11, fontWeight: '700', marginTop: 2 },
+  residentOverviewCard: { flex: 1, padding: 14, borderRadius: 15, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
+  residentOverviewValue: { color: themeColors.textPrimary, fontSize: 20, fontWeight: '900', marginTop: 7 },
+  residentOverviewLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '700', marginTop: 2 },
   feedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, marginBottom: 7 },
-  feedTitle: { color: '#0f172a', fontSize: 13, fontWeight: '900' },
-  feedRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#eef2f7' },
-  feedRowTitle: { color: '#1e293b', fontSize: 12, fontWeight: '800' },
-  feedRowMeta: { color: '#64748b', fontSize: 10, marginTop: 2 },
+  feedTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '900' },
+  feedRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  feedRowTitle: { color: themeColors.textPrimary, fontSize: 12, fontWeight: '800' },
+  feedRowMeta: { color: themeColors.textSecondary, fontSize: 10, marginTop: 2 },
   container: { flex: 1, backgroundColor: themeColors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background, gap: 10 },
-  loadingText: { fontSize: 14, color: '#64748b', fontWeight: '500' },
+  loadingText: { fontSize: 14, color: themeColors.textSecondary, fontWeight: '500' },
 
   /* Top Bar */
   topBar: {
@@ -1035,10 +1069,10 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
   },
-  userPillInitials: { fontSize: 8, fontWeight: '900', color: '#1a6b3c' },
+  userPillInitials: { fontSize: 8, fontWeight: '900', color: themeColors.primaryDeep },
   userPillText: { display: 'none' },
   userPillName: { fontSize: 9, fontWeight: '700', color: '#fff' },
-  userPillRole: { fontSize: 8, fontWeight: '600', color: '#86efac', marginTop: 1 },
+  userPillRole: { fontSize: 8, fontWeight: '600', color: themeColors.primarySoft, marginTop: 1 },
 
   /* Dropdown Modal */
   modalBackdrop: {
@@ -1066,7 +1100,7 @@ const styles = StyleSheet.create({
   },
   dropdownAvatar: {
     width: 42, height: 42, borderRadius: 21,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: themeColors.border,
     alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
   },
@@ -1075,11 +1109,11 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
   },
-  dropdownAvatarText: { fontSize: 14, fontWeight: '800', color: '#475569' },
+  dropdownAvatarText: { fontSize: 14, fontWeight: '800', color: themeColors.primaryDeep },
   dropdownUserInfo: { flex: 1 },
-  dropdownName: { fontSize: 13, fontWeight: '800', color: '#0f172a' },
-  dropdownMeta: { fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: '500' },
-  dropdownDivider: { height: 0.5, backgroundColor: '#e2e8f0', marginHorizontal: 14 },
+  dropdownName: { fontSize: 13, fontWeight: '800', color: themeColors.textPrimary },
+  dropdownMeta: { fontSize: 11, color: themeColors.textMuted, marginTop: 2, fontWeight: '500' },
+  dropdownDivider: { height: 0.5, backgroundColor: themeColors.border, marginHorizontal: 14 },
   dropdownItem: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 12,
@@ -1088,7 +1122,7 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center',
   },
-  dropdownItemText: { fontSize: 13, fontWeight: '700', color: '#0f172a' },
+  dropdownItemText: { fontSize: 13, fontWeight: '700', color: themeColors.textPrimary },
 
   /* Scroll */
   content: { flex: 1 },
@@ -1115,7 +1149,7 @@ const styles = StyleSheet.create({
     color: themeColors.accent, fontSize: 9, fontWeight: '800',
     textTransform: 'uppercase', letterSpacing: 0.6,
   },
-  heroTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '500', lineHeight: 22, marginBottom: 5 },
+  heroTitle: { color: themeColors.primarySoft, fontSize: 17, fontWeight: '500', lineHeight: 22, marginBottom: 5 },
   heroTitleBold: { color: '#fff', fontSize: 22, fontWeight: '900' },
   heroDate: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '500', lineHeight: 16, marginBottom: 12 },
   heroPill: {
@@ -1168,8 +1202,8 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#4ade80',
-    shadowColor: '#4ade80',
+    backgroundColor: themeColors.primaryLight,
+    shadowColor: themeColors.primaryLight,
     shadowRadius: 4,
     shadowOpacity: 0.8,
   },
@@ -1210,65 +1244,65 @@ const styles = StyleSheet.create({
   quickActionsHeader: { width: '100%' },
   sectionHeader: {
     paddingHorizontal: 14, paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9',
+    borderBottomWidth: 0.5, borderBottomColor: themeColors.border,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   sectionHeaderSecondary: {
     paddingHorizontal: 14, paddingVertical: 10,
-    borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9',
+    borderBottomWidth: 0.5, borderBottomColor: themeColors.border,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: themeColors.textPrimary },
   sectionToggleWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionToggleText: { fontSize: 12, fontWeight: '700', color: '#6b7280' },
+  sectionToggleText: { fontSize: 12, fontWeight: '700', color: themeColors.textSecondary },
   actionRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 14,
     minHeight: 72,
   },
-  actionRowDivider: { borderBottomWidth: 0.5, borderBottomColor: '#f8fafc' },
+  actionRowDivider: { borderBottomWidth: 0.5, borderBottomColor: themeColors.border },
   quickActionTile: {
     minHeight: 142,
     flexDirection: 'column',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
     borderRightWidth: 0.5,
-    borderRightColor: '#eef2f0',
+    borderRightColor: themeColors.border,
   },
   actionIconWrap: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
+    backgroundColor: themeColors.primaryWash, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#16a34a' },
-  liveBadgeText: { fontSize: 10, fontWeight: '700', color: '#15803d' },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: themeColors.primary },
+  liveBadgeText: { fontSize: 10, fontWeight: '700', color: themeColors.primaryDeep },
   analyticsBlock: {
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderTopWidth: 0.5,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: themeColors.border,
   },
-  analyticsTitle: { color: '#0f172a', fontSize: 13, fontWeight: '900', marginBottom: 8 },
+  analyticsTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '900', marginBottom: 8 },
   analyticsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  analyticsDate: { width: 48, color: '#64748b', fontSize: 11, fontWeight: '700' },
-  analyticsBarTrack: { flex: 1, height: 8, borderRadius: 999, backgroundColor: '#e2e8f0', overflow: 'hidden' },
+  analyticsDate: { width: 48, color: themeColors.textSecondary, fontSize: 11, fontWeight: '700' },
+  analyticsBarTrack: { flex: 1, height: 8, borderRadius: 999, backgroundColor: themeColors.border, overflow: 'hidden' },
   analyticsBarFill: { height: '100%', borderRadius: 999 },
-  analyticsValue: { width: 24, textAlign: 'right', color: '#0f172a', fontSize: 12, fontWeight: '900' },
-  analyticsEmpty: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+  analyticsValue: { width: 24, textAlign: 'right', color: themeColors.textPrimary, fontSize: 12, fontWeight: '900' },
+  analyticsEmpty: { color: themeColors.textMuted, fontSize: 12, fontWeight: '600' },
   statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statusCell: { flexGrow: 1, minWidth: '45%', backgroundColor: '#f8fafc', borderRadius: 12, padding: 10 },
-  statusValue: { color: '#166534', fontSize: 18, fontWeight: '900' },
-  statusLabel: { color: '#64748b', fontSize: 11, fontWeight: '800', textTransform: 'capitalize' },
+  statusCell: { flexGrow: 1, minWidth: '45%', backgroundColor: themeColors.primaryWash, borderRadius: 12, padding: 10 },
+  statusValue: { color: themeColors.primary, fontSize: 18, fontWeight: '900' },
+  statusLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '800', textTransform: 'capitalize' },
   actionBody: { flex: 1, minWidth: 0 },
-  actionTitle: { color: '#0f172a', fontSize: 13, fontWeight: '800' },
-  actionSub: { color: '#94a3b8', fontSize: 11, marginTop: 1 },
+  actionTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800' },
+  actionSub: { color: themeColors.textMuted, fontSize: 11, marginTop: 1 },
   actionBody: { flex: 1, minWidth: 0 },
-  actionTitle: { color: '#0f172a', fontSize: 13, fontWeight: '800' },
-  actionSub: { color: '#94a3b8', fontSize: 11, marginTop: 1 },
+  actionTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800' },
+  actionSub: { color: themeColors.textMuted, fontSize: 11, marginTop: 1 },
 
   /* Footer */
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 },
-  footerText: { color: '#94a3b8', fontSize: 11, fontWeight: '600' },
+  footerText: { color: themeColors.textMuted, fontSize: 11, fontWeight: '600' },
   assistantBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15,23,42,0.22)',
@@ -1289,10 +1323,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#166534',
+    backgroundColor: themeColors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#166534',
+    shadowColor: themeColors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
@@ -1313,8 +1347,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   actionRowPressed: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.primaryWash,
   },
 });
 
 export default DashboardScreen;
+
+

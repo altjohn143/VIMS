@@ -17,6 +17,8 @@ import api from '../../utils/api';
 
 const STATUS_OPTIONS = ['all', 'vacant', 'occupied', 'reserved'];
 
+const isPlacedLot = (lot) => Boolean(lot?.mapPosition?.isPositioned);
+
 const getStatusStyle = (status) => {
   switch (status) {
     case 'vacant':
@@ -47,7 +49,8 @@ const AdminLotManagementScreen = ({ navigation }) => {
       if (!response.data?.success) {
         throw new Error(response.data?.error || 'Failed to load lots.');
       }
-      setLots(Array.isArray(response.data.data) ? response.data.data : []);
+      const lotsData = Array.isArray(response.data.data) ? response.data.data : [];
+      setLots(lotsData.filter(isPlacedLot));
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || error.message || 'Failed to load lots.');
     } finally {
@@ -126,23 +129,24 @@ const AdminLotManagementScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-          <Text style={styles.headerButtonText}>Back</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.primaryDeep} />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
           <Text style={styles.headerEyebrow}>ADMIN MODULE</Text>
           <Text style={styles.headerTitle}>Lot Management</Text>
           <Text style={styles.headerSubtitle}>Monitor lot inventory, ownership, and availability.</Text>
         </View>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('AdminLotMapEditor')}>
-          <Ionicons name="map-outline" size={21} color="white" />
-          <Text style={styles.headerButtonText}>Map Editor</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.headerButton} onPress={() => loadLots(true)}>
-          <Ionicons name="refresh" size={22} color="white" />
-          <Text style={styles.headerButtonText}>Refresh</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.headerActionButton} onPress={() => navigation.navigate('AdminLotMapEditor')}>
+            <Ionicons name="map-outline" size={21} color={themeColors.primaryDeep} />
+            <Text style={styles.headerButtonText}>Map Editor</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionButton} onPress={() => loadLots(true)}>
+            <Ionicons name="refresh" size={22} color={themeColors.primaryDeep} />
+            <Text style={styles.headerButtonText}>Refresh</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -260,13 +264,16 @@ const AdminLotManagementScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: roleLayouts.admin.screen,
-  header: { ...roleLayouts.admin.header, paddingBottom: 24 },
-  headerButton: { flexDirection: 'row', height: 42, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
-  headerTextWrap: { flex: 1 },
-  headerEyebrow: { color: '#bbf7d0', fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
-  headerTitle: { color: 'white', fontSize: 25, fontWeight: '900', marginTop: 2 },
-  headerSubtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2, lineHeight: 17 },
+  header: { backgroundColor: themeColors.cardBackground, paddingTop: 44, paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: themeColors.border, flexDirection: 'column', alignItems: 'stretch', gap: 10 },
+  backButton: { position: 'absolute', top: 44, left: 16, width: 40, height: 40, borderRadius: 12, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  headerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  headerActionButton: { flexDirection: 'row', height: 38, width: 126, paddingHorizontal: 10, borderRadius: 12, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  headerButton: { flexDirection: 'row', height: 38, width: 104, paddingHorizontal: 10, borderRadius: 12, backgroundColor: themeColors.accent, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  headerButtonText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
+  headerTextWrap: { width: '100%', paddingLeft: 50, minHeight: 42, justifyContent: 'center' },
+  headerEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  headerTitle: { color: themeColors.textPrimary, fontSize: 22, fontWeight: '900', marginTop: 2 },
+  headerSubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 2, lineHeight: 17 },
   content: { padding: 16, paddingBottom: 36 },
   statsRow: { paddingBottom: 14, gap: 10 },
   statCard: { width: 112, backgroundColor: 'white', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: themeColors.border },

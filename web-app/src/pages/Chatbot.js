@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -76,6 +76,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef(null);
   const { getCurrentUser } = useAuth();
 
   const currentUser = getCurrentUser();
@@ -96,6 +97,10 @@ const Chatbot = ({ embedded = false, onClose }) => {
     };
     loadMessages();
   }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages, loading]);
 
   const sendMessage = async (messageToSend) => {
     const trimmed = (messageToSend ?? message).trim();
@@ -335,6 +340,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
             </Box>
           </Box>
         )}
+        <Box ref={messagesEndRef} />
       </Box>
 
       <Divider />
@@ -376,7 +382,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
             variant="contained"
             endIcon={loading || embedded ? null : <SendIcon />}
             disabled={loading}
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             sx={{
               minWidth: embedded ? 54 : { xs: 54, sm: 118 },
               borderRadius: '16px',
@@ -794,7 +800,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
                   variant="contained"
                   endIcon={loading ? null : <SendIcon />}
                   disabled={loading}
-                  onClick={sendMessage}
+                  onClick={() => sendMessage()}
                   sx={{
                     minWidth: { xs: 54, sm: 118 },
                     borderRadius: '16px',

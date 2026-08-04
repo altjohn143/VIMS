@@ -455,37 +455,38 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-<View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={16} color="white" />
-    <Text style={styles.headerButtonText}>Back</Text>
-  </TouchableOpacity>
-  <Text style={styles.headerTitle}>Visitor Logs</Text>
-  <View style={styles.headerRight}>
-    <TouchableOpacity
-      onPress={() => navigation.navigate('ScannerTab')}
-      style={styles.scannerJumpButton}
-    >
-      <Ionicons name="qr-code" size={16} color="white" />
-      <Text style={styles.headerButtonText}>Scan</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
-      <Ionicons name="download" size={16} color="white" />
-      <Text style={styles.headerButtonText}>Export</Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={() => {
-        setManualEntryOpen(true);
-        setManualEntryErrors({});
-      }}
-      style={styles.manualEntryButton}
-    >
-      <Ionicons name="car-outline" size={16} color="white" />
-      <Text style={styles.headerButtonText}>Manual</Text>
-    </TouchableOpacity>
-    <UserDropdownMenu navigation={navigation} />
-  </View>
-</View>
+      <View style={styles.header}>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.headerEyebrow}>SECURITY MODULE</Text>
+          <Text style={styles.headerTitle}>Visitor Logs</Text>
+          <Text style={styles.headerSubtitle}>Track visits, scanner activity, and gate records.</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionButton}>
+            <Ionicons name="arrow-back" size={17} color="white" />
+            <Text style={styles.headerButtonText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('ScannerTab')} style={styles.headerActionButton}>
+            <Ionicons name="qr-code" size={17} color="white" />
+            <Text style={styles.headerButtonText}>Scan</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleExport} style={styles.headerActionButton}>
+            <Ionicons name="download" size={17} color="white" />
+            <Text style={styles.headerButtonText}>Export</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              setManualEntryOpen(true);
+              setManualEntryErrors({});
+            }}
+            style={styles.headerActionButton}
+          >
+            <Ionicons name="car-outline" size={17} color="white" />
+            <Text style={styles.headerButtonText}>Manual</Text>
+          </TouchableOpacity>
+          <UserDropdownMenu navigation={navigation} />
+        </View>
+      </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
         <View style={styles.statsContainer}>
@@ -893,57 +894,16 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: roleLayouts.security.screen,
-  header: { ...roleLayouts.security.header, paddingTop: 60, paddingHorizontal: 20, paddingBottom: 24 },
-  headerRight: {
-  flexDirection: 'row',
-  alignItems: 'center',
-},
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 23,
-    fontWeight: '900',
-  },
-  exportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  scannerJumpButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    marginRight: 2,
-  },
-  manualEntryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    marginRight: 2,
-  },
+  header: { ...roleLayouts.security.header, flexDirection: 'column', alignItems: 'stretch', paddingTop: 56, paddingHorizontal: 16, paddingBottom: 18, gap: 12 },
+  headerTextWrap: { width: '100%' },
+  headerEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  headerTitle: { color: 'white', fontSize: 26, lineHeight: 32, fontWeight: '900' },
+  headerSubtitle: { color: 'rgba(255,255,255,0.78)', fontSize: 12, fontWeight: '700', marginTop: 3, lineHeight: 17 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  headerActionButton: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   statsScroll: {
-    backgroundColor: themeColors.nav,
+    backgroundColor: themeColors.background,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -955,7 +915,9 @@ const styles = StyleSheet.create({
     minWidth: 108,
     padding: 12,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: themeColors.cardBackground,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   statValue: {
     fontSize: 18,
@@ -965,6 +927,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     color: themeColors.textSecondary,
+    fontWeight: '800',
   },
   filterContainer: {
     backgroundColor: 'white',

@@ -55,6 +55,8 @@ const themeColors = {
   border: 'rgba(15, 23, 42, 0.08)'
 };
 
+const isPlacedLot = (lot) => Boolean(lot?.mapPosition?.isPositioned);
+
 const AdminLotManagement = () => {
   const navigate = useNavigate();
   const [lots, setLots] = useState([]);
@@ -80,15 +82,16 @@ const AdminLotManagement = () => {
       setLoading(true);
       const response = await axios.get('/api/lots');
       const lotsData = Array.isArray(response.data?.data) ? response.data.data : [];
+      const placedLots = lotsData.filter(isPlacedLot);
 
-      setLots(lotsData);
-      setFilteredLots(lotsData);
+      setLots(placedLots);
+      setFilteredLots(placedLots);
 
       // Calculate stats
-      const total = lotsData.length;
-      const vacant = lotsData.filter(lot => lot.status === 'vacant').length;
-      const occupied = lotsData.filter(lot => lot.status === 'occupied').length;
-      const reserved = lotsData.filter(lot => lot.status === 'reserved').length;
+      const total = placedLots.length;
+      const vacant = placedLots.filter(lot => lot.status === 'vacant').length;
+      const occupied = placedLots.filter(lot => lot.status === 'occupied').length;
+      const reserved = placedLots.filter(lot => lot.status === 'reserved').length;
 
       setStats({ total, vacant, occupied, reserved });
     } catch (error) {

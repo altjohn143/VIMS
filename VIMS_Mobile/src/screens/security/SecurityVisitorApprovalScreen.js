@@ -201,20 +201,24 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-<View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={16} color="white" />
-    <Text style={styles.headerButtonText}>Back</Text>
-  </TouchableOpacity>
-  <Text style={styles.headerTitle}>Visitor Approvals</Text>
-  <View style={styles.headerRight}>
-    <TouchableOpacity onPress={fetchPendingVisitors} style={styles.refreshButton}>
-      <Ionicons name="refresh" size={16} color="white" />
-      <Text style={styles.headerButtonText}>Refresh</Text>
-    </TouchableOpacity>
-    <UserDropdownMenu navigation={navigation} />
-  </View>
-</View>
+      <View style={styles.header}>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.headerEyebrow}>SECURITY MODULE</Text>
+          <Text style={styles.headerTitle}>Visitor Approvals</Text>
+          <Text style={styles.headerSubtitle}>Review and process pending visitor requests.</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionButton}>
+            <Ionicons name="arrow-back" size={17} color="white" />
+            <Text style={styles.headerButtonText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={fetchPendingVisitors} style={styles.headerActionButton}>
+            <Ionicons name="refresh" size={17} color="white" />
+            <Text style={styles.headerButtonText}>Refresh</Text>
+          </TouchableOpacity>
+          <UserDropdownMenu navigation={navigation} />
+        </View>
+      </View>
 
       <View style={styles.statsCard}>
         <Ionicons name="time" size={24} color={themeColors.warning} />
@@ -358,34 +362,13 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: roleLayouts.security.screen,
-  header: { ...roleLayouts.security.header, paddingHorizontal: 20, paddingBottom: 24 },
-  headerRight: {
-  flexDirection: 'row',
-  alignItems: 'center',
-},
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
+  header: { ...roleLayouts.security.header, flexDirection: 'column', alignItems: 'stretch', paddingHorizontal: 16, paddingBottom: 18, gap: 12 },
+  headerTextWrap: { width: '100%' },
+  headerEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  headerTitle: { color: 'white', fontSize: 26, lineHeight: 32, fontWeight: '900' },
+  headerSubtitle: { color: 'rgba(255,255,255,0.78)', fontSize: 12, fontWeight: '700', marginTop: 3, lineHeight: 17 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  headerActionButton: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   statsCard: {
     flexDirection: 'row',

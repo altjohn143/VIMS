@@ -474,7 +474,9 @@ router.get('/export', protect, async (req, res) => {
     console.log('Export request:', { format, phase, block, status, type, user: req.user._id });
 
     // Build filter based on query parameters
-    let filter = {};
+    let filter = {
+      'mapPosition.isPositioned': true
+    };
     if (phase) filter.phase = Number(phase);
     if (block) filter.block = Number(block);
     if (status) filter.status = status;

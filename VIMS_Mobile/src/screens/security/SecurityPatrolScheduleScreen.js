@@ -142,17 +142,21 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={16} color="white" />
-          <Text style={styles.headerButtonText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Patrol Logs</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={load} style={styles.headerIconButton}>
-            <Ionicons name="refresh" size={16} color="white" />
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.headerEyebrow}>SECURITY MODULE</Text>
+          <Text style={styles.headerTitle}>Patrol Logs</Text>
+          <Text style={styles.headerSubtitle}>Submit checkpoint rounds and review patrol activity.</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionButton}>
+            <Ionicons name="arrow-back" size={17} color="white" />
+            <Text style={styles.headerButtonText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={load} style={styles.headerActionButton}>
+            <Ionicons name="refresh" size={17} color="white" />
             <Text style={styles.headerButtonText}>Refresh</Text>
           </TouchableOpacity>
-          <LogoutButton navigation={navigation} color="white" size={24} />
+          <LogoutButton navigation={navigation} color="white" size={18} />
         </View>
       </View>
 
@@ -305,11 +309,13 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: roleLayouts.security.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { ...roleLayouts.security.header, paddingHorizontal: 20, paddingBottom: 24, gap: 10 },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
-  headerTitle: { color: 'white', fontSize: 23, fontWeight: '900', flex: 1, textAlign: 'center' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIconButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
+  header: { ...roleLayouts.security.header, flexDirection: 'column', alignItems: 'stretch', paddingHorizontal: 16, paddingBottom: 18, gap: 12 },
+  headerTextWrap: { width: '100%' },
+  headerEyebrow: { color: themeColors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  headerTitle: { color: 'white', fontSize: 26, lineHeight: 32, fontWeight: '900' },
+  headerSubtitle: { color: 'rgba(255,255,255,0.78)', fontSize: 12, fontWeight: '700', marginTop: 3, lineHeight: 17 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  headerActionButton: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   listContainer: { padding: 16, paddingBottom: 24 },
   formCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },

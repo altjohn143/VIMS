@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  ActivityIndicator
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -91,7 +93,11 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={embedded ? 0 : 12}
+    >
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerActionButton} onPress={embedded ? onClose : () => navigation.goBack()}>
           <Ionicons name={embedded ? 'close' : 'arrow-back'} size={16} color="#fff" />
@@ -112,7 +118,11 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
         </ScrollView>
       </View>
 
-      <ScrollView style={styles.messages}>
+      <ScrollView
+        style={styles.messages}
+        contentContainerStyle={styles.messagesContent}
+        keyboardShouldPersistTaps="handled"
+      >
         {messages.length === 0 && <Text style={styles.empty}>Ask about VIMS workflows, lot recommendations, pricing, and availability.</Text>}
         {messages.map((m, idx) => (
           <View key={idx} style={[styles.bubble, m.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
@@ -129,11 +139,11 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
           placeholder="Type your question..."
           multiline
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={sendMessage} disabled={loading}>
+        <TouchableOpacity style={styles.sendBtn} onPress={() => sendMessage()} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <><Ionicons name="send" size={16} color="#fff" /><Text style={styles.sendBtnText}>Send</Text></>}
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -151,7 +161,8 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
   headerActionButton: { minWidth: 76, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerActionText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  messages: { flex: 1, padding: 12 },
+  messages: { flex: 1 },
+  messagesContent: { padding: 12, flexGrow: 1 },
   empty: { color: '#64748b', textAlign: 'center', marginTop: 20 },
   bubble: { padding: 10, borderRadius: 12, marginBottom: 10, maxWidth: '88%' },
   userBubble: { alignSelf: 'flex-end', backgroundColor: '#dcfce7' },

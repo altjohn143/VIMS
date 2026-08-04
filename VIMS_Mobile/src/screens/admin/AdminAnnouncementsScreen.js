@@ -316,7 +316,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+          <Ionicons name="arrow-back" size={24} color={themeColors.primaryDeep} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerTitle}>Admin Announcements</Text>
@@ -326,21 +326,21 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.headerIconButton}>
-            <Ionicons name="add" size={22} color="white" />
+            <Ionicons name="add-circle-outline" size={22} color={themeColors.primaryDeep} />
             <Text style={styles.headerIconButtonText}>Create</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={load} style={styles.headerIconButton}>
-            <Ionicons name="refresh" size={22} color="white" />
+            <Ionicons name="refresh" size={22} color={themeColors.primaryDeep} />
             <Text style={styles.headerIconButtonText}>Refresh</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate('ArchivedAnnouncements')}
             style={styles.headerIconButton}
           >
-            <Ionicons name="archive" size={22} color="white" />
+            <Ionicons name="archive-outline" size={22} color={themeColors.primaryDeep} />
             <Text style={styles.headerIconButtonText}>Archived</Text>
           </TouchableOpacity>
-          <LogoutButton navigation={navigation} color="white" size={24} />
+          <LogoutButton navigation={navigation} color={themeColors.primaryDeep} size={24} />
         </View>
       </View>
 
@@ -498,14 +498,14 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: roleLayouts.admin.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { ...roleLayouts.admin.header, paddingTop: 54, paddingHorizontal: 18, paddingBottom: 22, justifyContent: 'space-between' },
-  backButton: { padding: 8 },
-  headerTitleWrap: { flex: 1, minWidth: 0 },
-  headerTitle: { color: 'white', fontSize: 23, fontWeight: '900' },
-  headerSubtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIconButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
-  headerIconButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
+  header: { backgroundColor: themeColors.cardBackground, paddingTop: 44, paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: themeColors.border, flexDirection: 'column', alignItems: 'stretch', gap: 10 },
+  backButton: { position: 'absolute', top: 44, left: 16, width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.accent, zIndex: 2 },
+  headerTitleWrap: { width: '100%', minWidth: 0, paddingLeft: 50, paddingRight: 34, minHeight: 42, justifyContent: 'center' },
+  headerTitle: { color: themeColors.textPrimary, fontSize: 22, fontWeight: '900' },
+  headerSubtitle: { color: themeColors.textSecondary, fontSize: 12, marginTop: 2 },
+  headerRight: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8 },
+  headerIconButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 10, width: 104, height: 38, borderRadius: 12, backgroundColor: themeColors.accent },
+  headerIconButtonText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
 
   listContainer: { padding: 16, paddingBottom: 32 },
   card: { backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border, borderLeftWidth: 4, borderLeftColor: themeColors.primary },

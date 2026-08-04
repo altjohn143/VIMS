@@ -926,6 +926,7 @@ const Dashboard = () => {
         ],
         supervision: [
           { title: 'Visitor Approvals', icon: <CheckCircleIcon />, link: '/dashboard/security/visitor-approval' },
+          { title: 'Service Requests', icon: <BuildIcon />, link: '/dashboard/security/service-requests' },
           { title: 'Incident Reports', icon: <AssignmentIcon />, link: '/dashboard/security/incidents' }
         ],
         visitors: [

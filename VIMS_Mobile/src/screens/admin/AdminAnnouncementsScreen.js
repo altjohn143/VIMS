@@ -13,6 +13,7 @@ import {
   ScrollView,
   Image,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -364,7 +365,11 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
       />
 
       <Modal visible={createOpen} transparent animationType="slide" onRequestClose={() => setCreateOpen(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Create Announcement</Text>
@@ -447,36 +452,6 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
                 />
               )}
 
-              {showDatePicker && Platform.OS === 'ios' && (
-                <Modal transparent animationType="fade" visible={showDatePicker} onRequestClose={closeSchedulePicker}>
-                  <View style={styles.iosPickerOverlay}>
-                    <View style={styles.iosPickerCard}>
-                      <View style={styles.iosPickerHeader}>
-                        <TouchableOpacity onPress={closeSchedulePicker} style={styles.iosPickerAction}>
-                          <Text style={styles.iosPickerCancelText}>Cancel</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.iosPickerTitle}>
-                          {schedulePickerMode === 'date' ? 'Select Date' : 'Select Time'}
-                        </Text>
-                        <TouchableOpacity onPress={handleIosScheduleDone} style={styles.iosPickerAction}>
-                          <Text style={styles.iosPickerDoneText}>
-                            {schedulePickerMode === 'date' ? 'Next' : 'Done'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                      <DateTimePicker
-                        value={pendingScheduleDate || form.scheduledAt || new Date()}
-                        mode={schedulePickerMode}
-                        display="spinner"
-                        minimumDate={new Date()}
-                        onChange={handleScheduleDateChange}
-                        style={styles.iosPicker}
-                      />
-                    </View>
-                  </View>
-                </Modal>
-              )}
-
               <View style={styles.modalActions}>
                 <TouchableOpacity style={[styles.actionBtn, styles.secondaryBtn]} onPress={() => setCreateOpen(false)} disabled={processing}>
                   <Text style={styles.secondaryText}>Cancel</Text>
@@ -488,8 +463,36 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
             </ScrollView>
+
+            {showDatePicker && Platform.OS === 'ios' && (
+              <View style={styles.iosPickerOverlay}>
+                <View style={styles.iosPickerCard}>
+                  <View style={styles.iosPickerHeader}>
+                    <TouchableOpacity onPress={closeSchedulePicker} style={styles.iosPickerAction}>
+                      <Text style={styles.iosPickerCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.iosPickerTitle}>
+                      {schedulePickerMode === 'date' ? 'Select Date' : 'Select Time'}
+                    </Text>
+                    <TouchableOpacity onPress={handleIosScheduleDone} style={styles.iosPickerAction}>
+                      <Text style={styles.iosPickerDoneText}>
+                        {schedulePickerMode === 'date' ? 'Next' : 'Done'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={pendingScheduleDate || form.scheduledAt || new Date()}
+                    mode={schedulePickerMode}
+                    display="spinner"
+                    minimumDate={new Date()}
+                    onChange={handleScheduleDateChange}
+                    style={styles.iosPicker}
+                  />
+                </View>
+              </View>
+            )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -565,7 +568,7 @@ const styles = StyleSheet.create({
 
   datePickerBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 12, marginTop: 8, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc' },
   datePickerText: { fontSize: 14, color: themeColors.textPrimary, fontWeight: '600' },
-  iosPickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  iosPickerOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
   iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },

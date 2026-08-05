@@ -12,6 +12,7 @@ import {
   RefreshControl,
   FlatList,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
@@ -400,6 +401,10 @@ const VisitorManagementScreen = ({ navigation }) => {
   }, [historyMode, activeTab, rowsPerPage]);
 
   const shareVisitorQr = () => {
+    if (['rejected', 'cancelled'].includes(selectedVisitor?.status)) {
+      Alert.alert('Pass Unavailable', 'Rejected or cancelled visitor passes cannot be shared.');
+      return;
+    }
     if (!qrRef.current) return;
     qrRef.current.toDataURL(async data => {
       try {
@@ -646,7 +651,11 @@ const VisitorManagementScreen = ({ navigation }) => {
           resetForm();
         }}
       >
-        <View style={styles.modalContainer}>
+        <KeyboardAvoidingView
+          style={styles.modalContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Create Visitor Pass</Text>
             <TouchableOpacity
@@ -796,7 +805,34 @@ const VisitorManagementScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </View>
+
+          {showDatePicker && Platform.OS === 'ios' && (
+            <View style={styles.iosPickerOverlay}>
+              <View style={styles.iosPickerCard}>
+                <View style={styles.iosPickerHeader}>
+                  <TouchableOpacity onPress={closeDateTimePicker} style={styles.iosPickerAction}>
+                    <Text style={styles.iosPickerCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.iosPickerTitle}>
+                    {pickerMode === 'date' ? 'Select Date' : 'Select Time'}
+                  </Text>
+                  <TouchableOpacity onPress={handleIosPickerDone} style={styles.iosPickerAction}>
+                    <Text style={styles.iosPickerDoneText}>
+                      {pickerMode === 'date' ? 'Next' : 'Done'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={pendingDateValue || formData[datePickerField] || new Date()}
+                  mode={pickerMode}
+                  display="spinner"
+                  onChange={handleDateChange}
+                  style={styles.iosPicker}
+                />
+              </View>
+            </View>
+          )}
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* QR Code Modal */}
@@ -921,40 +957,6 @@ const VisitorManagementScreen = ({ navigation }) => {
           display="default"
           onChange={handleDateChange}
         />
-      )}
-
-      {showDatePicker && Platform.OS === 'ios' && (
-        <Modal
-          transparent
-          animationType="fade"
-          visible={showDatePicker}
-          onRequestClose={closeDateTimePicker}
-        >
-          <View style={styles.iosPickerOverlay}>
-            <View style={styles.iosPickerCard}>
-              <View style={styles.iosPickerHeader}>
-                <TouchableOpacity onPress={closeDateTimePicker} style={styles.iosPickerAction}>
-                  <Text style={styles.iosPickerCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <Text style={styles.iosPickerTitle}>
-                  {pickerMode === 'date' ? 'Select Date' : 'Select Time'}
-                </Text>
-                <TouchableOpacity onPress={handleIosPickerDone} style={styles.iosPickerAction}>
-                  <Text style={styles.iosPickerDoneText}>
-                    {pickerMode === 'date' ? 'Next' : 'Done'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                value={pendingDateValue || formData[datePickerField] || new Date()}
-                mode={pickerMode}
-                display="spinner"
-                onChange={handleDateChange}
-                style={styles.iosPicker}
-              />
-            </View>
-          </View>
-        </Modal>
       )}
 
       <Modal
@@ -1358,7 +1360,11 @@ const styles = StyleSheet.create({
     color: themeColors.textPrimary,
   },
   iosPickerOverlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.35)',
   },

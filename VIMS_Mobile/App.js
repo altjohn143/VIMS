@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { ActivityIndicator, View, Platform, Text, Image, StatusBar, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, Platform, Text, Image, StatusBar, StyleSheet, KeyboardAvoidingView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -69,14 +69,23 @@ const AppContent = () => {
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor={themeColors.primaryDark} />
-      <NavigationContainer theme={navigationTheme}>
-      <AppNavigator />
-      </NavigationContainer>
+      <KeyboardAvoidingView
+        style={styles.appShell}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <NavigationContainer theme={navigationTheme}>
+          <AppNavigator />
+        </NavigationContainer>
+      </KeyboardAvoidingView>
     </>
   );
 };
 
 const styles = StyleSheet.create({
+  appShell: {
+    flex: 1,
+  },
   loadingScreen: {
     flex: 1,
     justifyContent: 'center',

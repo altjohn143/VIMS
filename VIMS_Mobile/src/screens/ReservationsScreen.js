@@ -10,11 +10,11 @@ import {
   Modal,
   TextInput,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
 import api from '../utils/api';
 
 const ReservationsScreen = ({ navigation }) => {
@@ -46,6 +46,13 @@ const ReservationsScreen = ({ navigation }) => {
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [selectSheet, setSelectSheet] = useState({
+    visible: false,
+    title: '',
+    options: [],
+    value: '',
+    onSelect: null,
+  });
 
   useEffect(() => {
     fetchReservations();
@@ -408,6 +415,35 @@ const ReservationsScreen = ({ navigation }) => {
     });
   };
 
+  const openSelectSheet = ({ title, options, value, onSelect }) => {
+    setSelectSheet({ visible: true, title, options, value, onSelect });
+  };
+
+  const closeSelectSheet = () => {
+    setSelectSheet(prev => ({ ...prev, visible: false }));
+  };
+
+  const handleSelectSheetValue = (value) => {
+    if (selectSheet.onSelect) {
+      selectSheet.onSelect(value);
+    }
+    closeSelectSheet();
+  };
+
+  const renderSelectField = ({ valueText, placeholder, onPress, disabled }) => (
+    <TouchableOpacity
+      style={[styles.selectField, disabled && styles.selectFieldDisabled]}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.85}
+    >
+      <Text style={[styles.selectFieldText, !valueText && styles.selectFieldPlaceholder]}>
+        {valueText || placeholder}
+      </Text>
+      <Ionicons name="chevron-down" size={18} color={disabled ? '#cbd5e1' : '#64748b'} />
+    </TouchableOpacity>
+  );
+
   const renderPlatformDateTimePicker = ({ visible, title, value, mode, minimumDate, onDismiss, onChange }) => {
     if (!visible) return null;
 
@@ -436,22 +472,20 @@ const ReservationsScreen = ({ navigation }) => {
     if (Platform.OS !== 'ios') return picker;
 
     return (
-      <Modal transparent animationType="fade" visible={visible} onRequestClose={onDismiss}>
-        <View style={styles.iosPickerOverlay}>
-          <View style={styles.iosPickerCard}>
-            <View style={styles.iosPickerHeader}>
-              <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
-                <Text style={styles.iosPickerCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={styles.iosPickerTitle}>{title}</Text>
-              <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
-                <Text style={styles.iosPickerDoneText}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            {picker}
+      <View style={styles.iosPickerOverlay}>
+        <View style={styles.iosPickerCard}>
+          <View style={styles.iosPickerHeader}>
+            <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
+              <Text style={styles.iosPickerCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.iosPickerTitle}>{title}</Text>
+            <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
+              <Text style={styles.iosPickerDoneText}>Done</Text>
+            </TouchableOpacity>
           </View>
+          {picker}
         </View>
-      </Modal>
+      </View>
     );
   };
 
@@ -678,7 +712,11 @@ const ReservationsScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>New Reservation</Text>
@@ -692,30 +730,32 @@ const ReservationsScreen = ({ navigation }) => {
               <Text style={styles.sectionTitle}>Select Items</Text>
               
               <Text style={styles.label}>Resource Type</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={currentItem.resourceType}
-                  onValueChange={(value) => setCurrentItem({ ...currentItem, resourceType: value, resourceName: '' })}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Venue" value="venue" />
-                  <Picker.Item label="Equipment" value="equipment" />
-                </Picker>
-              </View>
+              {renderSelectField({
+                valueText: currentItem.resourceType === 'equipment' ? 'Equipment' : 'Venue',
+                placeholder: 'Select resource type',
+                onPress: () => openSelectSheet({
+                  title: 'Resource Type',
+                  value: currentItem.resourceType,
+                  options: [
+                    { label: 'Venue', value: 'venue' },
+                    { label: 'Equipment', value: 'equipment' },
+                  ],
+                  onSelect: (value) => setCurrentItem({ ...currentItem, resourceType: value, resourceName: '' }),
+                }),
+              })}
 
               <Text style={styles.label}>Resource Name</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={currentItem.resourceName}
-                  onValueChange={(value) => setCurrentItem({ ...currentItem, resourceName: value })}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Select resource..." value="" />
-                  {(resources[currentItem.resourceType] || []).map((item) => (
-                    <Picker.Item key={item} label={item} value={item} />
-                  ))}
-                </Picker>
-              </View>
+              {renderSelectField({
+                valueText: currentItem.resourceName,
+                placeholder: 'Select resource...',
+                disabled: !(resources[currentItem.resourceType] || []).length,
+                onPress: () => openSelectSheet({
+                  title: 'Resource Name',
+                  value: currentItem.resourceName,
+                  options: (resources[currentItem.resourceType] || []).map((item) => ({ label: item, value: item })),
+                  onSelect: (value) => setCurrentItem({ ...currentItem, resourceName: value }),
+                }),
+              })}
 
               {/* Show quantity field only for equipment */}
               {currentItem.resourceType === 'equipment' && (
@@ -908,12 +948,90 @@ const ReservationsScreen = ({ navigation }) => {
                 )}
               </TouchableOpacity>
             </View>
+
+            {Platform.OS === 'ios' && (
+              <>
+                {renderPlatformDateTimePicker({
+                  visible: showStartDatePicker,
+                  title: 'Select Start Date',
+                  value: formData.startDate,
+                  mode: 'date',
+                  minimumDate: new Date(),
+                  onDismiss: () => setShowStartDatePicker(false),
+                  onChange: (date) => setFormData({ ...formData, startDate: date }),
+                })}
+
+                {renderPlatformDateTimePicker({
+                  visible: showStartTimePicker,
+                  title: 'Select Start Time',
+                  value: formData.startDate,
+                  mode: 'time',
+                  onDismiss: () => setShowStartTimePicker(false),
+                  onChange: (time) => {
+                    const newDate = new Date(formData.startDate);
+                    newDate.setHours(time.getHours(), time.getMinutes());
+                    setFormData({ ...formData, startDate: newDate });
+                  },
+                })}
+
+                {renderPlatformDateTimePicker({
+                  visible: showEndDatePicker,
+                  title: 'Select End Date',
+                  value: formData.endDate,
+                  mode: 'date',
+                  minimumDate: formData.startDate,
+                  onDismiss: () => setShowEndDatePicker(false),
+                  onChange: (date) => setFormData({ ...formData, endDate: date }),
+                })}
+
+                {renderPlatformDateTimePicker({
+                  visible: showEndTimePicker,
+                  title: 'Select End Time',
+                  value: formData.endDate,
+                  mode: 'time',
+                  onDismiss: () => setShowEndTimePicker(false),
+                  onChange: (time) => {
+                    const newDate = new Date(formData.endDate);
+                    newDate.setHours(time.getHours(), time.getMinutes());
+                    setFormData({ ...formData, endDate: newDate });
+                  },
+                })}
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal transparent animationType="fade" visible={selectSheet.visible} onRequestClose={closeSelectSheet}>
+        <View style={styles.iosPickerOverlay}>
+          <View style={styles.optionSheetCard}>
+            <View style={styles.iosPickerHeader}>
+              <TouchableOpacity onPress={closeSelectSheet} style={styles.iosPickerAction}>
+                <Text style={styles.iosPickerCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.iosPickerTitle}>{selectSheet.title}</Text>
+              <View style={styles.iosPickerAction} />
+            </View>
+            <ScrollView style={styles.optionSheetList} showsVerticalScrollIndicator={false}>
+              {selectSheet.options.map((option) => (
+                <TouchableOpacity
+                  key={String(option.value)}
+                  style={styles.optionSheetItem}
+                  onPress={() => handleSelectSheetValue(option.value)}
+                >
+                  <Text style={styles.optionSheetText}>{option.label}</Text>
+                  {selectSheet.value === option.value && (
+                    <Ionicons name="checkmark-circle" size={20} color="#166534" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>
 
       {/* Date/Time Pickers */}
-      {renderPlatformDateTimePicker({
+      {Platform.OS === 'android' && renderPlatformDateTimePicker({
         visible: showStartDatePicker,
         title: 'Select Start Date',
         value: formData.startDate,
@@ -923,7 +1041,7 @@ const ReservationsScreen = ({ navigation }) => {
         onChange: (date) => setFormData({ ...formData, startDate: date }),
       })}
 
-      {renderPlatformDateTimePicker({
+      {Platform.OS === 'android' && renderPlatformDateTimePicker({
         visible: showStartTimePicker,
         title: 'Select Start Time',
         value: formData.startDate,
@@ -936,7 +1054,7 @@ const ReservationsScreen = ({ navigation }) => {
         },
       })}
 
-      {renderPlatformDateTimePicker({
+      {Platform.OS === 'android' && renderPlatformDateTimePicker({
         visible: showEndDatePicker,
         title: 'Select End Date',
         value: formData.endDate,
@@ -946,7 +1064,7 @@ const ReservationsScreen = ({ navigation }) => {
         onChange: (date) => setFormData({ ...formData, endDate: date }),
       })}
 
-      {renderPlatformDateTimePicker({
+      {Platform.OS === 'android' && renderPlatformDateTimePicker({
         visible: showEndTimePicker,
         title: 'Select End Time',
         value: formData.endDate,
@@ -1199,6 +1317,32 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+  },
+  selectField: {
+    minHeight: 50,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  selectFieldDisabled: {
+    backgroundColor: '#f1f5f9',
+    opacity: 0.75,
+  },
+  selectFieldText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  selectFieldPlaceholder: {
+    color: '#9ca3af',
+    fontWeight: '500',
   },
   textInput: {
     borderWidth: 1,
@@ -1469,8 +1613,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 3,
   },
-  iosPickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  iosPickerOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
+  optionSheetCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '72%', paddingBottom: 18 },
+  optionSheetList: { maxHeight: 360 },
+  optionSheetItem: { minHeight: 52, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eef2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  optionSheetText: { flex: 1, color: '#1e293b', fontSize: 16, fontWeight: '700' },
   iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
   iosPickerTitle: { flex: 1, textAlign: 'center', color: '#1e293b', fontSize: 15, fontWeight: '800' },

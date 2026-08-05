@@ -11,6 +11,8 @@ import {
   Modal,
   RefreshControl,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
@@ -27,6 +29,7 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [securityNotes, setSecurityNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionReasonError, setRejectionReasonError] = useState('');
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -79,7 +82,8 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
     if (!selectedVisitor) return;
 
     if (!rejectionReason.trim()) {
-      Alert.alert('Error', 'Rejection reason is required');
+      setRejectionReasonError('Provide a reason for rejection.');
+      Alert.alert('Reason Required', 'Please provide a reason for rejection.');
       return;
     }
 
@@ -93,6 +97,7 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
         Alert.alert('Success', 'Visitor rejected');
         setShowRejectModal(false);
         setRejectionReason('');
+        setRejectionReasonError('');
         setPendingVisitors(prev => prev.filter(v => v._id !== selectedVisitor._id));
       }
     } catch (error) {
@@ -188,6 +193,8 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
             style={[styles.actionButton, styles.rejectButton]}
             onPress={() => {
               setSelectedVisitor(item);
+              setRejectionReason('');
+              setRejectionReasonError('');
               setShowRejectModal(true);
             }}
           >
@@ -250,7 +257,11 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setShowApproveModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Approve Visitor</Text>
@@ -297,7 +308,7 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
               </View>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Reject Modal */}
@@ -307,7 +318,11 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setShowRejectModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Reject Visitor</Text>
@@ -329,11 +344,17 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
                   style={styles.modalInput}
                   placeholder="Rejection Reason *"
                   value={rejectionReason}
-                  onChangeText={setRejectionReason}
+                  onChangeText={(value) => {
+                    setRejectionReason(value);
+                    if (value.trim()) setRejectionReasonError('');
+                  }}
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
                 />
+                {!!rejectionReasonError && (
+                  <Text style={styles.validationText}>{rejectionReasonError}</Text>
+                )}
 
                 <View style={styles.modalActions}>
                   <TouchableOpacity
@@ -346,7 +367,7 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
                   <TouchableOpacity
                     style={[styles.modalButton, styles.rejectButton]}
                     onPress={handleReject}
-                    disabled={processing || !rejectionReason.trim()}
+                    disabled={processing}
                   >
                     {processing ? <ActivityIndicator color="white" /> : <Text style={styles.modalButtonText}>Reject</Text>}
                   </TouchableOpacity>
@@ -354,7 +375,7 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
               </View>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -541,6 +562,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
+    maxHeight: '86%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -576,9 +598,15 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     minHeight: 100,
-    marginBottom: 16,
+    marginBottom: 10,
     backgroundColor: '#f8fafc',
     textAlignVertical: 'top',
+  },
+  validationText: {
+    color: themeColors.error,
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 10,
   },
   modalActions: {
     flexDirection: 'row',

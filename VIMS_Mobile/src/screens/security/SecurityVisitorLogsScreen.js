@@ -44,6 +44,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [dateFilter, setDateFilter] = useState('');
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(0);
+  const [showAllRecentActivity, setShowAllRecentActivity] = useState(false);
   const rowsPerPage = 10;
   const [stats, setStats] = useState({
     total: 0,
@@ -260,6 +261,11 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   };
 
   const handleSharePass = async (visitor) => {
+    if (['rejected', 'cancelled'].includes(visitor?.status)) {
+      Alert.alert('Pass Unavailable', 'Rejected or cancelled visitor passes cannot be shared.');
+      return;
+    }
+
     try {
       const pass = [
         'CASIMIRO WESTVILLE HOMES',
@@ -377,9 +383,139 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 
     return activities
       .filter((activity) => activity.occurredAt && !Number.isNaN(new Date(activity.occurredAt).getTime()))
-      .sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt))
-      .slice(0, 6);
+      .sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt));
   }, [visitors]);
+
+  const visibleRecentActivities = useMemo(
+    () => (showAllRecentActivity ? recentActivities.slice(0, 12) : recentActivities.slice(0, 3)),
+    [recentActivities, showAllRecentActivity]
+  );
+
+  const renderListHeader = () => (
+    <>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: themeColors.info }]}>{stats.active}</Text>
+            <Text style={styles.statLabel}>Active</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: themeColors.warning }]}>{stats.pending}</Text>
+            <Text style={styles.statLabel}>Pending</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: themeColors.success }]}>{stats.approved}</Text>
+            <Text style={styles.statLabel}>Approved</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: themeColors.textSecondary }]}>{stats.completed}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.filterContainer}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={20} color={themeColors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search visitors..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'all' && styles.activeFilter]}
+            onPress={() => setStatusFilter('all')}
+          >
+            <Text style={[styles.filterText, statusFilter === 'all' && styles.activeFilterText]}>All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'active' && styles.activeFilter]}
+            onPress={() => setStatusFilter('active')}
+          >
+            <Text style={[styles.filterText, statusFilter === 'active' && styles.activeFilterText]}>Active</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'approved' && styles.activeFilter]}
+            onPress={() => setStatusFilter('approved')}
+          >
+            <Text style={[styles.filterText, statusFilter === 'approved' && styles.activeFilterText]}>Approved</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'pending' && styles.activeFilter]}
+            onPress={() => setStatusFilter('pending')}
+          >
+            <Text style={[styles.filterText, statusFilter === 'pending' && styles.activeFilterText]}>Pending</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, statusFilter === 'completed' && styles.activeFilter]}
+            onPress={() => setStatusFilter('completed')}
+          >
+            <Text style={[styles.filterText, statusFilter === 'completed' && styles.activeFilterText]}>Completed</Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        <TextInput
+          style={styles.dateInput}
+          placeholder="Filter by date (YYYY-MM-DD)"
+          value={dateFilter}
+          onChangeText={setDateFilter}
+        />
+      </View>
+
+      <View style={[styles.activityCard, shadows.small]}>
+        <View style={styles.activityHeader}>
+          <Ionicons name="time-outline" size={20} color={themeColors.primary} />
+          <Text style={styles.activityTitle}>Recent Activity</Text>
+        </View>
+        {visibleRecentActivities.length > 0 ? (
+          visibleRecentActivities.map((activity, index) => (
+            <View key={`${activity.type}-${activity.occurredAt}-${index}`} style={styles.activityItem}>
+              <View style={styles.activityIcon}>
+                <Ionicons name={activity.icon} size={16} color="white" />
+              </View>
+              <View style={styles.activityBody}>
+                <Text style={styles.activityMessage}>{activity.message}</Text>
+                <Text style={styles.activityMeta}>{formatActivityDate(activity.occurredAt)} | {activity.source}</Text>
+              </View>
+              <View style={styles.activityBadge}>
+                <Text style={styles.activityBadgeText}>{activity.type}</Text>
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.activityEmpty}>No recent visitor activity</Text>
+        )}
+        {recentActivities.length > 3 && (
+          <TouchableOpacity
+            style={styles.activityToggle}
+            onPress={() => setShowAllRecentActivity((value) => !value)}
+          >
+            <Text style={styles.activityToggleText}>
+              {showAllRecentActivity ? 'See less' : `See more (${Math.min(recentActivities.length, 12) - 3})`}
+            </Text>
+            <Ionicons
+              name={showAllRecentActivity ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={themeColors.primary}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.recordsHeader}>
+        <Text style={styles.recordsTitle}>Visitor Records</Text>
+        <Text style={styles.recordsCount}>{filteredVisitors.length} log{filteredVisitors.length === 1 ? '' : 's'}</Text>
+      </View>
+    </>
+  );
 
   const renderVisitorCard = ({ item }) => {
     const status = getStatusChip(item.status, item);
@@ -502,112 +638,11 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.total}</Text>
-            <Text style={styles.statLabel}>Total</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.info }]}>{stats.active}</Text>
-            <Text style={styles.statLabel}>Active</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.warning }]}>{stats.pending}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.success }]}>{stats.approved}</Text>
-            <Text style={styles.statLabel}>Approved</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, { color: themeColors.textSecondary }]}>{stats.completed}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
-        </View>
-      </ScrollView>
-
-      <View style={styles.filterContainer}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color={themeColors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search visitors..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'all' && styles.activeFilter]}
-            onPress={() => setStatusFilter('all')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'all' && styles.activeFilterText]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'active' && styles.activeFilter]}
-            onPress={() => setStatusFilter('active')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'active' && styles.activeFilterText]}>Active</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'approved' && styles.activeFilter]}
-            onPress={() => setStatusFilter('approved')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'approved' && styles.activeFilterText]}>Approved</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'pending' && styles.activeFilter]}
-            onPress={() => setStatusFilter('pending')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'pending' && styles.activeFilterText]}>Pending</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'completed' && styles.activeFilter]}
-            onPress={() => setStatusFilter('completed')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'completed' && styles.activeFilterText]}>Completed</Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        <TextInput
-          style={styles.dateInput}
-          placeholder="Filter by date (YYYY-MM-DD)"
-          value={dateFilter}
-          onChangeText={setDateFilter}
-        />
-      </View>
-
-      <View style={[styles.activityCard, shadows.small]}>
-        <View style={styles.activityHeader}>
-          <Ionicons name="time-outline" size={20} color={themeColors.primary} />
-          <Text style={styles.activityTitle}>Recent Activity</Text>
-        </View>
-        {recentActivities.length > 0 ? (
-          recentActivities.map((activity, index) => (
-            <View key={`${activity.type}-${activity.occurredAt}-${index}`} style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Ionicons name={activity.icon} size={16} color="white" />
-              </View>
-              <View style={styles.activityBody}>
-                <Text style={styles.activityMessage}>{activity.message}</Text>
-                <Text style={styles.activityMeta}>{formatActivityDate(activity.occurredAt)} | {activity.source}</Text>
-              </View>
-              <View style={styles.activityBadge}>
-                <Text style={styles.activityBadgeText}>{activity.type}</Text>
-              </View>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.activityEmpty}>No recent visitor activity</Text>
-        )}
-      </View>
-
       <FlatList
         data={paginatedVisitors}
         renderItem={renderVisitorCard}
         keyExtractor={(item) => item._id}
+        ListHeaderComponent={renderListHeader}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
@@ -715,10 +750,12 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
                     <Text style={styles.detailText}>{selectedVisitor.securityNotes}</Text>
                   </View>
                 )}
-                <TouchableOpacity style={styles.sharePassButton} onPress={() => handleSharePass(selectedVisitor)}>
-                  <Ionicons name="print-outline" size={19} color="white" />
-                  <Text style={styles.sharePassText}>Print or Share Pass</Text>
-                </TouchableOpacity>
+                {!['rejected', 'cancelled'].includes(selectedVisitor.status) && (
+                  <TouchableOpacity style={styles.sharePassButton} onPress={() => handleSharePass(selectedVisitor)}>
+                    <Ionicons name="print-outline" size={19} color="white" />
+                    <Text style={styles.sharePassText}>Print or Share Pass</Text>
+                  </TouchableOpacity>
+                )}
               </ScrollView>
             )}
           </View>
@@ -999,12 +1036,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   listContainer: {
-    padding: 16,
+    paddingBottom: 24,
   },
   visitorCard: {
     backgroundColor: 'white',
     borderRadius: 8,
     padding: 18,
+    marginHorizontal: 16,
     marginBottom: 10,
     borderLeftWidth: 4,
     borderLeftColor: themeColors.primary,
@@ -1144,9 +1182,43 @@ const styles = StyleSheet.create({
     color: themeColors.accent,
   },
   activityEmpty: {
-    color: 'rgba(255,255,255,0.64)',
+    color: themeColors.textSecondary,
     textAlign: 'center',
     paddingVertical: 12,
+  },
+  activityToggle: {
+    marginTop: 12,
+    minHeight: 38,
+    borderRadius: 12,
+    backgroundColor: themeColors.primary + '12',
+    borderWidth: 1,
+    borderColor: themeColors.primary + '24',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  activityToggleText: {
+    color: themeColors.primary,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  recordsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  recordsTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: themeColors.textPrimary,
+  },
+  recordsCount: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: themeColors.textSecondary,
   },
   emptyContainer: {
     alignItems: 'flex-start',
@@ -1285,7 +1357,7 @@ const styles = StyleSheet.create({
   inputError: { borderColor: themeColors.error },
   errorText: { color: themeColors.error, fontSize: 12, fontWeight: '700', marginTop: 4 },
   manualHelpText: { color: themeColors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: 10 },
-  paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginHorizontal: 16 },
   pageButton: { backgroundColor: themeColors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
   pageButtonDisabled: { opacity: 0.45 },
   pageButtonText: { color: 'white', fontWeight: '900' },

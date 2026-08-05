@@ -32,7 +32,12 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(0);
+  const [staffMembers, setStaffMembers] = useState([]);
+  const [assigningTo, setAssigningTo] = useState('');
   const rowsPerPage = 10;
+  const isHeadOfficer =
+    user?.securityLevel === 'head-officer' ||
+    String(user?.email || '').toLowerCase() === 'security@vims.com';
 
   const loadUser = useCallback(async () => {
     const raw = await AsyncStorage.getItem('user');
@@ -44,7 +49,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       const params = {};
       if (status !== 'all') params.status = status;
       if (priority !== 'all') params.priority = priority;
-      if (category !== 'all') params.category = category;
+      params.category = category !== 'all' ? category : 'security';
       const res = await api.get('/service-requests', { params });
       if (res.data?.success) {
         setRows(Array.isArray(res.data.data) ? res.data.data : []);
@@ -59,6 +64,21 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     }
   }, [status, priority, category]);
 
+  const loadStaff = useCallback(async () => {
+    if (!isHeadOfficer) {
+      setStaffMembers([]);
+      return;
+    }
+    try {
+      const res = await api.get('/service-requests/admin/staff');
+      if (res.data?.success) {
+        setStaffMembers((res.data.data || []).filter((staff) => staff.role === 'security'));
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to load security staff');
+    }
+  }, [isHeadOfficer]);
+
   useEffect(() => {
     loadUser();
   }, [loadUser]);
@@ -66,6 +86,10 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    loadStaff();
+  }, [loadStaff]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -143,6 +167,92 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     }
   };
 
+  const extractLocationSignals = (req) => {
+    const text = [
+      req?.location,
+      req?.title,
+      req?.description,
+      req?.residentId?.houseNumber,
+    ].filter(Boolean).join(' ').toLowerCase();
+    const phaseMatches = [...text.matchAll(/(?:phase|p)\s*[-:]?\s*(\d+)/gi)].map((match) => Number(match[1]));
+    const blockMatches = [...text.matchAll(/(?:block|b)\s*[-:]?\s*([a-z0-9]+)/gi)].map((match) => String(match[1]).toLowerCase());
+    const lotMatches = [...text.matchAll(/(?:lot|l)\s*[-:]?\s*([a-z0-9]+)/gi)].map((match) => String(match[1]).toLowerCase());
+    return {
+      text,
+      phases: [...new Set(phaseMatches.filter(Number.isFinite))],
+      blocks: [...new Set(blockMatches)],
+      lots: [...new Set(lotMatches)],
+    };
+  };
+
+  const getStaffRecommendation = (staff, req) => {
+    const signals = extractLocationSignals(req);
+    const assignedPhases = Array.isArray(staff?.assignedPhases) ? staff.assignedPhases.map(Number) : [];
+    const assignedAreas = Array.isArray(staff?.assignedAreas) ? staff.assignedAreas.map((area) => String(area || '').toLowerCase()) : [];
+    const schedule = String(staff?.patrolSchedule || '').trim();
+    let score = 0;
+    const reasons = [];
+
+    if (signals.phases.some((phase) => assignedPhases.includes(phase))) {
+      score += 4;
+      reasons.push(`Phase ${signals.phases.filter((phase) => assignedPhases.includes(phase)).join(', ')}`);
+    }
+
+    const areaHits = assignedAreas.filter((area) =>
+      area &&
+      (
+        signals.text.includes(area) ||
+        signals.blocks.some((block) => area.includes(`block ${block}`) || area.includes(`b${block}`) || area === block) ||
+        signals.lots.some((lot) => area.includes(`lot ${lot}`) || area.includes(`l${lot}`) || area === lot)
+      )
+    );
+    if (areaHits.length) {
+      score += 3;
+      reasons.push(areaHits.slice(0, 2).join(', '));
+    }
+    if (schedule) {
+      score += 1;
+      reasons.push(schedule);
+    }
+
+    return {
+      ...staff,
+      recommendationScore: score,
+      recommendationReason: reasons.length ? reasons.join(' • ') : 'Available security staff',
+    };
+  };
+
+  const recommendedStaff = useMemo(() => {
+    if (!selected || !staffMembers.length) return [];
+    return staffMembers
+      .map((staff) => getStaffRecommendation(staff, selected))
+      .sort((a, b) => b.recommendationScore - a.recommendationScore || String(a.firstName || '').localeCompare(String(b.firstName || '')));
+  }, [selected, staffMembers]);
+
+  const assignRequest = async () => {
+    if (!selected?._id || !assigningTo) {
+      Alert.alert('Select Staff', 'Please select a security staff member to assign this request.');
+      return;
+    }
+    setProcessing(true);
+    try {
+      const res = await api.put(`/service-requests/${selected._id}/assign-staff`, { assignedTo: assigningTo });
+      if (res.data?.success) {
+        Alert.alert('Success', 'Security request assigned to staff.');
+        setDetailsOpen(false);
+        setSelected(null);
+        setAssigningTo('');
+        load();
+      } else {
+        Alert.alert('Error', res.data?.error || 'Failed to assign request');
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to assign request');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const getPriorityColor = (p) => {
     const map = {
       low: themeColors.success,
@@ -156,7 +266,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   const renderItem = ({ item }) => {
     const pr = getPriorityColor(item?.priority);
     return (
-      <TouchableOpacity style={[styles.card, shadows.small]} onPress={() => { setSelected(item); setDetailsOpen(true); }}>
+      <TouchableOpacity style={[styles.card, shadows.small]} onPress={() => { setSelected(item); setAssigningTo(item?.assignedTo?._id || item?.assignedTo || ''); setDetailsOpen(true); }}>
         <View style={styles.cardTop}>
           <Text style={styles.cardTitle} numberOfLines={1}>{item?.title || 'Service request'}</Text>
           <View style={[styles.pill, { backgroundColor: pr + '20' }]}>
@@ -169,6 +279,9 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
           Resident: {item?.residentId?.firstName} {item?.residentId?.lastName} • House {item?.residentId?.houseNumber || 'N/A'}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          Assigned to: {item?.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}`.trim() || 'Security staff' : 'Unassigned'}
         </Text>
       </TouchableOpacity>
     );
@@ -239,7 +352,11 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
           <View style={styles.emptyContainer}>
             <Ionicons name="build-outline" size={64} color={themeColors.textSecondary} />
             <Text style={styles.emptyTitle}>No requests</Text>
-            <Text style={styles.emptyText}>No service requests match your filters.</Text>
+            <Text style={styles.emptyText}>
+              {status === 'all' && priority === 'all' && category === 'all'
+                ? 'No security service requests are assigned to this staff account yet.'
+                : 'No assigned security requests match your filters.'}
+            </Text>
           </View>
         }
         ListFooterComponent={filtered.length > rowsPerPage ? (
@@ -274,8 +391,45 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
 
               <View style={styles.divider} />
               <Text style={styles.note}>
-                Status updates are only allowed if this request is assigned to you.
+                {isHeadOfficer ? 'Head officers can assign or reassign security requests to supervised staff.' : 'Status updates are only allowed if this request is assigned to you.'}
               </Text>
+
+              {isHeadOfficer && (
+                <View style={styles.assignmentBox}>
+                  <Text style={styles.assignmentTitle}>Recommended Security Staff</Text>
+                  {recommendedStaff.length ? (
+                    recommendedStaff.map((staff) => {
+                      const selectedStaff = String(assigningTo) === String(staff._id);
+                      return (
+                        <TouchableOpacity
+                          key={staff._id}
+                          style={[styles.staffOption, selectedStaff && styles.staffOptionActive]}
+                          onPress={() => setAssigningTo(staff._id)}
+                        >
+                          <View style={styles.staffTextWrap}>
+                            <Text style={[styles.staffName, selectedStaff && styles.staffNameActive]}>
+                              {staff.firstName} {staff.lastName}
+                            </Text>
+                            <Text style={[styles.staffMeta, selectedStaff && styles.staffMetaActive]}>
+                              {staff.recommendationScore > 0 ? 'Recommended: ' : ''}{staff.recommendationReason}
+                            </Text>
+                          </View>
+                          {selectedStaff && <Ionicons name="checkmark-circle" size={20} color="white" />}
+                        </TouchableOpacity>
+                      );
+                    })
+                  ) : (
+                    <Text style={styles.emptyText}>No supervised security staff found.</Text>
+                  )}
+                  <TouchableOpacity
+                    disabled={processing || !assigningTo}
+                    onPress={assignRequest}
+                    style={[styles.assignBtn, (processing || !assigningTo) && styles.disabled]}
+                  >
+                    {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="person-add-outline" size={16} color="white" /><Text style={styles.actionText}>Assign Staff</Text></>}
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <View style={styles.actionsRow}>
                 <TouchableOpacity
@@ -361,6 +515,66 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: themeColors.border, marginVertical: 12 },
   dBody: { fontSize: 14, color: themeColors.textPrimary, lineHeight: 22 },
   note: { fontSize: 12, color: themeColors.textSecondary, marginBottom: 10, textAlign: 'center' },
+  assignmentBox: {
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 14,
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    marginBottom: 14,
+  },
+  assignmentTitle: {
+    color: themeColors.textPrimary,
+    fontSize: 14,
+    fontWeight: '900',
+    marginBottom: 10,
+  },
+  staffOption: {
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    backgroundColor: 'white',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  staffOptionActive: {
+    backgroundColor: themeColors.primary,
+    borderColor: themeColors.primary,
+  },
+  staffTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  staffName: {
+    color: themeColors.textPrimary,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  staffNameActive: {
+    color: 'white',
+  },
+  staffMeta: {
+    color: themeColors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  staffMetaActive: {
+    color: 'rgba(255,255,255,0.82)',
+  },
+  assignBtn: {
+    marginTop: 4,
+    backgroundColor: themeColors.primary,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
   actionsRow: { flexDirection: 'row', gap: 12, marginTop: 6, marginBottom: 10 },
   actionBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   inProgressBtn: { backgroundColor: themeColors.info },

@@ -62,15 +62,21 @@ const SecurityServiceRequests = () => {
   const [priority, setPriority] = useState('all');
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
+  const [staffMembers, setStaffMembers] = useState([]);
+  const [assigningId, setAssigningId] = useState('');
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const isHeadOfficer =
+    currentUser?.securityLevel === 'head-officer' ||
+    String(currentUser?.email || '').toLowerCase() === 'security@vims.com';
 
   const load = useCallback(async () => {
     try {
       const params = { status: activeTab };
       if (priority !== 'all') params.priority = priority;
-      if (category !== 'all') params.category = category;
+      params.category = category !== 'all' ? category : 'security';
       const res = await axios.get('/api/service-requests', { params });
       if (res.data?.success) setRows(res.data.data || []);
     } catch (error) {
@@ -81,6 +87,25 @@ const SecurityServiceRequests = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const loadStaff = useCallback(async () => {
+    if (!isHeadOfficer) {
+      setStaffMembers([]);
+      return;
+    }
+    try {
+      const res = await axios.get('/api/service-requests/admin/staff');
+      if (res.data?.success) {
+        setStaffMembers((res.data.data || []).filter((staff) => staff.role === 'security'));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to load security staff');
+    }
+  }, [isHeadOfficer]);
+
+  useEffect(() => {
+    loadStaff();
+  }, [loadStaff]);
 
   const updateStatus = async (id, nextStatus) => {
     try {
@@ -97,6 +122,79 @@ const SecurityServiceRequests = () => {
     return haystack.includes(query.toLowerCase());
   });
   const paginatedRows = filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const extractLocationSignals = (item) => {
+    const text = [
+      item?.location,
+      item?.title,
+      item?.description,
+      item?.residentId?.houseNumber,
+    ].filter(Boolean).join(' ').toLowerCase();
+    const phases = [...text.matchAll(/(?:phase|p)\s*[-:]?\s*(\d+)/gi)].map((match) => Number(match[1])).filter(Number.isFinite);
+    const blocks = [...text.matchAll(/(?:block|b)\s*[-:]?\s*([a-z0-9]+)/gi)].map((match) => String(match[1]).toLowerCase());
+    const lots = [...text.matchAll(/(?:lot|l)\s*[-:]?\s*([a-z0-9]+)/gi)].map((match) => String(match[1]).toLowerCase());
+    return { text, phases: [...new Set(phases)], blocks: [...new Set(blocks)], lots: [...new Set(lots)] };
+  };
+
+  const getStaffRecommendation = (staff, item) => {
+    const signals = extractLocationSignals(item);
+    const assignedPhases = Array.isArray(staff?.assignedPhases) ? staff.assignedPhases.map(Number) : [];
+    const assignedAreas = Array.isArray(staff?.assignedAreas) ? staff.assignedAreas.map((area) => String(area || '').toLowerCase()) : [];
+    const reasons = [];
+    let score = 0;
+    const phaseHits = signals.phases.filter((phase) => assignedPhases.includes(phase));
+    if (phaseHits.length) {
+      score += 4;
+      reasons.push(`Phase ${phaseHits.join(', ')}`);
+    }
+    const areaHits = assignedAreas.filter((area) =>
+      area &&
+      (
+        signals.text.includes(area) ||
+        signals.blocks.some((block) => area.includes(`block ${block}`) || area.includes(`b${block}`) || area === block) ||
+        signals.lots.some((lot) => area.includes(`lot ${lot}`) || area.includes(`l${lot}`) || area === lot)
+      )
+    );
+    if (areaHits.length) {
+      score += 3;
+      reasons.push(areaHits.slice(0, 2).join(', '));
+    }
+    if (staff?.patrolSchedule) {
+      score += 1;
+      reasons.push(staff.patrolSchedule);
+    }
+    return {
+      ...staff,
+      recommendationScore: score,
+      recommendationReason: reasons.length ? reasons.join(' • ') : 'Available security staff'
+    };
+  };
+
+  const getRecommendedStaff = (item) => {
+    const currentAssigned = item?.assignedTo && typeof item.assignedTo === 'object' ? item.assignedTo : null;
+    const currentAssignedId = currentAssigned?._id;
+    const baseStaff = currentAssignedId && !staffMembers.some((staff) => String(staff._id) === String(currentAssignedId))
+      ? [...staffMembers, currentAssigned]
+      : staffMembers;
+    return baseStaff
+      .map((staff) => getStaffRecommendation(staff, item))
+      .sort((a, b) => b.recommendationScore - a.recommendationScore || String(a.firstName || '').localeCompare(String(b.firstName || '')));
+  };
+
+  const assignStaff = async (item, staffId) => {
+    if (!staffId) return;
+    setAssigningId(item._id);
+    try {
+      await axios.put(`/api/service-requests/${item._id}/assign-staff`, { assignedTo: staffId });
+      toast.success('Security request assigned');
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to assign request');
+    } finally {
+      setAssigningId('');
+    }
+  };
+
   const canHandleRequest = (item) => {
     const assignedId = item.assignedTo?._id || item.assignedTo;
     const myId = currentUser?._id || currentUser?.id;
@@ -310,7 +408,35 @@ const SecurityServiceRequests = () => {
                     <Chip size="small" label={item.priority || 'normal'} color={item.priority === 'urgent' ? 'error' : 'default'} />
                   </TableCell>
                   <TableCell><Chip size="small" label={item.status} /></TableCell>
-                  <TableCell>{item.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}` : 'Unassigned'}</TableCell>
+                  <TableCell>
+                    {isHeadOfficer ? (
+                      <TextField
+                        select
+                        size="small"
+                        fullWidth
+                        value={item.assignedTo?._id || item.assignedTo || ''}
+                        disabled={assigningId === item._id}
+                        onChange={(event) => assignStaff(item, event.target.value)}
+                        sx={{ minWidth: 220 }}
+                      >
+                        <MenuItem value="" disabled>Assign security staff</MenuItem>
+                        {getRecommendedStaff(item).map((staff) => (
+                          <MenuItem key={staff._id} value={staff._id}>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                                {staff.firstName} {staff.lastName}{staff.recommendationScore > 0 ? ' • Recommended' : ''}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {staff.recommendationReason}
+                              </Typography>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    ) : (
+                      item.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}` : 'Unassigned'
+                    )}
+                  </TableCell>
                   <TableCell align="right">
                     <Button
                       size="small"

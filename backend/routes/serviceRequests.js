@@ -715,7 +715,7 @@ router.get('/stats/daily', protect, async (req, res) => {
   }
 });
 
-router.put('/:id/assign-staff', protect, authorize('admin'), async (req, res) => {
+router.put('/:id/assign-staff', protect, authorize('admin', 'security'), async (req, res) => {
   try {
     const { assignedTo, adminNotes } = req.body;
     
@@ -734,6 +734,20 @@ router.put('/:id/assign-staff', protect, authorize('admin'), async (req, res) =>
         error: 'Service request not found'
       });
     }
+
+    if (req.user.role === 'security' && !isSecurityHeadOfficer(req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the security head officer can assign security requests'
+      });
+    }
+
+    if (req.user.role === 'security' && request.category !== 'security') {
+      return res.status(403).json({
+        success: false,
+        error: 'Head officers can only assign security service requests'
+      });
+    }
     
     const staff = await User.findById(assignedTo);
     if (!staff || !staff.isActive || staff.role === 'resident') {
@@ -748,6 +762,16 @@ router.put('/:id/assign-staff', protect, authorize('admin'), async (req, res) =>
         success: false,
         error: 'Security requests must be assigned to security staff'
       });
+    }
+
+    if (req.user.role === 'security') {
+      const supervisedByCurrentOfficer = staff.headOfficerId && String(staff.headOfficerId) === String(req.user.id);
+      if (staff.securityLevel === 'head-officer' || !supervisedByCurrentOfficer) {
+        return res.status(403).json({
+          success: false,
+          error: 'You can only assign requests to security staff under your supervision'
+        });
+      }
     }
 
     if (request.category !== 'security' && staff.role === 'security') {
@@ -909,12 +933,29 @@ router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-router.get('/admin/staff', protect, authorize('admin'), async (req, res) => {
+router.get('/admin/staff', protect, authorize('admin', 'security'), async (req, res) => {
   try {
-    const staffMembers = await User.find({
-      role: { $ne: 'resident' },
-      isActive: true
-    }).select('firstName lastName email phone role');
+    if (req.user.role === 'security' && !isSecurityHeadOfficer(req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the security head officer can view assignable staff'
+      });
+    }
+
+    const filter = req.user.role === 'security'
+      ? {
+          role: 'security',
+          securityLevel: 'personnel',
+          headOfficerId: req.user.id,
+          isActive: true
+        }
+      : {
+          role: { $ne: 'resident' },
+          isActive: true
+        };
+
+    const staffMembers = await User.find(filter)
+      .select('firstName lastName email phone role securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId');
     
     res.json({
       success: true,

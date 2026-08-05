@@ -24,6 +24,7 @@ import api from '../utils/api';
 import { COUNTRY_CODES } from './RegisterScreen.constants';
 import { styles } from './RegisterScreen.styles';
 import RegisterLotMapModal from './register/RegisterLotMapModal';
+import { setAuthToken } from '../utils/secureSession';
 
 const ID_DOCUMENT_TYPE_OPTIONS = [
   { value: 'national_id', label: 'National ID' },
@@ -872,7 +873,7 @@ const RegisterScreen = ({ navigation, route }) => {
 
         if (response.data.token) {
           try {
-            await AsyncStorage.setItem('token', response.data.token);
+            await setAuthToken(response.data.token);
             if (registeredUser) {
               await AsyncStorage.setItem('user', JSON.stringify(registeredUser));
               updateUser(registeredUser);

@@ -11,13 +11,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
+import { getAuthToken } from '../../utils/secureSession';
 
 const emptyPosition = {
   left: '',
@@ -142,7 +142,7 @@ const AdminLotMapEditorScreen = ({ navigation }) => {
 
   const exportMapData = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
       const fileUri = `${FileSystem.documentDirectory}VIMS_Lot_Map_Backup_${new Date().toISOString().slice(0, 10)}.json`;
       const download = await FileSystem.downloadAsync(`${baseUrl}/lots/map-data/export`, fileUri, {

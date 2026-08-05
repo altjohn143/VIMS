@@ -14,7 +14,6 @@ import {
   Image,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -22,6 +21,7 @@ import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
+import { getAuthToken } from '../../utils/secureSession';
 
 const AdminUserManagementScreen = ({ navigation }) => {
   const [users, setUsers] = useState([]);
@@ -298,7 +298,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
     setExporting(true);
     try {
       const fileUri = `${FileSystem.documentDirectory}user_management_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${fileFormat}`;
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
       const download = await FileSystem.downloadAsync(
         `${baseUrl}/users/export?format=${fileFormat}&timezoneOffset=${new Date().getTimezoneOffset()}`,

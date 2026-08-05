@@ -13,13 +13,13 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
+import { getAuthToken } from '../../utils/secureSession';
 
 const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
@@ -194,7 +194,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 
   const handleExportFile = async (fileFormat = 'pdf') => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       const params = new URLSearchParams({
         format: fileFormat,
         timezoneOffset: String(new Date().getTimezoneOffset())

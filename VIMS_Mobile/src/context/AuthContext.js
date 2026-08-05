@@ -4,9 +4,33 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 import api from '../utils/api';
 import { registerForPushNotifications, unregisterPushToken } from '../utils/notifications';
+import {
+  getAuthToken,
+  getStoredPushToken,
+  removeAuthToken,
+  removeStoredPushToken,
+  setAuthToken,
+  setStoredPushToken,
+} from '../utils/secureSession';
 
 const AuthContext = createContext({});
-const APP_CLOSED_SESSION_GRACE_MS = 5000;
+const ROLE_SESSION_GRACE_MS = {
+  resident: 5 * 60 * 1000,
+  admin: 10 * 60 * 1000,
+  security: 10 * 60 * 1000,
+};
+const DEFAULT_SESSION_GRACE_MS = ROLE_SESSION_GRACE_MS.resident;
+
+const getSessionGraceMs = (role) => ROLE_SESSION_GRACE_MS[role] || DEFAULT_SESSION_GRACE_MS;
+
+const parseStoredUserRole = (storedUser) => {
+  if (!storedUser) return null;
+  try {
+    return JSON.parse(storedUser)?.role || null;
+  } catch {
+    return null;
+  }
+};
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -31,9 +55,11 @@ export const AuthProvider = ({ children }) => {
 
       if (wasBackgrounded && nextState === 'active') {
         const lastBackgroundedAt = Number(await AsyncStorage.getItem('lastBackgroundedAt') || 0);
-        if (lastBackgroundedAt && Date.now() - lastBackgroundedAt > APP_CLOSED_SESSION_GRACE_MS) {
+        const storedUser = await AsyncStorage.getItem('user');
+        const role = parseStoredUserRole(storedUser);
+        if (lastBackgroundedAt && Date.now() - lastBackgroundedAt > getSessionGraceMs(role)) {
           await clearStoredSession();
-          await AsyncStorage.removeItem('pushToken');
+          await removeStoredPushToken();
           await AsyncStorage.removeItem('lastBackgroundedAt');
         }
       }
@@ -63,7 +89,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const clearStoredSession = async () => {
-    await AsyncStorage.removeItem('token');
+    await removeAuthToken();
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('lastBackgroundedAt');
     delete api.defaults.headers.common['Authorization'];
@@ -75,7 +101,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await registerForPushNotifications();
       if (result.success && result.token) {
-        await AsyncStorage.setItem('pushToken', result.token);
+        await setStoredPushToken(result.token);
       }
     } catch (error) {
       console.log('Push notification registration skipped:', error?.message || error);
@@ -84,24 +110,27 @@ export const AuthProvider = ({ children }) => {
 
   const loadStoredData = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       const userData = await AsyncStorage.getItem('user');
       const lastBackgroundedAt = Number(await AsyncStorage.getItem('lastBackgroundedAt') || 0);
+      let storedUser = null;
 
-      if (token && lastBackgroundedAt && Date.now() - lastBackgroundedAt > APP_CLOSED_SESSION_GRACE_MS) {
-        await clearStoredSession();
-        return;
-      }
-      
-      if (token && userData) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        let storedUser = null;
+      if (userData) {
         try {
           storedUser = JSON.parse(userData);
         } catch {
           await clearStoredSession();
           return;
         }
+      }
+
+      if (token && lastBackgroundedAt && Date.now() - lastBackgroundedAt > getSessionGraceMs(storedUser?.role)) {
+        await clearStoredSession();
+        return;
+      }
+      
+      if (token && userData) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
         const response = await api.get('/auth/me');
         if (response.data?.success && response.data?.user) {
@@ -151,7 +180,7 @@ export const AuthProvider = ({ children }) => {
       if (response.data.success) {
         const { token, user } = response.data;
 
-        await AsyncStorage.setItem('token', token);
+        await setAuthToken(token);
         
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         const normalizedUser = await persistUser(user);
@@ -212,13 +241,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const pushToken = await AsyncStorage.getItem('pushToken');
+      const pushToken = await getStoredPushToken();
       if (pushToken) {
         await unregisterPushToken(pushToken).catch(() => null);
       }
-      await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('pushToken');
+      await removeStoredPushToken();
       await clearStoredSession();
     } catch (error) {
       console.error('Logout error:', error);

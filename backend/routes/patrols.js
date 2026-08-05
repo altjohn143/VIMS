@@ -86,6 +86,32 @@ router.get('/head-officer/team', protect, authorize('security'), async (req, res
   }
 });
 
+router.get('/my-assignment', protect, authorize('security'), async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('firstName lastName email securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId')
+      .populate('headOfficerId', 'firstName lastName email');
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Security officer not found' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        securityLevel: user.securityLevel || 'personnel',
+        assignedPhases: user.assignedPhases || [],
+        assignedAreas: user.assignedAreas || [],
+        patrolSchedule: user.patrolSchedule || '',
+        headOfficer: user.headOfficerId || null
+      }
+    });
+  } catch (error) {
+    console.error('Error loading patrol assignment:', error);
+    res.status(500).json({ success: false, error: 'Failed to load patrol assignment' });
+  }
+});
+
 router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
   try {
     let query = {};

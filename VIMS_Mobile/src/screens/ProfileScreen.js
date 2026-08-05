@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import UserDropdownMenu from '../components/UserDropdownMenu';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { getAuthToken } from '../utils/secureSession';
 
 const ProfileScreen = ({ navigation }) => {
   const { updateUser } = useAuth();
@@ -349,7 +350,7 @@ const ProfileScreen = ({ navigation }) => {
         target = `${FileSystem.cacheDirectory}${safeTitle}.${extension}`;
         await FileSystem.writeAsStringAsync(target, match[2], { encoding: FileSystem.EncodingType.Base64 });
       } else {
-        const token = await AsyncStorage.getItem('token');
+        const token = await getAuthToken();
         target = `${FileSystem.cacheDirectory}${safeTitle}.jpg`;
         const result = await FileSystem.downloadAsync(documentModalImage, target, { headers: { Authorization: `Bearer ${token}` } });
         target = result.uri;

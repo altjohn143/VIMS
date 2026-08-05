@@ -15,13 +15,13 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
+import { getAuthToken } from '../../utils/secureSession';
 
 const AdminServiceRequestsScreen = ({ navigation }) => {
   const [requests, setRequests] = useState([]);
@@ -231,7 +231,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
       if (priorityFilter !== 'all') params.append('priority', priorityFilter);
       params.append('timezoneOffset', String(new Date().getTimezoneOffset()));
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
       const fileUri = `${FileSystem.documentDirectory}service_requests_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${fileFormat}`;
       const download = await FileSystem.downloadAsync(

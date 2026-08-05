@@ -21,7 +21,7 @@ import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api, { getProtectedImageDataUrl } from '../../utils/api';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken } from '../../utils/secureSession';
 
 const AdminPaymentsScreen = ({ navigation }) => {
   const [payments, setPayments] = useState([]);
@@ -145,7 +145,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const handleExportFile = async (fileFormat = 'pdf') => {
     setExporting(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       const params = new URLSearchParams({ format: fileFormat, timezoneOffset: String(new Date().getTimezoneOffset()) });
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (paymentTypeFilter !== 'all') params.set('paymentType', paymentTypeFilter);

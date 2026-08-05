@@ -13,13 +13,13 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
+import { getAuthToken } from '../../utils/secureSession';
 
 const AdminVisitorManagementScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
@@ -184,7 +184,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
 
       let fileUri;
       if (exportFormat === 'pdf' || exportFormat === 'csv') {
-        const token = await AsyncStorage.getItem('token');
+        const token = await getAuthToken();
         const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
         fileUri = `${FileSystem.documentDirectory}visitors_export_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${exportFormat}`;
         const download = await FileSystem.downloadAsync(

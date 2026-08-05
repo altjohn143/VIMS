@@ -3,6 +3,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { getAuthToken, removeAuthToken } from './secureSession';
 
 // ============================================
 // BACKEND CONFIGURATION
@@ -249,7 +250,7 @@ api.interceptors.request.use(
     const shouldSkipAuth = skipAuthPaths.some(path => config.url?.includes(path));
     
     if (!shouldSkipAuth) {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -298,7 +299,7 @@ api.interceptors.response.use(
     
     // Handle authentication errors
     if (status === 401) {
-      await AsyncStorage.removeItem('token');
+      await removeAuthToken();
       await AsyncStorage.removeItem('user');
       Alert.alert('Session Expired', 'Please login again.');
     }

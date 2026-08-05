@@ -24,6 +24,7 @@ const initialForm = { phase: '', area: '', checkpoint: '', notes: '', status: 'c
 const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
   const [lots, setLots] = useState([]);
+  const [assignment, setAssignment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -37,6 +38,23 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
     [page, rows]
   );
   const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  const assignedPhases = assignment?.assignedPhases || [];
+  const isHeadOfficer = assignment?.securityLevel === 'head-officer';
+  const availableLots = useMemo(
+    () => isHeadOfficer || assignedPhases.length === 0
+      ? lots
+      : lots.filter((lot) => assignedPhases.map(String).includes(String(lot.phase))),
+    [assignedPhases, isHeadOfficer, lots]
+  );
+  const phases = useMemo(
+    () => Array.from(new Set(availableLots.map((lot) => lot.phase))).sort((a, b) => a - b),
+    [availableLots]
+  );
+
+  const listText = (items, fallback) => {
+    if (!Array.isArray(items) || items.length === 0) return fallback;
+    return items.join(', ');
+  };
 
   const load = useCallback(async () => {
     try {
@@ -67,10 +85,22 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
     }
   }, []);
 
+  const loadAssignment = useCallback(async () => {
+    try {
+      const res = await api.get('/patrols/my-assignment');
+      if (res.data?.success) {
+        setAssignment(res.data.data || null);
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.error || 'Failed to load patrol assignment');
+    }
+  }, []);
+
   useEffect(() => {
     load();
     loadLots();
-  }, [load, loadLots]);
+    loadAssignment();
+  }, [load, loadLots, loadAssignment]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -168,12 +198,43 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListHeaderComponent={
           <View style={[styles.formCard, shadows.small]}>
+            <View style={styles.routeCard}>
+              <View style={styles.routeHeader}>
+                <View>
+                  <Text style={styles.routeEyebrow}>MY PATROL ROUTE</Text>
+                  <Text style={styles.routeTitle}>
+                    {isHeadOfficer ? 'Head Officer Coverage' : 'Assigned Patrol Route'}
+                  </Text>
+                </View>
+                <Ionicons name="shield-checkmark" size={24} color={themeColors.primary} />
+              </View>
+              <View style={styles.routeGrid}>
+                <View style={styles.routeItem}>
+                  <Text style={styles.routeLabel}>Phases</Text>
+                  <Text style={styles.routeValue}>
+                    {isHeadOfficer ? 'All phases' : listText(assignedPhases.map((phase) => `Phase ${phase}`), 'No phase assigned')}
+                  </Text>
+                </View>
+                <View style={styles.routeItem}>
+                  <Text style={styles.routeLabel}>Areas</Text>
+                  <Text style={styles.routeValue}>
+                    {isHeadOfficer ? 'All security areas' : listText(assignment?.assignedAreas, 'No area assigned')}
+                  </Text>
+                </View>
+                <View style={styles.routeItem}>
+                  <Text style={styles.routeLabel}>Timing / Schedule</Text>
+                  <Text style={styles.routeValue}>
+                    {isHeadOfficer ? 'Supervision as needed' : assignment?.patrolSchedule || 'No patrol schedule set'}
+                  </Text>
+                </View>
+              </View>
+            </View>
             <Text style={styles.sectionTitle}>Patrol Log Form</Text>
             <Text style={styles.label}>Phase</Text>
             <View style={styles.pickerContainer}>
               <Picker selectedValue={form.phase} onValueChange={(value) => setForm((p) => ({ ...p, phase: value, area: value ? `Phase ${value}` : '', checkpoint: '' }))}>
                 <Picker.Item label="Select phase" value="" />
-                {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                {phases.map((phase) => (
                   <Picker.Item key={phase} label={`Phase ${phase}`} value={String(phase)} />
                 ))}
               </Picker>
@@ -184,7 +245,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
             <View style={[styles.pickerContainer, !form.phase && styles.pickerDisabled]}>
               <Picker selectedValue={form.checkpoint} enabled={!!form.phase} onValueChange={(value) => setForm((p) => ({ ...p, checkpoint: value }))}>
                 <Picker.Item label={form.phase ? 'Select checkpoint' : 'Select phase first'} value="" />
-                {lots.filter((lot) => String(lot.phase) === String(form.phase)).map((lot) => (
+                {availableLots.filter((lot) => String(lot.phase) === String(form.phase)).map((lot) => (
                   <Picker.Item key={lot.lotId} label={`Block ${lot.block} - Lot ${lot.lotNumber}`} value={lot.lotId} />
                 ))}
               </Picker>
@@ -248,7 +309,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
                   }))}
                 >
                   <Picker.Item label="Select phase" value="" />
-                  {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                  {phases.map((phase) => (
                     <Picker.Item key={phase} label={`Phase ${phase}`} value={String(phase)} />
                   ))}
                 </Picker>
@@ -268,7 +329,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
                   onValueChange={(value) => setForm((p) => ({ ...p, checkpoint: value }))}
                 >
                   <Picker.Item label={form.phase ? 'Select checkpoint' : 'Select phase first'} value="" />
-                  {lots
+                  {availableLots
                     .filter((lot) => String(lot.phase) === String(form.phase))
                     .map((lot) => (
                       <Picker.Item
@@ -319,6 +380,14 @@ const styles = StyleSheet.create({
   headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
   listContainer: { padding: 16, paddingBottom: 24 },
   formCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: themeColors.border },
+  routeCard: { backgroundColor: themeColors.primary + '0F', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: themeColors.primary + '22' },
+  routeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  routeEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  routeTitle: { color: themeColors.textPrimary, fontSize: 16, fontWeight: '900', marginTop: 2 },
+  routeGrid: { marginTop: 12, gap: 10 },
+  routeItem: { backgroundColor: 'white', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: themeColors.border },
+  routeLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '900', marginBottom: 3 },
+  routeValue: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800', lineHeight: 18 },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 8, marginTop: 4 },
   card: { backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },

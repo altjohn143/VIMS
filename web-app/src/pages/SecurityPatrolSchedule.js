@@ -4,6 +4,7 @@ import {
   Button,
   Chip,
   Container,
+  Divider,
   Grid,
   MenuItem,
   Paper,
@@ -42,6 +43,7 @@ const SecurityPatrolSchedule = () => {
 
   const [rows, setRows] = useState([]);
   const [lots, setLots] = useState([]);
+  const [assignment, setAssignment] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -70,10 +72,38 @@ const SecurityPatrolSchedule = () => {
     }
   }, []);
 
+  const loadAssignment = useCallback(async () => {
+    try {
+      const res = await axios.get('/api/patrols/my-assignment');
+      if (res.data?.success) setAssignment(res.data.data || null);
+    } catch (error) {
+      toast.error('Failed to load patrol route assignment');
+    }
+  }, []);
+
   useEffect(() => {
     load();
     loadLots();
-  }, [load, loadLots]);
+    loadAssignment();
+  }, [load, loadLots, loadAssignment]);
+
+  const assignedPhases = useMemo(() => assignment?.assignedPhases || [], [assignment?.assignedPhases]);
+  const isHeadOfficer = assignment?.securityLevel === 'head-officer';
+  const availableLots = useMemo(
+    () => isHeadOfficer || assignedPhases.length === 0
+      ? lots
+      : lots.filter((lot) => assignedPhases.map(String).includes(String(lot.phase))),
+    [assignedPhases, isHeadOfficer, lots]
+  );
+  const phases = useMemo(
+    () => Array.from(new Set(availableLots.map((lot) => lot.phase))).sort((a, b) => a - b),
+    [availableLots]
+  );
+
+  const formatList = (items, fallback) => {
+    if (!Array.isArray(items) || items.length === 0) return fallback;
+    return items.join(', ');
+  };
 
   const submit = async () => {
     if (!form.phase || !form.area || !form.checkpoint) {
@@ -158,6 +188,45 @@ const SecurityPatrolSchedule = () => {
         </Paper>
 
         <Grid container spacing={2.5} alignItems="flex-start">
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2.5, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', md: 'center' }} justifyContent="space-between">
+                <Box>
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>My Patrol Route</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {isHeadOfficer ? 'Head officer coverage: may monitor and log all security patrol areas.' : 'Assigned route details from admin/head officer.'}
+                  </Typography>
+                </Box>
+                <Chip
+                  icon={<ShieldIcon />}
+                  label={isHeadOfficer ? 'Head Officer Coverage' : 'Assigned Personnel Route'}
+                  sx={{ bgcolor: 'rgba(22, 101, 52, 0.12)', color: themeColors.primary, fontWeight: 800 }}
+                />
+              </Stack>
+              <Divider sx={{ my: 2 }} />
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>Phases</Typography>
+                  <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+                    {isHeadOfficer ? 'All phases' : formatList(assignedPhases.map((phase) => `Phase ${phase}`), 'No phase assigned')}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>Areas</Typography>
+                  <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+                    {isHeadOfficer ? 'All security areas' : formatList(assignment?.assignedAreas, 'No area assigned')}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>Timing / Schedule</Typography>
+                  <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+                    {isHeadOfficer ? 'Supervision as needed' : assignment?.patrolSchedule || 'No patrol schedule set'}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Paper>
+          </Grid>
+
           <Grid item xs={12} md={5}>
             <Paper sx={{ p: 2.5, borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
               <Typography sx={{ mb: 2, fontWeight: 800, color: themeColors.textPrimary }}>Patrol Log Form</Typography>
@@ -174,14 +243,14 @@ const SecurityPatrolSchedule = () => {
                   }))}
                 >
                   <MenuItem value="">Select phase</MenuItem>
-                  {Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => a - b).map((phase) => (
+                  {phases.map((phase) => (
                     <MenuItem key={phase} value={phase}>{`Phase ${phase}`}</MenuItem>
                   ))}
                 </TextField>
                 <TextField label="Area" value={form.area} disabled helperText={form.phase ? `Patrol area set for Phase ${form.phase}` : 'Select a phase first'} />
                 <TextField select label="Checkpoint" value={form.checkpoint} onChange={(e) => setForm((p) => ({ ...p, checkpoint: e.target.value }))} disabled={!form.phase}>
                   <MenuItem value="">Select checkpoint</MenuItem>
-                  {lots.filter((lot) => String(lot.phase) === String(form.phase)).map((lot) => (
+                  {availableLots.filter((lot) => String(lot.phase) === String(form.phase)).map((lot) => (
                     <MenuItem key={lot.lotId} value={lot.lotId}>{`Block ${lot.block} - Lot ${lot.lotNumber}`}</MenuItem>
                   ))}
                 </TextField>

@@ -44,7 +44,8 @@
           "cameraPermission": "Allow VIMS to access your camera to scan QR codes."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "owner": "altjohn143",
     "extra": {

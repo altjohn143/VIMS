@@ -149,6 +149,7 @@ const SecurityIncidentsScreen = ({ navigation }) => {
 
   const renderItem = ({ item }) => {
     const sev = severityColor(item?.severity);
+    const isResolved = item?.status === 'resolved';
     return (
       <View style={[styles.card, shadows.small]}>
         <View style={styles.cardTop}>
@@ -166,8 +167,8 @@ const SecurityIncidentsScreen = ({ navigation }) => {
         </Text>
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.investigateBtn, processing && styles.disabled]}
-            disabled={processing}
+            style={[styles.actionBtn, styles.investigateBtn, (processing || isResolved) && styles.disabled]}
+            disabled={processing || isResolved}
             onPress={() => setStatus(item._id, 'investigating')}
           >
             <Ionicons name="search-outline" size={16} color="white" />

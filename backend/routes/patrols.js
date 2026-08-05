@@ -11,17 +11,25 @@ const isHeadOfficer = (user) =>
     String(user.email || '').toLowerCase() === 'security@vims.com'
   );
 
-const getHeadOfficerScope = async (headOfficerId) => {
-  const team = await User.find({
+const isSystemHeadOfficer = (user) => String(user?.email || '').toLowerCase() === 'security@vims.com';
+
+const getHeadOfficerScope = async (headOfficer) => {
+  const headOfficerId = headOfficer?._id || headOfficer;
+  const filter = {
     role: 'security',
     securityLevel: 'personnel',
-    $or: [
+    isArchived: false
+  };
+
+  if (!isSystemHeadOfficer(headOfficer)) {
+    filter.$or = [
       { headOfficerId },
       { headOfficerId: null },
       { headOfficerId: { $exists: false } }
-    ],
-    isArchived: false
-  })
+    ];
+  }
+
+  const team = await User.find(filter)
     .select('_id firstName lastName email phone securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId isActive')
     .sort({ firstName: 1, lastName: 1 });
 
@@ -37,7 +45,7 @@ router.get('/head-officer/stats', protect, authorize('security'), async (req, re
       return res.status(403).json({ success: false, error: 'Only head officers can view team stats' });
     }
 
-    const { team, officerIds } = await getHeadOfficerScope(req.user._id);
+    const { team, officerIds } = await getHeadOfficerScope(req.user);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -78,11 +86,69 @@ router.get('/head-officer/team', protect, authorize('security'), async (req, res
       return res.status(403).json({ success: false, error: 'Only head officers can view team members' });
     }
 
-    const { team } = await getHeadOfficerScope(req.user._id);
+    const { team } = await getHeadOfficerScope(req.user);
     res.json({ success: true, data: team });
   } catch (error) {
     console.error('Error loading head officer team:', error);
     res.status(500).json({ success: false, error: 'Failed to load head officer team' });
+  }
+});
+
+router.get('/head-officer/analytics', protect, authorize('security'), async (req, res) => {
+  try {
+    if (!isHeadOfficer(req.user)) {
+      return res.status(403).json({ success: false, error: 'Only head officers can view patrol analytics' });
+    }
+
+    const { team, officerIds } = await getHeadOfficerScope(req.user);
+    const logs = await PatrolLog.find({ officerId: { $in: officerIds } })
+      .populate('officerId', 'firstName lastName email securityLevel assignedPhases assignedAreas patrolSchedule')
+      .sort({ loggedAt: -1, createdAt: -1 });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const completedLogs = logs.filter((log) => ['completed', 'nothing_found'].includes(log.status));
+    const issueLogs = logs.filter((log) => log.status === 'issue_found');
+    const todayLogs = logs.filter((log) => new Date(log.loggedAt || log.createdAt) >= today);
+
+    const byPhase = logs.reduce((acc, log) => {
+      const key = log.phase ? `Phase ${log.phase}` : 'No phase';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    const byOfficer = logs.reduce((acc, log) => {
+      const id = String(log.officerId?._id || log.officerId || 'unknown');
+      const name = log.officerId
+        ? `${log.officerId.firstName || ''} ${log.officerId.lastName || ''}`.trim() || log.officerId.email || 'Unknown officer'
+        : 'Unknown officer';
+      if (!acc[id]) acc[id] = { officerId: id, name, total: 0, completed: 0, issues: 0 };
+      acc[id].total += 1;
+      if (['completed', 'nothing_found'].includes(log.status)) acc[id].completed += 1;
+      if (log.status === 'issue_found') acc[id].issues += 1;
+      return acc;
+    }, {});
+
+    res.json({
+      success: true,
+      data: {
+        personnelCount: team.length,
+        activePersonnel: team.filter((member) => member.isActive).length,
+        scheduledPersonnel: team.filter((member) => member.patrolSchedule).length,
+        totalLogs: logs.length,
+        todayLogs: todayLogs.length,
+        completedLogs: completedLogs.length,
+        issueLogs: issueLogs.length,
+        completionRate: logs.length ? Math.round((completedLogs.length / logs.length) * 100) : 0,
+        byPhase: Object.entries(byPhase).map(([phase, total]) => ({ phase, total })),
+        byOfficer: Object.values(byOfficer),
+        recentLogs: logs.slice(0, 25),
+        pendingReports: issueLogs
+      }
+    });
+  } catch (error) {
+    console.error('Error loading head officer analytics:', error);
+    res.status(500).json({ success: false, error: 'Failed to load patrol analytics' });
   }
 });
 
@@ -120,7 +186,7 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
     if (req.user.role === 'security') {
       // Head officers see all patrol logs from their subordinate security personnel (excluding archived)
       if (isHeadOfficer(req.user)) {
-        const { officerIds } = await getHeadOfficerScope(req.user._id);
+        const { officerIds } = await getHeadOfficerScope(req.user);
         query.officerId = { $in: officerIds };
       } else {
         // Regular security personnel see only their own logs
@@ -275,7 +341,12 @@ router.get('/export', protect, authorize('security', 'admin'), async (req, res) 
     // Build filter based on user role and query parameters
     let filter = {};
     if (req.user.role === 'security') {
-      filter.officerId = req.user.id;
+      if (isHeadOfficer(req.user)) {
+        const { officerIds } = await getHeadOfficerScope(req.user);
+        filter.officerId = { $in: officerIds };
+      } else {
+        filter.officerId = req.user.id;
+      }
     }
 
     if (phase) filter.phase = Number(phase);

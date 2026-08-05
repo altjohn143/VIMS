@@ -29,6 +29,7 @@ const when = (value) => {
 const HeadOfficerTeamScreen = ({ navigation, route }) => {
   const [team, setTeam] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [routeModalOpen, setRouteModalOpen] = useState(false);
@@ -38,12 +39,14 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
 
   const load = useCallback(async () => {
     try {
-      const [teamRes, logsRes] = await Promise.all([
+      const [teamRes, logsRes, analyticsRes] = await Promise.all([
         api.get('/patrols/head-officer/team'),
         api.get('/patrols'),
+        api.get('/patrols/head-officer/analytics'),
       ]);
       setTeam(Array.isArray(teamRes.data?.data) ? teamRes.data.data : []);
       setLogs(Array.isArray(logsRes.data?.data) ? logsRes.data.data : []);
+      setAnalytics(analyticsRes.data?.data || null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -118,9 +121,9 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
       activeTeam: team.filter((member) => member.isActive),
       unassignedTeam: team.filter((member) => !member.headOfficerId),
       scheduledTeam: team.filter((member) => member.patrolSchedule),
-      completionRate: logs.length ? Math.round((completedLogs.length / logs.length) * 100) : 0,
+      completionRate: analytics?.completionRate ?? (logs.length ? Math.round((completedLogs.length / logs.length) * 100) : 0),
     };
-  }, [logs, team]);
+  }, [analytics?.completionRate, logs, team]);
 
   const refreshControl = (
     <RefreshControl
@@ -202,9 +205,9 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
         ) : (
           <>
             <SummaryCard value={`${metrics.completionRate}%`} label="Completion" icon="analytics-outline" color={themeColors.success} />
-            <SummaryCard value={metrics.issueLogs.length} label="Issues Found" icon="alert-circle-outline" color={themeColors.error} />
-            <SummaryCard value={metrics.scheduledTeam.length} label="Coverage" icon="map-outline" color={themeColors.info} />
-            <SummaryCard value={team.length} label="Personnel" icon="people-outline" />
+            <SummaryCard value={analytics?.totalLogs ?? logs.length} label="Live Logs" icon="clipboard-outline" />
+            <SummaryCard value={analytics?.issueLogs ?? metrics.issueLogs.length} label="Issues Found" icon="alert-circle-outline" color={themeColors.error} />
+            <SummaryCard value={analytics?.personnelCount ?? team.length} label="Personnel" icon="people-outline" />
           </>
         )}
       </View>
@@ -213,6 +216,25 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
       </Text>
       {view === 'analytics' && (
         <View style={[styles.coverageCard, shadows.small]}>
+          <Text style={styles.coverageSectionTitle}>Personnel Activity</Text>
+          {(analytics?.byOfficer || []).length === 0 ? (
+            <Text style={styles.cardMeta}>No personnel activity yet.</Text>
+          ) : analytics.byOfficer.map((row) => (
+            <View key={row.officerId} style={styles.coverageRow}>
+              <Text style={styles.coverageName}>{row.name}</Text>
+              <Text style={styles.cardMeta}>{row.total} logs - {row.completed} completed - {row.issues} issues</Text>
+            </View>
+          ))}
+          <Text style={styles.coverageSectionTitle}>Logs By Phase</Text>
+          {(analytics?.byPhase || []).length === 0 ? (
+            <Text style={styles.cardMeta}>No phase activity yet.</Text>
+          ) : analytics.byPhase.map((row) => (
+            <View key={row.phase} style={styles.coverageRow}>
+              <Text style={styles.coverageName}>{row.phase}</Text>
+              <Text style={styles.cardMeta}>{row.total} logs</Text>
+            </View>
+          ))}
+          <Text style={styles.coverageSectionTitle}>Assignment Coverage</Text>
           {team.length === 0 ? (
             <Text style={styles.cardMeta}>No assignment data yet.</Text>
           ) : team.map((member) => (
@@ -234,7 +256,7 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
   const data = view === 'team'
     ? team
     : view === 'analytics'
-      ? metrics.issueLogs
+      ? (analytics?.pendingReports || metrics.issueLogs)
       : logs.slice(0, 12);
 
   return (
@@ -351,6 +373,7 @@ const styles = StyleSheet.create({
   routeButtonText: { color: 'white', fontSize: 12, fontWeight: '900' },
   notes: { color: themeColors.textPrimary, fontSize: 13, lineHeight: 19, marginTop: 9, paddingTop: 9, borderTopWidth: 1, borderTopColor: themeColors.border },
   coverageCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 18, borderWidth: 1, borderColor: themeColors.border },
+  coverageSectionTitle: { fontSize: 14, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 8, marginTop: 6 },
   coverageRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   coverageName: { fontWeight: '900', color: themeColors.textPrimary },
   empty: { alignItems: 'center', paddingVertical: 48 },

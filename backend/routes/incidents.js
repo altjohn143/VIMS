@@ -145,6 +145,9 @@ router.put('/:id/status', protect, authorize('security', 'admin'), async (req, r
     const filter = await buildAssignedRouteIncidentFilter(req.user);
     const row = await Incident.findOne({ _id: req.params.id, ...filter });
     if (!row) return res.status(404).json({ success: false, error: 'Incident not found' });
+    if (row.status === 'resolved' && status === 'investigating') {
+      return res.status(400).json({ success: false, error: 'Resolved incidents cannot be moved back to investigating' });
+    }
     if (status) row.status = status;
     row.resolutionNotes = resolutionNotes;
     row.resolvedAt = row.status === 'resolved' ? new Date() : null;

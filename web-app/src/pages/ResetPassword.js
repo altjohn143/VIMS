@@ -10,6 +10,9 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  Step,
+  StepLabel,
+  Stepper,
 } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import LockIcon from '@mui/icons-material/Lock';
@@ -44,6 +47,7 @@ const ResetPassword = () => {
   const [otp, setOtp] = useState('');
   const [emailError, setEmailError] = useState('');
   const [otpError, setOtpError] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -51,8 +55,48 @@ const ResetPassword = () => {
     const tokenFromUrl = searchParams.get('token');
     const emailFromUrl = searchParams.get('email');
     if (tokenFromUrl) setToken(tokenFromUrl);
-    if (emailFromUrl) setEmail(emailFromUrl);
+    if (emailFromUrl) {
+      setEmail(emailFromUrl);
+      setOtpSent(true);
+    }
   }, [searchParams]);
+
+  const resetStep = token ? 2 : otpSent ? 1 : 0;
+
+  const handleRequestCode = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setEmailError('Email is required');
+      setError('Email is required');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setEmailError('Please enter a valid email address');
+      setError('Please enter a valid email address');
+      return;
+    }
+    setEmailError('');
+    setError('');
+    setMessage('');
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
+      });
+      const data = await response.json();
+      if (!response.ok || data.success === false) throw new Error(data.error || 'Failed to send reset code');
+      setOtp('');
+      setToken('');
+      setOtpSent(true);
+      setMessage(data.message || 'If your email is registered, a reset code has been sent.');
+    } catch (err) {
+      setError(err.message || 'Failed to send reset code.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
@@ -85,6 +129,7 @@ const ResetPassword = () => {
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Invalid verification code');
       setToken(data.resetToken);
+      setOtpSent(true);
       setMessage('Email verified. Set your new password below.');
     } catch (err) {
       setError(err.message || 'Unable to verify code.');
@@ -174,30 +219,59 @@ const ResetPassword = () => {
             }}
           >
             <LockResetIcon sx={{ fontSize: 48, color: themeColors.primary, mb: 2 }} />
-            <Typography variant="h5" sx={{ mb: 2, color: themeColors.textPrimary }}>
-              Verify Reset Code
+            <Typography variant="h5" sx={{ mb: 2, color: themeColors.textPrimary, fontWeight: 900 }}>
+              Reset Password
             </Typography>
             <Typography variant="body1" sx={{ mb: 3, color: themeColors.textSecondary }}>
-              Enter the six-digit code sent to your registered email.
+              Follow the steps to verify your email before creating a new password.
             </Typography>
+            <Stepper activeStep={resetStep} alternativeLabel sx={{ mb: 3 }}>
+              {['Email', 'Verify OTP', 'New Password'].map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-            <Box component="form" onSubmit={handleVerifyOtp}>
-              <TextField fullWidth label="Email" value={email}
-                onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
-                error={Boolean(emailError)}
-                helperText={emailError}
-                sx={{ mb: 2 }} />
-              <TextField fullWidth label="Verification code" value={otp}
-                onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
-                error={Boolean(otpError)}
-                helperText={otpError}
-                inputProps={{ inputMode: 'numeric', maxLength: 6 }} sx={{ mb: 2 }} />
-              <Button type="submit" fullWidth variant="contained" disabled={loading}
-                sx={{ backgroundColor: themeColors.primary, borderRadius: 2, py: 1.5, mb: 1 }}>
-                {loading ? <CircularProgress size={22} color="inherit" /> : 'Verify Code'}
-              </Button>
-              <Button fullWidth onClick={() => navigate('/login')}>Back to Login</Button>
-            </Box>
+            {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
+            {!otpSent ? (
+              <Box component="form" onSubmit={handleRequestCode}>
+                <Typography sx={{ mb: 2, fontWeight: 800, color: themeColors.textPrimary }}>
+                  Step 1 of 3: Provide your registered email
+                </Typography>
+                <TextField fullWidth label="Email" value={email}
+                  onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                  error={Boolean(emailError)}
+                  helperText={emailError}
+                  sx={{ mb: 2 }} />
+                <Button type="submit" fullWidth variant="contained" disabled={loading}
+                  sx={{ backgroundColor: themeColors.primary, borderRadius: 2, py: 1.5, mb: 1 }}>
+                  {loading ? <CircularProgress size={22} color="inherit" /> : 'Send Reset Code'}
+                </Button>
+                <Button fullWidth onClick={() => navigate('/login')}>Back to Login</Button>
+              </Box>
+            ) : (
+              <Box component="form" onSubmit={handleVerifyOtp}>
+                <Typography sx={{ mb: 2, fontWeight: 800, color: themeColors.textPrimary }}>
+                  Step 2 of 3: Verify your email OTP
+                </Typography>
+                <TextField fullWidth label="Email" value={email}
+                  onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                  error={Boolean(emailError)}
+                  helperText={emailError}
+                  sx={{ mb: 2 }} />
+                <TextField fullWidth label="Verification code" value={otp}
+                  onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
+                  error={Boolean(otpError)}
+                  helperText={otpError}
+                  inputProps={{ inputMode: 'numeric', maxLength: 6 }} sx={{ mb: 2 }} />
+                <Button type="submit" fullWidth variant="contained" disabled={loading}
+                  sx={{ backgroundColor: themeColors.primary, borderRadius: 2, py: 1.5, mb: 1 }}>
+                  {loading ? <CircularProgress size={22} color="inherit" /> : 'Verify Code'}
+                </Button>
+                <Button fullWidth onClick={() => { setOtpSent(false); setOtp(''); setToken(''); setMessage(''); setError(''); }}>Use Different Email</Button>
+              </Box>
+            )}
           </Paper>
         </Container>
       </Box>
@@ -230,9 +304,16 @@ const ResetPassword = () => {
               Reset Your Password
             </Typography>
             <Typography variant="body2" sx={{ color: themeColors.textSecondary, mt: 1 }}>
-              Enter your new password below
+              Step 3 of 3: Enter your new password below
             </Typography>
           </Box>
+          <Stepper activeStep={2} alternativeLabel sx={{ mb: 3 }}>
+            {['Email', 'Verify OTP', 'New Password'].map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
 
           {error && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>

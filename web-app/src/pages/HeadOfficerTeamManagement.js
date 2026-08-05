@@ -37,6 +37,7 @@ const themeColors = {
 const HeadOfficerTeamManagement = ({ view = 'team' }) => {
   const [team, setTeam] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [routeDialogOpen, setRouteDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -46,12 +47,14 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const [teamRes, logsRes] = await Promise.all([
+      const [teamRes, logsRes, analyticsRes] = await Promise.all([
         axios.get('/api/patrols/head-officer/team'),
-        axios.get('/api/patrols')
+        axios.get('/api/patrols'),
+        axios.get('/api/patrols/head-officer/analytics')
       ]);
       setTeam(teamRes.data?.data || []);
       setLogs(logsRes.data?.data || []);
+      setAnalytics(analyticsRes.data?.data || null);
     } finally {
       setLoading(false);
     }
@@ -219,9 +222,11 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
       <Grid item xs={12} md={6}>
         <Paper sx={{ p: 2, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
           <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Patrol Outcomes</Typography>
-          <Typography sx={{ mt: 1, color: themeColors.textSecondary }}>Completed or clear: {completedLogs.length}</Typography>
-          <Typography sx={{ color: themeColors.textSecondary }}>Issues found: {issueLogs.length}</Typography>
-          <Typography sx={{ color: themeColors.textSecondary }}>Completion rate: {logs.length ? Math.round((completedLogs.length / logs.length) * 100) : 0}%</Typography>
+          <Typography sx={{ mt: 1, color: themeColors.textSecondary }}>Total live logs: {analytics?.totalLogs ?? logs.length}</Typography>
+          <Typography sx={{ color: themeColors.textSecondary }}>Today: {analytics?.todayLogs ?? 0}</Typography>
+          <Typography sx={{ color: themeColors.textSecondary }}>Completed or clear: {analytics?.completedLogs ?? completedLogs.length}</Typography>
+          <Typography sx={{ color: themeColors.textSecondary }}>Issues found: {analytics?.issueLogs ?? issueLogs.length}</Typography>
+          <Typography sx={{ color: themeColors.textSecondary }}>Completion rate: {analytics?.completionRate ?? (logs.length ? Math.round((completedLogs.length / logs.length) * 100) : 0)}%</Typography>
         </Paper>
       </Grid>
       <Grid item xs={12} md={6}>
@@ -232,6 +237,30 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
           ) : team.map((member) => (
             <Typography key={member._id} sx={{ mt: 1, color: themeColors.textSecondary }}>
               {getOfficerName(member)}: {formatList(member.assignedAreas, 'No area')} | {member.patrolSchedule || 'No schedule'}
+            </Typography>
+          ))}
+        </Paper>
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <Paper sx={{ p: 2, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
+          <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Logs By Phase</Typography>
+          {(analytics?.byPhase || []).length === 0 ? (
+            <Typography sx={{ mt: 1, color: themeColors.textSecondary }}>No phase activity yet.</Typography>
+          ) : analytics.byPhase.map((row) => (
+            <Typography key={row.phase} sx={{ mt: 1, color: themeColors.textSecondary }}>
+              {row.phase}: {row.total} logs
+            </Typography>
+          ))}
+        </Paper>
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <Paper sx={{ p: 2, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
+          <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Personnel Activity</Typography>
+          {(analytics?.byOfficer || []).length === 0 ? (
+            <Typography sx={{ mt: 1, color: themeColors.textSecondary }}>No personnel activity yet.</Typography>
+          ) : analytics.byOfficer.map((row) => (
+            <Typography key={row.officerId} sx={{ mt: 1, color: themeColors.textSecondary }}>
+              {row.name}: {row.total} logs | {row.completed} completed | {row.issues} issues
             </Typography>
           ))}
         </Paper>

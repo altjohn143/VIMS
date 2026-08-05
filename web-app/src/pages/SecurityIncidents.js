@@ -266,7 +266,14 @@ const SecurityIncidents = () => {
                         </TableCell>
                         <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
                         <TableCell align="right">
-                          <Button size="small" onClick={() => setStatus(item._id, 'investigating')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Investigate</Button>
+                          <Button
+                            size="small"
+                            disabled={item.status === 'resolved'}
+                            onClick={() => setStatus(item._id, 'investigating')}
+                            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
+                          >
+                            Investigate
+                          </Button>
                           <Button size="small" onClick={() => setStatus(item._id, 'resolved')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Resolve</Button>
                         </TableCell>
                       </TableRow>

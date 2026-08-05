@@ -33,9 +33,6 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const [heroAboutExpanded, setHeroAboutExpanded] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
 
   const { login } = useAuth();
 
@@ -43,8 +40,6 @@ const LoginScreen = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const cardScaleAnim = useRef(new Animated.Value(0.95)).current;
-  const modalScaleAnim = useRef(new Animated.Value(0.9)).current;
-  const modalOpacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (selectedRole) {
@@ -74,44 +69,6 @@ const LoginScreen = ({ navigation }) => {
       cardScaleAnim.setValue(0.95);
     }
   }, [selectedRole]);
-
-  const showModal = () => {
-    if (selectedRole !== 'resident') return;
-
-    setShowForgotPassword(true);
-    Animated.parallel([
-      Animated.spring(modalScaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(modalOpacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const hideModal = () => {
-    Animated.parallel([
-      Animated.spring(modalScaleAnim, {
-        toValue: 0.9,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(modalOpacityAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setShowForgotPassword(false);
-      setForgotEmail('');
-    });
-  };
 
   const roles = [
     {
@@ -183,39 +140,6 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert('Error', 'Something went wrong');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!forgotEmail) {
-      Alert.alert('Error', 'Please enter your email address');
-      return;
-    }
-
-    setForgotLoading(true);
-
-    try {
-      const response = await fetch('https://vims-backend.onrender.com/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: forgotEmail.toLowerCase() })
-      });
-
-      const data = await response.json();
-
-      Alert.alert(
-        'Password Reset',
-        data.message || 'If your email is registered, you will receive a password reset link.',
-        [{ text: 'OK' }]
-      );
-
-      hideModal();
-    } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to process request');
-    } finally {
-      setForgotLoading(false);
     }
   };
 
@@ -464,67 +388,6 @@ const LoginScreen = ({ navigation }) => {
           </ScrollView>
         </View>
       </ImageBackground>
-
-      {/* Glassmorphism Forgot Password Modal - Clean */}
-      {showForgotPassword && (
-        <Animated.View 
-          style={[
-            styles.modalOverlay,
-            {
-              opacity: modalOpacityAnim,
-            },
-          ]}
-        >
-          <Animated.View 
-            style={[
-              styles.glassModalContent,
-              { transform: [{ scale: modalScaleAnim }] },
-            ]}
-          >
-            <View style={styles.modalIconCircle}>
-              <Ionicons name="key-outline" size={30} color="#2E6B2E" />
-            </View>
-            <Text style={styles.modalTitle}>Reset Password</Text>
-            <Text style={styles.modalSubtitle}>
-              Enter your registered email address and we'll send you a password reset link.
-            </Text>
-            
-            <View style={styles.glassModalInputWrapper}>
-              <Ionicons name="mail-outline" size={18} color="#6B8F6B" />
-              <TextInput
-                style={styles.glassModalInput}
-                placeholder="Email Address"
-                placeholderTextColor="#A0B8A0"
-                value={forgotEmail}
-                onChangeText={setForgotEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={hideModal}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.modalButton, styles.sendButton, forgotLoading && styles.sendButtonDisabled]}
-                onPress={handleForgotPassword}
-                disabled={forgotLoading}
-              >
-                {forgotLoading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.sendButtonText}>Send Reset Link</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </Animated.View>
-      )}
     </KeyboardAvoidingView>
   );
 };
@@ -779,11 +642,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   roleLoginLabel: {
-    textAlign: 'left',
+    textAlign: 'center',
     color: '#FFFFFF',
     fontSize: 26,
     fontWeight: '900',
-    letterSpacing: -0.5,
+    letterSpacing: 0,
     marginBottom: 18,
     paddingHorizontal: 4,
   },

@@ -41,9 +41,11 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const assignedPhases = assignment?.assignedPhases || [];
   const isHeadOfficer = assignment?.securityLevel === 'head-officer';
   const availableLots = useMemo(
-    () => isHeadOfficer || assignedPhases.length === 0
-      ? lots
-      : lots.filter((lot) => assignedPhases.map(String).includes(String(lot.phase))),
+    () => {
+      if (isHeadOfficer) return lots;
+      if (assignedPhases.length === 0) return [];
+      return lots.filter((lot) => assignedPhases.map(String).includes(String(lot.phase)));
+    },
     [assignedPhases, isHeadOfficer, lots]
   );
   const phases = useMemo(

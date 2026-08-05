@@ -76,7 +76,7 @@ const SecurityServiceRequests = () => {
     try {
       const params = { status: activeTab };
       if (priority !== 'all') params.priority = priority;
-      params.category = category !== 'all' ? category : 'security';
+      if (category !== 'all') params.category = category;
       const res = await axios.get('/api/service-requests', { params });
       if (res.data?.success) setRows(res.data.data || []);
     } catch (error) {
@@ -205,7 +205,7 @@ const SecurityServiceRequests = () => {
       myId &&
       (
         (assignedId && String(assignedId) === String(myId)) ||
-        (isHeadOfficer && item.category === 'security')
+        (isHeadOfficer && ['security', 'complaint'].includes(item.category))
       )
     );
   };
@@ -272,7 +272,7 @@ const SecurityServiceRequests = () => {
             <ArrowBackIcon />
           </IconButton>
           <Typography sx={{ flexGrow: 1, fontWeight: 800, color: themeColors.textPrimary }}>
-            Security Service Requests
+            Security Services & Complaints
           </Typography>
           <Button onClick={handleProfileMenuOpen} sx={{ textTransform: 'none', color: themeColors.textPrimary }}>
             <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: themeColors.primary }}>
@@ -306,7 +306,7 @@ const SecurityServiceRequests = () => {
             Security Service Requests
           </Typography>
           <Typography sx={{ mt: 0.6, color: 'rgba(255,255,255,0.9)' }}>
-            Monitor assigned tickets and update response progress in real time.
+            Monitor assigned security requests and resident complaints in real time.
           </Typography>
         </Paper>
 
@@ -373,7 +373,7 @@ const SecurityServiceRequests = () => {
             <MenuItem value="urgent">Urgent</MenuItem>
           </TextField>
           <TextField select size="small" value={category} onChange={(e) => setCategory(e.target.value)} sx={{ minWidth: 140 }}>
-            <MenuItem value="all">All Category</MenuItem>
+            <MenuItem value="all">All Security Work</MenuItem>
             <MenuItem value="security">Security</MenuItem>
             <MenuItem value="complaint">Complaint</MenuItem>
             <MenuItem value="maintenance">Maintenance</MenuItem>

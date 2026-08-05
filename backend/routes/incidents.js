@@ -1,16 +1,46 @@
 const express = require('express');
 const Incident = require('../models/Incident');
+const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const ActivityNotificationService = require('../services/activityNotificationService');
 
 const router = express.Router();
 
+const isHeadOfficer = (user) =>
+  user?.role === 'security' && (
+    user.securityLevel === 'head-officer' ||
+    String(user.email || '').toLowerCase() === 'security@vims.com'
+  );
+
+const buildAssignedRouteIncidentFilter = async (user) => {
+  if (user.role !== 'security' || isHeadOfficer(user)) return {};
+
+  const securityUser = await User.findById(user._id).select('assignedPhases');
+  const assignedPhases = Array.isArray(securityUser?.assignedPhases)
+    ? securityUser.assignedPhases.filter((phase) => Number.isInteger(Number(phase)))
+    : [];
+
+  if (!assignedPhases.length) {
+    return { reportedBy: user._id };
+  }
+
+  return {
+    $or: [
+      { reportedBy: user._id },
+      ...assignedPhases.map((phase) => ({
+        location: { $regex: new RegExp(`\\b(?:phase|p)\\s*-?\\s*${phase}\\b`, 'i') }
+      }))
+    ]
+  };
+};
+
 router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
   try {
     const { format = 'json', timezoneOffset = 0 } = req.query;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
+    const filter = await buildAssignedRouteIncidentFilter(req.user);
 
-    const incidents = await Incident.find()
+    const incidents = await Incident.find(filter)
       .populate('reportedBy', 'firstName lastName role')
       .sort({ createdAt: -1 })
       .limit(200);
@@ -88,13 +118,13 @@ router.post('/', protect, authorize('security', 'admin'), async (req, res) => {
 
     // Notify admins and security about new incident
     try {
-      const reporter = await require('../models/User').findById(req.user._id).select('firstName lastName');
+      const reporter = await User.findById(req.user._id).select('firstName lastName');
       await ActivityNotificationService.notifyAdminIncidentReported(row, reporter);
 
       // Also notify residents in the area if it's a high severity incident
       if (severity === 'high' || severity === 'critical') {
         // For now, notify all residents. In a real system, you'd filter by location/area
-        const residents = await require('../models/User').find({ role: 'resident' }).select('_id');
+        const residents = await User.find({ role: 'resident' }).select('_id');
         for (const resident of residents) {
           await ActivityNotificationService.notifyResidentIncidentAlert(row, resident._id);
         }
@@ -112,7 +142,8 @@ router.post('/', protect, authorize('security', 'admin'), async (req, res) => {
 router.put('/:id/status', protect, authorize('security', 'admin'), async (req, res) => {
   try {
     const { status, resolutionNotes = '' } = req.body;
-    const row = await Incident.findById(req.params.id);
+    const filter = await buildAssignedRouteIncidentFilter(req.user);
+    const row = await Incident.findOne({ _id: req.params.id, ...filter });
     if (!row) return res.status(404).json({ success: false, error: 'Incident not found' });
     if (status) row.status = status;
     row.resolutionNotes = resolutionNotes;

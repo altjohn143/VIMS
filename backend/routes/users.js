@@ -856,8 +856,8 @@ router.put('/:id/status', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// Create admin and security users (admin only)
-router.post('/', protect, authorize('admin'), async (req, res) => {
+// Create admin and security users. Head officers may create supervised security personnel.
+router.post('/', protect, authorize('admin', 'security'), async (req, res) => {
   try {
     const {
       firstName,
@@ -875,6 +875,21 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
 
     if (!firstName || !lastName || !email || !phone || !password || !role) {
       return res.status(400).json({ success: false, error: 'All required fields must be provided' });
+    }
+
+    const requesterIsHeadOfficer =
+      req.user.role === 'security' && (
+        req.user.securityLevel === 'head-officer' ||
+        String(req.user.email || '').toLowerCase() === 'security@vims.com'
+      );
+
+    if (req.user.role === 'security') {
+      if (!requesterIsHeadOfficer) {
+        return res.status(403).json({ success: false, error: 'Only head officers can create security personnel' });
+      }
+      if (role !== 'security' || securityLevel === 'head-officer') {
+        return res.status(403).json({ success: false, error: 'Head officers can only create security personnel accounts' });
+      }
     }
 
     if (!['admin', 'security'].includes(role)) {
@@ -924,8 +939,10 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
     };
 
     // If security personnel, link to head officer
-    if (role === 'security' && securityLevel === 'personnel' && headOfficerId) {
-      userData.headOfficerId = headOfficerId;
+    if (role === 'security' && securityLevel === 'personnel') {
+      userData.headOfficerId = req.user.role === 'security'
+        ? req.user._id
+        : headOfficerId || null;
     }
 
     const newUser = await User.create(userData);

@@ -49,7 +49,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       const params = {};
       if (status !== 'all') params.status = status;
       if (priority !== 'all') params.priority = priority;
-      params.category = category !== 'all' ? category : 'security';
+      if (category !== 'all') params.category = category;
       const res = await api.get('/service-requests', { params });
       if (res.data?.success) {
         setRows(Array.isArray(res.data.data) ? res.data.data : []);
@@ -141,7 +141,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         myId &&
         (
           (assignedId && String(assignedId) === String(myId)) ||
-          (isHeadOfficer && req?.category === 'security')
+          (isHeadOfficer && ['security', 'complaint'].includes(req?.category))
         )
       );
     },
@@ -300,8 +300,8 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.headerTextWrap}>
           <Text style={styles.headerEyebrow}>SECURITY MODULE</Text>
-          <Text style={styles.headerTitle}>Service Requests</Text>
-          <Text style={styles.headerSubtitle}>Monitor and update assigned security requests.</Text>
+          <Text style={styles.headerTitle}>Services & Complaints</Text>
+          <Text style={styles.headerSubtitle}>Monitor assigned security requests and resident complaints.</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionButton}>
@@ -340,6 +340,18 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
+          {[
+            { key: 'all', label: 'All Types' },
+            { key: 'security', label: 'Security' },
+            { key: 'complaint', label: 'Complaints' },
+          ].map((c) => (
+            <TouchableOpacity key={c.key} style={[styles.chip, category === c.key && styles.chipActive]} onPress={() => setCategory(c.key)}>
+              <Text style={[styles.chipText, category === c.key && styles.chipTextActive]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <FlatList
@@ -354,7 +366,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
             <Text style={styles.emptyTitle}>No requests</Text>
             <Text style={styles.emptyText}>
               {status === 'all' && priority === 'all' && category === 'all'
-                ? 'No security service requests are assigned to this staff account yet.'
+                ? 'No security requests or complaints are assigned to this staff account yet.'
                 : 'No assigned security requests match your filters.'}
             </Text>
           </View>
@@ -391,7 +403,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
 
               <View style={styles.divider} />
               <Text style={styles.note}>
-                {isHeadOfficer ? 'Head officers can assign or reassign security requests to supervised staff.' : 'Status updates are only allowed if this request is assigned to you.'}
+                {isHeadOfficer ? 'Head officers can assign or reassign security requests and complaints to supervised staff.' : 'Status updates are only allowed if this request is assigned to you.'}
               </Text>
 
               {isHeadOfficer && (

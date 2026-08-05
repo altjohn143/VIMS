@@ -6,6 +6,17 @@ const isSecurityHeadOfficer = (user) =>
     user.securityLevel === 'head-officer' ||
     String(user.email || '').toLowerCase() === 'security@vims.com'
   );
+const getHeadOfficerStaffFilter = (headOfficerId) => ({
+  role: 'security',
+  securityLevel: 'personnel',
+  isActive: true,
+  isArchived: false,
+  $or: [
+    { headOfficerId },
+    { headOfficerId: null },
+    { headOfficerId: { $exists: false } }
+  ]
+});
 const ServiceRequest = require('../models/ServiceRequest');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
@@ -137,7 +148,7 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
 
     if (req.user.role === 'security') {
       if (isSecurityHeadOfficer(req.user)) {
-        filter.category = 'security';
+        filter.category = { $in: ['security', 'complaint'] };
       } else {
         filter.assignedTo = req.user.id;
       }
@@ -147,8 +158,12 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
       filter.status = status;
     }
     
-    if (category && !(req.user.role === 'security' && isSecurityHeadOfficer(req.user))) {
-      filter.category = category;
+    if (category && category !== 'all') {
+      if (req.user.role === 'security' && isSecurityHeadOfficer(req.user)) {
+        if (['security', 'complaint'].includes(category)) filter.category = category;
+      } else {
+        filter.category = category;
+      }
     }
     if (priority) filter.priority = priority;
     if (residentId) filter.residentId = residentId;
@@ -283,7 +298,7 @@ router.put('/:id/status', protect, async (req, res) => {
     }
     else if (req.user.role === 'security') {
       const assignedToId = request.assignedTo?._id?.toString() || request.assignedTo?.toString();
-      const canHeadOfficerHandle = isSecurityHeadOfficer(req.user) && request.category === 'security';
+      const canHeadOfficerHandle = isSecurityHeadOfficer(req.user) && ['security', 'complaint'].includes(request.category);
       if (assignedToId !== req.user.id && !canHeadOfficerHandle) {
         return res.status(403).json({
           success: false,
@@ -742,10 +757,10 @@ router.put('/:id/assign-staff', protect, authorize('admin', 'security'), async (
       });
     }
 
-    if (req.user.role === 'security' && request.category !== 'security') {
+    if (req.user.role === 'security' && !['security', 'complaint'].includes(request.category)) {
       return res.status(403).json({
         success: false,
-        error: 'Head officers can only assign security service requests'
+        error: 'Head officers can only assign security and complaint requests'
       });
     }
     
@@ -757,27 +772,32 @@ router.put('/:id/assign-staff', protect, authorize('admin', 'security'), async (
       });
     }
 
-    if (request.category === 'security' && staff.role !== 'security') {
+    if (['security', 'complaint'].includes(request.category) && staff.role !== 'security') {
       return res.status(400).json({
         success: false,
-        error: 'Security requests must be assigned to security staff'
+        error: 'Security and complaint requests must be assigned to security staff'
       });
     }
 
     if (req.user.role === 'security') {
+      const isUnassignedPersonnel = !staff.headOfficerId;
       const supervisedByCurrentOfficer = staff.headOfficerId && String(staff.headOfficerId) === String(req.user.id);
-      if (staff.securityLevel === 'head-officer' || !supervisedByCurrentOfficer) {
+      if (staff.securityLevel === 'head-officer' || (!supervisedByCurrentOfficer && !isUnassignedPersonnel)) {
         return res.status(403).json({
           success: false,
           error: 'You can only assign requests to security staff under your supervision'
         });
       }
+      if (isUnassignedPersonnel) {
+        staff.headOfficerId = req.user._id;
+        await staff.save();
+      }
     }
 
-    if (request.category !== 'security' && staff.role === 'security') {
+    if (!['security', 'complaint'].includes(request.category) && staff.role === 'security') {
       return res.status(400).json({
         success: false,
-        error: 'Security staff can only be assigned to security requests'
+        error: 'Security staff can only be assigned to security and complaint requests'
       });
     }
 
@@ -943,15 +963,11 @@ router.get('/admin/staff', protect, authorize('admin', 'security'), async (req, 
     }
 
     const filter = req.user.role === 'security'
-      ? {
-          role: 'security',
-          securityLevel: 'personnel',
-          headOfficerId: req.user.id,
-          isActive: true
-        }
+      ? getHeadOfficerStaffFilter(req.user._id)
       : {
           role: { $ne: 'resident' },
-          isActive: true
+          isActive: true,
+          isArchived: false
         };
 
     const staffMembers = await User.find(filter)

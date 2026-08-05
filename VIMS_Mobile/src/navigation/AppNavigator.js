@@ -104,6 +104,11 @@ const AdminTabs = () => {
 
 // Security Tab Navigator
 const SecurityTabs = () => {
+  const { user } = useAuth();
+  const isHeadOfficer =
+    user?.securityLevel === 'head-officer' ||
+    String(user?.email || '').toLowerCase() === 'security@vims.com';
+
   return (
     <Tab.Navigator
       initialRouteName="DashboardTab"
@@ -120,7 +125,9 @@ const SecurityTabs = () => {
       <Tab.Screen name="SecurityServiceRequests" component={SecurityServiceRequestsScreen} options={{ title: 'Services' }} />
       <Tab.Screen name="SecurityPatrolSchedule" component={SecurityPatrolScheduleScreen} options={{ title: 'Patrol' }} />
       <Tab.Screen name="SecurityIncidents" component={SecurityIncidentsScreen} options={{ title: 'Incidents' }} />
-      <Tab.Screen name="TeamPerformanceTab" component={HeadOfficerTeamScreen} options={{ title: 'Team' }} />
+      {isHeadOfficer && (
+        <Tab.Screen name="TeamPerformanceTab" component={HeadOfficerTeamScreen} options={{ title: 'Team' }} />
+      )}
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );

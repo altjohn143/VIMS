@@ -1285,14 +1285,8 @@ const RegisterScreen = ({ navigation, route }) => {
             />
           ) : null}
 
-          <Modal
-            visible={dobPickerOpen && Platform.OS === 'ios'}
-            transparent
-            animationType="fade"
-            onRequestClose={closeDobPicker}
-          >
-            <View style={styles.iosPickerOverlay}>
-              <View style={styles.iosPickerCard}>
+          {dobPickerOpen && Platform.OS === 'ios' ? (
+              <View style={styles.inlineIosPickerCard}>
                 <View style={styles.iosPickerHeader}>
                   <TouchableOpacity onPress={closeDobPicker} style={styles.iosPickerAction}>
                     <Text style={styles.iosPickerCancelText}>Cancel</Text>
@@ -1306,7 +1300,8 @@ const RegisterScreen = ({ navigation, route }) => {
                   mode="date"
                   value={dobTemp || new Date()}
                   maximumDate={new Date()}
-                  display="spinner"
+                  display="inline"
+                  themeVariant="light"
                   onChange={(event, selectedDate) => {
                     if (event?.type === 'dismissed') {
                       closeDobPicker();
@@ -1317,8 +1312,7 @@ const RegisterScreen = ({ navigation, route }) => {
                   style={styles.iosPicker}
                 />
               </View>
-            </View>
-          </Modal>
+          ) : null}
 
           <Modal
             visible={dobPickerOpen && Platform.OS === 'web'}

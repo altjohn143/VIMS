@@ -41,6 +41,10 @@ const paymentSchema = new mongoose.Schema({
   paymongoSourceId: { type: String, sparse: true }
 }, { timestamps: true });
 
+paymentSchema.index({ residentId: 1, createdAt: -1 });
+paymentSchema.index({ status: 1, dueDate: 1 });
+paymentSchema.index({ 'billingPeriod.year': 1, 'billingPeriod.month': 1, status: 1 });
+
 paymentSchema.pre('save', async function(next) {
   if (!this.invoiceNumber) {
     const date = new Date();

@@ -163,7 +163,7 @@ const NotificationModal = ({ visible, onClose }) => {
           <FlatList
             data={notifications}
             renderItem={renderNotificationItem}
-            keyExtractor={(item) => item?._id || String(Math.random())}
+            keyExtractor={(item, index) => item?._id || `notification-${index}`}
             scrollEnabled
             scrollEventThrottle={16}
             nestedScrollEnabled

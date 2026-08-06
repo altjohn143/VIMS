@@ -5,6 +5,10 @@ import { Alert, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { getAuthToken, removeAuthToken } from './secureSession';
 
+const debugLog = (...args) => {
+  if (__DEV__) console.log(...args);
+};
+
 // ============================================
 // BACKEND CONFIGURATION
 // ============================================
@@ -79,7 +83,7 @@ let BASE_URL;
 if (!__DEV__) {
   // In production builds, always use production URL
   BASE_URL = PRODUCTION_URL;
-  console.log('🚀 Production build detected - using production URL');
+  debugLog('Production build detected - using production URL');
 } else if (ENV_API_URL) {
   // Second priority: explicit environment override
   BASE_URL = ENV_API_URL;
@@ -136,12 +140,7 @@ if (!BASE_URL && Platform.OS === 'android') {
 // BASE_URL = 'http://localhost:5000/api';    // iOS Simulator (development)
 // BASE_URL = 'https://vims-backend.onrender.com/api'; // Production (already set above)
 
-console.log('========================================');
-console.log('🔧 API Configuration:');
-console.log(`   Platform: ${Platform.OS}`);
-console.log(`   Device: ${Constants.isDevice ? 'Physical Device' : 'Emulator/Simulator'}`);
-console.log(`   Base URL: ${BASE_URL}`);
-console.log('========================================');
+debugLog('API Configuration:', { platform: Platform.OS, isDevice: Constants.isDevice, baseURL: BASE_URL });
 
 // ============================================
 // AXIOS INSTANCE
@@ -163,12 +162,15 @@ const api = axios.create({
 // For React Native/Expo: Override the request adapter to use native fetch with SSL verification disabled in dev
 if (Platform.OS !== 'web') {
   api.defaults.adapter = async (config) => {
+    let timeoutId;
     try {
       const url = `${config.baseURL}${config.url}`;
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), config.timeout || 60000);
       const requestOptions = {
         method: config.method?.toUpperCase() || 'GET',
         headers: config.headers,
-        timeout: config.timeout,
+        signal: controller.signal,
       };
 
       if (config.data) {
@@ -182,7 +184,7 @@ if (Platform.OS !== 'web') {
         }
       }
 
-      console.log(`🌐 Using native fetch for ${config.method?.toUpperCase()} ${url}`);
+      debugLog(`Using native fetch for ${config.method?.toUpperCase()} ${url}`);
 
       const response = await fetch(url, requestOptions);
 
@@ -221,6 +223,8 @@ if (Platform.OS !== 'web') {
         config,
         request: config.url,
       };
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
   };
 }
@@ -257,9 +261,8 @@ api.interceptors.request.use(
     }
     
     // Log request for debugging
-    console.log(`🌐 API ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
-    console.log(`   Full URL: ${config.baseURL}${config.url}`);
-    console.log(`   Platform: ${Platform.OS}`);
+    debugLog(`API ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    debugLog(`   Platform: ${Platform.OS}`);
     const safeHeaders = { ...config.headers };
     if (safeHeaders.Authorization) {
       safeHeaders.Authorization = 'Bearer [REDACTED]';
@@ -267,7 +270,7 @@ api.interceptors.request.use(
     if (safeHeaders.authorization) {
       safeHeaders.authorization = 'Bearer [REDACTED]';
     }
-    console.log(`   Headers:`, JSON.stringify(safeHeaders, null, 2));
+    debugLog(`   Headers:`, safeHeaders);
     
     return config;
   },
@@ -283,7 +286,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    console.log(`✅ API ${response.status} ${response.config.url}`);
+    debugLog(`API ${response.status} ${response.config.url}`);
     return response;
   },
   async (error) => {
@@ -455,7 +458,12 @@ export const arrayBufferToDataUrl = (buffer, mimeType = 'image/jpeg') => {
 export const getProtectedImageDataUrl = async (relativePath) => {
   if (!relativePath) return null;
 
+  // Base64 expands binary data and temporarily holds multiple copies in memory.
+  // Refuse unusually large inline previews so iOS/Android do not terminate VIMS.
+  const maxInlineImageBytes = 8 * 1024 * 1024;
+
   const buildDataUrlFromBlob = async (blob) => {
+    if (blob?.size > maxInlineImageBytes) return null;
     return await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result);
@@ -476,6 +484,7 @@ export const getProtectedImageDataUrl = async (relativePath) => {
   try {
     const response = await api.get(relativePath, { responseType: 'arraybuffer' });
     if (response.status === 200 && response.data) {
+      if (response.data.byteLength > maxInlineImageBytes) return null;
       const mimeType = response.headers?.['content-type'] || 'image/jpeg';
       return arrayBufferToDataUrl(response.data, mimeType);
     }

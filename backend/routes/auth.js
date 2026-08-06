@@ -588,16 +588,35 @@ router.post('/register', registerUpload.fields([
     });
 
     // Replace the temporary local filename with a permanent Cloudinary URL.
+    let uploadedProfilePhoto = null;
     if (profilePhotoFile) {
-      const uploadedPhoto = await uploadImageBuffer(profilePhotoFile.buffer, {
+      uploadedProfilePhoto = await uploadImageBuffer(profilePhotoFile.buffer, {
         folder: 'vims/profiles'
       });
-      userData.profilePhoto = uploadedPhoto.secure_url;
-      userData.profilePhotoPublicId = uploadedPhoto.public_id;
+      userData.profilePhoto = uploadedProfilePhoto.secure_url;
+      userData.profilePhotoPublicId = uploadedProfilePhoto.public_id;
     }
 
     // Create user
     const user = await User.create(userData);
+    if (user.role === 'resident' && uploadedProfilePhoto) {
+      await IdentityVerification.findOneAndUpdate(
+        { userId: user._id },
+        {
+          $set: {
+            residentEmail: user.email,
+            residentDisplayName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            selfieImage: `profile-${user._id}.jpg`,
+            selfieImageUrl: uploadedProfilePhoto.secure_url,
+            selfieImagePublicId: uploadedProfilePhoto.public_id,
+            selfieImageData: null,
+            selfieImageMimeType: profilePhotoFile.mimetype
+          },
+          $setOnInsert: { status: 'pending_upload' }
+        },
+        { upsert: true }
+      );
+    }
     if (userData.isApproved) {
       await sendOnboardingNotification(user, {
         includeCredentials: true,

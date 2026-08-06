@@ -97,4 +97,9 @@ const reservationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+reservationSchema.index({ reservedBy: 1, createdAt: -1 });
+reservationSchema.index({ status: 1, createdAt: -1 });
+reservationSchema.index({ resourceType: 1, resourceName: 1, status: 1, startDate: 1, endDate: 1 });
+reservationSchema.index({ 'items.resourceName': 1, status: 1, startDate: 1, endDate: 1 });
+
 module.exports = mongoose.model('Reservation', reservationSchema);

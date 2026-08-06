@@ -219,7 +219,7 @@ const SecurityIncidentsScreen = ({ navigation }) => {
       <FlatList
         data={paginatedRows}
         renderItem={renderItem}
-        keyExtractor={(item) => item?._id || String(Math.random())}
+        keyExtractor={(item, index) => item?._id || `incident-${index}`}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListHeaderComponent={

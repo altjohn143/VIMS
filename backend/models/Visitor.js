@@ -142,5 +142,9 @@ const visitorSchema = new mongoose.Schema({
   timestamps: true
 });
 
+visitorSchema.index({ residentId: 1, createdAt: -1 });
+visitorSchema.index({ status: 1, createdAt: -1 });
+visitorSchema.index({ status: 1, expectedArrival: 1, expectedDeparture: 1 });
+
 const Visitor = mongoose.model('Visitor', visitorSchema);
 module.exports = Visitor;

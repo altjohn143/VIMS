@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
+import AdminUtilityHeader from '../../components/AdminUtilityHeader';
 
 const ArchivedUsersScreen = ({ navigation }) => {
   const [users, setUsers] = useState([]);
@@ -155,22 +156,7 @@ const ArchivedUsersScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Archived Users</Text>
-          <Text style={styles.headerSubtitle}>Manage archived users</Text>
-        </View>
-      </View>
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{users.length}</Text>
-          <Text style={styles.statLabel}>Archived Users</Text>
-        </View>
-      </View>
+      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ARCHIVE" title="Archived Users" subtitle={`${users.length} archived accounts available for review`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => navigation.goBack() }, { label: 'Refresh', icon: 'refresh', onPress: loadArchivedUsers, primary: true, loading: refreshing }]} />
 
       <FlatList
         data={users}

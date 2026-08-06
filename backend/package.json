@@ -10,6 +10,8 @@
     "seed": "node seed.js",
     "reset": "node reset-db.js",
     "cleanup:orphan-verifications": "node scripts/delete-orphan-verifications.js",
+    "images:migrate:check": "node scripts/migrate-images-to-cloudinary.js",
+    "images:migrate": "node scripts/migrate-images-to-cloudinary.js --apply",
     "start": "node server.js"
   },
   "dependencies": {

@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import { getAuthToken } from '../../utils/secureSession';
+import AdminUtilityHeader from '../../components/AdminUtilityHeader';
 
 const emptyPosition = {
   left: '',
@@ -218,31 +219,18 @@ const AdminLotMapEditorScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={21} color="white" />
-          <Text style={styles.headerButtonText}>Back</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCopy}>
-          <Text style={styles.headerEyebrow}>ADMIN MAP</Text>
-          <Text style={styles.headerTitle}>Lot Map Editor</Text>
-        </View>
-      </View>
-
-      <View style={styles.toolbar}>
-        <TouchableOpacity style={styles.primaryAction} onPress={loadLots} disabled={loading}>
-          <Ionicons name="refresh-outline" size={18} color="white" />
-          <Text style={styles.primaryActionText}>Refresh</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryAction} onPress={exportMapData}>
-          <Ionicons name="download-outline" size={18} color={themeColors.primaryDeep} />
-          <Text style={styles.secondaryActionText}>Export</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryAction} onPress={importMapData}>
-          <Ionicons name="cloud-upload-outline" size={18} color={themeColors.primaryDeep} />
-          <Text style={styles.secondaryActionText}>Import</Text>
-        </TouchableOpacity>
-      </View>
+      <AdminUtilityHeader
+        navigation={navigation}
+        eyebrow="ADMIN MAP"
+        title="Lot Map Editor"
+        subtitle={`${filteredLots.length} lots shown · Edit public map overlays`}
+        actions={[
+          { label: 'Back', icon: 'arrow-back', onPress: () => navigation.goBack() },
+          { label: 'Refresh', icon: 'refresh-outline', onPress: loadLots, primary: true, loading },
+          { label: 'Export', icon: 'download-outline', onPress: exportMapData },
+          { label: 'Import', icon: 'cloud-upload-outline', onPress: importMapData },
+        ]}
+      />
 
       <View style={styles.searchBox}>
         <Ionicons name="search" size={18} color={themeColors.textSecondary} />

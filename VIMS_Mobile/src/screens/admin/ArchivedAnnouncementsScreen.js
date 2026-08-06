@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
+import AdminUtilityHeader from '../../components/AdminUtilityHeader';
 
 const ArchivedAnnouncementsScreen = ({ navigation }) => {
   const [announcements, setAnnouncements] = useState([]);
@@ -150,22 +151,7 @@ const ArchivedAnnouncementsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Archived Announcements</Text>
-          <Text style={styles.headerSubtitle}>Manage archived announcements</Text>
-        </View>
-      </View>
-
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{announcements.length}</Text>
-          <Text style={styles.statLabel}>Archived Announcements</Text>
-        </View>
-      </View>
+      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ARCHIVE" title="Archived Posts" subtitle={`${announcements.length} archived announcements available for review`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => navigation.goBack() }, { label: 'Refresh', icon: 'refresh', onPress: loadArchivedAnnouncements, primary: true, loading: refreshing }]} />
 
       <FlatList
         data={announcements}

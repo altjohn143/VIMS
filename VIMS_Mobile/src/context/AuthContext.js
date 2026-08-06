@@ -14,6 +14,9 @@ import {
 } from '../utils/secureSession';
 
 const AuthContext = createContext({});
+const debugLog = (...args) => {
+  if (__DEV__) console.log(...args);
+};
 const ROLE_SESSION_GRACE_MS = {
   resident: 5 * 60 * 1000,
   admin: 10 * 60 * 1000,
@@ -162,8 +165,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, expectedRole) => {
     try {
-      console.log('🔐 Attempting login for:', email);
-      console.log('📡 API URL:', api.defaults.baseURL);
+      debugLog('Attempting login for:', email);
+      debugLog('API URL:', api.defaults.baseURL);
       
       // Make sure no Authorization header is set for login
       delete api.defaults.headers.common['Authorization'];
@@ -174,8 +177,7 @@ export const AuthProvider = ({ children }) => {
         expectedRole
       });
       
-      console.log('📥 Login response status:', response.status);
-      console.log('📥 Login response data:', JSON.stringify(response.data, null, 2));
+      debugLog('Login response status:', response.status);
       
       if (response.data.success) {
         const { token, user } = response.data;

@@ -166,6 +166,11 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
   const handleProcessRequest = async () => {
     if (!selectedRequest) return;
 
+    if (processForm.status === 'assigned' && !isEmergency(selectedRequest) && !processForm.assignedTo) {
+      Alert.alert('Staff Required', 'Select a staff member before processing this request.');
+      return;
+    }
+
     setLoading(true);
     try {
       let response;
@@ -729,7 +734,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                       <Text style={styles.cancelButtonText}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.modalButton, styles.submitButton]}
+                      style={[styles.modalButton, styles.submitButton, (processForm.status === 'assigned' && !isEmergency(selectedRequest) && !processForm.assignedTo) && styles.disabledButton]}
                       onPress={handleProcessRequest}
                       disabled={loading || (processForm.status === 'assigned' && !isEmergency(selectedRequest) && !processForm.assignedTo)}
                     >
@@ -1320,6 +1325,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  disabledButton: { opacity: 0.5 },
   detailTitle: {
     fontSize: 22,
     fontWeight: '600',

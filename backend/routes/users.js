@@ -107,11 +107,12 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
     const users = await User.find({ isArchived: false })
       .select('-password')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     const verificationRecords = await IdentityVerification.find({
       userId: { $in: users.map((user) => user._id) }
-    }).select('userId status updatedAt frontImage backImage selfieImage documentsVerified');
+    }).select('userId status updatedAt frontImage backImage selfieImage documentsVerified').lean();
 
     const verificationMap = new Map(
       verificationRecords.map((record) => [String(record.userId), record])
@@ -119,7 +120,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
 
     const data = users.map((user) => {
       const verification = verificationMap.get(String(user._id));
-      const userObj = user.toObject();
+      const userObj = { ...user };
       if (user.profilePhoto) {
         userObj.profilePhotoUrl = buildProfilePhotoUrl(req, user.profilePhoto);
       }
@@ -155,11 +156,12 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
       isArchived: false
     })
     .select('-password')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
     const verificationRecords = await IdentityVerification.find({
       userId: { $in: pendingUsers.map((user) => user._id) }
-    }).select('userId status updatedAt frontImage backImage selfieImage');
+    }).select('userId status updatedAt frontImage backImage selfieImage').lean();
 
     const verificationMap = new Map(
       verificationRecords.map((record) => [String(record.userId), record])
@@ -168,7 +170,7 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
     const data = pendingUsers.map((user) => {
       const verification = verificationMap.get(String(user._id));
       const hasUploadedId = !!(verification?.frontImage && verification?.backImage);
-      const userObj = user.toObject();
+      const userObj = { ...user };
       if (user.profilePhoto) {
         userObj.profilePhotoUrl = buildProfilePhotoUrl(req, user.profilePhoto);
       }
@@ -539,6 +541,25 @@ router.post('/profile-photo', protect, photoUpload.single('photo'), async (req, 
     user.profilePhoto = uploadedPhoto.secure_url;
     user.profilePhotoPublicId = uploadedPhoto.public_id;
     await user.save();
+
+    if (user.role === 'resident') {
+      await IdentityVerification.findOneAndUpdate(
+        { userId: user._id },
+        {
+          $set: {
+            residentEmail: user.email || '',
+            residentDisplayName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            selfieImage: `profile-${user._id}.jpg`,
+            selfieImageUrl: uploadedPhoto.secure_url,
+            selfieImagePublicId: uploadedPhoto.public_id,
+            selfieImageData: null,
+            selfieImageMimeType: req.file.mimetype
+          },
+          $setOnInsert: { status: 'pending_upload' }
+        },
+        { upsert: true }
+      );
+    }
 
     if (previousPublicId && previousPublicId !== uploadedPhoto.public_id) {
       deleteImage(previousPublicId).catch(error =>

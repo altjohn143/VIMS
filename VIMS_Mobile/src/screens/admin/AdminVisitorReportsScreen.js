@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
-import LogoutButton from '../../components/LogoutButton';
+import AdminUtilityHeader from '../../components/AdminUtilityHeader';
 
 const AdminVisitorReportsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -71,12 +71,10 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
   };
 
   const StatCard = ({ label, value, icon, color }) => (
-    <View style={[styles.statCard, { borderLeftColor: color }]}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.statLabel}>{label}</Text>
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
-      </View>
-      <Ionicons name={icon} size={32} color={color + '40'} />
+    <View style={styles.statCard}>
+      <Ionicons name={icon} size={16} color={color} />
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 
@@ -122,24 +120,7 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Visitor Reports</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            Analytics & Statistics
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={load} style={styles.headerIconButton}>
-            <Ionicons name="refresh" size={22} color="white" />
-            <Text style={styles.headerIconButtonText}>Refresh</Text>
-          </TouchableOpacity>
-          <LogoutButton navigation={navigation} color="white" size={24} />
-        </View>
-      </View>
+      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ANALYTICS" title="Visitor Reports" subtitle={`${recentVisitors.length} recent visitor records`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => navigation.goBack() }, { label: 'Refresh', icon: 'refresh', onPress: load, primary: true, loading: refreshing }]} />
 
       <ScrollView
         style={styles.content}
@@ -148,7 +129,7 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
         {/* Statistics */}
         {stats && stats.totals && (
           <View style={styles.statsSection}>
-            <Text style={styles.sectionTitle}>Statistics</Text>
+            <View style={styles.statsGrid}>
             <StatCard
               label="Total Visitors"
               value={stats.totals.totalVisitors || 0}
@@ -179,6 +160,7 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
               icon="person-circle"
               color={themeColors.info}
             />
+            </View>
           </View>
         )}
 
@@ -272,19 +254,23 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  statsSection: { marginBottom: 24 },
+  statsSection: { marginBottom: 16 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statCard: {
-    backgroundColor: 'white',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    flexDirection: 'row',
+    width: '31%',
+    minWidth: 92,
+    minHeight: 68,
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: themeColors.border,
     alignItems: 'center',
-    ...shadows.small,
+    justifyContent: 'center',
   },
-  statLabel: { fontSize: 11, color: themeColors.textSecondary, fontWeight: '700' },
-  statValue: { fontSize: 24, fontWeight: '900', marginTop: 4 },
+  statLabel: { fontSize: 9, color: themeColors.textSecondary, fontWeight: '800', marginTop: 2 },
+  statValue: { fontSize: 18, lineHeight: 21, fontWeight: '900', marginTop: 2 },
 
   filtersSection: { marginBottom: 24 },
   filterRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },

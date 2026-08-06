@@ -1,11 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { ActivityIndicator, View, Platform, Text, Image, StatusBar, StyleSheet, KeyboardAvoidingView } from 'react-native';
+import { ActivityIndicator, View, Platform, Text, Image, StatusBar, StyleSheet, KeyboardAvoidingView, Appearance, TextInput } from 'react-native';
+import * as SystemUI from 'expo-system-ui';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { themeColors, navigationTheme, shadows } from './src/utils/theme';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AppErrorBoundary from './src/components/AppErrorBoundary';
+import { installCrashDiagnostics } from './src/utils/crashDiagnostics';
+
+installCrashDiagnostics();
+
+// VIMS uses one deliberate high-contrast light palette. Keep native controls from
+// silently switching to dark colors when the phone itself is in dark mode.
+if (Platform.OS !== 'web') {
+  Appearance.setColorScheme('light');
+}
+
+TextInput.defaultProps = {
+  ...(TextInput.defaultProps || {}),
+  placeholderTextColor: themeColors.textMuted,
+  selectionColor: themeColors.primary,
+  cursorColor: themeColors.primary,
+  keyboardAppearance: 'light',
+};
 
 const LoadingScreen = () => (
   <View style={styles.loadingScreen}>
@@ -20,11 +39,13 @@ const LoadingScreen = () => (
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <AppErrorBoundary>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </AppErrorBoundary>
   );
 }
 
@@ -32,7 +53,10 @@ const AppContent = () => {
   const { isLoading } = useAuth();
 
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== 'web') {
+      SystemUI.setBackgroundColorAsync(themeColors.background).catch(() => {});
+      return;
+    }
 
     const html = document.documentElement;
     const body = document.body;
@@ -71,7 +95,7 @@ const AppContent = () => {
       <StatusBar barStyle="light-content" backgroundColor={themeColors.primaryDark} />
       <KeyboardAvoidingView
         style={styles.appShell}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
         <NavigationContainer theme={navigationTheme}>

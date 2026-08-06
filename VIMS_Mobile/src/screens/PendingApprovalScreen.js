@@ -34,9 +34,11 @@ const PendingApprovalScreen = ({ navigation, route }) => {
   }, []);
 
   const loadUser = async () => {
-    const userStr = await AsyncStorage.getItem('user');
-    if (userStr) {
-      setUser(JSON.parse(userStr));
+    try {
+      const userStr = await AsyncStorage.getItem('user');
+      if (userStr) setUser(JSON.parse(userStr));
+    } catch (error) {
+      console.warn('Unable to restore pending account:', error?.message);
     }
   };
 

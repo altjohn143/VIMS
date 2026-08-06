@@ -265,6 +265,7 @@ export const styles = StyleSheet.create({
   successButtonText: { color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' },
   iosPickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
+  inlineIosPickerCard: { marginBottom: 14, backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.border, borderRadius: 16, overflow: 'hidden' },
   iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
   iosPickerTitle: { flex: 1, textAlign: 'center', color: themeColors.textPrimary, fontSize: 15, fontWeight: '800' },

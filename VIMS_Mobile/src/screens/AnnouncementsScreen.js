@@ -169,7 +169,7 @@ const AnnouncementsScreen = ({ navigation }) => {
       <FlatList
         data={visibleRows}
         renderItem={renderItem}
-        keyExtractor={(item) => item?._id || String(Math.random())}
+        keyExtractor={(item, index) => item?._id || `announcement-${index}`}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={

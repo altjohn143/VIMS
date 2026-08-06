@@ -19,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import api, { getProtectedImageDataUrl } from '../utils/api';
-import testDirectFetch from '../utils/testFetch';
 import { startUnreadCountPolling } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationModal from '../components/NotificationModal';
@@ -167,7 +166,9 @@ const DashboardScreen = ({ navigation }) => {
       try {
         // Test direct fetch on app load
         console.log('🧪 Running initial fetch test...');
-        const fetchTestResult = await testDirectFetch();
+        // Avoid a redundant health-check request here. The real dashboard requests
+        // below already verify connectivity and can start in parallel.
+        const fetchTestResult = { success: true };
         if (!fetchTestResult.success) {
           console.warn('⚠️ Direct fetch test failed - backend may be unreachable');
         }
@@ -179,9 +180,11 @@ const DashboardScreen = ({ navigation }) => {
           return;
         }
         if (!cancelled) setUser(userData);
-        await fetchDashboardData(userData);
-        await fetchRecentNotifications();
-        await fetchSelfiePreview();
+        await Promise.allSettled([
+          fetchDashboardData(userData),
+          fetchRecentNotifications(),
+          fetchSelfiePreview(),
+        ]);
       } catch (error) {
         console.error('Error loading user:', error);
       } finally {
@@ -326,7 +329,7 @@ const DashboardScreen = ({ navigation }) => {
 
     const refreshStats = () => fetchDashboardData(userToShow);
     const unsubscribe = navigation.addListener('focus', refreshStats);
-    const intervalId = setInterval(refreshStats, 30000);
+    const intervalId = setInterval(refreshStats, 120000);
 
     return () => {
       unsubscribe();
@@ -367,8 +370,10 @@ const DashboardScreen = ({ navigation }) => {
       const userData = authUser || (userStr ? JSON.parse(userStr) : null);
       if (userData) {
         setUser(userData);
-        await fetchDashboardData(userData);
-        await fetchRecentNotifications();
+        await Promise.allSettled([
+          fetchDashboardData(userData),
+          fetchRecentNotifications(),
+        ]);
       }
     } finally {
       setRefreshing(false);
@@ -443,7 +448,7 @@ const DashboardScreen = ({ navigation }) => {
       hints: ['all resident accounts', 'awaiting admin review', 'paid this month', 'open service requests'],
       quickActions: [
         { title: 'Service Requests', subtitle: 'View and assign requests', icon: 'construct-outline', screen: 'ServicesTab', color: modulePalette.primary, bg: modulePalette.soft },
-        { title: 'Reservation Logs', subtitle: 'View reservation history', icon: 'calendar-outline',         screen: 'LogsTab',         color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Reservation Logs', subtitle: 'View reservation history', icon: 'calendar-outline',         screen: 'ReservationsTab', color: modulePalette.deep, bg: modulePalette.softer },
         { title: 'User Management', subtitle: 'View and manage users',     icon: 'people-outline',           screen: 'UsersTab',       color: modulePalette.primary, bg: modulePalette.soft },
         { title: 'Approvals',       subtitle: 'Review pending requests',   icon: 'checkmark-circle-outline', screen: 'AdminApprovals', color: modulePalette.deep, bg: modulePalette.softer },
         { title: 'Visitor Logs',    subtitle: 'Full visitor history',      icon: 'qr-code-outline',          screen: 'VisitorsTab',    color: modulePalette.primary, bg: modulePalette.soft },

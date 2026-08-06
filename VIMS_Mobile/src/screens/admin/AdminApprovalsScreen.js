@@ -12,6 +12,8 @@ import {
   RefreshControl,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
@@ -300,21 +302,28 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, roleLayouts.admin.screen]}>
-      <View style={[styles.header, roleLayouts.admin.header]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pending Approvals</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => navigation.navigate('AdminVerificationQueue')} style={styles.refreshButton}>
-            <Ionicons name="shield-checkmark-outline" size={23} color="white" />
-            <Text style={styles.refreshButtonText}>Verifications</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={fetchPendingApprovals} style={styles.refreshButton}>
-            <Ionicons name="refresh" size={24} color="white" />
-            <Text style={styles.refreshButtonText}>Refresh</Text>
-          </TouchableOpacity>
+      <View style={styles.directoryHeader}>
+        <View style={styles.directoryTopRow}>
+          <View style={styles.directoryHeading}>
+            <Text style={styles.directoryEyebrow}>ADMIN DIRECTORY</Text>
+            <Text style={styles.directoryTitle}>Pending Approvals</Text>
+            <Text style={styles.directorySubtitle}>{pendingUsers.length} registrations awaiting review</Text>
+          </View>
           <UserDropdownMenu navigation={navigation} />
+        </View>
+        <View style={styles.directoryActions}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.directoryIconAction}>
+            <Ionicons name="arrow-back" size={19} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('AdminVerificationQueue')} style={styles.directoryPrimaryAction}>
+            <Ionicons name="shield-checkmark-outline" size={19} color={themeColors.white} />
+            <Text style={styles.directoryPrimaryText}>Verifications</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={fetchPendingApprovals} style={styles.directoryIconAction}>
+            <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Refresh</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -505,7 +514,11 @@ const AdminApprovalsScreen = ({ navigation }) => {
           setRejectReason('');
         }}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Archive User</Text>
@@ -516,8 +529,12 @@ const AdminApprovalsScreen = ({ navigation }) => {
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
             </View>
-
-            <View style={styles.rejectContent}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.rejectContent}
+            >
               <View style={styles.warningBox}>
                 <Ionicons name="information-circle" size={24} color={themeColors.warning} />
                 <Text style={styles.warningText}>
@@ -542,6 +559,8 @@ const AdminApprovalsScreen = ({ navigation }) => {
               <TextInput
                 style={styles.rejectInput}
                 placeholder="Reason for archiving (optional)"
+                placeholderTextColor={themeColors.textMuted}
+                selectionColor={themeColors.primary}
                 value={rejectReason}
                 onChangeText={setRejectReason}
                 multiline
@@ -572,9 +591,9 @@ const AdminApprovalsScreen = ({ navigation }) => {
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -606,6 +625,17 @@ const styles = StyleSheet.create({
     gap: 12,
     borderBottomRightRadius: 34,
   },
+  directoryHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  directoryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  directoryHeading: { flex: 1, minWidth: 0 },
+  directoryEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
+  directoryTitle: { color: themeColors.textPrimary, fontSize: 30, lineHeight: 36, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
+  directorySubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 2 },
+  directoryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 },
+  directoryPrimaryAction: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: themeColors.primary, paddingHorizontal: 15, borderRadius: 14 },
+  directoryPrimaryText: { color: themeColors.white, fontSize: 12, fontWeight: '900' },
+  directoryIconAction: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: themeColors.accent, paddingHorizontal: 15, borderRadius: 14 },
+  directoryIconActionText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -813,11 +843,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: themeColors.cardBackground,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '92%',
+    flexShrink: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -950,7 +981,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 80,
     marginBottom: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: themeColors.primaryWash,
+    color: themeColors.textPrimary,
   },
   cancelButton: {
     backgroundColor: '#f1f5f9',

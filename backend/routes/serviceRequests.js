@@ -1,4 +1,5 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 
 const isSecurityHeadOfficer = (user) =>
@@ -22,6 +23,22 @@ const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { sendServiceRequestStatusNotification } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
+const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
+
+const attachmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 3 },
+  fileFilter: (req, file, callback) => {
+    if (!/^image\/(jpeg|png|webp)$/i.test(file.mimetype || '')) {
+      return callback(new Error('Attachments must be JPEG, PNG, or WebP images'));
+    }
+    callback(null, true);
+  }
+});
+
+const removeUploadedAssets = async (assets = []) => {
+  await Promise.allSettled(assets.map((asset) => deleteImage(asset.publicId)));
+};
 
 const notifyAdminsOnCancellation = async (serviceRequest) => {
   try {
@@ -43,7 +60,8 @@ const notifyAdminsOnCancellation = async (serviceRequest) => {
   }
 };
 
-router.post('/', protect, authorize('resident'), async (req, res) => {
+router.post('/', protect, authorize('resident'), attachmentUpload.array('attachments', 3), async (req, res) => {
+  let uploadedAttachments = [];
   try {
     const {
       category,
@@ -60,6 +78,20 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       });
     }
     
+    if (req.files?.length) {
+      for (const file of req.files) {
+        const uploaded = await uploadImageBuffer(file.buffer, { folder: 'vims/service-requests' });
+        uploadedAttachments.push({
+          filename: file.originalname,
+          url: uploaded.secure_url,
+          publicId: uploaded.public_id,
+          mimeType: file.mimetype,
+          size: file.size,
+          uploadedAt: new Date()
+        });
+      }
+    }
+
     const serviceRequest = await ServiceRequest.create({
       residentId: req.user.id,
       category,
@@ -67,7 +99,8 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       description,
       priority: priority || 'medium',
       location: location || '',
-      status: 'pending'
+      status: 'pending',
+      attachments: uploadedAttachments
     });
     
     res.status(201).json({
@@ -77,11 +110,40 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
     });
     
   } catch (error) {
+    if (uploadedAttachments.length) await removeUploadedAssets(uploadedAttachments);
     console.error('Create service request error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to submit service request'
     });
+  }
+});
+
+router.delete('/:id/attachments/:attachmentId', protect, async (req, res) => {
+  try {
+    const request = await ServiceRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ success: false, error: 'Service request not found' });
+
+    const ownsRequest = String(request.residentId) === String(req.user.id);
+    if (!ownsRequest && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Not authorized to remove this attachment' });
+    }
+    if (ownsRequest && request.status !== 'pending') {
+      return res.status(400).json({ success: false, error: 'Attachments cannot be changed after processing starts' });
+    }
+
+    const attachment = request.attachments.id(req.params.attachmentId);
+    if (!attachment) return res.status(404).json({ success: false, error: 'Attachment not found' });
+
+    const publicId = attachment.publicId;
+    attachment.deleteOne();
+    await request.save();
+    if (publicId) await deleteImage(publicId);
+
+    return res.json({ success: true, message: 'Attachment removed' });
+  } catch (error) {
+    console.error('Remove service request attachment error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to remove attachment' });
   }
 });
 

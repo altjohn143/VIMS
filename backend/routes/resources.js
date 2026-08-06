@@ -88,7 +88,10 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     // Check if resource is being used in active reservations
     const Reservation = require('../models/Reservation');
     const activeReservations = await Reservation.find({
-      resourceName: resource.name,
+      $or: [
+        { resourceName: resource.name },
+        { 'items.resourceName': resource.name }
+      ],
       status: { $in: ['pending', 'confirmed', 'borrowed'] }
     });
 

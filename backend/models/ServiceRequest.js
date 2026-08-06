@@ -110,6 +110,9 @@ const serviceRequestSchema = new mongoose.Schema({
   attachments: [{
     filename: String,
     url: String,
+    publicId: String,
+    mimeType: String,
+    size: Number,
     uploadedAt: Date
   }],
   
@@ -136,6 +139,10 @@ const serviceRequestSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+serviceRequestSchema.index({ residentId: 1, isArchived: 1, createdAt: -1 });
+serviceRequestSchema.index({ status: 1, isArchived: 1, createdAt: -1 });
+serviceRequestSchema.index({ assignedTo: 1, status: 1, createdAt: -1 });
 
 const ServiceRequest = mongoose.model('ServiceRequest', serviceRequestSchema);
 module.exports = ServiceRequest;

@@ -11,7 +11,9 @@ import {
   Modal,
   RefreshControl,
   FlatList,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
@@ -46,6 +48,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
   });
 
   const [formErrors, setFormErrors] = useState({});
+  const [attachments, setAttachments] = useState([]);
 
   const categories = [
     { value: 'plumbing', label: 'Plumbing', icon: 'water', priority: 'urgent' },
@@ -126,7 +129,16 @@ const ServiceRequestsScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const response = await api.post('/service-requests', formData);
+      const requestData = new FormData();
+      Object.entries(formData).forEach(([key, value]) => requestData.append(key, value || ''));
+      attachments.forEach((asset, index) => {
+        requestData.append('attachments', {
+          uri: asset.uri,
+          name: asset.fileName || `service-evidence-${index + 1}.jpg`,
+          type: asset.mimeType || 'image/jpeg',
+        });
+      });
+      const response = await api.post('/service-requests', requestData);
       if (response.data.success) {
         Alert.alert('Success', 'Service request created successfully');
         setShowCreateModal(false);
@@ -149,6 +161,22 @@ const ServiceRequestsScreen = ({ navigation }) => {
       location: '',
     });
     setFormErrors({});
+    setAttachments([]);
+  };
+
+  const pickAttachments = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission required', 'Allow photo access to attach evidence.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: 3,
+      quality: 0.8,
+    });
+    if (!result.canceled) setAttachments(result.assets.slice(0, 3));
   };
 
   const handleCancelRequest = async (requestId) => {
@@ -534,6 +562,30 @@ const ServiceRequestsScreen = ({ navigation }) => {
                   placeholder="Specific location if different from your address"
                 />
               </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Evidence photos (Optional)</Text>
+              <TouchableOpacity style={styles.inputContainer} onPress={pickAttachments}>
+                <Ionicons name="images" size={20} color={themeColors.primary} />
+                <Text style={[styles.input, { color: themeColors.textPrimary, paddingVertical: 12 }]}>Choose up to 3 photos</Text>
+              </TouchableOpacity>
+              {attachments.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+                  {attachments.map((asset, index) => (
+                    <View key={`${asset.uri}-${index}`} style={{ marginRight: 10 }}>
+                      <Image source={{ uri: asset.uri }} style={{ width: 72, height: 72, borderRadius: 10 }} />
+                      <TouchableOpacity
+                        onPress={() => setAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                        style={{ position: 'absolute', top: -6, right: -6, backgroundColor: themeColors.error, borderRadius: 12, padding: 2 }}
+                      >
+                        <Ionicons name="close" size={14} color="white" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+              <Text style={styles.infoText}>JPEG, PNG, or WebP; maximum 5 MB each.</Text>
             </View>
 
             <View style={styles.infoBox}>

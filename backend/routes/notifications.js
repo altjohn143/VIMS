@@ -7,7 +7,7 @@ const { isExpoPushToken } = require('../services/pushNotificationService');
 
 router.get('/', protect, async (req, res) => {
   try {
-    const rows = await Notification.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(100);
+    const rows = await Notification.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(100).lean();
     res.json({ success: true, data: rows });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to load notifications' });

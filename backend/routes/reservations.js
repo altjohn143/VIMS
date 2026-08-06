@@ -194,7 +194,8 @@ router.get('/', protect, async (req, res) => {
     const reservations = await Reservation.find(query)
       .populate('reservedBy', 'firstName lastName email')
       .populate('cancelledBy', 'firstName lastName role')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     res.json({ success: true, data: reservations });
   } catch (error) {
     console.error('Get reservations error:', error.message);
@@ -313,6 +314,9 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
 
     const previousStatus = reservation.status;
     const updateData = { ...req.body };
+    if (updateData.status === 'cancelled' && !String(updateData.cancelledReason || '').trim()) {
+      return res.status(400).json({ success: false, error: 'A denial reason is required' });
+    }
     if (updateData.status === 'confirmed' && isSingleResourceType(reservation, 'equipment')) {
       updateData.status = 'borrowed';
     }
@@ -392,9 +396,12 @@ router.put('/:id/status', protect, async (req, res) => {
       }
       reservation.status = status === 'confirmed' && isSingleResourceType(reservation, 'equipment') ? 'borrowed' : status;
       if (status === 'cancelled') {
+        if (!String(cancelledReason || '').trim()) {
+          return res.status(400).json({ success: false, error: 'A denial reason is required' });
+        }
         reservation.cancelledAt = new Date();
         reservation.cancelledBy = req.user._id;
-        reservation.cancelledReason = cancelledReason || reservation.cancelledReason || 'Cancelled by admin';
+        reservation.cancelledReason = cancelledReason.trim();
       }
     } else {
       return res.status(403).json({ success: false, error: 'Not authorized to update this reservation' });
@@ -434,10 +441,17 @@ router.put('/:id/status', protect, async (req, res) => {
 
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const reservation = await Reservation.findByIdAndDelete(req.params.id);
+    const reservation = await Reservation.findById(req.params.id);
     if (!reservation) {
       return res.status(404).json({ success: false, error: 'Reservation not found' });
     }
+    if (['borrowed', 'confirmed'].includes(reservation.status)) {
+      return res.status(409).json({
+        success: false,
+        error: 'Cannot delete an approved or borrowed reservation. Complete the return workflow first.'
+      });
+    }
+    await reservation.deleteOne();
     res.json({ success: true, message: 'Reservation deleted' });
   } catch (error) {
     console.error('Delete reservation error:', error.message);

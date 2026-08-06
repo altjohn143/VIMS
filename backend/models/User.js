@@ -272,15 +272,12 @@ userSchema.pre('save', async function(next) {
   
   // Check if password is already a bcrypt hash (starts with $2a$ or $2b$)
   if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
-    console.log('✅ Password already hashed, skipping...');
     return next();
   }
   
   try {
-    console.log('🔐 Hashing plain text password...');
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    console.log('✅ Password hashed successfully');
     next();
   } catch (error) {
     console.error('❌ Error hashing password:', error);
@@ -291,20 +288,14 @@ userSchema.pre('save', async function(next) {
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   try {
-    console.log('🔍 Comparing password for user:', this.email);
-    
     // Make sure we have the password
     if (!this.password) {
       console.error('❌ No password found in user object');
       return false;
     }
     
-    console.log('📊 Stored hash length:', this.password.length);
-    console.log('📊 Candidate password length:', candidatePassword.length);
-    
     // Use bcrypt to compare
     const isMatch = await bcrypt.compare(candidatePassword, this.password);
-    console.log('✅ Password comparison result:', isMatch ? '✅ MATCH' : '❌ NO MATCH');
     return isMatch;
   } catch (error) {
     console.error('❌ Error comparing passwords:', error);

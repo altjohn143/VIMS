@@ -10,7 +10,7 @@ const { extractIdFieldsFromImagePaths } = require('../services/openaiIdOcrServic
 const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
-const { uploadImageBuffer } = require('../services/cloudinaryService');
+const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
 
 const router = express.Router();
 
@@ -68,6 +68,50 @@ router.get('/ping', (req, res) => {
     hasOcrRoute: true,
     time: new Date().toISOString()
   });
+});
+
+router.post('/upload-selfie', protect, upload.single('selfieImage'), async (req, res) => {
+  let uploadedSelfie = null;
+  try {
+    const selfieMeta = createFileMeta(req.file);
+    if (!selfieMeta) {
+      return res.status(400).json({ success: false, error: 'A JPEG or PNG selfie is required' });
+    }
+
+    uploadedSelfie = await uploadImageBuffer(selfieMeta.buffer, { folder: 'vims/verification-selfies' });
+    const verification = await IdentityVerification.findOneAndUpdate(
+      { userId: req.user._id },
+      {
+        $set: {
+          residentEmail: req.user.email || '',
+          residentDisplayName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+          selfieImage: selfieMeta.filename,
+          selfieImageUrl: uploadedSelfie.secure_url,
+          selfieImagePublicId: uploadedSelfie.public_id,
+          selfieImageData: null,
+          selfieImageMimeType: selfieMeta.mimetype
+        },
+        $setOnInsert: { status: 'pending_upload' }
+      },
+      { new: false, upsert: true }
+    );
+
+    if (verification?.selfieImagePublicId && verification.selfieImagePublicId !== uploadedSelfie.public_id) {
+      deleteImage(verification.selfieImagePublicId).catch((error) =>
+        console.warn('Unable to delete previous verification selfie:', error.message)
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: 'Verification selfie uploaded successfully',
+      data: { selfieImage: selfieMeta.filename, selfieImageUrl: uploadedSelfie.secure_url }
+    });
+  } catch (error) {
+    if (uploadedSelfie?.public_id) await deleteImage(uploadedSelfie.public_id).catch(() => {});
+    console.error('Verification selfie upload error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to upload verification selfie' });
+  }
 });
 
 router.get('/openai-model', protect, authorize('admin'), async (req, res) => {
@@ -146,7 +190,7 @@ router.post(
           console.error('Failed to save ID documents to uploads/ids:', saveError);
         }
       } else {
-        console.warn('⚠️ Skipping local file save in production - ID documents stored in DB only');
+        console.log('Skipping local ID file save in production; Cloudinary is the permanent store.');
       }
 
       const front = frontMeta;
@@ -175,12 +219,12 @@ router.post(
             frontImage,
             frontImageUrl: frontCloudinary?.secure_url || null,
             frontImagePublicId: frontCloudinary?.public_id || null,
-            frontImageData: frontMeta.buffer,
+            frontImageData: null,
             frontImageMimeType: frontMeta.mimetype,
             backImage,
             backImageUrl: backCloudinary?.secure_url || null,
             backImagePublicId: backCloudinary?.public_id || null,
-            backImageData: backMeta.buffer,
+            backImageData: null,
             backImageMimeType: backMeta.mimetype,
             status: 'manual_review',
             reviewNotes: 'OCR failed while extracting ID details. Routed to manual review.',
@@ -190,12 +234,12 @@ router.post(
           verification.frontImage = frontImage;
           verification.frontImageUrl = frontCloudinary?.secure_url || null;
           verification.frontImagePublicId = frontCloudinary?.public_id || null;
-          verification.frontImageData = frontMeta.buffer;
+          verification.frontImageData = null;
           verification.frontImageMimeType = frontMeta.mimetype;
           verification.backImage = backImage;
           verification.backImageUrl = backCloudinary?.secure_url || null;
           verification.backImagePublicId = backCloudinary?.public_id || null;
-          verification.backImageData = backMeta.buffer;
+          verification.backImageData = null;
           verification.backImageMimeType = backMeta.mimetype;
           verification.residentEmail = snapEmail;
           verification.residentDisplayName = snapName;
@@ -233,12 +277,12 @@ router.post(
           frontImage,
           frontImageUrl: frontCloudinary?.secure_url || null,
           frontImagePublicId: frontCloudinary?.public_id || null,
-          frontImageData: frontMeta.buffer,
+          frontImageData: null,
           frontImageMimeType: frontMeta.mimetype,
           backImage,
           backImageUrl: backCloudinary?.secure_url || null,
           backImagePublicId: backCloudinary?.public_id || null,
-          backImageData: backMeta.buffer,
+          backImageData: null,
           backImageMimeType: backMeta.mimetype,
           status: 'queued_ai'
         });
@@ -246,12 +290,12 @@ router.post(
         verification.frontImage = frontImage;
         verification.frontImageUrl = frontCloudinary?.secure_url || null;
         verification.frontImagePublicId = frontCloudinary?.public_id || null;
-        verification.frontImageData = frontMeta.buffer;
+        verification.frontImageData = null;
         verification.frontImageMimeType = frontMeta.mimetype;
         verification.backImage = backImage;
         verification.backImageUrl = backCloudinary?.secure_url || null;
         verification.backImagePublicId = backCloudinary?.public_id || null;
-        verification.backImageData = backMeta.buffer;
+        verification.backImageData = null;
         verification.backImageMimeType = backMeta.mimetype;
         verification.residentEmail = snapEmail;
         verification.residentDisplayName = snapName;
@@ -352,7 +396,7 @@ router.post(
           console.error('Failed to save OCR files to uploads/ids:', saveError);
         }
       } else {
-        console.warn('⚠️ Skipping local file save in production - OCR files stored in DB only');
+        console.log('Skipping temporary OCR file save in production; buffers are processed in memory.');
       }
 
       const result = await extractIdFieldsFromImagePaths(frontMeta, backMeta, req.body.documentType);
@@ -513,7 +557,7 @@ router.get('/admin/by-user/:userId', protect, authorize('admin'), async (req, re
 
 router.get('/admin/:id/images', protect, authorize('admin'), async (req, res) => {
   try {
-    const verification = await IdentityVerification.findById(req.params.id).select('frontImage frontImageData frontImageMimeType backImage backImageData backImageMimeType selfieImage selfieImageData selfieImageMimeType');
+    const verification = await IdentityVerification.findById(req.params.id).select('frontImage frontImageUrl frontImageData frontImageMimeType backImage backImageUrl backImageData backImageMimeType selfieImage selfieImageUrl selfieImageData selfieImageMimeType');
     if (!verification) return res.status(404).json({ success: false, error: 'Verification not found' });
 
     const toDataUrl = (filename, data, mime) => {
@@ -533,9 +577,9 @@ router.get('/admin/:id/images', protect, authorize('admin'), async (req, res) =>
     return res.json({
       success: true,
       data: {
-        front: toDataUrl(verification.frontImage, verification.frontImageData, verification.frontImageMimeType),
-        back: toDataUrl(verification.backImage, verification.backImageData, verification.backImageMimeType),
-        selfie: toDataUrl(verification.selfieImage, verification.selfieImageData, verification.selfieImageMimeType),
+        front: verification.frontImageUrl || toDataUrl(verification.frontImage, verification.frontImageData, verification.frontImageMimeType),
+        back: verification.backImageUrl || toDataUrl(verification.backImage, verification.backImageData, verification.backImageMimeType),
+        selfie: verification.selfieImageUrl || toDataUrl(verification.selfieImage, verification.selfieImageData, verification.selfieImageMimeType),
       }
     });
   } catch (error) {
@@ -588,17 +632,22 @@ router.get('/files/:filename', protect, authorize('admin'), async (req, res) => 
     if (verification) {
       let data = null;
       let mime = null;
+      let remoteUrl = null;
       if (verification.frontImage === filename) {
         data = verification.frontImageData;
         mime = verification.frontImageMimeType;
+        remoteUrl = verification.frontImageUrl;
       } else if (verification.backImage === filename) {
         data = verification.backImageData;
         mime = verification.backImageMimeType;
+        remoteUrl = verification.backImageUrl;
       } else if (verification.selfieImage === filename) {
         data = verification.selfieImageData;
         mime = verification.selfieImageMimeType;
+        remoteUrl = verification.selfieImageUrl;
       }
 
+      if (remoteUrl) return res.redirect(remoteUrl);
       if (data) {
         res.set('Content-Type', mime || 'application/octet-stream');
         return res.send(data);
@@ -635,17 +684,22 @@ router.get('/my-files/:filename', protect, async (req, res) => {
 
     let data = null;
     let mime = null;
+    let remoteUrl = null;
     if (verification.frontImage === filename) {
       data = verification.frontImageData;
       mime = verification.frontImageMimeType;
+      remoteUrl = verification.frontImageUrl;
     } else if (verification.backImage === filename) {
       data = verification.backImageData;
       mime = verification.backImageMimeType;
+      remoteUrl = verification.backImageUrl;
     } else if (verification.selfieImage === filename) {
       data = verification.selfieImageData;
       mime = verification.selfieImageMimeType;
+      remoteUrl = verification.selfieImageUrl;
     }
 
+    if (remoteUrl) return res.redirect(remoteUrl);
     if (data) {
       res.set('Content-Type', mime || 'application/octet-stream');
       return res.send(data);

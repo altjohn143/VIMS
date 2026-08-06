@@ -40,8 +40,12 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     String(user?.email || '').toLowerCase() === 'security@vims.com';
 
   const loadUser = useCallback(async () => {
-    const raw = await AsyncStorage.getItem('user');
-    if (raw) setUser(JSON.parse(raw));
+    try {
+      const raw = await AsyncStorage.getItem('user');
+      if (raw) setUser(JSON.parse(raw));
+    } catch (error) {
+      console.warn('Unable to restore security session:', error?.message);
+    }
   }, []);
 
   const load = useCallback(async () => {
@@ -357,7 +361,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       <FlatList
         data={paginated}
         renderItem={renderItem}
-        keyExtractor={(item) => item?._id || String(Math.random())}
+        keyExtractor={(item, index) => item?._id || `service-${index}`}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={

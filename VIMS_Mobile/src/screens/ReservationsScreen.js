@@ -451,7 +451,8 @@ const ReservationsScreen = ({ navigation }) => {
       <DateTimePicker
         value={value}
         mode={mode}
-        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+        display={Platform.OS === 'ios' ? (mode === 'date' ? 'inline' : 'spinner') : 'default'}
+        themeVariant="light"
         minimumDate={minimumDate}
         onChange={(event, selectedValue) => {
           if (event?.type === 'dismissed') {
@@ -472,8 +473,7 @@ const ReservationsScreen = ({ navigation }) => {
     if (Platform.OS !== 'ios') return picker;
 
     return (
-      <View style={styles.iosPickerOverlay}>
-        <View style={styles.iosPickerCard}>
+      <View style={styles.inlineIosPickerCard}>
           <View style={styles.iosPickerHeader}>
             <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
               <Text style={styles.iosPickerCancelText}>Cancel</Text>
@@ -484,7 +484,6 @@ const ReservationsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           {picker}
-        </View>
       </View>
     );
   };
@@ -1615,6 +1614,7 @@ const styles = StyleSheet.create({
   },
   iosPickerOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
+  inlineIosPickerCard: { marginTop: 10, marginHorizontal: 16, marginBottom: 10, backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.border, borderRadius: 16, overflow: 'hidden' },
   optionSheetCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '72%', paddingBottom: 18 },
   optionSheetList: { maxHeight: 360 },
   optionSheetItem: { minHeight: 52, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eef2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },

@@ -17,6 +17,12 @@ const identityVerificationSchema = new mongoose.Schema(
     backImagePublicId: { type: String, default: null },
     backImageData: { type: Buffer, default: null },
     backImageMimeType: { type: String, default: null },
+    selfieImage: { type: String, default: null },
+    selfieImageUrl: { type: String, default: null },
+    selfieImagePublicId: { type: String, default: null },
+    // Legacy fields retained while old database-backed uploads are migrated.
+    selfieImageData: { type: Buffer, default: null },
+    selfieImageMimeType: { type: String, default: null },
     /** True once front/back ID passed automated checks (OCR/AI). Does NOT grant login — User.isApproved does. */
     documentsVerified: { type: Boolean, default: false },
     status: {
@@ -47,5 +53,7 @@ const identityVerificationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+identityVerificationSchema.index({ status: 1, updatedAt: -1 });
 
 module.exports = mongoose.model('IdentityVerification', identityVerificationSchema);

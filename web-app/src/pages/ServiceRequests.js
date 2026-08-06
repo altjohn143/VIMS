@@ -113,6 +113,7 @@ const ServiceRequests = () => {
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [ratingRequestId, setRatingRequestId] = useState(null);
   const [ratingValue, setRatingValue] = useState(0);
+  const [attachments, setAttachments] = useState([]);
 
   const { getCurrentUser, logout: contextLogout } = useAuth();
   const user = getCurrentUser();
@@ -208,13 +209,13 @@ const ServiceRequests = () => {
         ? formData.alternateLocation 
         : formData.location;
 
-      const requestData = {
-        category: formData.category,
-        title: formData.title,
-        description: formData.description,
-        priority: formData.priority,
-        location: finalLocation
-      };
+      const requestData = new FormData();
+      requestData.append('category', formData.category);
+      requestData.append('title', formData.title);
+      requestData.append('description', formData.description);
+      requestData.append('priority', formData.priority);
+      requestData.append('location', finalLocation || '');
+      attachments.forEach((file) => requestData.append('attachments', file));
 
       const response = await axios.post('/api/service-requests', requestData);
 
@@ -232,6 +233,7 @@ const ServiceRequests = () => {
           alternateLocation: ''
         });
         setUseDifferentLocation(false);
+        setAttachments([]);
         
         fetchAllRequests();
       }
@@ -1657,6 +1659,26 @@ const ServiceRequests = () => {
                   />
                 )}
               </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Button component="label" variant="outlined" sx={{ textTransform: 'none', borderRadius: 2 }}>
+                  Add photos (up to 3)
+                  <input
+                    hidden
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={(event) => {
+                      const files = Array.from(event.target.files || []).slice(0, 3);
+                      setAttachments(files);
+                      event.target.value = '';
+                    }}
+                  />
+                </Button>
+                <Typography variant="caption" display="block" sx={{ mt: 1, color: themeColors.textSecondary }}>
+                  {attachments.length ? attachments.map((file) => file.name).join(', ') : 'Optional evidence photos, maximum 5 MB each.'}
+                </Typography>
+              </Box>
             </Box>
           </DialogContent>
 
@@ -1665,6 +1687,7 @@ const ServiceRequests = () => {
               onClick={() => {
                 setOpenDialog(false);
                 setUseDifferentLocation(false);
+                setAttachments([]);
                 setFormData({
                   category: '',
                   title: '',

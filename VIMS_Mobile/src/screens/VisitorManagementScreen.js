@@ -807,8 +807,7 @@ const VisitorManagementScreen = ({ navigation }) => {
           </ScrollView>
 
           {showDatePicker && Platform.OS === 'ios' && (
-            <View style={styles.iosPickerOverlay}>
-              <View style={styles.iosPickerCard}>
+            <View style={styles.inlineIosPickerCard}>
                 <View style={styles.iosPickerHeader}>
                   <TouchableOpacity onPress={closeDateTimePicker} style={styles.iosPickerAction}>
                     <Text style={styles.iosPickerCancelText}>Cancel</Text>
@@ -825,11 +824,11 @@ const VisitorManagementScreen = ({ navigation }) => {
                 <DateTimePicker
                   value={pendingDateValue || formData[datePickerField] || new Date()}
                   mode={pickerMode}
-                  display="spinner"
+                  display={pickerMode === 'date' ? 'inline' : 'spinner'}
+                  themeVariant="light"
                   onChange={handleDateChange}
                   style={styles.iosPicker}
                 />
-              </View>
             </View>
           )}
         </KeyboardAvoidingView>
@@ -1373,6 +1372,15 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     paddingBottom: 24,
+  },
+  inlineIosPickerCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: themeColors.cardBackground,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   iosPickerHeader: {
     minHeight: 48,

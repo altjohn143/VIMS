@@ -12,6 +12,8 @@ import {
   RefreshControl,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -1225,7 +1227,11 @@ const AdminUserManagementScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setShowDeleteModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Archive User</Text>
@@ -1233,8 +1239,12 @@ const AdminUserManagementScreen = ({ navigation }) => {
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
             </View>
-
-            <View style={styles.deleteContent}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.deleteContent}
+            >
               <View style={styles.warningBox}>
                 <Ionicons name="information-circle" size={24} color={themeColors.warning} />
                 <Text style={styles.warningText}>
@@ -1257,6 +1267,8 @@ const AdminUserManagementScreen = ({ navigation }) => {
               <TextInput
                 style={styles.deleteInput}
                 placeholder="Reason for archiving (optional)"
+                placeholderTextColor={themeColors.textMuted}
+                selectionColor={themeColors.primary}
                 value={deleteReason}
                 onChangeText={setDeleteReason}
                 multiline
@@ -1287,13 +1299,17 @@ const AdminUserManagementScreen = ({ navigation }) => {
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={moveOutOpen} animationType="slide" transparent onRequestClose={() => setMoveOutOpen(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
           <View style={styles.createModalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{moveOutAction === 'approve' ? 'Approve move-out' : 'Deny move-out'}</Text>
@@ -1309,6 +1325,8 @@ const AdminUserManagementScreen = ({ navigation }) => {
               value={moveOutNotes}
               onChangeText={setMoveOutNotes}
               placeholder="Enter the decision notes"
+              placeholderTextColor={themeColors.textMuted}
+              selectionColor={themeColors.primary}
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.secondaryBtn} onPress={() => setMoveOutOpen(false)}><Text style={styles.secondaryText}>Cancel</Text></TouchableOpacity>
@@ -1317,7 +1335,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={documentOpen} animationType="slide" transparent onRequestClose={() => setDocumentOpen(false)}>
@@ -1630,14 +1648,15 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: themeColors.cardBackground,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '92%',
+    flexShrink: 1,
   },
   createModalCard: {
-    backgroundColor: 'white',
+    backgroundColor: themeColors.cardBackground,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -1794,6 +1813,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   modalActionText: {
+    color: themeColors.white,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -1842,6 +1862,7 @@ const styles = StyleSheet.create({
     minHeight: 80,
     marginBottom: 16,
     backgroundColor: themeColors.primaryWash,
+    color: themeColors.textPrimary,
   },
   cancelButton: {
     backgroundColor: themeColors.surfaceMuted,

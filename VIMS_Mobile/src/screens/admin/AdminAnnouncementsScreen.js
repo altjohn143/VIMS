@@ -348,7 +348,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
       <FlatList
         data={rows}
         renderItem={renderItem}
-        keyExtractor={(item) => item?._id || String(Math.random())}
+        keyExtractor={(item, index) => item?._id || `announcement-${index}`}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
@@ -465,8 +465,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
             </ScrollView>
 
             {showDatePicker && Platform.OS === 'ios' && (
-              <View style={styles.iosPickerOverlay}>
-                <View style={styles.iosPickerCard}>
+              <View style={styles.inlineIosPickerCard}>
                   <View style={styles.iosPickerHeader}>
                     <TouchableOpacity onPress={closeSchedulePicker} style={styles.iosPickerAction}>
                       <Text style={styles.iosPickerCancelText}>Cancel</Text>
@@ -483,12 +482,12 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
                   <DateTimePicker
                     value={pendingScheduleDate || form.scheduledAt || new Date()}
                     mode={schedulePickerMode}
-                    display="spinner"
+                    display={schedulePickerMode === 'date' ? 'inline' : 'spinner'}
+                    themeVariant="light"
                     minimumDate={new Date()}
                     onChange={handleScheduleDateChange}
                     style={styles.iosPicker}
                   />
-                </View>
               </View>
             )}
           </View>
@@ -570,6 +569,7 @@ const styles = StyleSheet.create({
   datePickerText: { fontSize: 14, color: themeColors.textPrimary, fontWeight: '600' },
   iosPickerOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
+  inlineIosPickerCard: { marginTop: 10, marginBottom: 10, backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.border, borderRadius: 16, overflow: 'hidden' },
   iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
   iosPickerTitle: { flex: 1, textAlign: 'center', color: themeColors.textPrimary, fontSize: 15, fontWeight: '800' },

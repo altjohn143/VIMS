@@ -11,7 +11,9 @@ import {
   Modal,
   RefreshControl,
   FlatList,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
@@ -41,6 +43,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
   const [exportEndDate, setExportEndDate] = useState('');
   const [exportFormat, setExportFormat] = useState('pdf');
   const [exporting, setExporting] = useState(false);
+  const [exportDatePicker, setExportDatePicker] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -158,6 +161,14 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     setSearchQuery('');
     setStatusFilter('all');
     setDateFilter('');
+  };
+
+  const selectExportDate = (field, selectedDate) => {
+    if (Platform.OS === 'android') setExportDatePicker(null);
+    if (!selectedDate) return;
+    const value = format(selectedDate, 'yyyy-MM-dd');
+    if (field === 'start') setExportStartDate(value);
+    else setExportEndDate(value);
   };
 
   const handleExport = async () => {
@@ -628,6 +639,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.exportModalBody}>
             <Text style={styles.exportLabel}>File format</Text>
             <View style={styles.exportFormatRow}>
               {[
@@ -647,20 +659,44 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
             </View>
 
             <Text style={styles.exportLabel}>Created-date range</Text>
-            <TextInput
-              style={styles.exportDateInput}
-              placeholder="Start date (YYYY-MM-DD)"
-              value={exportStartDate}
-              onChangeText={setExportStartDate}
-              editable={!exporting}
-            />
-            <TextInput
-              style={styles.exportDateInput}
-              placeholder="End date (YYYY-MM-DD)"
-              value={exportEndDate}
-              onChangeText={setExportEndDate}
-              editable={!exporting}
-            />
+            <TouchableOpacity style={styles.exportDateInput} onPress={() => setExportDatePicker('start')} disabled={exporting}>
+              <Ionicons name="calendar-outline" size={19} color={themeColors.primary} />
+              <Text style={[styles.exportDateText, !exportStartDate && styles.exportDatePlaceholder]}>{exportStartDate || 'Select start date'}</Text>
+              {exportStartDate ? <TouchableOpacity onPress={() => setExportStartDate('')}><Ionicons name="close-circle" size={19} color={themeColors.textSecondary} /></TouchableOpacity> : null}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.exportDateInput} onPress={() => setExportDatePicker('end')} disabled={exporting}>
+              <Ionicons name="calendar-outline" size={19} color={themeColors.primary} />
+              <Text style={[styles.exportDateText, !exportEndDate && styles.exportDatePlaceholder]}>{exportEndDate || 'Select end date'}</Text>
+              {exportEndDate ? <TouchableOpacity onPress={() => setExportEndDate('')}><Ionicons name="close-circle" size={19} color={themeColors.textSecondary} /></TouchableOpacity> : null}
+            </TouchableOpacity>
+
+            {exportDatePicker && (
+              <View style={Platform.OS === 'ios' ? styles.inlineExportPicker : undefined}>
+                {Platform.OS === 'ios' && (
+                  <View style={styles.inlineExportPickerHeader}>
+                    <Text style={styles.inlineExportPickerTitle}>
+                      {exportDatePicker === 'start' ? 'Select start date' : 'Select end date'}
+                    </Text>
+                    <TouchableOpacity style={styles.inlineExportPickerDone} onPress={() => setExportDatePicker(null)}>
+                      <Text style={styles.inlineExportPickerDoneText}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                <DateTimePicker
+                  value={new Date((exportDatePicker === 'start' ? exportStartDate : exportEndDate) || Date.now())}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  themeVariant="light"
+                  onChange={(event, date) => {
+                    if (event.type === 'dismissed') {
+                      setExportDatePicker(null);
+                      return;
+                    }
+                    selectExportDate(exportDatePicker, date);
+                  }}
+                />
+              </View>
+            )}
 
             <View style={styles.modalActions}>
               <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowExportModal(false)} disabled={exporting}>
@@ -675,6 +711,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
                 )}
               </TouchableOpacity>
             </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -814,7 +851,8 @@ const styles = StyleSheet.create({
   advancedFilterToggle: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
   advancedFilterToggleText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
   activeFilterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.warning },
-  exportModalCard: { width: '92%', maxWidth: 520, backgroundColor: 'white', borderRadius: 12, padding: 20 },
+  exportModalCard: { width: '92%', maxWidth: 520, maxHeight: '92%', backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 20 },
+  exportModalBody: { paddingBottom: 2 },
   exportHelper: { color: themeColors.textSecondary, fontSize: 12, marginTop: 3 },
   exportLabel: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800', marginTop: 16, marginBottom: 8 },
   exportFormatRow: { flexDirection: 'row', gap: 10 },
@@ -822,7 +860,14 @@ const styles = StyleSheet.create({
   exportFormatCardActive: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
   exportFormatText: { color: themeColors.textPrimary, fontSize: 12, fontWeight: '800' },
   exportFormatTextActive: { color: 'white' },
-  exportDateInput: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 12, backgroundColor: themeColors.surfaceMuted, color: themeColors.textPrimary, marginBottom: 9 },
+  exportDateInput: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 9, borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 12, backgroundColor: themeColors.surfaceMuted, marginBottom: 9 },
+  exportDateText: { flex: 1, color: themeColors.textPrimary, fontSize: 14, fontWeight: '600' },
+  exportDatePlaceholder: { color: themeColors.textMuted, fontWeight: '500' },
+  inlineExportPicker: { marginBottom: 10, borderWidth: 1, borderColor: themeColors.border, borderRadius: 14, overflow: 'hidden', backgroundColor: themeColors.cardBackground },
+  inlineExportPickerHeader: { minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  inlineExportPickerTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800' },
+  inlineExportPickerDone: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, backgroundColor: themeColors.primarySoft },
+  inlineExportPickerDoneText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   listContainer: {
     padding: 16,
   },

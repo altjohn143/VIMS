@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
-import LogoutButton from '../../components/LogoutButton';
+import UserDropdownMenu from '../../components/UserDropdownMenu';
 
 const AdminVerificationQueueScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
@@ -208,22 +208,28 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, roleLayouts.admin.screen]}>
-      <View style={[styles.header, roleLayouts.admin.header]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Verification Queue</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            Status: {status}
-          </Text>
+      <View style={styles.directoryHeader}>
+        <View style={styles.directoryTopRow}>
+          <View style={styles.directoryHeading}>
+            <Text style={styles.directoryEyebrow}>ADMIN DIRECTORY</Text>
+            <Text style={styles.directoryTitle}>Verification Queue</Text>
+            <Text style={styles.directorySubtitle}>{rows.length} identity records in the selected view</Text>
+          </View>
+          <UserDropdownMenu navigation={navigation} />
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={load} style={styles.headerIconButton}>
-            <Ionicons name="refresh" size={22} color="white" />
-            <Text style={styles.headerIconButtonText}>Refresh</Text>
+        <View style={styles.directoryActions}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.directoryIconAction}>
+            <Ionicons name="arrow-back" size={19} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Back</Text>
           </TouchableOpacity>
-          <LogoutButton navigation={navigation} color="white" size={24} />
+          <TouchableOpacity onPress={() => navigation.navigate('AdminApprovals')} style={styles.directoryPrimaryAction}>
+            <Ionicons name="people-outline" size={19} color={themeColors.white} />
+            <Text style={styles.directoryPrimaryText}>Approvals</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={load} style={styles.directoryIconAction}>
+            <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Refresh</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -242,7 +248,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
       <FlatList
         data={rows}
         renderItem={renderItem}
-        keyExtractor={(item) => item?._id || String(Math.random())}
+        keyExtractor={(item, index) => item?._id || `verification-${index}`}
         contentContainerStyle={[roleLayouts.admin.content, styles.listContainer]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
@@ -420,6 +426,17 @@ const styles = StyleSheet.create({
     gap: 12,
     borderBottomRightRadius: 34,
   },
+  directoryHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  directoryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  directoryHeading: { flex: 1, minWidth: 0 },
+  directoryEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
+  directoryTitle: { color: themeColors.textPrimary, fontSize: 30, lineHeight: 36, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
+  directorySubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 2 },
+  directoryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 18 },
+  directoryPrimaryAction: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: themeColors.primary, paddingHorizontal: 15, borderRadius: 14 },
+  directoryPrimaryText: { color: themeColors.white, fontSize: 12, fontWeight: '900' },
+  directoryIconAction: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: themeColors.accent, paddingHorizontal: 15, borderRadius: 14 },
+  directoryIconActionText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   backButton: { padding: 8 },
   headerTitleWrap: { flex: 1, minWidth: 0 },
   headerTitle: { color: 'white', fontSize: 23, fontWeight: '900' },
@@ -428,8 +445,8 @@ const styles = StyleSheet.create({
   headerIconButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
   headerIconButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
 
-  chipsBar: { backgroundColor: themeColors.background, borderBottomWidth: 1, borderBottomColor: themeColors.border },
-  chipsContent: { paddingHorizontal: 16 },
+  chipsBar: { flexGrow: 0, minHeight: 58, backgroundColor: themeColors.background, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  chipsContent: { paddingHorizontal: 16, alignItems: 'center' },
   chip: {
     marginRight: 10,
     marginVertical: 12,
@@ -439,10 +456,12 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
     borderWidth: 1,
     borderColor: themeColors.border,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   chipActive: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
-  chipText: { color: themeColors.textSecondary, fontWeight: '700', fontSize: 12 },
-  chipTextActive: { color: 'white' },
+  chipText: { color: themeColors.textPrimary, fontWeight: '800', fontSize: 12, lineHeight: 16, opacity: 1 },
+  chipTextActive: { color: themeColors.white, opacity: 1 },
 
   listContainer: { paddingBottom: 32 },
   card: {

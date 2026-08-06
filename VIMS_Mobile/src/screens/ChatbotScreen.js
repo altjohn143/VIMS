@@ -126,7 +126,7 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
         {messages.length === 0 && <Text style={styles.empty}>Ask about VIMS workflows, lot recommendations, pricing, and availability.</Text>}
         {messages.map((m, idx) => (
           <View key={idx} style={[styles.bubble, m.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
-            <Text style={styles.bubbleText}>{m.content}</Text>
+            <Text style={m.role === 'user' ? styles.userBubbleText : styles.assistantBubbleText}>{m.content}</Text>
           </View>
         ))}
       </ScrollView>
@@ -137,6 +137,8 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
           value={message}
           onChangeText={setMessage}
           placeholder="Type your question..."
+          placeholderTextColor={themeColors.textMuted}
+          selectionColor={themeColors.primary}
           multiline
         />
         <TouchableOpacity style={styles.sendBtn} onPress={() => sendMessage()} disabled={loading}>
@@ -148,7 +150,7 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.nav },
+  container: { flex: 1, backgroundColor: themeColors.background },
   header: {
     paddingTop: 52,
     paddingHorizontal: 16,
@@ -163,18 +165,19 @@ const styles = StyleSheet.create({
   headerActionText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   messages: { flex: 1 },
   messagesContent: { padding: 12, flexGrow: 1 },
-  empty: { color: '#64748b', textAlign: 'center', marginTop: 20 },
+  empty: { color: themeColors.textSecondary, textAlign: 'center', marginTop: 20 },
   bubble: { padding: 10, borderRadius: 12, marginBottom: 10, maxWidth: '88%' },
-  userBubble: { alignSelf: 'flex-end', backgroundColor: '#dcfce7' },
-  assistantBubble: { alignSelf: 'flex-start', backgroundColor: '#163629' },
-  bubbleText: { color: '#f8fafc' },
+  userBubble: { alignSelf: 'flex-end', backgroundColor: themeColors.primary },
+  assistantBubble: { alignSelf: 'flex-start', backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.border },
+  userBubbleText: { color: themeColors.white, fontSize: 14, lineHeight: 20 },
+  assistantBubbleText: { color: themeColors.textPrimary, fontSize: 14, lineHeight: 20 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    borderTopColor: themeColors.border,
     padding: 10,
-    backgroundColor: '#10251c'
+    backgroundColor: themeColors.cardBackground
   },
   suggestionsContainer: {
     backgroundColor: themeColors.nav,
@@ -193,16 +196,16 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   suggestionPill: {
-    backgroundColor: '#163629',
+    backgroundColor: themeColors.cardBackground,
     borderRadius: 18,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginRight: 10,
     borderWidth: 1,
-    borderColor: '#285a42'
+    borderColor: themeColors.border
   },
   suggestionText: {
-    color: '#166534',
+    color: themeColors.textPrimary,
     fontSize: 13,
     fontWeight: '700'
   },
@@ -211,12 +214,12 @@ const styles = StyleSheet.create({
     minHeight: 40,
     maxHeight: 100,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: themeColors.borderStrong,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    backgroundColor: '#163629',
-    color: '#fff'
+    backgroundColor: themeColors.background,
+    color: themeColors.textPrimary
   },
   sendBtn: {
     marginLeft: 8,

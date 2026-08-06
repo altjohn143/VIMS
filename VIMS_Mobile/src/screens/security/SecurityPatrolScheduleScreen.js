@@ -195,7 +195,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
       <FlatList
         data={paginatedRows}
         renderItem={renderItem}
-        keyExtractor={(item) => item?._id || String(Math.random())}
+        keyExtractor={(item, index) => item?._id || `patrol-${index}`}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListHeaderComponent={

@@ -19,6 +19,7 @@
       "bundleIdentifier": "com.westville.vims",
       "icon": "./assets/app-icon.png",
       "infoPlist": {
+        "UIUserInterfaceStyle": "Light",
         "NSCameraUsageDescription": "Allow VIMS to access your camera to scan visitor QR codes, take profile photos, and capture ID or vehicle photos.",
         "NSPhotoLibraryUsageDescription": "Allow VIMS to access your photo library to upload IDs, receipts, profile pictures, and vehicle photos.",
         "NSPhotoLibraryAddUsageDescription": "Allow VIMS to save or share generated visitor QR codes and exported documents.",
@@ -27,6 +28,8 @@
       }
     },
     "android": {
+      "userInterfaceStyle": "light",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0f4d28"

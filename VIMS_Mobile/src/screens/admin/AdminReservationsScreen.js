@@ -33,6 +33,8 @@ const AdminReservationsScreen = ({ navigation }) => {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [denyReservation, setDenyReservation] = useState(null);
+  const [denyReason, setDenyReason] = useState('');
 
   const [formData, setFormData] = useState({
     resourceType: 'venue',
@@ -209,7 +211,11 @@ const AdminReservationsScreen = ({ navigation }) => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (reservation) => {
+    if (['borrowed', 'confirmed'].includes(reservation.status)) {
+      Alert.alert('Cannot Delete', 'This reservation is approved or the item is currently borrowed. Complete the return workflow before deleting it.');
+      return;
+    }
     Alert.alert(
       'Delete Reservation',
       'Are you sure you want to delete this reservation?',
@@ -220,7 +226,7 @@ const AdminReservationsScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.delete(`/reservations/${id}`);
+              await api.delete(`/reservations/${reservation._id}`);
               Alert.alert('Success', 'Reservation deleted successfully');
               fetchReservations();
             } catch (error) {
@@ -264,14 +270,20 @@ const AdminReservationsScreen = ({ navigation }) => {
     }
   };
 
-  const handleUpdateStatus = async (id, status) => {
+  const handleUpdateStatus = async (id, status, cancelledReason = '') => {
+    if (status === 'cancelled' && !cancelledReason.trim()) {
+      Alert.alert('Reason Required', 'Enter a reason before denying this reservation.');
+      return;
+    }
     try {
-      await api.put(`/reservations/${id}`, { status });
+      await api.put(`/reservations/${id}`, { status, ...(status === 'cancelled' ? { cancelledReason: cancelledReason.trim() } : {}) });
       Alert.alert('Success', `Reservation ${status === 'confirmed' ? 'approved' : 'denied'} successfully`);
+      setDenyReservation(null);
+      setDenyReason('');
       fetchReservations();
     } catch (error) {
       console.error('Error updating reservation status:', error);
-      Alert.alert('Error', 'Failed to update reservation status');
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update reservation status');
     }
   };
 
@@ -365,7 +377,8 @@ const AdminReservationsScreen = ({ navigation }) => {
       <DateTimePicker
         value={value}
         mode={mode}
-        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+        display={Platform.OS === 'ios' ? (mode === 'date' ? 'inline' : 'spinner') : 'default'}
+        themeVariant="light"
         onChange={(event, selectedValue) => {
           if (event?.type === 'dismissed') {
             onDismiss();
@@ -385,8 +398,7 @@ const AdminReservationsScreen = ({ navigation }) => {
     if (Platform.OS !== 'ios') return picker;
 
     return (
-      <View style={styles.iosPickerOverlay}>
-        <View style={styles.iosPickerCard}>
+      <View style={styles.inlineIosPickerCard}>
           <View style={styles.iosPickerHeader}>
             <TouchableOpacity onPress={onDismiss} style={styles.iosPickerAction}>
               <Text style={styles.iosPickerCancelText}>Cancel</Text>
@@ -397,7 +409,6 @@ const AdminReservationsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           {picker}
-        </View>
       </View>
     );
   };
@@ -576,9 +587,11 @@ const AdminReservationsScreen = ({ navigation }) => {
                   <View style={styles.cardActions}>
                     <TouchableOpacity
                       style={styles.deleteButton}
-                      onPress={() => handleDelete(reservation._id)}
+                      onPress={() => handleDelete(reservation)}
+                      disabled={['borrowed', 'confirmed'].includes(reservation.status)}
+                      accessibilityLabel={['borrowed', 'confirmed'].includes(reservation.status) ? 'Cannot delete an active reservation' : 'Delete reservation'}
                     >
-                      <Ionicons name="trash" size={16} color="#ef4444" />
+                      <Ionicons name={['borrowed', 'confirmed'].includes(reservation.status) ? 'lock-closed' : 'trash'} size={16} color={['borrowed', 'confirmed'].includes(reservation.status) ? themeColors.textMuted : '#ef4444'} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -663,7 +676,10 @@ const AdminReservationsScreen = ({ navigation }) => {
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.denyButton]}
-                      onPress={() => handleUpdateStatus(reservation._id, 'cancelled')}
+                      onPress={() => {
+                        setDenyReservation(reservation);
+                        setDenyReason('');
+                      }}
                     >
                       <Text style={styles.actionButtonText}>Deny</Text>
                     </TouchableOpacity>
@@ -962,6 +978,46 @@ const AdminReservationsScreen = ({ navigation }) => {
                 })}
               </>
             )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={!!denyReservation} animationType="slide" transparent onRequestClose={() => setDenyReservation(null)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.denyModalCard}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Deny Reservation</Text>
+                <Text style={styles.denyHelper}>Tell the resident why this request cannot be approved.</Text>
+              </View>
+              <TouchableOpacity onPress={() => setDenyReservation(null)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.label}>Denial reason *</Text>
+            <TextInput
+              style={[styles.textInput, styles.denyReasonInput]}
+              value={denyReason}
+              onChangeText={setDenyReason}
+              placeholder="Enter a clear reason for denial"
+              placeholderTextColor={themeColors.textMuted}
+              selectionColor={themeColors.primary}
+              multiline
+              autoFocus
+              textAlignVertical="top"
+            />
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setDenyReservation(null)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, styles.denySubmitButton, !denyReason.trim() && styles.submitButtonDisabled]}
+                disabled={!denyReason.trim()}
+                onPress={() => handleUpdateStatus(denyReservation._id, 'cancelled', denyReason)}
+              >
+                <Text style={styles.submitButtonText}>Deny Reservation</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -1313,6 +1369,15 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     maxHeight: '90%',
   },
+  denyModalCard: {
+    backgroundColor: themeColors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+  },
+  denyHelper: { color: themeColors.textSecondary, fontSize: 12, marginTop: 4 },
+  denyReasonInput: { minHeight: 110, color: themeColors.textPrimary },
+  denySubmitButton: { backgroundColor: themeColors.error },
   filterSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 26 },
   filterSubtitle: { color: '#64748b', fontSize: 12, marginTop: 3 },
   typeOption: { marginHorizontal: 20, marginTop: 10, minHeight: 50, borderRadius: 14, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
@@ -1481,6 +1546,7 @@ const styles = StyleSheet.create({
   },
   iosPickerOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
+  inlineIosPickerCard: { marginTop: 10, marginHorizontal: 16, marginBottom: 10, backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.border, borderRadius: 16, overflow: 'hidden' },
   optionSheetCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '72%', paddingBottom: 18 },
   optionSheetList: { maxHeight: 360 },
   optionSheetItem: { minHeight: 52, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eef2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },

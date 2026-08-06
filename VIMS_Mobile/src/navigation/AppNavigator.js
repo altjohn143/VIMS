@@ -57,6 +57,7 @@ import ChatbotScreen from '../screens/ChatbotScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const hiddenTabOptions = { tabBarButton: () => null };
 
 // Resident Tab Navigator
 const ResidentTabs = () => {
@@ -75,6 +76,14 @@ const ResidentTabs = () => {
       <Tab.Screen name="ServicesTab" component={ServiceRequestsScreen} options={{ title: 'Services' }} />
       <Tab.Screen name="PaymentsTab" component={PaymentsScreen} options={{ title: 'Payments' }} />
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <Tab.Screen name="Complaints" component={ComplaintsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="Announcements" component={AnnouncementsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="PublicLots" component={PublicLotMapScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="Chatbot" component={ChatbotScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="PaymentRedirect" component={PaymentRedirectScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="PaymentSuccess" component={PaymentSuccessScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="PaymentCancelled" component={PaymentCancelledScreen} options={hiddenTabOptions} />
     </Tab.Navigator>
   );
 };
@@ -98,6 +107,15 @@ const AdminTabs = () => {
       <Tab.Screen name="ReservationsTab" component={AdminReservationsScreen} options={{ title: 'Reservations' }} />
       <Tab.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} options={{ title: 'Posts' }} />
       <Tab.Screen name="AdminLotManagement" component={AdminLotManagementScreen} options={{ title: 'Lots' }} />
+      <Tab.Screen name="AdminApprovals" component={AdminApprovalsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="AdminVisitorReports" component={AdminVisitorReportsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="AdminLotMapEditor" component={AdminLotMapEditorScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="ArchivedUsers" component={ArchivedUsersScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="ArchivedAnnouncements" component={ArchivedAnnouncementsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="ArchivedServiceRequests" component={ArchivedServiceRequestsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="Chatbot" component={ChatbotScreen} options={hiddenTabOptions} />
     </Tab.Navigator>
   );
 };
@@ -129,6 +147,11 @@ const SecurityTabs = () => {
         <Tab.Screen name="TeamPerformanceTab" component={HeadOfficerTeamScreen} options={{ title: 'Team' }} />
       )}
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <Tab.Screen name="PersonnelTab" component={HeadOfficerTeamScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="AnalyticsTab" component={HeadOfficerTeamScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="Announcements" component={AnnouncementsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} options={hiddenTabOptions} />
+      <Tab.Screen name="Chatbot" component={ChatbotScreen} options={hiddenTabOptions} />
     </Tab.Navigator>
   );
 };

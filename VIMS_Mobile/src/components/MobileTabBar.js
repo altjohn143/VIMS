@@ -37,6 +37,26 @@ const iconMap = {
   AnalyticsTab: ['document-text', 'document-text-outline'],
 };
 
+const parentTabMap = {
+  Complaints: 'ServicesTab',
+  Announcements: 'DashboardTab',
+  Notifications: 'DashboardTab',
+  PublicLots: 'DashboardTab',
+  Chatbot: 'DashboardTab',
+  PaymentRedirect: 'PaymentsTab',
+  PaymentSuccess: 'PaymentsTab',
+  PaymentCancelled: 'PaymentsTab',
+  AdminApprovals: 'UsersTab',
+  AdminVerificationQueue: 'UsersTab',
+  ArchivedUsers: 'UsersTab',
+  AdminVisitorReports: 'VisitorsTab',
+  AdminLotMapEditor: 'AdminLotManagement',
+  ArchivedAnnouncements: 'AdminAnnouncements',
+  ArchivedServiceRequests: 'ServicesTab',
+  PersonnelTab: 'TeamPerformanceTab',
+  AnalyticsTab: 'TeamPerformanceTab',
+};
+
 const TabItem = ({ route, descriptor, focused, navigation }) => {
   const label = descriptor.options.tabBarLabel ?? descriptor.options.title ?? route.name;
   const icons = iconMap[route.name] || ['ellipse', 'ellipse-outline'];
@@ -62,6 +82,11 @@ const TabItem = ({ route, descriptor, focused, navigation }) => {
 
 const MobileTabBar = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
+  const activeRouteName = state.routes[state.index]?.name;
+  const highlightedRouteName = parentTabMap[activeRouteName] || activeRouteName;
+  const visibleRoutes = state.routes
+    .map((route, index) => ({ route, index }))
+    .filter(({ route }) => !descriptors[route.key]?.options?.tabBarButton);
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 6) }]}>
       <ScrollView
@@ -69,8 +94,8 @@ const MobileTabBar = ({ state, descriptors, navigation }) => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {state.routes.map((route, index) => (
-          <TabItem key={route.key} route={route} descriptor={descriptors[route.key]} focused={state.index === index} navigation={navigation} />
+        {visibleRoutes.map(({ route, index }) => (
+          <TabItem key={route.key} route={route} descriptor={descriptors[route.key]} focused={route.name === highlightedRouteName} navigation={navigation} />
         ))}
       </ScrollView>
     </View>

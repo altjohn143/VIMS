@@ -34,6 +34,14 @@ const isTransientAuthRefreshError = (error) => (
     /aborted|timed out|network request failed/i.test(error?.message || '')
   )
 );
+const isRequestTimeout = (error) => (
+  !error?.response &&
+  (
+    error?.code === 'ECONNABORTED' ||
+    error?.name === 'AbortError' ||
+    /aborted|timed out|network request failed/i.test(error?.message || '')
+  )
+);
 
 const parseStoredUserRole = (storedUser) => {
   if (!storedUser) return null;
@@ -193,12 +201,23 @@ export const AuthProvider = ({ children }) => {
       
       // Make sure no Authorization header is set for login
       delete api.defaults.headers.common['Authorization'];
-      
-      const response = await api.post('/auth/login', {
+
+      const loginPayload = {
         email: email.trim().toLowerCase(),
         password: password,
         expectedRole
-      });
+      };
+
+      const submitLogin = (timeout = 240000) => api.post('/auth/login', loginPayload, { timeout });
+      let response;
+      try {
+        response = await submitLogin();
+      } catch (loginError) {
+        if (!isRequestTimeout(loginError)) throw loginError;
+        console.warn('Login timed out; warming backend and retrying once.');
+        await api.get('/health', { timeout: 180000 }).catch(() => null);
+        response = await submitLogin(300000);
+      }
       
       debugLog('Login response status:', response.status);
       

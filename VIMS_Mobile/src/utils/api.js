@@ -149,7 +149,7 @@ debugLog('API Configuration:', { platform: Platform.OS, isDevice: Constants.isDe
 // Create axios instance with proper React Native adapter
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 60000, // Increased timeout to 60 seconds for slow networks
+  timeout: 180000, // Render hobby/free cold starts can take a while before responding.
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -166,7 +166,7 @@ if (Platform.OS !== 'web') {
     try {
       const url = `${config.baseURL}${config.url}`;
       const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), config.timeout || 60000);
+      timeoutId = setTimeout(() => controller.abort(), config.timeout || 180000);
       const requestOptions = {
         method: config.method?.toUpperCase() || 'GET',
         headers: config.headers,

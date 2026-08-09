@@ -280,6 +280,61 @@ const ServiceRequestsScreen = ({ navigation }) => {
     completed: requests.filter(r => r.status === 'completed').length,
   };
 
+  const renderListHeader = () => (
+    <>
+      <View style={styles.statsGrid}>
+        <View style={styles.coloredStatCard}>
+          <View style={styles.statCardHighlight} />
+          <Ionicons name="build-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue}>{stats.total}</Text>
+          <Text style={styles.coloredStatLabel}>Total</Text>
+        </View>
+        <View style={styles.coloredStatCard}>
+          <View style={styles.statCardHighlight} />
+          <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue}>{stats.pending}</Text>
+          <Text style={styles.coloredStatLabel}>Pending</Text>
+        </View>
+        <View style={styles.coloredStatCard}>
+          <View style={styles.statCardHighlight} />
+          <Ionicons name="cog-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue}>{stats.inProgress}</Text>
+          <Text style={styles.coloredStatLabel}>In Progress</Text>
+        </View>
+        <View style={styles.coloredStatCard}>
+          <View style={styles.statCardHighlight} />
+          <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
+          <Text style={styles.coloredStatValue}>{stats.completed}</Text>
+          <Text style={styles.coloredStatLabel}>Completed</Text>
+        </View>
+      </View>
+
+      <View style={styles.tabContainer}>
+        <ScrollableTab
+          tabs={[
+            { key: 'all', label: 'All', count: stats.total },
+            { key: 'pending', label: 'Pending', count: stats.pending },
+            { key: 'in-progress', label: 'In Progress', count: stats.inProgress },
+            { key: 'completed', label: 'Completed', count: stats.completed },
+          ]}
+          activeTab={activeTab}
+          onTabPress={setActiveTab}
+        />
+      </View>
+
+      <View style={styles.directorySearchRow}>
+        <View style={styles.directorySearch}>
+          <Ionicons name="search" size={19} color={themeColors.textSecondary} />
+          <TextInput style={styles.directorySearchInput} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search requests..." blurOnSubmit={false} />
+        </View>
+        <TouchableOpacity style={[styles.directoryFilterButton, (categoryFilter !== 'all' || priorityFilter !== 'all') && styles.directoryFilterActive]} onPress={() => setShowFilterModal(true)}>
+          <Ionicons name="options-outline" size={20} color={(categoryFilter !== 'all' || priorityFilter !== 'all') ? 'white' : themeColors.primaryDeep} />
+          <Text style={[styles.directoryFilterText, (categoryFilter !== 'all' || priorityFilter !== 'all') && styles.directoryFilterTextActive]}>Filter</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
   const renderRequestCard = ({ item }) => {
     const status = getStatusChip(item.status);
     const category = categories.find(c => c.value === item.category);
@@ -373,62 +428,12 @@ const ServiceRequestsScreen = ({ navigation }) => {
         ]}
       />
 
-      <View style={styles.statsGrid}>
-        <View style={styles.coloredStatCard}>
-          <View style={styles.statCardHighlight} />
-          <Ionicons name="build-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue}>{stats.total}</Text>
-          <Text style={styles.coloredStatLabel}>Total</Text>
-        </View>
-        <View style={styles.coloredStatCard}>
-          <View style={styles.statCardHighlight} />
-          <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue}>{stats.pending}</Text>
-          <Text style={styles.coloredStatLabel}>Pending</Text>
-        </View>
-        <View style={styles.coloredStatCard}>
-          <View style={styles.statCardHighlight} />
-          <Ionicons name="cog-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue}>{stats.inProgress}</Text>
-          <Text style={styles.coloredStatLabel}>In Progress</Text>
-        </View>
-        <View style={styles.coloredStatCard}>
-          <View style={styles.statCardHighlight} />
-          <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
-          <Text style={styles.coloredStatValue}>{stats.completed}</Text>
-          <Text style={styles.coloredStatLabel}>Completed</Text>
-        </View>
-      </View>
-
-      <View style={styles.tabContainer}>
-        <ScrollableTab
-          tabs={[
-            { key: 'all', label: 'All', count: stats.total },
-            { key: 'pending', label: 'Pending', count: stats.pending },
-            { key: 'in-progress', label: 'In Progress', count: stats.inProgress },
-            { key: 'completed', label: 'Completed', count: stats.completed },
-          ]}
-          activeTab={activeTab}
-          onTabPress={setActiveTab}
-        />
-      </View>
-
-      <View style={styles.directorySearchRow}>
-        <View style={styles.directorySearch}>
-          <Ionicons name="search" size={19} color={themeColors.textSecondary} />
-          <TextInput style={styles.directorySearchInput} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search requests..." blurOnSubmit={false} />
-        </View>
-        <TouchableOpacity style={[styles.directoryFilterButton, (categoryFilter !== 'all' || priorityFilter !== 'all') && styles.directoryFilterActive]} onPress={() => setShowFilterModal(true)}>
-          <Ionicons name="options-outline" size={20} color={(categoryFilter !== 'all' || priorityFilter !== 'all') ? 'white' : themeColors.primaryDeep} />
-          <Text style={[styles.directoryFilterText, (categoryFilter !== 'all' || priorityFilter !== 'all') && styles.directoryFilterTextActive]}>Filter</Text>
-        </TouchableOpacity>
-      </View>
-
       <FlatList
         data={paginatedRequests}
         renderItem={renderRequestCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={renderListHeader()}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

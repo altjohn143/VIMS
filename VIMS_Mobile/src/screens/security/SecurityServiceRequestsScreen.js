@@ -317,6 +317,61 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     );
   };
 
+  const renderListHeader = () => (
+    <View style={styles.filters}>
+      <View style={styles.searchBox}>
+        <Ionicons name="search" size={18} color={themeColors.textSecondary} />
+        <TextInput
+          style={styles.searchInput}
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search title, category, resident..."
+          blurOnSubmit={false}
+        />
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
+        {[
+          { key: 'all', label: 'All' },
+          { key: 'pending', label: 'Pending' },
+          { key: 'assigned', label: 'Assigned' },
+          { key: 'in-progress', label: 'In Progress' },
+          { key: 'completed', label: 'Completed' },
+        ].map((c) => (
+          <TouchableOpacity key={c.key} style={[styles.chip, status === c.key && styles.chipActive]} onPress={() => setStatus(c.key)}>
+            <Text style={[styles.chipText, status === c.key && styles.chipTextActive]}>{c.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
+        {[
+          { key: 'all', label: 'All Types' },
+          { key: 'security', label: 'Security' },
+          { key: 'complaint', label: 'Complaints' },
+        ].map((c) => (
+          <TouchableOpacity key={c.key} style={[styles.chip, category === c.key && styles.chipActive]} onPress={() => setCategory(c.key)}>
+            <Text style={[styles.chipText, category === c.key && styles.chipTextActive]}>{c.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
+        {[
+          { key: 'all', label: 'All Priority' },
+          { key: 'low', label: 'Low' },
+          { key: 'medium', label: 'Medium' },
+          { key: 'high', label: 'High' },
+          { key: 'urgent', label: 'Urgent' },
+        ].map((c) => (
+          <TouchableOpacity key={c.key} style={[styles.chip, priority === c.key && styles.chipActive]} onPress={() => setPriority(c.key)}>
+            <Text style={[styles.chipText, priority === c.key && styles.chipTextActive]}>{c.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
   if (loading || !userLoaded) {
     return (
       <View style={styles.loadingContainer}>
@@ -334,64 +389,12 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         actions={[{ label: 'Refresh', icon: 'refresh', onPress: load, primary: true }]}
       />
 
-      <View style={styles.filters}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color={themeColors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search title, category, resident..."
-            blurOnSubmit={false}
-          />
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'pending', label: 'Pending' },
-            { key: 'assigned', label: 'Assigned' },
-            { key: 'in-progress', label: 'In Progress' },
-            { key: 'completed', label: 'Completed' },
-          ].map((c) => (
-            <TouchableOpacity key={c.key} style={[styles.chip, status === c.key && styles.chipActive]} onPress={() => setStatus(c.key)}>
-              <Text style={[styles.chipText, status === c.key && styles.chipTextActive]}>{c.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
-          {[
-            { key: 'all', label: 'All Types' },
-            { key: 'security', label: 'Security' },
-            { key: 'complaint', label: 'Complaints' },
-          ].map((c) => (
-            <TouchableOpacity key={c.key} style={[styles.chip, category === c.key && styles.chipActive]} onPress={() => setCategory(c.key)}>
-              <Text style={[styles.chipText, category === c.key && styles.chipTextActive]}>{c.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
-          {[
-            { key: 'all', label: 'All Priority' },
-            { key: 'low', label: 'Low' },
-            { key: 'medium', label: 'Medium' },
-            { key: 'high', label: 'High' },
-            { key: 'urgent', label: 'Urgent' },
-          ].map((c) => (
-            <TouchableOpacity key={c.key} style={[styles.chip, priority === c.key && styles.chipActive]} onPress={() => setPriority(c.key)}>
-              <Text style={[styles.chipText, priority === c.key && styles.chipTextActive]}>{c.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
       <FlatList
         data={paginated}
         renderItem={renderItem}
         keyExtractor={(item, index) => item?._id || `service-${index}`}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={renderListHeader()}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

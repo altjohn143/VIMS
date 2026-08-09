@@ -74,6 +74,13 @@ const DashboardScreen = ({ navigation }) => {
 
   const formatPeso = (n) => Math.round(Number(n) || 0).toLocaleString('en-PH');
 
+  const openAllNotifications = () => {
+    setNotificationModalVisible(false);
+    setTimeout(() => {
+      navigation.navigate('Notifications');
+    }, 0);
+  };
+
   const getDateKey = (value) => {
     if (!value) return null;
     const date = new Date(value);
@@ -938,9 +945,11 @@ const DashboardScreen = ({ navigation }) => {
                 </View>
               ) : (
                 recentActivity.map((n, i) => (
-                  <View
+                  <TouchableOpacity
                     key={n._id || String(i)}
                     style={[styles.actionRow, i < recentActivity.length - 1 && styles.actionRowDivider]}
+                    onPress={() => setNotificationModalVisible(true)}
+                    activeOpacity={0.8}
                   >
                     <View style={[styles.actionIconWrap, { backgroundColor: themeColors.primaryWash }]}> 
                       <Ionicons name="notifications-outline" size={16} color={themeColors.primary} />
@@ -949,7 +958,7 @@ const DashboardScreen = ({ navigation }) => {
                       <Text style={styles.actionTitle} numberOfLines={1}>{n.title || 'Notification'}</Text>
                       <Text style={styles.actionSub} numberOfLines={2}>{n.body || ''}</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))
               )}
             </>
@@ -959,6 +968,8 @@ const DashboardScreen = ({ navigation }) => {
         <NotificationModal 
           visible={notificationModalVisible} 
           onClose={() => setNotificationModalVisible(false)} 
+          navigation={navigation}
+          onViewAll={openAllNotifications}
         />
       </View>
     </ScrollView>

@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import api from '../utils/api';
 import { themeColors, shadows } from '../utils/theme';
 
-const NotificationModal = ({ visible, onClose }) => {
+const NotificationModal = ({ visible, onClose, navigation, onViewAll }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const slideAnim = useRef(new Animated.Value(500)).current;
@@ -76,6 +76,53 @@ const NotificationModal = ({ visible, onClose }) => {
     }
   };
 
+  const navigateAfterClose = (screen) => {
+    onClose?.();
+    setTimeout(() => {
+      try {
+        if (navigation?.navigate) {
+          navigation.navigate(screen);
+          return;
+        }
+        navigation?.getParent?.()?.navigate?.(screen);
+      } catch (error) {
+        const parent = navigation?.getParent?.();
+        if (parent?.navigate) parent.navigate(screen);
+      }
+    }, 180);
+  };
+
+  const getRelatedDestination = (notification) => {
+    const metadata = notification?.metadata || {};
+    const type = String(notification?.type || metadata?.type || '').toLowerCase();
+    const has = (key) => !!metadata?.[key];
+
+    if (has('visitorId') || type.includes('visitor')) return 'VisitorsTab';
+    if (has('paymentId') || type.includes('payment')) return 'PaymentsTab';
+    if (has('serviceRequestId') || type.includes('service')) return 'ServicesTab';
+    if (has('announcementId') || type.includes('announcement')) return 'Announcements';
+    if (has('reservationId') || type.includes('reservation')) return 'ReservationsTab';
+    return null;
+  };
+
+  const openNotification = async (notification) => {
+    if (!notification) return;
+    if (!notification.readAt && notification._id) {
+      await markAsRead(notification._id);
+    }
+
+    const destination = getRelatedDestination(notification);
+    if (!destination || !navigation?.navigate) {
+      Alert.alert(
+        notification?.title || 'Notification',
+        notification?.body || 'No additional details were provided.'
+      );
+      return;
+    }
+
+    navigateAfterClose(destination);
+  };
+
   const unreadCount = notifications.filter((n) => !n.readAt).length;
 
   const formatWhen = (dateValue) => {
@@ -92,7 +139,7 @@ const NotificationModal = ({ visible, onClose }) => {
     return (
       <TouchableOpacity
         style={[styles.notificationItem, isUnread ? styles.notificationItemUnread : null]}
-        onPress={() => isUnread && item._id && markAsRead(item._id)}
+        onPress={() => openNotification(item)}
         activeOpacity={0.7}
       >
         <View style={styles.notificationContent}>
@@ -105,7 +152,13 @@ const NotificationModal = ({ visible, onClose }) => {
           <Text style={styles.notificationBody} numberOfLines={2}>
             {item?.body || ''}
           </Text>
-          <Text style={styles.notificationTime}>{formatWhen(item?.createdAt)}</Text>
+            <Text style={styles.notificationTime}>{formatWhen(item?.createdAt)}</Text>
+            <View style={styles.notificationHintRow}>
+              <Text style={styles.notificationHint}>
+                {getRelatedDestination(item) ? 'Tap to open related record' : 'Tap to view details'}
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={themeColors.textSecondary} />
+            </View>
         </View>
       </TouchableOpacity>
     );
@@ -176,9 +229,11 @@ const NotificationModal = ({ visible, onClose }) => {
             <TouchableOpacity
               style={styles.viewAllBtn}
               onPress={() => {
-                onClose();
-                // Navigate to full notifications page
-                // navigation.navigate('Notifications');
+                if (onViewAll) {
+                  onViewAll();
+                } else {
+                  navigateAfterClose('Notifications');
+                }
               }}
             >
               <Text style={styles.viewAllBtnText}>View all notifications</Text>
@@ -338,6 +393,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(100, 116, 139, 0.6)',
     marginTop: 2,
+  },
+
+  notificationHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+
+  notificationHint: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: themeColors.primary,
   },
 
   panelFooter: {

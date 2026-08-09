@@ -436,6 +436,74 @@ const VisitorManagementScreen = ({ navigation }) => {
     pending: visitors.filter(v => v.status === 'pending').length,
   };
 
+  const renderListHeader = () => (
+    <>
+      {!historyMode && (
+        <View style={styles.statsGrid}>
+          <View style={styles.coloredStatCard}>
+            <View style={styles.statCardHighlight} />
+            <Ionicons name="people-outline" style={styles.coloredStatBgIcon} />
+            <Text style={styles.coloredStatValue}>{stats.total}</Text>
+            <Text style={styles.coloredStatLabel}>Total Visitors</Text>
+          </View>
+          <View style={styles.coloredStatCard}>
+            <View style={styles.statCardHighlight} />
+            <Ionicons name="today-outline" style={styles.coloredStatBgIcon} />
+            <Text style={styles.coloredStatValue}>{stats.today}</Text>
+            <Text style={styles.coloredStatLabel}>Today's Visitors</Text>
+          </View>
+          <View style={styles.coloredStatCard}>
+            <View style={styles.statCardHighlight} />
+            <Ionicons name="radio-button-on-outline" style={styles.coloredStatBgIcon} />
+            <Text style={styles.coloredStatValue}>{stats.active}</Text>
+            <Text style={styles.coloredStatLabel}>Active Visitors</Text>
+          </View>
+          <View style={styles.coloredStatCard}>
+            <View style={styles.statCardHighlight} />
+            <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
+            <Text style={styles.coloredStatValue}>{stats.pending}</Text>
+            <Text style={styles.coloredStatLabel}>Pending</Text>
+          </View>
+        </View>
+      )}
+
+      {!historyMode && (
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 0 && styles.activeTab]}
+            onPress={() => setActiveTab(0)}
+          >
+            <Ionicons name="radio-button-on" size={16} color={activeTab === 0 ? themeColors.primary : themeColors.textSecondary} />
+            <Text style={[styles.tabText, activeTab === 0 && styles.activeTabText]}>Active</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 1 && styles.activeTab]}
+            onPress={() => setActiveTab(1)}
+          >
+            <Ionicons name="checkmark-done" size={16} color={activeTab === 1 ? themeColors.primary : themeColors.textSecondary} />
+            <Text style={[styles.tabText, activeTab === 1 && styles.activeTabText]}>Completed</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 2 && styles.activeTab]}
+            onPress={() => setActiveTab(2)}
+          >
+            <Ionicons name="close-circle" size={16} color={activeTab === 2 ? themeColors.primary : themeColors.textSecondary} />
+            <Text style={[styles.tabText, activeTab === 2 && styles.activeTabText]}>Rejected</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!historyMode && (
+        <View style={styles.confirmBar}>
+          <TouchableOpacity style={styles.confirmScanButton} onPress={openResidentScanner}>
+            <Ionicons name="scan" size={18} color="white" />
+            <Text style={styles.confirmScanText}>{confirmButtonText}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </>
+  );
+
   const renderVisitorCard = ({ item }) => {
     const status = getStatusChip(item);
     const isQRValid = ['approved', 'active', 'completed'].includes(item.status);
@@ -534,75 +602,14 @@ const VisitorManagementScreen = ({ navigation }) => {
         actions={[{ label: historyMode ? 'Active' : 'History', icon: historyMode ? 'people' : 'time', onPress: () => setHistoryMode(!historyMode), primary: true }]}
       />
 
-      {!historyMode && (
-        <View style={styles.statsGrid}>
-          <View style={styles.coloredStatCard}>
-            <View style={styles.statCardHighlight} />
-            <Ionicons name="people-outline" style={styles.coloredStatBgIcon} />
-            <Text style={styles.coloredStatValue}>{stats.total}</Text>
-            <Text style={styles.coloredStatLabel}>Total Visitors</Text>
-          </View>
-          <View style={styles.coloredStatCard}>
-            <View style={styles.statCardHighlight} />
-            <Ionicons name="today-outline" style={styles.coloredStatBgIcon} />
-            <Text style={styles.coloredStatValue}>{stats.today}</Text>
-            <Text style={styles.coloredStatLabel}>Today's Visitors</Text>
-          </View>
-          <View style={styles.coloredStatCard}>
-            <View style={styles.statCardHighlight} />
-            <Ionicons name="radio-button-on-outline" style={styles.coloredStatBgIcon} />
-            <Text style={styles.coloredStatValue}>{stats.active}</Text>
-            <Text style={styles.coloredStatLabel}>Active Visitors</Text>
-          </View>
-          <View style={styles.coloredStatCard}>
-            <View style={styles.statCardHighlight} />
-            <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
-            <Text style={styles.coloredStatValue}>{stats.pending}</Text>
-            <Text style={styles.coloredStatLabel}>Pending</Text>
-          </View>
-        </View>
-      )}
-
-      {!historyMode && (
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 0 && styles.activeTab]}
-            onPress={() => setActiveTab(0)}
-          >
-            <Ionicons name="radio-button-on" size={16} color={activeTab === 0 ? themeColors.primary : themeColors.textSecondary} />
-            <Text style={[styles.tabText, activeTab === 0 && styles.activeTabText]}>Active</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 1 && styles.activeTab]}
-            onPress={() => setActiveTab(1)}
-          >
-            <Ionicons name="checkmark-done" size={16} color={activeTab === 1 ? themeColors.primary : themeColors.textSecondary} />
-            <Text style={[styles.tabText, activeTab === 1 && styles.activeTabText]}>Completed</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 2 && styles.activeTab]}
-            onPress={() => setActiveTab(2)}
-          >
-            <Ionicons name="close-circle" size={16} color={activeTab === 2 ? themeColors.primary : themeColors.textSecondary} />
-            <Text style={[styles.tabText, activeTab === 2 && styles.activeTabText]}>Rejected</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {!historyMode && (
-        <View style={styles.confirmBar}>
-          <TouchableOpacity style={styles.confirmScanButton} onPress={openResidentScanner}>
-            <Ionicons name="scan" size={18} color="white" />
-            <Text style={styles.confirmScanText}>{confirmButtonText}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       <FlatList
         data={paginatedVisitors}
         renderItem={renderVisitorCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={renderListHeader()}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

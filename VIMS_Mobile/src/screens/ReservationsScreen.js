@@ -11,6 +11,7 @@ import {
   TextInput,
   Platform,
   KeyboardAvoidingView,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
@@ -21,6 +22,7 @@ import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 const ReservationsScreen = ({ navigation }) => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resources, setResources] = useState({ venue: [], equipment: [] });
@@ -77,7 +79,14 @@ const ReservationsScreen = ({ navigation }) => {
       Alert.alert('Error', 'Failed to fetch reservations');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchReservations();
+    fetchResources();
   };
 
   const fetchResources = async () => {
@@ -529,7 +538,11 @@ const ReservationsScreen = ({ navigation }) => {
         actions={[{ label: 'New', icon: 'add', onPress: () => setModalVisible(true), primary: true }]}
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         {/* Stats Section */}
         <View style={styles.statsGrid}>
           <View style={styles.coloredStatCard}>

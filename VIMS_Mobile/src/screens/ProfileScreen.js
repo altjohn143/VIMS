@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Modal,
   Image,
-  KeyboardAvoidingView,
+  Keyboard,
+  Dimensions,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,6 +46,18 @@ const ProfileScreen = ({ navigation }) => {
   const [passwordOtp, setPasswordOtp] = useState('');
   const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   const [moveOutReason, setMoveOutReason] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const passwordScrollRef = useRef(null);
+  const moveOutScrollRef = useRef(null);
+
+  const scrollModalTo = (ref, y) => {
+    setTimeout(() => {
+      ref.current?.scrollTo?.({ y, animated: true });
+    }, 120);
+  };
+  const keyboardSheetStyle = Platform.OS === 'ios' && keyboardHeight > 0
+    ? { bottom: keyboardHeight, maxHeight: Math.max(260, Dimensions.get('window').height - keyboardHeight - 24) }
+    : null;
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [documentModalTitle, setDocumentModalTitle] = useState('');
   const [documentModalImage, setDocumentModalImage] = useState(null);
@@ -100,6 +113,20 @@ const ProfileScreen = ({ navigation }) => {
 
   useEffect(() => {
     loadUserProfile();
+  }, []);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', (event) => {
+      setKeyboardHeight(event.endCoordinates?.height || 0);
+    });
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
   }, []);
 
   const loadUserProfile = async () => {
@@ -813,12 +840,8 @@ const ProfileScreen = ({ navigation }) => {
 
       <Modal visible={showPasswordModal} animationType="slide" transparent onRequestClose={() => setShowPasswordModal(false)}>
         <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            style={styles.keyboardAvoidingSheet}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-          >
-            <View style={styles.passwordModalContent}>
+          <View style={styles.absoluteSheetHost} pointerEvents="box-none">
+            <View style={[styles.passwordModalContent, keyboardSheetStyle]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Change Password</Text>
                 <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
@@ -827,9 +850,14 @@ const ProfileScreen = ({ navigation }) => {
               </View>
 
               <ScrollView
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-                showsVerticalScrollIndicator={false}
+                ref={passwordScrollRef}
+                keyboardShouldPersistTaps="always"
+                keyboardDismissMode="none"
+                showsVerticalScrollIndicator
+                nestedScrollEnabled
+                scrollEnabled
+                alwaysBounceVertical
+                overScrollMode="always"
                 contentContainerStyle={styles.passwordModalBody}
               >
                 <View style={styles.inputGroup}>
@@ -842,6 +870,7 @@ const ProfileScreen = ({ navigation }) => {
                       onChangeText={(text) => setPasswordData(prev => ({ ...prev, currentPassword: text }))}
                       secureTextEntry={!showPassword.current}
                       returnKeyType="next"
+                      onFocus={() => scrollModalTo(passwordScrollRef, 0)}
                     />
                     <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}>
                       <Ionicons name={showPassword.current ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
@@ -859,6 +888,7 @@ const ProfileScreen = ({ navigation }) => {
                       onChangeText={(text) => setPasswordData(prev => ({ ...prev, newPassword: text }))}
                       secureTextEntry={!showPassword.new}
                       returnKeyType="next"
+                      onFocus={() => scrollModalTo(passwordScrollRef, 44)}
                     />
                     <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}>
                       <Ionicons name={showPassword.new ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
@@ -876,6 +906,7 @@ const ProfileScreen = ({ navigation }) => {
                       onChangeText={(text) => setPasswordData(prev => ({ ...prev, confirmPassword: text }))}
                       secureTextEntry={!showPassword.confirm}
                       returnKeyType={passwordOtpSent ? 'next' : 'done'}
+                      onFocus={() => scrollModalTo(passwordScrollRef, 132)}
                     />
                     <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}>
                       <Ionicons name={showPassword.confirm ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
@@ -888,7 +919,7 @@ const ProfileScreen = ({ navigation }) => {
                     <Text style={styles.label}>Email Verification Code</Text>
                     <View style={styles.inputContainer}>
                       <Ionicons name="mail-open-outline" size={20} color={themeColors.textSecondary} />
-                      <TextInput style={styles.input} value={passwordOtp} onChangeText={(text) => setPasswordOtp(text.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} placeholder="6-digit code" returnKeyType="done" />
+                      <TextInput style={styles.input} value={passwordOtp} onChangeText={(text) => setPasswordOtp(text.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} placeholder="6-digit code" returnKeyType="done" onFocus={() => scrollModalTo(passwordScrollRef, 210)} />
                     </View>
                     <TouchableOpacity onPress={() => { setPasswordOtpSent(false); setPasswordOtp(''); }}><Text style={styles.documentLink}>Request a new code</Text></TouchableOpacity>
                   </View>
@@ -904,29 +935,26 @@ const ProfileScreen = ({ navigation }) => {
                 </View>
               </ScrollView>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </View>
       </Modal>
 
       <Modal visible={showMoveOutModal} animationType="slide" transparent onRequestClose={() => setShowMoveOutModal(false)}>
         <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            style={styles.keyboardAvoidingSheet}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-          >
-            <View style={styles.moveOutModalContent}>
+          <View style={styles.absoluteSheetHost} pointerEvents="box-none">
+            <View style={[styles.moveOutModalContent, keyboardSheetStyle]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Request Move-out</Text>
                 <TouchableOpacity onPress={() => setShowMoveOutModal(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
               </View>
               <ScrollView
+                ref={moveOutScrollRef}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.moveOutModalBody}
               >
-                <Text style={styles.helperText}>An administrator will review this request before your lot and account status change.</Text>
+                <Text style={styles.modalHelperText}>An administrator will review this request before your lot and account status change.</Text>
                 <Text style={styles.label}>Reason</Text>
                 <TextInput
                   style={styles.reasonInput}
@@ -936,6 +964,7 @@ const ProfileScreen = ({ navigation }) => {
                   multiline
                   textAlignVertical="top"
                   returnKeyType="default"
+                  onFocus={() => scrollModalTo(moveOutScrollRef, 0)}
                 />
                 <View style={styles.modalActions}>
                   <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowMoveOutModal(false)}><Text style={styles.cancelButtonText}>Cancel</Text></TouchableOpacity>
@@ -945,7 +974,7 @@ const ProfileScreen = ({ navigation }) => {
                 </View>
               </ScrollView>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </View>
       </Modal>
 
@@ -1008,6 +1037,7 @@ const styles = StyleSheet.create({
   compactInput: { minHeight: 45, borderWidth: 1, borderColor: themeColors.borderStrong, borderRadius: 12, backgroundColor: 'white', paddingHorizontal: 12, color: themeColors.textPrimary },
   documentLink: { color: themeColors.primary, fontWeight: '800', fontSize: 12, marginTop: 8 },
   helperText: { fontSize: 12, color: themeColors.textSecondary, marginTop: -10, marginBottom: 12, lineHeight: 16 },
+  modalHelperText: { fontSize: 13, color: themeColors.textSecondary, marginTop: 0, marginBottom: 14, lineHeight: 18 },
   moveOutRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   moveOutStatusPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: themeColors.warning + '15', borderWidth: 1, borderColor: themeColors.warning + '35' },
   moveOutStatusText: { fontSize: 12, fontWeight: '700', color: themeColors.warning, textTransform: 'capitalize' },
@@ -1026,12 +1056,13 @@ const styles = StyleSheet.create({
   inlineUpdateButton: { backgroundColor: themeColors.primaryDeep, minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 4 },
   inlineUpdateButtonText: { color: 'white', fontSize: 15, fontWeight: '800' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  absoluteSheetHost: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
   keyboardAvoidingSheet: { flex: 1, justifyContent: 'flex-end' },
   modalContent: { backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 22 },
-  passwordModalContent: { backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: '92%' },
-  passwordModalBody: { paddingBottom: 120 },
-  moveOutModalContent: { backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: '92%' },
-  moveOutModalBody: { paddingBottom: 120 },
+  passwordModalContent: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: Platform.OS === 'ios' ? '92%' : '88%' },
+  passwordModalBody: { paddingBottom: Platform.OS === 'ios' ? 90 : 56 },
+  moveOutModalContent: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: Platform.OS === 'ios' ? '86%' : '78%' },
+  moveOutModalBody: { paddingTop: 4, paddingBottom: Platform.OS === 'ios' ? 72 : 40 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: '600', color: themeColors.textPrimary },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, gap: 10 },

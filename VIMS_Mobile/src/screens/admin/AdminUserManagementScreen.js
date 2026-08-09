@@ -656,6 +656,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
             placeholder="Search users..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            blurOnSubmit={false}
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -784,7 +785,9 @@ const AdminUserManagementScreen = ({ navigation }) => {
         renderItem={renderUserCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
-        ListHeaderComponent={renderDirectoryControls}
+        ListHeaderComponent={renderDirectoryControls()}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

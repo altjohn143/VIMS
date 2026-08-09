@@ -384,6 +384,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
             placeholder="Search request, resident, or house"
             value={searchQuery}
             onChangeText={setSearchQuery}
+            blurOnSubmit={false}
           />
         </View>
         <View style={styles.filterMetaRow}>
@@ -575,8 +576,10 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
         data={filteredRequests}
         renderItem={renderRequestCard}
         keyExtractor={(item) => item._id}
-        ListHeaderComponent={renderScreenHeader}
+        ListHeaderComponent={renderScreenHeader()}
         contentContainerStyle={styles.listContainer}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

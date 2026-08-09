@@ -416,7 +416,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
       <View style={styles.directorySearchRow}>
         <View style={styles.directorySearch}>
           <Ionicons name="search" size={19} color={themeColors.textSecondary} />
-          <TextInput style={styles.directorySearchInput} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search requests..." />
+          <TextInput style={styles.directorySearchInput} value={searchQuery} onChangeText={setSearchQuery} placeholder="Search requests..." blurOnSubmit={false} />
         </View>
         <TouchableOpacity style={[styles.directoryFilterButton, (categoryFilter !== 'all' || priorityFilter !== 'all') && styles.directoryFilterActive]} onPress={() => setShowFilterModal(true)}>
           <Ionicons name="options-outline" size={20} color={(categoryFilter !== 'all' || priorityFilter !== 'all') ? 'white' : themeColors.primaryDeep} />
@@ -429,6 +429,8 @@ const ServiceRequestsScreen = ({ navigation }) => {
         renderItem={renderRequestCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

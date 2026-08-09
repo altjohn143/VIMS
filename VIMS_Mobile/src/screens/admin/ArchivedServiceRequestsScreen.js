@@ -189,6 +189,7 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
         placeholder="Search archived requests..."
         value={searchQuery}
         onChangeText={setSearchQuery}
+        blurOnSubmit={false}
       />
       {searchQuery ? (
         <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -207,7 +208,9 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
         renderItem={renderServiceRequestCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
-        ListHeaderComponent={renderListHeader}
+        ListHeaderComponent={renderListHeader()}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

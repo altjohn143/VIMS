@@ -358,6 +358,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
             placeholder="Search visitors..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            blurOnSubmit={false}
           />
           {(searchQuery || statusFilter !== 'all' || dateFilter) ? (
             <TouchableOpacity onPress={clearFilters}>
@@ -432,7 +433,9 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
         renderItem={renderVisitorCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
-        ListHeaderComponent={renderVisitorListHeader}
+        ListHeaderComponent={renderVisitorListHeader()}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

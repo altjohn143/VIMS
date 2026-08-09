@@ -53,6 +53,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchDraft, setSearchDraft] = useState('');
   const [monthlyDuesAmount, setMonthlyDuesAmount] = useState(0);
   const [duesAmountDraft, setDuesAmountDraft] = useState('');
   const [showDuesDialog, setShowDuesDialog] = useState(false);
@@ -113,6 +114,13 @@ const AdminPaymentsScreen = ({ navigation }) => {
     fetchStats();
     fetchMonthlyDuesAmount();
   }, [fetchPayments, fetchStats, fetchMonthlyDuesAmount]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchDraft.trim());
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [searchDraft]);
 
   useEffect(() => {
     setPage(1);
@@ -273,6 +281,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
   };
 
   const clearPaymentFilters = () => {
+    setSearchDraft('');
     setSearchQuery('');
     setStatusFilter('all');
     setPaymentTypeFilter('all');
@@ -356,8 +365,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
           <TextInput
             style={styles.searchInput}
             placeholder="Search resident, invoice, or reference"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            value={searchDraft}
+            onChangeText={setSearchDraft}
+            blurOnSubmit={false}
           />
         </View>
         <TouchableOpacity
@@ -509,8 +519,10 @@ const AdminPaymentsScreen = ({ navigation }) => {
         data={filteredPayments}
         renderItem={renderPaymentCard}
         keyExtractor={(item) => item._id}
-        ListHeaderComponent={renderScreenHeader}
+        ListHeaderComponent={renderScreenHeader()}
         contentContainerStyle={styles.listContainer}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

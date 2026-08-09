@@ -527,6 +527,7 @@ const AdminReservationsScreen = ({ navigation }) => {
               onChangeText={setSearchQuery}
               placeholder="Search resident or resource..."
               placeholderTextColor="#94a3b8"
+              blurOnSubmit={false}
             />
           </View>
           <TouchableOpacity style={[styles.filterButton, resourceTypeFilter !== 'all' && styles.filterButtonActive]} onPress={() => setFilterModalVisible(true)}>

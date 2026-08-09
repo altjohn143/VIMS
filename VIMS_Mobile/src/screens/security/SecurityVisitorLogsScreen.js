@@ -437,6 +437,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
             placeholder="Search visitors..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            blurOnSubmit={false}
           />
         </View>
 
@@ -649,7 +650,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         data={paginatedVisitors}
         renderItem={renderVisitorCard}
         keyExtractor={(item) => item._id}
-        ListHeaderComponent={renderListHeader}
+        ListHeaderComponent={renderListHeader()}
         contentContainerStyle={styles.listContainer}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="none"

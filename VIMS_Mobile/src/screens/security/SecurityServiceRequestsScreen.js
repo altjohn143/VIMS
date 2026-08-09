@@ -342,6 +342,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
             value={query}
             onChangeText={setQuery}
             placeholder="Search title, category, resident..."
+            blurOnSubmit={false}
           />
         </View>
 

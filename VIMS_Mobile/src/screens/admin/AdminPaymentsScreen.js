@@ -22,6 +22,7 @@ import api, { getProtectedImageDataUrl } from '../../utils/api';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAuthToken } from '../../utils/secureSession';
+import UserDropdownMenu from '../../components/UserDropdownMenu';
 
 const AdminPaymentsScreen = ({ navigation }) => {
   const [payments, setPayments] = useState([]);
@@ -333,6 +334,43 @@ const AdminPaymentsScreen = ({ navigation }) => {
     );
   });
 
+  const renderScreenHeader = () => (
+    <View>
+
+      <View style={styles.financeSnapshot}>
+        {[
+          ['Monthly', formatCurrency(summary.monthlyCollected)],
+          ['Pending', formatCurrency(summary.pendingTotal)],
+          ['Rate', `${summary.collectionRate || 0}%`],
+        ].map(([label, value]) => (
+          <View key={label} style={styles.snapshotItem}>
+            <Text style={styles.snapshotLabel}>{label}</Text>
+            <Text style={styles.snapshotValue}>{value}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.filterBar}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={18} color={themeColors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search resident, invoice, or reference"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        <TouchableOpacity
+          style={[styles.filterButton, (statusFilter !== 'all' || paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') && styles.activeFilter]}
+          onPress={() => setShowFiltersDialog(true)}
+        >
+          <Ionicons name="filter" size={17} color={(statusFilter !== 'all' || paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') ? 'white' : themeColors.textSecondary} />
+          <Text style={[styles.filterText, (statusFilter !== 'all' || paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') && styles.activeFilterText]}>Filter</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   const renderPaymentCard = ({ item: payment }) => {
     const status = getStatusChip(payment.status, payment.dueDate);
     const methodConfig = getPaymentMethodConfig(payment.paymentMethod);
@@ -432,13 +470,46 @@ const AdminPaymentsScreen = ({ navigation }) => {
     );
   };
 
-  const renderPaymentListHeader = () => (
+  return (
     <View style={styles.listHeaderControls}>
+      <View style={styles.directoryHeader}>
+        <View style={styles.directoryTopRow}>
+          <View>
+            <Text style={styles.directoryEyebrow}>ADMIN PAYMENTS</Text>
+            <Text style={styles.directoryTitle}>Payments</Text>
+            <Text style={styles.directorySubtitle}>{total || payments.length} payment records</Text>
+          </View>
+          <UserDropdownMenu navigation={navigation} />
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.directoryActions}>
+          <TouchableOpacity onPress={onRefresh} style={styles.directoryPrimaryAction}>
+            <Ionicons name="refresh" size={16} color="white" />
+            <Text style={styles.directoryPrimaryText}>Refresh</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowFiltersDialog(true)} style={styles.directoryIconAction}>
+            <Ionicons name="options-outline" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Filters</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowDuesDialog(true)} style={styles.directoryIconAction}>
+            <Ionicons name="settings-outline" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Dues</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleExportFile('pdf')} style={styles.directoryIconAction} disabled={exporting}>
+            {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : <Ionicons name="document-text-outline" size={17} color={themeColors.primaryDeep} />}
+            <Text style={styles.directoryIconActionText}>PDF</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowReminderDialog(true)} style={styles.directoryIconAction}>
+            <Ionicons name="mail-outline" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Remind</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
       {/* Payments List */}
       <FlatList
         data={filteredPayments}
         renderItem={renderPaymentCard}
         keyExtractor={(item) => item._id}
+        ListHeaderComponent={renderScreenHeader}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
@@ -746,6 +817,16 @@ const AdminPaymentsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: roleLayouts.admin.screen,
   ledgerHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 46, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  directoryHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 42, paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  directoryTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  directoryEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  directoryTitle: { color: themeColors.textPrimary, fontSize: 24, fontWeight: '800', letterSpacing: 0, marginTop: 1 },
+  directorySubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 2 },
+  directoryActions: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingRight: 16 },
+  directoryPrimaryAction: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: themeColors.primary, paddingHorizontal: 12, height: 36, borderRadius: 12 },
+  directoryPrimaryText: { color: 'white', fontSize: 11, fontWeight: '900' },
+  directoryIconAction: { flexDirection: 'row', height: 36, paddingHorizontal: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: themeColors.accent },
+  directoryIconActionText: { color: themeColors.primaryDeep, fontSize: 11, fontWeight: '900' },
   ledgerEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
   ledgerTitle: { color: themeColors.textPrimary, fontSize: 24, fontWeight: '800', letterSpacing: -0.7, marginTop: 1 },
   ledgerSubtitle: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '500', marginTop: 2 },
@@ -756,7 +837,7 @@ const styles = StyleSheet.create({
   ledgerBalanceMeta: { color: 'rgba(255,255,255,0.66)', fontSize: 11, fontWeight: '700' },
   ledgerAssistant: { height: 28, paddingHorizontal: 8, borderRadius: 8, backgroundColor: themeColors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   ledgerAssistantText: { color: themeColors.primaryDeep, fontSize: 10, fontWeight: '900' },
-  listHeaderControls: { paddingBottom: 8 },
+  listHeaderControls: { flex: 1, paddingBottom: 8 },
   ledgerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, paddingBottom: 8 },
   ledgerActionPrimary: { height: 40, paddingHorizontal: 13, borderRadius: 10, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   ledgerActionPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },

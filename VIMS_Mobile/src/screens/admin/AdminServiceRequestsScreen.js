@@ -358,6 +358,65 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     }
   };
 
+  const renderScreenHeader = () => (
+    <View>
+
+      <View style={styles.statsGrid}>
+        {[
+          ['Total', stats.total, 'construct-outline'],
+          ['Pending', stats.pending, 'time-outline'],
+          ['Progress', stats.inProgress, 'sync-outline'],
+          ['Urgent', stats.urgent, 'warning-outline'],
+        ].map(([label, value, icon]) => (
+          <View key={label} style={styles.coloredStatCard}>
+            <Ionicons name={icon} size={16} color="rgba(255,255,255,0.55)" style={styles.coloredStatBgIcon} />
+            <Text style={styles.coloredStatValue}>{value}</Text>
+            <Text style={styles.coloredStatLabel}>{label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.filterContainer}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={18} color={themeColors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search request, resident, or house"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        <View style={styles.filterMetaRow}>
+          <Text style={styles.resultCount}>{filteredRequests.length} results</Text>
+          <TouchableOpacity onPress={clearFilters}>
+            <Text style={styles.clearFiltersText}>Clear filters</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          {['all', 'pending', 'under-review', 'assigned', 'in-progress', 'completed', 'cancelled'].map((value) => (
+            <TouchableOpacity key={value} style={[styles.filterChip, statusFilter === value && styles.activeFilter]} onPress={() => setStatusFilter(value)}>
+              <Text style={[styles.filterText, statusFilter === value && styles.activeFilterText]}>{value === 'all' ? 'All' : value.replace('-', ' ')}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          {['all', ...categories.map((item) => item.value)].map((value) => (
+            <TouchableOpacity key={value} style={[styles.filterChip, categoryFilter === value && styles.activeFilter]} onPress={() => setCategoryFilter(value)}>
+              <Text style={[styles.filterText, categoryFilter === value && styles.activeFilterText]}>{value === 'all' ? 'All categories' : value}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          {['all', 'low', 'medium', 'high', 'urgent'].map((value) => (
+            <TouchableOpacity key={value} style={[styles.filterChip, priorityFilter === value && styles.activeFilter]} onPress={() => setPriorityFilter(value)}>
+              <Text style={[styles.filterText, priorityFilter === value && styles.activeFilterText]}>{value === 'all' ? 'All priority' : value}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
   const renderRequestCard = ({ item }) => {
     const status = getStatusChip(item.status);
     const resident = item.residentId;
@@ -482,12 +541,41 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     );
   };
 
-  const renderRequestListHeader = () => (
+  return (
     <View style={styles.listHeaderControls}>
+      <View style={styles.directoryHeader}>
+        <View style={styles.directoryTopRow}>
+          <View>
+            <Text style={styles.directoryEyebrow}>ADMIN SERVICES</Text>
+            <Text style={styles.directoryTitle}>Service Requests</Text>
+            <Text style={styles.directorySubtitle}>{requests.length} service records</Text>
+          </View>
+          <UserDropdownMenu navigation={navigation} />
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.directoryActions}>
+          <TouchableOpacity onPress={fetchData} style={styles.directoryPrimaryAction}>
+            <Ionicons name="refresh" size={16} color="white" />
+            <Text style={styles.directoryPrimaryText}>Refresh</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('ArchivedServiceRequests')} style={styles.directoryIconAction}>
+            <Ionicons name="archive-outline" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Archived</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleExportFile('pdf')} style={styles.directoryIconAction} disabled={exporting}>
+            {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : <Ionicons name="document-text-outline" size={17} color={themeColors.primaryDeep} />}
+            <Text style={styles.directoryIconActionText}>PDF</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleExportFile('csv')} style={styles.directoryIconAction} disabled={exporting}>
+            <Ionicons name="grid-outline" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>CSV</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
       <FlatList
         data={filteredRequests}
         renderItem={renderRequestCard}
         keyExtractor={(item) => item._id}
+        ListHeaderComponent={renderScreenHeader}
         contentContainerStyle={styles.listContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
@@ -788,6 +876,16 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: roleLayouts.admin.screen,
   queueHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  directoryHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 42, paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  directoryTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  directoryEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  directoryTitle: { color: themeColors.textPrimary, fontSize: 24, fontWeight: '800', letterSpacing: 0, marginTop: 1 },
+  directorySubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 2 },
+  directoryActions: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingRight: 16 },
+  directoryPrimaryAction: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: themeColors.primary, paddingHorizontal: 12, height: 36, borderRadius: 12 },
+  directoryPrimaryText: { color: 'white', fontSize: 11, fontWeight: '900' },
+  directoryIconAction: { flexDirection: 'row', height: 36, paddingHorizontal: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: themeColors.accent },
+  directoryIconActionText: { color: themeColors.primaryDeep, fontSize: 11, fontWeight: '900' },
   queueHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   queueEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
   queueTitle: { color: themeColors.textPrimary, fontSize: 30, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
@@ -881,7 +979,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '600',
   },
-  listHeaderControls: { paddingBottom: 8 },
+  listHeaderControls: { flex: 1, paddingBottom: 8 },
   filterContainer: {
     backgroundColor: 'white',
     padding: 0,

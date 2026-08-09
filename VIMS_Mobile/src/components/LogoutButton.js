@@ -9,12 +9,6 @@ const LogoutButton = ({ navigation, color = '#ef4444', size = 18, label = 'Logou
 
   const handleLogout = async () => {
     await logout();
-    if (navigation) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
-    }
   };
 
   return (

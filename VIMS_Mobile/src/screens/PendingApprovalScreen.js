@@ -24,10 +24,6 @@ const PendingApprovalScreen = ({ navigation, route }) => {
 
     const timeoutId = setTimeout(async () => {
       await logout();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
     }, 3000);
 
     return () => clearTimeout(timeoutId);
@@ -54,10 +50,6 @@ const PendingApprovalScreen = ({ navigation, route }) => {
           text: 'Logout',
           onPress: async () => {
             await logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
           },
         },
       ]

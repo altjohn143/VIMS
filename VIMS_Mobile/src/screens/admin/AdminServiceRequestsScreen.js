@@ -12,6 +12,7 @@ import {
   RefreshControl,
   FlatList,
   Linking,
+  Image,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -357,6 +358,19 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
       return 'Invalid Date';
     }
   };
+
+  const getAttachmentUri = (attachment) => {
+    const uri = attachment?.url || attachment?.secure_url || attachment?.imageUrl || attachment?.uri;
+    if (!uri) return '';
+    if (/^https?:\/\//i.test(uri) || /^data:image\//i.test(uri)) return uri;
+    const baseUrl = String(api.defaults.baseURL || '').replace(/\/api\/?$/, '').replace(/\/$/, '');
+    return `${baseUrl}/${String(uri).replace(/^\/+/, '')}`;
+  };
+
+  const getRequestAttachments = (request) =>
+    (request?.attachments || [])
+      .map((attachment) => ({ ...attachment, uri: getAttachmentUri(attachment) }))
+      .filter((attachment) => attachment.uri);
 
   const renderScreenHeader = () => (
     <View>
@@ -749,6 +763,22 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                   <Text style={styles.detailLabel}>Description</Text>
                   <Text style={styles.detailText}>{selectedRequest.description}</Text>
                 </View>
+
+                {getRequestAttachments(selectedRequest).length > 0 && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Resident Uploaded Photos</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentStrip}>
+                      {getRequestAttachments(selectedRequest).map((attachment, index) => (
+                        <View key={attachment._id || attachment.publicId || attachment.uri || index} style={styles.attachmentCard}>
+                          <Image source={{ uri: attachment.uri }} style={styles.attachmentImage} resizeMode="cover" />
+                          <Text style={styles.attachmentCaption} numberOfLines={1}>
+                            {attachment.filename || `Photo ${index + 1}`}
+                          </Text>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
 
                 <View style={styles.detailGrid}>
                   <View style={styles.detailGridItem}>
@@ -1312,6 +1342,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: themeColors.textPrimary,
     lineHeight: 24,
+  },
+  attachmentStrip: { marginTop: 8 },
+  attachmentCard: { width: 152, marginRight: 12 },
+  attachmentImage: {
+    width: 152,
+    height: 118,
+    borderRadius: 12,
+    backgroundColor: themeColors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+  },
+  attachmentCaption: {
+    color: themeColors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 6,
   },
   detailSubtext: {
     fontSize: 14,

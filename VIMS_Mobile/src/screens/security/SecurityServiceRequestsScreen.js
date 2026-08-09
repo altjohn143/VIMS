@@ -11,6 +11,7 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -112,6 +113,19 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       return 'N/A';
     }
   };
+
+  const getAttachmentUri = (attachment) => {
+    const uri = attachment?.url || attachment?.secure_url || attachment?.imageUrl || attachment?.uri;
+    if (!uri) return '';
+    if (/^https?:\/\//i.test(uri) || /^data:image\//i.test(uri)) return uri;
+    const baseUrl = String(api.defaults.baseURL || '').replace(/\/api\/?$/, '').replace(/\/$/, '');
+    return `${baseUrl}/${String(uri).replace(/^\/+/, '')}`;
+  };
+
+  const getRequestAttachments = (request) =>
+    (request?.attachments || [])
+      .map((attachment) => ({ ...attachment, uri: getAttachmentUri(attachment) }))
+      .filter((attachment) => attachment.uri);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return rows;
@@ -443,6 +457,22 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
               <View style={styles.divider} />
               <Text style={styles.dBody}>{selected?.description || ''}</Text>
 
+              {getRequestAttachments(selected).length > 0 && (
+                <>
+                  <Text style={styles.sectionTitle}>Resident Uploaded Photos</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentStrip}>
+                    {getRequestAttachments(selected).map((attachment, index) => (
+                      <View key={attachment._id || attachment.publicId || attachment.uri || index} style={styles.attachmentCard}>
+                        <Image source={{ uri: attachment.uri }} style={styles.attachmentImage} resizeMode="cover" />
+                        <Text style={styles.attachmentCaption} numberOfLines={1}>
+                          {attachment.filename || `Photo ${index + 1}`}
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </>
+              )}
+
               <View style={styles.divider} />
               <Text style={styles.note}>
                 {isHeadOfficer
@@ -576,6 +606,23 @@ const styles = StyleSheet.create({
   dMeta: { marginTop: 4, fontSize: 12, color: themeColors.textSecondary, fontWeight: '600' },
   divider: { height: 1, backgroundColor: themeColors.border, marginVertical: 12 },
   dBody: { fontSize: 14, color: themeColors.textPrimary, lineHeight: 22 },
+  sectionTitle: { marginTop: 14, marginBottom: 8, color: themeColors.textPrimary, fontSize: 13, fontWeight: '900' },
+  attachmentStrip: { marginBottom: 4 },
+  attachmentCard: { width: 150, marginRight: 12 },
+  attachmentImage: {
+    width: 150,
+    height: 116,
+    borderRadius: 12,
+    backgroundColor: themeColors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+  },
+  attachmentCaption: {
+    color: themeColors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 6,
+  },
   note: { fontSize: 12, color: themeColors.textSecondary, marginBottom: 10, textAlign: 'center' },
   assignmentBox: {
     borderWidth: 1,

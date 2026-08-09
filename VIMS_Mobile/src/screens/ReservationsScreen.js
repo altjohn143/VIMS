@@ -113,6 +113,20 @@ const ReservationsScreen = ({ navigation }) => {
     return [...unique.values()];
   };
 
+  const resourceKey = (item) =>
+    `${String(item?.resourceType || '').trim().toLowerCase()}:${String(item?.resourceName || '').trim().toLowerCase()}`;
+
+  const mergeAvailabilitySlots = (slots) => {
+    const unique = new Map();
+    slots
+      .filter((slot) => slot?.resourceType && slot?.resourceName && slot?.startDate && slot?.endDate)
+      .forEach((slot) => {
+        const key = `${slot.reservationId || 'schedule'}:${resourceKey(slot)}:${slot.startDate}:${slot.endDate}`;
+        unique.set(key, slot);
+      });
+    return [...unique.values()].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+  };
+
   const fetchAvailability = async () => {
     const trackedResources = getAvailabilityResources();
     if (trackedResources.length === 0) {
@@ -125,6 +139,7 @@ const ReservationsScreen = ({ navigation }) => {
       const now = new Date();
       const endWindow = new Date();
       endWindow.setMonth(endWindow.getMonth() + 6);
+      const selectedKeys = new Set(trackedResources.map(resourceKey));
       const responses = await Promise.all(trackedResources.map((item) => (
         api.get('/reservations/availability', {
           params: {
@@ -135,7 +150,17 @@ const ReservationsScreen = ({ navigation }) => {
           },
         })
       )));
-      setAvailability(responses.flatMap((response) => response.data?.data || []));
+      let slots = responses.flatMap((response) => response.data?.data || []);
+
+      try {
+        const publicResponse = await api.get('/reservations/public/schedules');
+        const publicSlots = publicResponse.data?.data?.schedules || [];
+        slots = slots.concat(publicSlots.filter((slot) => selectedKeys.has(resourceKey(slot))));
+      } catch (publicError) {
+        console.warn('Public reservation schedules fallback failed:', publicError?.message || publicError);
+      }
+
+      setAvailability(mergeAvailabilitySlots(slots));
     } catch (error) {
       console.error('Error fetching availability:', error);
       setAvailability([]);
@@ -157,10 +182,10 @@ const ReservationsScreen = ({ navigation }) => {
   };
 
   const getSelectedScheduleConflicts = () => {
-    const selectedKeys = new Set(formData.items.map((item) => `${item.resourceType}:${item.resourceName}`));
+    const selectedKeys = new Set(formData.items.map(resourceKey));
     return availability.filter((slot) =>
-      selectedKeys.has(`${slot.resourceType}:${slot.resourceName}`) &&
-      sameReservationDay(formData.startDate, slot.startDate, slot.endDate)
+      selectedKeys.has(resourceKey(slot)) &&
+      rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
     );
   };
 
@@ -193,7 +218,7 @@ const ReservationsScreen = ({ navigation }) => {
     )));
 
     return responses.flatMap((response) => response.data?.data || []).filter((slot) =>
-      sameReservationDay(formData.startDate, slot.startDate, slot.endDate)
+      rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
     );
   };
 
@@ -742,7 +767,12 @@ const ReservationsScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalBody}
+              contentContainerStyle={styles.modalBodyContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
               {/* Item Selection */}
               <Text style={styles.sectionTitle}>Select Items</Text>
               
@@ -936,13 +966,14 @@ const ReservationsScreen = ({ navigation }) => {
               {/* Notes */}
               <Text style={styles.label}>Additional Notes</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, styles.notesInput]}
                 placeholder="Any special requirements or notes"
                 value={formData.notes}
                 onChangeText={(text) => setFormData({ ...formData, notes: text })}
                 multiline
                 numberOfLines={3}
               />
+              <View style={styles.modalFooterSpacer} />
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -1321,7 +1352,11 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   modalBody: {
-    padding: 20,
+    paddingHorizontal: 20,
+  },
+  modalBodyContent: {
+    paddingTop: 20,
+    paddingBottom: 12,
   },
   label: {
     fontSize: 16,
@@ -1379,6 +1414,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
     textAlignVertical: 'top',
   },
+  notesInput: {
+    minHeight: 104,
+  },
   numberInput: {
     borderWidth: 1,
     borderColor: '#d1d5db',
@@ -1428,6 +1466,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
+    backgroundColor: '#fff',
+  },
+  modalFooterSpacer: {
+    height: 24,
   },
   cancelButton: {
     flex: 1,

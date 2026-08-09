@@ -64,6 +64,10 @@ import toast from 'react-hot-toast';
 import ReportToolbar from '../components/ReportToolbar';
 import { getBackendApiUrl } from '../utils/api';
 
+const PROTECTED_MAIN_ACCOUNT_EMAILS = ['admin@vims.com', 'security@vims.com'];
+const isProtectedMainAccount = (user) =>
+  PROTECTED_MAIN_ACCOUNT_EMAILS.includes(String(user?.email || '').toLowerCase());
+
 const AdminUserManagement = () => {
   const themeColors = {
     primary: '#166534',
@@ -353,6 +357,14 @@ const AdminUserManagement = () => {
 
   const handleArchiveUser = async () => {
     if (!selectedUser) return;
+    if (isProtectedMainAccount(selectedUser)) {
+      toast.error('Main system accounts cannot be archived or deactivated');
+      return;
+    }
+    if (!deleteReason.trim()) {
+      toast.error('Please enter a reason before archiving this user');
+      return;
+    }
     
     try {
       setProcessing(true);
@@ -382,6 +394,11 @@ const AdminUserManagement = () => {
   };
 
   const handleToggleStatus = async (user) => {
+    if (user?.isActive && isProtectedMainAccount(user)) {
+      toast.error('Main system accounts cannot be archived or deactivated');
+      return;
+    }
+
     try {
       setProcessing(true);
       const token = sessionStorage.getItem('token');
@@ -1263,26 +1280,32 @@ const AdminUserManagement = () => {
                             </>
                           )}
                           
-                          <Tooltip title={user.isActive ? 'Deactivate' : 'Activate'}>
+                          <Tooltip title={user.isActive && isProtectedMainAccount(user) ? 'Protected main account' : user.isActive ? 'Deactivate' : 'Activate'}>
                             <IconButton
                               size="small"
                               onClick={() => handleToggleStatus(user)}
-                              sx={{ color: user.isActive ? themeColors.error : themeColors.success }}
+                              disabled={user.isActive && isProtectedMainAccount(user)}
+                              sx={{ color: user.isActive && isProtectedMainAccount(user) ? themeColors.textSecondary : user.isActive ? themeColors.error : themeColors.success }}
                             >
-                              {user.isActive ? <BlockIcon /> : <LockOpenIcon />}
+                              {user.isActive && isProtectedMainAccount(user) ? <VerifiedIcon /> : user.isActive ? <BlockIcon /> : <LockOpenIcon />}
                             </IconButton>
                           </Tooltip>
                           
-                          <Tooltip title="Archive User">
+                          <Tooltip title={isProtectedMainAccount(user) ? 'Protected main account' : 'Archive User'}>
                             <IconButton
                               size="small"
                               onClick={() => {
+                                if (isProtectedMainAccount(user)) {
+                                  toast.error('Main system accounts cannot be archived or deactivated');
+                                  return;
+                                }
                                 setSelectedUser(user);
                                 setDeleteDialogOpen(true);
                               }}
-                              sx={{ color: themeColors.error }}
+                              disabled={isProtectedMainAccount(user)}
+                              sx={{ color: isProtectedMainAccount(user) ? themeColors.textSecondary : themeColors.error }}
                             >
-                              <DeleteIcon />
+                              {isProtectedMainAccount(user) ? <VerifiedIcon /> : <DeleteIcon />}
                             </IconButton>
                           </Tooltip>
                         </Box>
@@ -1691,13 +1714,18 @@ const AdminUserManagement = () => {
                   variant="contained"
                   color="error"
                   onClick={() => {
+                    if (isProtectedMainAccount(selectedUser)) {
+                      toast.error('Main system accounts cannot be archived or deactivated');
+                      return;
+                    }
                     setDetailsOpen(false);
                     setDeleteDialogOpen(true);
                   }}
-                  startIcon={<DeleteIcon />}
+                  disabled={isProtectedMainAccount(selectedUser)}
+                  startIcon={isProtectedMainAccount(selectedUser) ? <VerifiedIcon /> : <DeleteIcon />}
                   sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                 >
-                  Archive User
+                  {isProtectedMainAccount(selectedUser) ? 'Protected Account' : 'Archive User'}
                 </Button>
               </DialogActions>
             </>
@@ -1878,7 +1906,9 @@ const AdminUserManagement = () => {
           </DialogTitle>
           <DialogContent>
             <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-              This user will be archived and can be restored later if needed. The user will no longer have access to the system.
+              {isProtectedMainAccount(selectedUser)
+                ? 'This is a main system account and cannot be archived or deactivated.'
+                : 'This user will be archived and can be restored later if needed. The user will no longer have access to the system.'}
             </Alert>
             
             {selectedUser && (
@@ -1909,11 +1939,11 @@ const AdminUserManagement = () => {
               fullWidth
               multiline
               rows={2}
-              label="Reason for archiving (optional)"
+              label="Reason for archiving (required)"
               value={deleteReason}
               onChange={(e) => setDeleteReason(e.target.value)}
               placeholder="Provide a reason for archiving this user..."
-              disabled={processing}
+              disabled={processing || isProtectedMainAccount(selectedUser)}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2
@@ -1936,11 +1966,11 @@ const AdminUserManagement = () => {
               variant="contained"
               color="error"
               onClick={handleArchiveUser}
-              disabled={processing}
-              startIcon={processing ? <CircularProgress size={20} /> : <DeleteIcon />}
+              disabled={processing || isProtectedMainAccount(selectedUser)}
+              startIcon={processing ? <CircularProgress size={20} /> : isProtectedMainAccount(selectedUser) ? <VerifiedIcon /> : <DeleteIcon />}
               sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
             >
-              {processing ? 'Archiving...' : 'Archive User'}
+              {processing ? 'Archiving...' : isProtectedMainAccount(selectedUser) ? 'Protected Account' : 'Archive User'}
             </Button>
           </DialogActions>
         </Dialog>

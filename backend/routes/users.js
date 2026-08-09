@@ -12,6 +12,9 @@ const { sendOnboardingNotification } = require('../services/notificationService'
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
 
+const PROTECTED_MAIN_ACCOUNT_EMAILS = new Set(['admin@vims.com', 'security@vims.com']);
+const isProtectedMainAccount = (user) => PROTECTED_MAIN_ACCOUNT_EMAILS.has(String(user?.email || '').toLowerCase());
+
 const buildProfilePhotoUrl = (req, photo) => {
   if (!photo) return null;
   if (/^https?:\/\//i.test(photo)) return photo;
@@ -335,6 +338,13 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
       return res.status(404).json({
         success: false,
         error: 'User not found'
+      });
+    }
+
+    if (isProtectedMainAccount(user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Main system accounts cannot be archived or deactivated'
       });
     }
     
@@ -887,6 +897,13 @@ router.put('/:id/status', protect, authorize('admin'), async (req, res) => {
       return res.status(404).json({
         success: false,
         error: 'User not found'
+      });
+    }
+
+    if (!isActive && isProtectedMainAccount(user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Main system accounts cannot be archived or deactivated'
       });
     }
 

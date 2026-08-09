@@ -266,6 +266,20 @@ const ServiceRequestsScreen = ({ navigation }) => {
         && (priorityFilter === 'all' || request.priority === priorityFilter);
     });
   };
+
+  const getAttachmentUri = (attachment) => {
+    const uri = attachment?.url || attachment?.secure_url || attachment?.imageUrl || attachment?.uri;
+    if (!uri) return '';
+    if (/^https?:\/\//i.test(uri) || /^data:image\//i.test(uri)) return uri;
+    const baseUrl = String(api.defaults.baseURL || '').replace(/\/api\/?$/, '').replace(/\/$/, '');
+    return `${baseUrl}/${String(uri).replace(/^\/+/, '')}`;
+  };
+
+  const getRequestAttachments = (request) =>
+    (request?.attachments || []).map((attachment) => ({
+      ...attachment,
+      uri: getAttachmentUri(attachment),
+    })).filter((attachment) => attachment.uri);
   const filteredRequests = getFilteredRequests();
   const paginatedRequests = filteredRequests.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
@@ -338,6 +352,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
   const renderRequestCard = ({ item }) => {
     const status = getStatusChip(item.status);
     const category = categories.find(c => c.value === item.category);
+    const requestAttachments = getRequestAttachments(item);
 
     return (
       <TouchableOpacity
@@ -360,6 +375,23 @@ const ServiceRequestsScreen = ({ navigation }) => {
         <Text style={styles.requestDescription} numberOfLines={2}>
           {item.description}
         </Text>
+
+        {requestAttachments.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.cardAttachmentStrip}
+          >
+            {requestAttachments.map((attachment, index) => (
+              <Image
+                key={attachment._id || attachment.publicId || attachment.uri || index}
+                source={{ uri: attachment.uri }}
+                style={styles.cardAttachmentImage}
+                resizeMode="cover"
+              />
+            ))}
+          </ScrollView>
+        )}
 
         <View style={styles.requestMeta}>
           <View style={styles.metaItem}>
@@ -404,11 +436,11 @@ const ServiceRequestsScreen = ({ navigation }) => {
 
         {item.status === 'pending' && (
           <TouchableOpacity
-            style={styles.cancelButton}
+            style={styles.cancelRequestButton}
             onPress={() => handleCancelRequest(item._id)}
           >
             <Ionicons name="close-circle" size={16} color={themeColors.error} />
-            <Text style={styles.cancelButtonText}>Cancel Request</Text>
+            <Text style={styles.cancelRequestButtonText}>Cancel Request</Text>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -654,6 +686,26 @@ const ServiceRequestsScreen = ({ navigation }) => {
                   <Text style={styles.detailLabel}>Description</Text>
                   <Text style={styles.detailText}>{selectedRequest.description}</Text>
                 </View>
+
+                {getRequestAttachments(selectedRequest).length > 0 && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Uploaded Photos</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.detailAttachmentStrip}>
+                      {getRequestAttachments(selectedRequest).map((attachment, index) => (
+                        <View key={attachment._id || attachment.publicId || attachment.uri || index} style={styles.detailAttachmentCard}>
+                          <Image
+                            source={{ uri: attachment.uri }}
+                            style={styles.detailAttachmentImage}
+                            resizeMode="cover"
+                          />
+                          <Text style={styles.attachmentCaption} numberOfLines={1}>
+                            {attachment.filename || `Photo ${index + 1}`}
+                          </Text>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
 
                 <View style={styles.detailRow}>
                   <View style={styles.detailHalf}>
@@ -1005,6 +1057,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 20,
   },
+  cardAttachmentStrip: {
+    marginBottom: 12,
+  },
+  cardAttachmentImage: {
+    width: 74,
+    height: 74,
+    borderRadius: 12,
+    marginRight: 10,
+    backgroundColor: themeColors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+  },
   requestMeta: {
     marginBottom: 12,
   },
@@ -1075,16 +1139,19 @@ const styles = StyleSheet.create({
     color: themeColors.warning,
     marginLeft: 8,
   },
-  cancelButton: {
+  cancelRequestButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: themeColors.error + '15',
+    borderWidth: 1,
+    borderColor: themeColors.error + '30',
     paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 8,
     marginTop: 8,
   },
-  cancelButtonText: {
+  cancelRequestButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: themeColors.error,
@@ -1270,6 +1337,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: themeColors.textPrimary,
     lineHeight: 24,
+  },
+  detailAttachmentStrip: {
+    marginTop: 6,
+  },
+  detailAttachmentCard: {
+    width: 150,
+    marginRight: 12,
+  },
+  detailAttachmentImage: {
+    width: 150,
+    height: 120,
+    borderRadius: 12,
+    backgroundColor: themeColors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+  },
+  attachmentCaption: {
+    color: themeColors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 6,
   },
   detailRow: {
     flexDirection: 'row',

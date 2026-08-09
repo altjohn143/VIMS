@@ -13,6 +13,7 @@ import {
   Keyboard,
   Dimensions,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -56,7 +57,9 @@ const ProfileScreen = ({ navigation }) => {
     }, 120);
   };
   const keyboardSheetStyle = Platform.OS === 'ios' && keyboardHeight > 0
-    ? { bottom: keyboardHeight, maxHeight: Math.max(260, Dimensions.get('window').height - keyboardHeight - 24) }
+    ? {
+        maxHeight: Math.max(260, Dimensions.get('window').height - keyboardHeight - 18),
+      }
     : null;
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [documentModalTitle, setDocumentModalTitle] = useState('');
@@ -839,9 +842,12 @@ const ProfileScreen = ({ navigation }) => {
       </ScrollView>
 
       <Modal visible={showPasswordModal} animationType="slide" transparent onRequestClose={() => setShowPasswordModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.absoluteSheetHost} pointerEvents="box-none">
-            <View style={[styles.passwordModalContent, keyboardSheetStyle]}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+            <View style={[styles.passwordModalContent, keyboardHeight > 0 && styles.keyboardRaisedSheet, keyboardSheetStyle]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Change Password</Text>
                 <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
@@ -858,7 +864,10 @@ const ProfileScreen = ({ navigation }) => {
                 scrollEnabled
                 alwaysBounceVertical
                 overScrollMode="always"
-                contentContainerStyle={styles.passwordModalBody}
+                contentContainerStyle={[
+                  styles.passwordModalBody,
+                  keyboardHeight > 0 && styles.keyboardModalBody,
+                ]}
               >
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Current Password</Text>
@@ -935,14 +944,16 @@ const ProfileScreen = ({ navigation }) => {
                 </View>
               </ScrollView>
             </View>
-          </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showMoveOutModal} animationType="slide" transparent onRequestClose={() => setShowMoveOutModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.absoluteSheetHost} pointerEvents="box-none">
-            <View style={[styles.moveOutModalContent, keyboardSheetStyle]}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+            <View style={[styles.moveOutModalContent, keyboardHeight > 0 && styles.keyboardRaisedSheet, keyboardSheetStyle]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Request Move-out</Text>
                 <TouchableOpacity onPress={() => setShowMoveOutModal(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
@@ -952,7 +963,10 @@ const ProfileScreen = ({ navigation }) => {
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.moveOutModalBody}
+                contentContainerStyle={[
+                  styles.moveOutModalBody,
+                  keyboardHeight > 0 && styles.keyboardModalBody,
+                ]}
               >
                 <Text style={styles.modalHelperText}>An administrator will review this request before your lot and account status change.</Text>
                 <Text style={styles.label}>Reason</Text>
@@ -974,8 +988,7 @@ const ProfileScreen = ({ navigation }) => {
                 </View>
               </ScrollView>
             </View>
-          </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={showDocumentModal} animationType="slide" transparent onRequestClose={closeDocumentModal}>
@@ -1059,10 +1072,12 @@ const styles = StyleSheet.create({
   absoluteSheetHost: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end' },
   keyboardAvoidingSheet: { flex: 1, justifyContent: 'flex-end' },
   modalContent: { backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 22 },
-  passwordModalContent: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: Platform.OS === 'ios' ? '92%' : '88%' },
+  passwordModalContent: { width: '100%', backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: Platform.OS === 'ios' ? '92%' : '88%' },
   passwordModalBody: { paddingBottom: Platform.OS === 'ios' ? 90 : 56 },
-  moveOutModalContent: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: Platform.OS === 'ios' ? '86%' : '78%' },
+  moveOutModalContent: { width: '100%', backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: Platform.OS === 'ios' ? '86%' : '78%' },
   moveOutModalBody: { paddingTop: 4, paddingBottom: Platform.OS === 'ios' ? 72 : 40 },
+  keyboardRaisedSheet: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  keyboardModalBody: { paddingBottom: 18 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: '600', color: themeColors.textPrimary },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, gap: 10 },

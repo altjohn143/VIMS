@@ -25,6 +25,15 @@ import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
 import { getAuthToken } from '../../utils/secureSession';
 
+const PROTECTED_MAIN_ACCOUNT_EMAILS = ['admin@vims.com', 'security@vims.com'];
+const isProtectedMainAccount = (user) =>
+  PROTECTED_MAIN_ACCOUNT_EMAILS.includes(String(user?.email || '').toLowerCase());
+const DOCUMENT_TABS = [
+  ['front', 'ID Front'],
+  ['back', 'ID Back'],
+  ['selfie', 'Selfie'],
+];
+
 const AdminUserManagementScreen = ({ navigation }) => {
   const [users, setUsers] = useState([]);
   const [lots, setLots] = useState([]);
@@ -45,6 +54,8 @@ const AdminUserManagementScreen = ({ navigation }) => {
   const [documentOpen, setDocumentOpen] = useState(false);
   const [documentLoading, setDocumentLoading] = useState(false);
   const [documentImages, setDocumentImages] = useState({ front: null, back: null, selfie: null });
+  const [documentImageErrors, setDocumentImageErrors] = useState({});
+  const [activeDocumentKey, setActiveDocumentKey] = useState('front');
   const [assignmentEditMode, setAssignmentEditMode] = useState(false);
   const [assignmentProcessing, setAssignmentProcessing] = useState(false);
   const [securityAssignments, setSecurityAssignments] = useState([]);
@@ -250,6 +261,8 @@ const AdminUserManagementScreen = ({ navigation }) => {
     setDocumentOpen(true);
     setDocumentLoading(true);
     setDocumentImages({ front: null, back: null, selfie: null });
+    setDocumentImageErrors({});
+    setActiveDocumentKey('front');
     try {
       const response = await api.get(`/verifications/admin/${user.verificationId}/images`);
       if (response.data?.success) setDocumentImages(response.data.data || {});
@@ -361,6 +374,14 @@ const AdminUserManagementScreen = ({ navigation }) => {
   };
 
   const handleToggleStatus = async (user) => {
+    if (user?.isActive && isProtectedMainAccount(user)) {
+      Alert.alert(
+        'Protected Account',
+        'The main admin and default head officer accounts cannot be deactivated.'
+      );
+      return;
+    }
+
     Alert.alert(
       `${user.isActive ? 'Deactivate' : 'Activate'} User`,
       `Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} this user?`,
@@ -426,6 +447,13 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
   const handleArchiveUser = async () => {
     if (!selectedUser) return;
+    if (isProtectedMainAccount(selectedUser)) {
+      Alert.alert(
+        'Protected Account',
+        'The main admin and default head officer accounts cannot be archived.'
+      );
+      return;
+    }
     const reason = deleteReason.trim();
     if (!reason) {
       Alert.alert('Archive Reason Required', 'Please enter a reason before archiving this user.');
@@ -480,6 +508,9 @@ const AdminUserManagementScreen = ({ navigation }) => {
   const renderUserCard = ({ item }) => {
     const roleColor = getRoleColor(item.role);
     const isResident = item.role === 'resident';
+    const protectedAccount = isProtectedMainAccount(item);
+    const statusDisabled = protectedAccount && item.isActive;
+    const statusColor = statusDisabled ? themeColors.textMuted : item.isActive ? themeColors.error : themeColors.success;
 
     return (
       <TouchableOpacity
@@ -541,16 +572,17 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
         <View style={styles.userActions}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.statusButton]}
+            style={[styles.actionButton, styles.statusButton, statusDisabled && styles.disabledAction]}
             onPress={() => handleToggleStatus(item)}
+            disabled={statusDisabled}
           >
             <Ionicons
-              name={item.isActive ? 'pause-circle' : 'play-circle'}
+              name={statusDisabled ? 'shield-checkmark' : item.isActive ? 'pause-circle' : 'play-circle'}
               size={20}
-              color={item.isActive ? themeColors.error : themeColors.success}
+              color={statusColor}
             />
-            <Text style={[styles.actionButtonText, { color: item.isActive ? themeColors.error : themeColors.success }]}>
-              {item.isActive ? 'Deactivate' : 'Activate'}
+            <Text style={[styles.actionButtonText, { color: statusColor }]}>
+              {statusDisabled ? 'Protected' : item.isActive ? 'Deactivate' : 'Activate'}
             </Text>
           </TouchableOpacity>
 
@@ -598,14 +630,21 @@ const AdminUserManagementScreen = ({ navigation }) => {
           )}
 
           <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
+            style={[styles.actionButton, styles.deleteButton, protectedAccount && styles.disabledAction]}
             onPress={() => {
+              if (protectedAccount) {
+                Alert.alert('Protected Account', 'The main admin and default head officer accounts cannot be archived.');
+                return;
+              }
               setSelectedUser(item);
               setShowDeleteModal(true);
             }}
+            disabled={protectedAccount}
           >
-            <Ionicons name="trash" size={20} color={themeColors.error} />
-            <Text style={[styles.actionButtonText, { color: themeColors.error }]}>Archive</Text>
+            <Ionicons name={protectedAccount ? 'shield-checkmark' : 'trash'} size={20} color={protectedAccount ? themeColors.textMuted : themeColors.error} />
+            <Text style={[styles.actionButtonText, { color: protectedAccount ? themeColors.textMuted : themeColors.error }]}>
+              {protectedAccount ? 'Protected' : 'Archive'}
+            </Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -1277,30 +1316,60 @@ const AdminUserManagementScreen = ({ navigation }) => {
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
-                    style={[styles.modalActionButton, styles.statusButton]}
+                    style={[
+                      styles.modalActionButton,
+                      styles.statusButton,
+                      selectedUser.isActive && isProtectedMainAccount(selectedUser) && styles.disabledAction
+                    ]}
                     onPress={() => {
                       setShowDetailsModal(false);
                       handleToggleStatus(selectedUser);
                     }}
+                    disabled={selectedUser.isActive && isProtectedMainAccount(selectedUser)}
                   >
                     <Ionicons
-                      name={selectedUser.isActive ? 'pause-circle' : 'play-circle'}
+                      name={selectedUser.isActive && isProtectedMainAccount(selectedUser) ? 'shield-checkmark' : selectedUser.isActive ? 'pause-circle' : 'play-circle'}
                       size={20}
-                      color={selectedUser.isActive ? themeColors.error : themeColors.success}
+                      color={selectedUser.isActive && isProtectedMainAccount(selectedUser) ? themeColors.textMuted : selectedUser.isActive ? themeColors.error : themeColors.success}
                     />
-                    <Text style={[styles.modalActionText, { color: selectedUser.isActive ? themeColors.error : themeColors.success }]}>
-                      {selectedUser.isActive ? 'Deactivate' : 'Activate'}
+                    <Text style={[
+                      styles.modalActionText,
+                      {
+                        color: selectedUser.isActive && isProtectedMainAccount(selectedUser)
+                          ? themeColors.textMuted
+                          : selectedUser.isActive ? themeColors.error : themeColors.success
+                      }
+                    ]}>
+                      {selectedUser.isActive && isProtectedMainAccount(selectedUser) ? 'Protected' : selectedUser.isActive ? 'Deactivate' : 'Activate'}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.modalActionButton, styles.deleteButton]}
+                    style={[
+                      styles.modalActionButton,
+                      styles.deleteButton,
+                      isProtectedMainAccount(selectedUser) && styles.disabledAction
+                    ]}
                     onPress={() => {
+                      if (isProtectedMainAccount(selectedUser)) {
+                        Alert.alert('Protected Account', 'The main admin and default head officer accounts cannot be archived.');
+                        return;
+                      }
                       setShowDetailsModal(false);
                       setShowDeleteModal(true);
                     }}
+                    disabled={isProtectedMainAccount(selectedUser)}
                   >
-                    <Ionicons name="trash" size={20} color={themeColors.error} />
-                    <Text style={[styles.modalActionText, { color: themeColors.error }]}>Archive</Text>
+                    <Ionicons
+                      name={isProtectedMainAccount(selectedUser) ? 'shield-checkmark' : 'trash'}
+                      size={20}
+                      color={isProtectedMainAccount(selectedUser) ? themeColors.textMuted : themeColors.error}
+                    />
+                    <Text style={[
+                      styles.modalActionText,
+                      { color: isProtectedMainAccount(selectedUser) ? themeColors.textMuted : themeColors.error }
+                    ]}>
+                      {isProtectedMainAccount(selectedUser) ? 'Protected' : 'Archive'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -1337,7 +1406,9 @@ const AdminUserManagementScreen = ({ navigation }) => {
               <View style={styles.warningBox}>
                 <Ionicons name="information-circle" size={24} color={themeColors.warning} />
                 <Text style={styles.warningText}>
-                  This user will be archived and can be restored later if needed. The user will no longer have access to the system.
+                  {isProtectedMainAccount(selectedUser)
+                    ? 'This is a main system account and cannot be archived or deactivated.'
+                    : 'This user will be archived and can be restored later if needed. The user will no longer have access to the system.'}
                 </Text>
               </View>
 
@@ -1354,7 +1425,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
               )}
 
               <TextInput
-                style={styles.deleteInput}
+                style={[styles.deleteInput, isProtectedMainAccount(selectedUser) && styles.disabledAction]}
                 placeholder="Reason for archiving (required)"
                 placeholderTextColor={themeColors.textMuted}
                 selectionColor={themeColors.primary}
@@ -1363,6 +1434,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
+                editable={!isProtectedMainAccount(selectedUser)}
               />
 
               <View style={styles.modalActions}>
@@ -1379,7 +1451,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
                 <TouchableOpacity
                   style={[styles.modalActionButton, styles.deleteButton]}
                   onPress={handleArchiveUser}
-                  disabled={processing}
+                  disabled={processing || isProtectedMainAccount(selectedUser)}
                 >
                   {processing ? (
                     <ActivityIndicator color="white" />
@@ -1440,22 +1512,59 @@ const AdminUserManagementScreen = ({ navigation }) => {
             {documentLoading ? (
               <View style={styles.documentLoading}><ActivityIndicator color={themeColors.primary} /><Text style={styles.modalHelper}>Loading secure documents…</Text></View>
             ) : (
-              <ScrollView>
-                {[
-                  ['front', 'ID Front'],
-                  ['back', 'ID Back'],
-                  ['selfie', 'Verification Selfie'],
-                ].map(([key, label]) => (
-                  <View key={key} style={styles.documentBlock}>
-                    <Text style={styles.detailSectionTitle}>{label}</Text>
-                    {documentImages[key] ? (
-                      <Image source={{ uri: documentImages[key] }} style={styles.documentImage} resizeMode="contain" />
-                    ) : (
-                      <View style={styles.documentMissing}><Ionicons name="image-outline" size={30} color={themeColors.textSecondary} /><Text style={styles.modalHelper}>Not available</Text></View>
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
+              <View style={styles.documentViewerBody}>
+                <View style={styles.documentTabs}>
+                  {DOCUMENT_TABS.map(([key, label]) => {
+                    const active = activeDocumentKey === key;
+                    return (
+                      <TouchableOpacity
+                        key={key}
+                        style={[styles.documentTab, active && styles.documentTabActive]}
+                        onPress={() => setActiveDocumentKey(key)}
+                      >
+                        <Text style={[styles.documentTabText, active && styles.documentTabTextActive]}>{label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.documentPreviewPanel}>
+                  <Text style={styles.detailSectionTitle}>
+                    {DOCUMENT_TABS.find(([key]) => key === activeDocumentKey)?.[1] || 'Identification'}
+                  </Text>
+                  {documentImages[activeDocumentKey] && !documentImageErrors[activeDocumentKey] ? (
+                    <View style={styles.documentImageFrame}>
+                      <Image
+                        key={`${activeDocumentKey}-${documentImages[activeDocumentKey]}`}
+                        source={{ uri: documentImages[activeDocumentKey] }}
+                        style={styles.documentImage}
+                        resizeMode="contain"
+                        onError={() => setDocumentImageErrors(prev => ({ ...prev, [activeDocumentKey]: true }))}
+                      />
+                    </View>
+                  ) : (
+                    <View style={styles.documentMissing}>
+                      <Ionicons name="image-outline" size={30} color={themeColors.textSecondary} />
+                      <Text style={styles.modalHelper}>
+                        {documentImageErrors[activeDocumentKey] ? 'Image failed to load' : 'Not available'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.documentStatusRow}>
+                  {DOCUMENT_TABS.map(([key, label]) => (
+                    <View key={key} style={styles.documentStatusItem}>
+                      <Ionicons
+                        name={documentImages[key] && !documentImageErrors[key] ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={14}
+                        color={documentImages[key] && !documentImageErrors[key] ? themeColors.success : themeColors.textSecondary}
+                      />
+                      <Text style={styles.documentStatusText}>{label}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
             )}
           </View>
         </View>
@@ -1499,11 +1608,21 @@ const styles = StyleSheet.create({
   inlineActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
   modalHelper: { color: themeColors.textSecondary, fontSize: 13, marginTop: 4, marginBottom: 12 },
   notesInput: { minHeight: 100, textAlignVertical: 'top' },
-  documentModalCard: { backgroundColor: 'white', borderRadius: 12, padding: 20, width: '94%', maxHeight: '88%' },
+  documentModalCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, width: '100%', maxHeight: '82%', alignSelf: 'stretch' },
   documentLoading: { minHeight: 260, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  documentBlock: { marginBottom: 18 },
-  documentImage: { width: '100%', height: 230, borderRadius: 16, backgroundColor: themeColors.surfaceMuted },
-  documentMissing: { height: 130, borderRadius: 16, backgroundColor: themeColors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  documentViewerBody: { gap: 14 },
+  documentTabs: { flexDirection: 'row', gap: 8, backgroundColor: themeColors.surfaceMuted, borderRadius: 12, padding: 4 },
+  documentTab: { flex: 1, minHeight: 38, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  documentTabActive: { backgroundColor: themeColors.primary },
+  documentTabText: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
+  documentTabTextActive: { color: 'white' },
+  documentPreviewPanel: { gap: 10 },
+  documentImageFrame: { width: '100%', height: 280, borderRadius: 16, backgroundColor: themeColors.surfaceMuted, overflow: 'hidden', borderWidth: 1, borderColor: themeColors.border },
+  documentImage: { width: '100%', height: '100%' },
+  documentMissing: { height: 280, borderRadius: 16, backgroundColor: themeColors.surfaceMuted, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: themeColors.border },
+  documentStatusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 4 },
+  documentStatusItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  documentStatusText: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '700' },
   header: {
     ...roleLayouts.admin.header,
     paddingTop: 54,

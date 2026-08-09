@@ -505,12 +505,6 @@ const ReservationsScreen = ({ navigation }) => {
 
     return (
       <View style={styles.inlineOptionSheet}>
-        <View style={styles.inlineOptionHeader}>
-          <Text style={styles.inlineOptionTitle}>{selectSheet.title}</Text>
-          <TouchableOpacity onPress={closeSelectSheet} style={styles.inlineOptionClose}>
-            <Ionicons name="close" size={18} color="#64748b" />
-          </TouchableOpacity>
-        </View>
         <ScrollView
           style={styles.inlineOptionList}
           nestedScrollEnabled
@@ -1715,16 +1709,17 @@ const styles = StyleSheet.create({
   inlineIosPickerCard: { marginTop: 10, marginHorizontal: 16, marginBottom: 10, backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.border, borderRadius: 16, overflow: 'hidden' },
   optionSheetCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '72%', paddingBottom: 18 },
   optionSheetList: { maxHeight: 360 },
-  optionSheetItem: { minHeight: 52, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eef2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  optionSheetText: { flex: 1, color: '#1e293b', fontSize: 16, fontWeight: '700' },
+  optionSheetItem: { minHeight: 46, paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: '#eef2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  optionSheetText: { flex: 1, color: '#1e293b', fontSize: 14, fontWeight: '700' },
   inlineOptionSheet: {
-    marginTop: 8,
-    marginBottom: 14,
+    marginTop: -4,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#dbeafe',
-    borderRadius: 12,
+    borderColor: '#86efac',
+    borderRadius: 0,
     backgroundColor: '#fff',
     overflow: 'hidden',
+    maxHeight: 188,
   },
   inlineOptionHeader: {
     minHeight: 44,
@@ -1749,7 +1744,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   inlineOptionList: {
-    maxHeight: 240,
+    maxHeight: 188,
   },
   iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },

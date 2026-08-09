@@ -260,16 +260,21 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     }
   };
 
-  const getStatusChip = (status) => {
+  const getStatusChip = (status, visitor = null) => {
+    const displayStatus = String(visitor?.qrStatus || status || 'pending').toLowerCase();
     const config = {
       pending: { label: 'Pending', color: themeColors.warning, icon: 'time', bg: themeColors.warning + '20' },
       approved: { label: 'Approved', color: themeColors.success, icon: 'checkmark-circle', bg: themeColors.success + '20' },
       rejected: { label: 'Rejected', color: themeColors.error, icon: 'close-circle', bg: themeColors.error + '20' },
+      entered: { label: 'Entered', color: themeColors.info, icon: 'log-in', bg: themeColors.info + '20' },
+      arrived: { label: 'Arrived', color: themeColors.success, icon: 'home', bg: themeColors.success + '20' },
+      departed: { label: 'Departed', color: themeColors.warning, icon: 'arrow-forward-circle', bg: themeColors.warning + '20' },
       active: { label: 'Active', color: themeColors.info, icon: 'radio-button-on', bg: themeColors.info + '20' },
-      completed: { label: 'Completed', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
+      exited: { label: 'Exited', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
+      completed: { label: 'Exited', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
       cancelled: { label: 'Cancelled', color: themeColors.error, icon: 'ban', bg: themeColors.error + '20' },
     };
-    return config[status] || config.pending;
+    return config[displayStatus] || config.pending;
   };
 
   const formatDate = (dateString) => {
@@ -282,7 +287,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
   };
 
   const renderVisitorCard = ({ item }) => {
-    const status = getStatusChip(item.status);
+    const status = getStatusChip(item.status, item);
     const resident = item.residentId;
 
     return (

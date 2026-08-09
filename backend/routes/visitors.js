@@ -51,13 +51,13 @@ const findVisitorByScanValue = async (scanValue) => {
 
   let visitor = await Visitor.findOne({ qrToken: normalized }).populate(
     'residentId',
-    'firstName lastName houseNumber phone email'
+    'firstName lastName houseNumber houseBlock houseLot phone email'
   );
 
   if (!visitor) {
     visitor = await Visitor.findOne({ qrCode: normalized }).populate(
       'residentId',
-      'firstName lastName houseNumber phone email'
+      'firstName lastName houseNumber houseBlock houseLot phone email'
     );
   }
 
@@ -67,10 +67,7 @@ const findVisitorByScanValue = async (scanValue) => {
 const getVisitorQrStatus = (visitor) => {
   if (!visitor) return 'Unknown';
   if (visitor.status === 'pending') return 'Pending';
-  if (visitor.status === 'approved') {
-    if (visitor.residentEntryConfirmedAt) return 'Confirmed';
-    return 'Approved';
-  }
+  if (visitor.status === 'approved') return 'Approved';
   if (visitor.status === 'active') {
     if (visitor.actualExit) return 'Exited';
     if (visitor.residentDepartureConfirmedAt) return 'Departed';
@@ -90,6 +87,66 @@ const attachQrStatus = (visitor) => {
   if (!visitor) return visitor;
   visitor.qrStatus = getVisitorQrStatus(visitor);
   return visitor;
+};
+
+const getExitPrerequisiteMessage = (visitor) => {
+  if (!visitor.actualEntry) {
+    return 'Scan visitor entry at the gate first before exiting.';
+  }
+  if (!visitor.residentEntryConfirmedAt) {
+    return 'Resident must scan to confirm the visitor arrived at the house before exit.';
+  }
+  if (!visitor.residentDepartureConfirmedAt) {
+    return 'Resident must scan for departure first before exiting.';
+  }
+  return '';
+};
+
+const notifyJurisdictionSecurityOfDeparture = async (visitor) => {
+  const resident = visitor?.residentId;
+  if (!resident) return;
+
+  const phaseMatch = String(resident.houseNumber || '').match(/P(\d+)/i);
+  const phase = phaseMatch ? Number(phaseMatch[1]) : NaN;
+  const block = String(resident.houseBlock || '').trim();
+  const lot = String(resident.houseLot || '').trim();
+  const areaText = [
+    Number.isFinite(phase) ? `Phase ${phase}` : '',
+    block ? `Block ${block}` : '',
+    lot ? `Lot ${lot}` : ''
+  ].filter(Boolean).join(' - ');
+
+  const areaRegex = areaText
+    ? new RegExp(areaText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+    : null;
+
+  const jurisdictionFilters = [];
+  if (Number.isFinite(phase)) jurisdictionFilters.push({ assignedPhases: phase });
+  if (areaRegex) jurisdictionFilters.push({ assignedAreas: areaRegex });
+
+  const officers = await User.find({
+    role: 'security',
+    isActive: true,
+    $or: [
+      { securityLevel: 'head-officer' },
+      ...(jurisdictionFilters.length ? jurisdictionFilters : [{ _id: null }])
+    ]
+  }).select('_id');
+
+  await Promise.all(officers.map((officer) => createInAppNotification({
+    userId: officer._id,
+    type: 'visitor',
+    title: 'Visitor departure confirmed',
+    body: `${visitor.visitorName} has left the resident's house${areaText ? ` at ${areaText}` : ''}. Prepare for gate exit scan.`,
+    metadata: {
+      visitorId: visitor._id,
+      residentId: resident._id || resident,
+      event: 'resident_departure_confirmed',
+      phase: Number.isFinite(phase) ? phase : undefined,
+      block,
+      lot
+    }
+  })));
 };
 
 const notifyResidentOverstays = async (filter = {}) => {
@@ -348,7 +405,7 @@ router.get('/pending', protect, authorize('security'), async (req, res) => {
   }
 });
 
-router.put('/:id/approve', protect, authorize('security'), async (req, res) => {
+router.put('/:id/approve', protect, authorize('admin', 'security'), async (req, res) => {
   try {
     const { securityNotes } = req.body;
     
@@ -408,7 +465,7 @@ router.put('/:id/approve', protect, authorize('security'), async (req, res) => {
   }
 });
 
-router.put('/:id/reject', protect, authorize('security'), async (req, res) => {
+router.put('/:id/reject', protect, authorize('admin', 'security'), async (req, res) => {
   try {
     const { rejectionReason } = req.body;
     
@@ -763,6 +820,14 @@ router.put('/:id/exit', protect, authorize('security'), async (req, res) => {
       });
     }
     
+    const exitPrerequisiteMessage = getExitPrerequisiteMessage(visitor);
+    if (exitPrerequisiteMessage) {
+      return res.status(400).json({
+        success: false,
+        error: exitPrerequisiteMessage
+      });
+    }
+
     visitor.actualExit = new Date();
     visitor.status = 'completed';
     if (securityNotes) visitor.securityNotes += (visitor.securityNotes ? '\n' : '') + securityNotes;
@@ -862,6 +927,8 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
       .populate('residentId', 'firstName lastName houseNumber email')
       .populate('approvedBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
+
+    visitors.forEach(attachQrStatus);
 
     if (format === 'pdf' || format === 'csv') {
       const pdfReportService = require('../services/pdfReportService');
@@ -982,10 +1049,11 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
     }
 
     if (visitor.status === 'active') {
-      if (!visitor.residentDepartureConfirmedAt) {
+      const exitPrerequisiteMessage = getExitPrerequisiteMessage(visitor);
+      if (exitPrerequisiteMessage) {
         return res.status(400).json({
           success: false,
-          error: 'Resident must confirm departure before exit scan.'
+          error: exitPrerequisiteMessage
         });
       }
 
@@ -1041,13 +1109,13 @@ router.post('/confirm-arrival', protect, authorize('resident'), async (req, res)
       return res.status(403).json({ success: false, error: 'This pass does not belong to your account.' });
     }
 
-    const canConfirmArrival = ['approved', 'active'].includes(visitor.status) && !visitor.residentEntryConfirmedAt;
+    const canConfirmArrival = visitor.status === 'active' && !visitor.residentEntryConfirmedAt;
     const canConfirmDeparture = visitor.status === 'active' && visitor.residentEntryConfirmedAt && !visitor.residentDepartureConfirmedAt;
 
-    if (!canConfirmArrival && !canConfirmDeparture && visitor.status !== 'active') {
+    if (visitor.status !== 'active') {
       return res.status(400).json({
         success: false,
-        error: `Visitor must be approved or active before resident confirmation (current: ${visitor.status}).`
+        error: `Security must scan the visitor for gate entry before resident confirmation (current: ${visitor.status}).`
       });
     }
 
@@ -1078,6 +1146,10 @@ router.post('/confirm-arrival', protect, authorize('resident'), async (req, res)
             : `${visitor.visitorName} is leaving and has been confirmed for departure.`,
         metadata: { visitorId: visitor._id, event: confirmedType === 'arrival' ? 'resident_confirmed' : 'resident_departure_confirmed' }
       });
+
+      if (confirmedType === 'departure') {
+        await notifyJurisdictionSecurityOfDeparture(visitor);
+      }
     } else {
       attachQrStatus(visitor);
     }
@@ -1218,6 +1290,8 @@ router.get('/admin/all', protect, authorize('admin'), async (req, res) => {
       .populate('residentId', 'firstName lastName houseNumber email phone')
       .populate('approvedBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
+
+    visitors.forEach(attachQrStatus);
     
     res.json({
       success: true,
@@ -1305,6 +1379,8 @@ router.get('/admin/logs', protect, authorize('admin'), async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
+
+    visitors.forEach(attachQrStatus);
     
     const total = await Visitor.countDocuments(filter);
     
@@ -1869,6 +1945,8 @@ router.get('/admin/recent', protect, authorize('admin'), async (req, res) => {
       .populate('approvedBy', 'firstName lastName role')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit));
+
+    visitors.forEach(attachQrStatus);
     
     res.json({
       success: true,

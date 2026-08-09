@@ -351,11 +351,9 @@ const VisitorManagementScreen = ({ navigation }) => {
 
   const getVisitorQrStatus = (visitor) => {
     if (!visitor) return 'Unknown';
+    if (visitor.qrStatus) return visitor.qrStatus;
     if (visitor.status === 'pending') return 'Pending';
-    if (visitor.status === 'approved') {
-      if (visitor.residentEntryConfirmedAt) return 'Confirmed';
-      return 'Approved';
-    }
+    if (visitor.status === 'approved') return 'Approved';
     if (visitor.status === 'active') {
       if (visitor.actualExit) return 'Exited';
       if (visitor.residentDepartureConfirmedAt) return 'Departed';
@@ -374,7 +372,6 @@ const VisitorManagementScreen = ({ navigation }) => {
     const config = {
       Pending: { label: 'Pending', color: themeColors.warning, icon: 'time', bg: themeColors.warning + '20' },
       Approved: { label: 'Approved', color: themeColors.success, icon: 'checkmark-circle', bg: themeColors.success + '20' },
-      Confirmed: { label: 'Confirmed', color: themeColors.success, icon: 'shield-checkmark', bg: themeColors.success + '20' },
       Entered: { label: 'Entered', color: themeColors.info, icon: 'log-in', bg: themeColors.info + '20' },
       Arrived: { label: 'Arrived', color: themeColors.success, icon: 'home', bg: themeColors.success + '20' },
       Departed: { label: 'Departed', color: themeColors.warning, icon: 'arrow-forward-circle', bg: themeColors.warning + '20' },

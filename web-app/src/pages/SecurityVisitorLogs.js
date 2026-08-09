@@ -376,6 +376,31 @@ const SecurityVisitorLogs = () => {
 
   // Get status chip
   const getStatusChip = (visitor) => {
+    const qrStatus = String(visitor?.qrStatus || '').toLowerCase();
+    const qrStatusConfig = {
+      entered: { label: 'ENTERED', color: themeColors.info, icon: <ActiveIcon /> },
+      arrived: { label: 'ARRIVED', color: themeColors.success, icon: <CheckCircleIcon /> },
+      departed: { label: 'DEPARTED', color: themeColors.warning, icon: <ScheduleIcon /> },
+      exited: { label: 'EXITED', color: themeColors.textSecondary, icon: <CheckCircleIcon /> },
+    };
+
+    if (qrStatusConfig[qrStatus]) {
+      const config = qrStatusConfig[qrStatus];
+      return (
+        <Chip
+          label={config.label}
+          sx={{
+            bgcolor: `${config.color}20`,
+            color: config.color,
+            border: `1px solid ${config.color}40`,
+            fontWeight: 600
+          }}
+          size="small"
+          icon={config.icon}
+        />
+      );
+    }
+
     const now = new Date();
     const departureDate = visitor.expectedDeparture ? new Date(visitor.expectedDeparture) : null;
     

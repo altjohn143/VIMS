@@ -868,7 +868,7 @@ const handleReject = async () => {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={visitor.status}
+                        label={visitor.qrStatus || visitor.status}
                         size="small"
                         color={getStatusColor(visitor.status)}
                       />

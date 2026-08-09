@@ -36,8 +36,9 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
 
   const load = useCallback(async () => {
     try {
+      const apiStatus = status === 'verified' ? 'approved' : status;
       const [res, allRes] = await Promise.all([
-        api.get('/verifications/admin/queue', { params: { status } }),
+        api.get('/verifications/admin/queue', { params: { status: apiStatus } }),
         status === 'all' ? Promise.resolve(null) : api.get('/verifications/admin/queue', { params: { status: 'all' } })
       ]);
       if (res.data?.success) {

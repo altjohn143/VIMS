@@ -239,6 +239,10 @@ const AdminPaymentsScreen = ({ navigation }) => {
         const sentCount = response.data.data?.sent ?? Number(String(message).match(/\d+/)?.[0] || 0);
         Alert.alert(sentCount > 0 ? 'Reminders Sent' : 'No Eligible Accounts', message);
         setShowReminderDialog(false);
+        fetchPayments();
+        fetchStats();
+      } else {
+        Alert.alert('Reminder Status', response.data?.error || response.data?.message || 'No reminders were sent.');
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to send reminders');
@@ -562,6 +566,14 @@ const AdminPaymentsScreen = ({ navigation }) => {
               {[['all', 'All types'], ['monthly_dues', 'Monthly dues'], ['special_assessment', 'Special assessment'], ['service_fee', 'Service fee'], ['penalty', 'Penalty']].map(([value, label]) => (
                 <TouchableOpacity key={value} style={[styles.filterChip, paymentTypeFilter === value && styles.filterChipActive]} onPress={() => setPaymentTypeFilter(value)}>
                   <Text style={[styles.filterChipText, paymentTypeFilter === value && styles.filterChipTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.filterGroupLabel}>STATUS</Text>
+            <View style={styles.wrappedFilters}>
+              {[['all', 'All statuses'], ['pending', 'Pending'], ['paid', 'Paid'], ['overdue', 'Overdue'], ['rejected', 'Rejected']].map(([value, label]) => (
+                <TouchableOpacity key={value} style={[styles.filterChip, statusFilter === value && styles.filterChipActive]} onPress={() => setStatusFilter(value)}>
+                  <Text style={[styles.filterChipText, statusFilter === value && styles.filterChipTextActive]}>{label}</Text>
                 </TouchableOpacity>
               ))}
             </View>

@@ -1656,7 +1656,7 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
 // Export visitors data (CSV or PDF format)
 router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
   try {
-    const { startDate, endDate, status, format = 'json', timezoneOffset = '0' } = req.query;
+    const { startDate, endDate, status, search = '', format = 'json', timezoneOffset = '0' } = req.query;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       return res.status(400).json({
@@ -1672,23 +1672,39 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
     }
 
     if (startDate || endDate) {
-      filter.createdAt = {};
+      filter.expectedArrival = {};
       if (startDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-        filter.createdAt.$gte = start;
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        filter.expectedArrival.$gte = start;
       }
       if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-        filter.createdAt.$lte = end;
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.expectedArrival.$lte = end;
       }
     }
 
-    const visitors = await Visitor.find(filter)
+    let visitors = await Visitor.find(filter)
       .populate('residentId', 'firstName lastName houseNumber email')
       .populate('approvedBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
+
+    const searchText = String(search || '').trim().toLowerCase();
+    if (searchText) {
+      visitors = visitors.filter((visitor) => {
+        const residentName = visitor.residentId
+          ? `${visitor.residentId.firstName || ''} ${visitor.residentId.lastName || ''}`.toLowerCase()
+          : '';
+        return (
+          String(visitor.visitorName || '').toLowerCase().includes(searchText) ||
+          String(visitor.visitorPhone || '').toLowerCase().includes(searchText) ||
+          String(visitor.purpose || '').toLowerCase().includes(searchText) ||
+          residentName.includes(searchText) ||
+          String(visitor.residentId?.houseNumber || '').toLowerCase().includes(searchText)
+        );
+      });
+    }
 
     const pdfReportService = require('../services/pdfReportService');
     const formatExportDate = (value) => (

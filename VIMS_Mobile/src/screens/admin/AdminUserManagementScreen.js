@@ -1410,9 +1410,9 @@ const AdminUserManagementScreen = ({ navigation }) => {
         <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, styles.archiveModalContent]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Archive User</Text>
               <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
@@ -1458,31 +1458,34 @@ const AdminUserManagementScreen = ({ navigation }) => {
                 textAlignVertical="top"
                 editable={!isProtectedMainAccount(selectedUser)}
               />
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={[styles.modalActionButton, styles.cancelButton]}
-                  onPress={() => {
-                    setShowDeleteModal(false);
-                    setDeleteReason('');
-                  }}
-                  disabled={processing}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalActionButton, styles.deleteButton]}
-                  onPress={handleArchiveUser}
-                  disabled={processing || isProtectedMainAccount(selectedUser)}
-                >
-                  {processing ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <Text style={styles.modalActionText}>Archive</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
             </ScrollView>
+            <View style={styles.stickyModalActions}>
+              <TouchableOpacity
+                style={[styles.modalActionButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowDeleteModal(false);
+                  setDeleteReason('');
+                }}
+                disabled={processing}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalActionButton,
+                  styles.deleteButton,
+                  (!deleteReason.trim() || isProtectedMainAccount(selectedUser)) && styles.disabledAction,
+                ]}
+                onPress={handleArchiveUser}
+                disabled={processing || !deleteReason.trim() || isProtectedMainAccount(selectedUser)}
+              >
+                {processing ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.modalActionText}>Archive</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -1885,9 +1888,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    paddingBottom: 28,
-    maxHeight: '92%',
+    paddingBottom: 16,
+    maxHeight: Platform.OS === 'ios' ? '90%' : '86%',
     flexShrink: 1,
+  },
+  archiveModalContent: {
+    maxHeight: Platform.OS === 'ios' ? '72%' : '86%',
   },
   createModalCard: {
     backgroundColor: themeColors.cardBackground,
@@ -2041,12 +2047,21 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
+  stickyModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: themeColors.border,
+  },
   modalActionButton: {
+    flex: 1,
+    minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     borderRadius: 8,
   },
   modalActionText: {

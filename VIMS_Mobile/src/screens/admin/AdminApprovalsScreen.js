@@ -604,9 +604,13 @@ const AdminApprovalsScreen = ({ navigation }) => {
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalActionButton, pendingAction === 'archive' ? styles.archiveButton : styles.rejectButton]}
+                  style={[
+                    styles.modalActionButton,
+                    pendingAction === 'archive' ? styles.archiveButton : styles.rejectButton,
+                    (!rejectReason.trim() || processing) && styles.actionButtonDisabled,
+                  ]}
                   onPress={handleReject}
-                  disabled={processing}
+                  disabled={processing || !rejectReason.trim()}
                 >
                   {processing ? (
                     <ActivityIndicator color="white" />
@@ -769,16 +773,18 @@ const styles = StyleSheet.create({
   userActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 6,
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 42,
+    minWidth: 0,
     paddingVertical: 10,
     paddingHorizontal: 6,
     borderRadius: 8,
-    marginHorizontal: 3,
   },
   actionButtonDisabled: {
     opacity: 0.6,
@@ -797,6 +803,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 5,
+    flexShrink: 1,
+    textAlign: 'center',
   },
   viewIdLink: {
     flexDirection: 'row',
@@ -957,6 +965,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 48,
     paddingVertical: 14,
     borderRadius: 8,
     marginHorizontal: 4,

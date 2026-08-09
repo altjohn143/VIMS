@@ -226,6 +226,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
       if (exportEndDate) params.append('endDate', exportEndDate);
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (dateFilter) params.append('date', dateFilter);
+      if (searchQuery.trim()) params.append('search', searchQuery.trim());
       params.append('format', exportFormat);
       params.append('timezoneOffset', String(new Date().getTimezoneOffset()));
 

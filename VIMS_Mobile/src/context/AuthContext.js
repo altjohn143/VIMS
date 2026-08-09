@@ -25,6 +25,15 @@ const ROLE_SESSION_GRACE_MS = {
 const DEFAULT_SESSION_GRACE_MS = ROLE_SESSION_GRACE_MS.resident;
 
 const getSessionGraceMs = (role) => ROLE_SESSION_GRACE_MS[role] || DEFAULT_SESSION_GRACE_MS;
+const isTransientAuthRefreshError = (error) => (
+  error?.config?.url === '/auth/me' &&
+  !error?.response &&
+  (
+    error?.code === 'ECONNABORTED' ||
+    error?.name === 'AbortError' ||
+    /aborted|timed out|network request failed/i.test(error?.message || '')
+  )
+);
 
 const parseStoredUserRole = (storedUser) => {
   if (!storedUser) return null;
@@ -156,6 +165,20 @@ export const AuthProvider = ({ children }) => {
         await clearStoredSession();
       }
     } catch (error) {
+      if (isTransientAuthRefreshError(error)) {
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          try {
+            const storedUser = JSON.parse(userData);
+            setUser(storedUser);
+            setIsAuthenticated(true);
+            console.warn('Auth refresh timed out; keeping stored session until the next successful check.');
+            return;
+          } catch {
+            // Fall through to clearing corrupted session data.
+          }
+        }
+      }
       console.error('Error loading stored data:', error);
       await clearStoredSession();
     } finally {

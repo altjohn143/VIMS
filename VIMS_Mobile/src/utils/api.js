@@ -217,12 +217,20 @@ if (Platform.OS !== 'web') {
         request: url,
       };
     } catch (error) {
-      console.error(`🔴 Fetch error for ${config.url}:`, error);
-      throw {
-        ...error,
-        config,
-        request: config.url,
-      };
+      const isAbort = error?.name === 'AbortError';
+      const requestError = new Error(isAbort ? 'Request timed out' : (error?.message || 'Network request failed'));
+      requestError.name = error?.name || 'NetworkError';
+      requestError.code = isAbort ? 'ECONNABORTED' : error?.code;
+      requestError.config = config;
+      requestError.request = config.url;
+      requestError.isTimeout = isAbort;
+
+      if (isAbort) {
+        console.warn(`Fetch timed out for ${config.url}`);
+      } else {
+        console.error(`Fetch error for ${config.url}:`, error);
+      }
+      throw requestError;
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
     }
@@ -309,7 +317,9 @@ api.interceptors.response.use(
     
     // Handle connection errors
     else if (error.code === 'ECONNABORTED') {
-      Alert.alert('Timeout', 'Request took too long. Please check your connection.');
+      if (url !== '/auth/me') {
+        Alert.alert('Timeout', 'Request took too long. Please check your connection.');
+      }
     }
     
     // Handle network errors

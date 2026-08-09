@@ -1375,6 +1375,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
+    paddingBottom: 28,
+    maxHeight: '92%',
   },
   denyHelper: { color: themeColors.textSecondary, fontSize: 12, marginTop: 4 },
   denyReasonInput: { minHeight: 110, color: themeColors.textPrimary },

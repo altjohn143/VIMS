@@ -5,6 +5,8 @@ const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+const PRIMARY_SECURITY_HEAD_EMAIL = 'security@vims.com';
+
 const isHeadOfficer = (user) =>
   user?.role === 'security' && (
     user.securityLevel === 'head-officer' ||
@@ -12,6 +14,12 @@ const isHeadOfficer = (user) =>
   );
 
 const isSystemHeadOfficer = (user) => String(user?.email || '').toLowerCase() === 'security@vims.com';
+
+const getPrimarySecurityHeadOfficer = async () => User.findOne({
+  email: PRIMARY_SECURITY_HEAD_EMAIL,
+  role: 'security',
+  isActive: true
+}).select('_id firstName lastName email securityLevel');
 
 const getHeadOfficerScope = async (headOfficer) => {
   const headOfficerId = headOfficer?._id || headOfficer;
@@ -24,13 +32,14 @@ const getHeadOfficerScope = async (headOfficer) => {
   if (!isSystemHeadOfficer(headOfficer)) {
     filter.$or = [
       { headOfficerId },
+      { secondaryHeadOfficerId: headOfficerId },
       { headOfficerId: null },
       { headOfficerId: { $exists: false } }
     ];
   }
 
   const team = await User.find(filter)
-    .select('_id firstName lastName email phone securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId isActive')
+    .select('_id firstName lastName email phone securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId secondaryHeadOfficerId isActive')
     .sort({ firstName: 1, lastName: 1 });
 
   return {
@@ -270,7 +279,9 @@ router.put('/assign/:userId', protect, authorize('admin', 'security'), async (re
       }
       const canManage =
         !user.headOfficerId ||
-        String(user.headOfficerId) === String(req.user._id);
+        String(user.headOfficerId) === String(req.user._id) ||
+        (user.secondaryHeadOfficerId && String(user.secondaryHeadOfficerId) === String(req.user._id)) ||
+        isSystemHeadOfficer(req.user);
       if (!canManage) {
         return res.status(403).json({ success: false, error: 'This officer is assigned to another head officer' });
       }
@@ -285,14 +296,23 @@ router.put('/assign/:userId', protect, authorize('admin', 'security'), async (re
       user.assignedAreas = [];
       user.patrolSchedule = '';
       user.headOfficerId = null;
+      user.secondaryHeadOfficerId = null;
     } else {
       // For regular personnel, set their assignments and link to head officer if provided
+      const primaryHeadOfficer = await getPrimarySecurityHeadOfficer();
+      const selectedSupervisorId = req.user.role === 'security'
+        ? req.user._id
+        : headOfficerId || null;
       user.assignedPhases = assignedPhases || [];
       user.assignedAreas = assignedAreas || [];
       user.patrolSchedule = patrolSchedule || '';
-      user.headOfficerId = req.user.role === 'security'
-        ? req.user._id
-        : headOfficerId || null;
+      user.headOfficerId = primaryHeadOfficer?._id || selectedSupervisorId || null;
+      user.secondaryHeadOfficerId =
+        selectedSupervisorId &&
+        user.headOfficerId &&
+        String(selectedSupervisorId) !== String(user.headOfficerId)
+          ? selectedSupervisorId
+          : null;
     }
     
     await user.save();
@@ -315,13 +335,14 @@ router.get('/assignments', protect, authorize('admin', 'security'), async (req, 
       filter.securityLevel = 'personnel';
       filter.$or = [
         { headOfficerId: req.user._id },
+        { secondaryHeadOfficerId: req.user._id },
         { headOfficerId: null },
         { headOfficerId: { $exists: false } }
       ];
     }
 
     const securityOfficers = await User.find(filter)
-      .select('firstName lastName email securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId')
+      .select('firstName lastName email securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId secondaryHeadOfficerId')
       .populate('headOfficerId', 'firstName lastName')
       .sort({ firstName: 1 });
     

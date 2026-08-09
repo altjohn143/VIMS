@@ -93,6 +93,12 @@ const userSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
+
+  secondaryHeadOfficerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   
   houseNumber: {
     type: String,
@@ -125,9 +131,30 @@ const userSchema = new mongoose.Schema({
     default: false
   },
 
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+    index: true
+  },
+
   approvalDate: {
     type: Date,
     default: null
+  },
+
+  rejectedAt: {
+    type: Date,
+    default: null
+  },
+  rejectedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  rejectionReason: {
+    type: String,
+    default: ''
   },
 
   profileComplete: {
@@ -257,6 +284,10 @@ const userSchema = new mongoose.Schema({
   archivedReason: {
     type: String,
     default: ''
+  },
+  wasActiveBeforeArchive: {
+    type: Boolean,
+    default: null
   }
 
 }, {

@@ -30,6 +30,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [pendingAction, setPendingAction] = useState('reject');
   const [processing, setProcessing] = useState(false);
   const [approvingUserId, setApprovingUserId] = useState(null);
   const [idModalOpen, setIdModalOpen] = useState(false);
@@ -128,27 +129,30 @@ const AdminApprovalsScreen = ({ navigation }) => {
     if (!selectedUser) return;
     const reason = rejectReason.trim();
     if (!reason) {
-      Alert.alert('Reject Reason Required', 'Please enter a reason before rejecting this resident.');
+      Alert.alert(
+        pendingAction === 'archive' ? 'Archive Reason Required' : 'Reject Reason Required',
+        `Please enter a reason before ${pendingAction === 'archive' ? 'archiving' : 'rejecting'} this resident.`
+      );
       return;
     }
 
     Alert.alert(
-      'Reject Resident',
-      `Reject ${selectedUser.firstName} ${selectedUser.lastName}?`,
+      pendingAction === 'archive' ? 'Archive Resident' : 'Reject Resident',
+      `${pendingAction === 'archive' ? 'Archive' : 'Reject'} ${selectedUser.firstName} ${selectedUser.lastName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reject',
+          text: pendingAction === 'archive' ? 'Archive' : 'Reject',
           style: 'destructive',
           onPress: async () => {
             setProcessing(true);
             try {
-              const response = await api.delete(`/users/${selectedUser._id}`, {
-                data: { reason }
-              });
+              const response = pendingAction === 'archive'
+                ? await api.delete(`/users/${selectedUser._id}`, { data: { reason } })
+                : await api.put(`/users/${selectedUser._id}/reject`, { reason });
               
               if (response.data.success) {
-                Alert.alert('Success', 'Resident rejected successfully');
+                Alert.alert('Success', `Resident ${pendingAction === 'archive' ? 'archived' : 'rejected'} successfully`);
                 setPendingUsers(prev => prev.filter(user => user._id !== selectedUser._id));
                 setShowRejectModal(false);
                 setShowDetailsModal(false);
@@ -284,12 +288,25 @@ const AdminApprovalsScreen = ({ navigation }) => {
             style={[styles.actionButton, styles.rejectButton]}
             onPress={() => {
               setSelectedUser(item);
+              setPendingAction('reject');
               setShowRejectModal(true);
             }}
             disabled={processing}
           >
             <Ionicons name="close-circle" size={20} color="white" />
             <Text style={styles.actionButtonText}>Reject</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.archiveButton]}
+            onPress={() => {
+              setSelectedUser(item);
+              setPendingAction('archive');
+              setShowRejectModal(true);
+            }}
+            disabled={processing}
+          >
+            <Ionicons name="archive" size={20} color="white" />
+            <Text style={styles.actionButtonText}>Archive</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -526,7 +543,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Reject Resident</Text>
+              <Text style={styles.modalTitle}>{pendingAction === 'archive' ? 'Archive Resident' : 'Reject Resident'}</Text>
               <TouchableOpacity onPress={() => {
                 setShowRejectModal(false);
                 setRejectReason('');
@@ -543,7 +560,9 @@ const AdminApprovalsScreen = ({ navigation }) => {
               <View style={styles.warningBox}>
                 <Ionicons name="information-circle" size={24} color={themeColors.warning} />
                 <Text style={styles.warningText}>
-                  This resident registration will be rejected and removed from Pending Approvals. A reason is required for audit history.
+                  {pendingAction === 'archive'
+                    ? 'This resident registration will be archived and removed from Pending Approvals. A reason is required for audit history.'
+                    : 'This resident registration will be rejected and removed from Pending Approvals. A reason is required for audit history.'}
                 </Text>
               </View>
 
@@ -563,7 +582,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
               <TextInput
                 style={styles.rejectInput}
-                placeholder="Reason for rejection (required)"
+                placeholder={pendingAction === 'archive' ? 'Reason for archiving (required)' : 'Reason for rejection (required)'}
                 placeholderTextColor={themeColors.textMuted}
                 selectionColor={themeColors.primary}
                 value={rejectReason}
@@ -580,19 +599,19 @@ const AdminApprovalsScreen = ({ navigation }) => {
                     setShowRejectModal(false);
                     setRejectReason('');
                   }}
-                  disabled={processing || !rejectReason.trim()}
+                  disabled={processing}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalActionButton, styles.rejectButton]}
+                  style={[styles.modalActionButton, pendingAction === 'archive' ? styles.archiveButton : styles.rejectButton]}
                   onPress={handleReject}
                   disabled={processing}
                 >
                   {processing ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <Text style={styles.modalActionText}>Reject</Text>
+                    <Text style={styles.modalActionText}>{pendingAction === 'archive' ? 'Archive' : 'Reject'}</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -757,8 +776,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
+    paddingHorizontal: 6,
     borderRadius: 8,
-    marginHorizontal: 4,
+    marginHorizontal: 3,
   },
   actionButtonDisabled: {
     opacity: 0.6,
@@ -769,11 +789,14 @@ const styles = StyleSheet.create({
   rejectButton: {
     backgroundColor: themeColors.error,
   },
+  archiveButton: {
+    backgroundColor: themeColors.textSecondary,
+  },
   actionButtonText: {
     color: 'white',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 5,
   },
   viewIdLink: {
     flexDirection: 'row',
@@ -852,6 +875,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
+    paddingBottom: 28,
     maxHeight: '92%',
     flexShrink: 1,
   },

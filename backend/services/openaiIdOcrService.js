@@ -51,6 +51,8 @@ async function extractIdFieldsFromImagePaths(frontInput, backInput, expectedDocu
             text: [
               'Extract fields from the ID front and back images.',
               'If a field is unreadable, return an empty string.',
+              'For names, map SURNAME/LAST NAME to lastName, GIVEN NAME/FIRST NAME to firstName, and MIDDLE NAME to middleName.',
+              'If the ID shows a single full name line, split it into firstName,lastName,middleName using the visible label order on the card; do not put the entire name into one field.',
               "Use date format YYYY-MM-DD when confidently parsed; otherwise return empty string.",
               expectedDocumentType ? `IMPORTANT: Verify this is a ${expectedDocumentType}. If it's not a ${expectedDocumentType}, set documentTypeMatch to false and provide the actual document type in detectedDocumentType.` : 'Detect the document type from the ID.',
               'Return JSON with keys: firstName,lastName,middleName,dob,idNumber,address,confidence,notes,detectedDocumentType,documentTypeMatch',

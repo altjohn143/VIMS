@@ -235,10 +235,10 @@ const ArchivedServiceRequests = () => {
                           label={serviceRequest.priority}
                           size="small"
                           sx={{
-                            bgcolor: serviceRequest.priority === 'high' ? themeColors.error + '20' :
+                            bgcolor: serviceRequest.priority === 'urgent' ? themeColors.error + '20' :
                                    serviceRequest.priority === 'medium' ? themeColors.warning + '20' :
                                    themeColors.success + '20',
-                            color: serviceRequest.priority === 'high' ? themeColors.error :
+                            color: serviceRequest.priority === 'urgent' ? themeColors.error :
                                   serviceRequest.priority === 'medium' ? themeColors.warning :
                                   themeColors.success,
                             fontWeight: 600,

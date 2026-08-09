@@ -380,7 +380,6 @@ const SecurityServiceRequests = () => {
             <MenuItem value="all">All Priority</MenuItem>
             <MenuItem value="low">Low</MenuItem>
             <MenuItem value="medium">Medium</MenuItem>
-            <MenuItem value="high">High</MenuItem>
             <MenuItem value="urgent">Urgent</MenuItem>
           </TextField>
           <TextField select size="small" value={category} onChange={(e) => setCategory(e.target.value)} sx={{ minWidth: 140 }}>

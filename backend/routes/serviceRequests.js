@@ -7,17 +7,40 @@ const isSecurityHeadOfficer = (user) =>
     user.securityLevel === 'head-officer' ||
     String(user.email || '').toLowerCase() === 'security@vims.com'
   );
-const getHeadOfficerStaffFilter = (headOfficerId) => ({
+const PRIMARY_SECURITY_HEAD_EMAIL = 'security@vims.com';
+const isPrimarySecurityHeadOfficer = (user) => String(user?.email || '').toLowerCase() === PRIMARY_SECURITY_HEAD_EMAIL;
+const getPrimarySecurityHeadOfficer = async () => User.findOne({
+  email: PRIMARY_SECURITY_HEAD_EMAIL,
+  role: 'security',
+  isActive: true
+}).select('_id');
+
+const getHeadOfficerStaffFilter = async (headOfficer) => {
+  const headOfficerId = headOfficer?._id || headOfficer?.id || headOfficer;
+  const primaryHeadOfficer = await getPrimarySecurityHeadOfficer();
+  const primaryHeadOfficerId = primaryHeadOfficer?._id || null;
+
+  if (isPrimarySecurityHeadOfficer(headOfficer)) {
+    return {
+      role: 'security',
+      securityLevel: 'personnel',
+      isActive: true,
+      isArchived: false
+    };
+  }
+
+  return {
   role: 'security',
   securityLevel: 'personnel',
   isActive: true,
   isArchived: false,
   $or: [
     { headOfficerId },
-    { headOfficerId: null },
-    { headOfficerId: { $exists: false } }
+    { secondaryHeadOfficerId: headOfficerId },
+    ...(primaryHeadOfficerId ? [{ headOfficerId: primaryHeadOfficerId, secondaryHeadOfficerId: headOfficerId }] : [])
   ]
-});
+  };
+};
 const ServiceRequest = require('../models/ServiceRequest');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
@@ -97,7 +120,7 @@ router.post('/', protect, authorize('resident'), attachmentUpload.array('attachm
       category,
       title,
       description,
-      priority: priority || 'medium',
+      priority: category === 'security' ? 'urgent' : (priority || 'medium'),
       location: location || '',
       status: 'pending',
       attachments: uploadedAttachments
@@ -471,7 +494,7 @@ router.put('/:id', protect, authorize('resident'), async (req, res) => {
 
     request.title = title;
     request.description = description;
-    request.priority = priority || request.priority || 'medium';
+    request.priority = request.category === 'security' ? 'urgent' : (priority || request.priority || 'medium');
     request.location = location || '';
 
     await request.save();
@@ -845,16 +868,35 @@ router.put('/:id/assign-staff', protect, authorize('admin', 'security'), async (
     }
 
     if (req.user.role === 'security') {
+      const requesterIsPrimaryHeadOfficer = isPrimarySecurityHeadOfficer(req.user);
       const isUnassignedPersonnel = !staff.headOfficerId;
       const supervisedByCurrentOfficer = staff.headOfficerId && String(staff.headOfficerId) === String(req.user.id);
-      if (staff.securityLevel === 'head-officer' || (!supervisedByCurrentOfficer && !isUnassignedPersonnel)) {
+      const secondarySupervisedByCurrentOfficer =
+        staff.secondaryHeadOfficerId && String(staff.secondaryHeadOfficerId) === String(req.user.id);
+      if (
+        staff.securityLevel === 'head-officer' ||
+        (
+          !requesterIsPrimaryHeadOfficer &&
+          !supervisedByCurrentOfficer &&
+          !secondarySupervisedByCurrentOfficer &&
+          !isUnassignedPersonnel
+        )
+      ) {
         return res.status(403).json({
           success: false,
           error: 'You can only assign requests to security staff under your supervision'
         });
       }
       if (isUnassignedPersonnel) {
-        staff.headOfficerId = req.user._id;
+        const primaryHeadOfficer = await getPrimarySecurityHeadOfficer();
+        staff.headOfficerId = primaryHeadOfficer?._id || req.user._id;
+        if (
+          !requesterIsPrimaryHeadOfficer &&
+          primaryHeadOfficer?._id &&
+          String(primaryHeadOfficer._id) !== String(req.user._id)
+        ) {
+          staff.secondaryHeadOfficerId = req.user._id;
+        }
         await staff.save();
       }
     }
@@ -904,6 +946,12 @@ router.put('/:id/assign-staff', protect, authorize('admin', 'security'), async (
 router.put('/:id/review', protect, authorize('admin'), async (req, res) => {
   try {
     const { status, adminNotes, estimatedCost, estimatedCompletion } = req.body;
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        error: 'Action/status is required'
+      });
+    }
     
     const request = await ServiceRequest.findById(req.params.id);
     
@@ -914,7 +962,7 @@ router.put('/:id/review', protect, authorize('admin'), async (req, res) => {
       });
     }
 
-    request.status = status || 'under-review';
+    request.status = status;
     request.reviewedBy = req.user.id;
     request.reviewedAt = new Date();
     
@@ -1028,7 +1076,7 @@ router.get('/admin/staff', protect, authorize('admin', 'security'), async (req, 
     }
 
     const filter = req.user.role === 'security'
-      ? getHeadOfficerStaffFilter(req.user._id)
+      ? await getHeadOfficerStaffFilter(req.user)
       : {
           role: { $ne: 'resident' },
           isActive: true,
@@ -1036,7 +1084,7 @@ router.get('/admin/staff', protect, authorize('admin', 'security'), async (req, 
         };
 
     const staffMembers = await User.find(filter)
-      .select('firstName lastName email phone role securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId');
+      .select('firstName lastName email phone role securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId secondaryHeadOfficerId');
     
     res.json({
       success: true,

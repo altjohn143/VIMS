@@ -1,7 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Alert, Image, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors } from '../../utils/theme';
+
+const { width } = Dimensions.get('window');
+const MAP_CANVAS_WIDTH = Math.max(width - 24, 720);
+const MAP_CANVAS_HEIGHT = MAP_CANVAS_WIDTH * (1024 / 1536);
+const MIN_MAP_ZOOM = 0.75;
+const MAX_MAP_ZOOM = 2.25;
+const MAP_ZOOM_STEP = 0.25;
+const LOT_MAP_IMAGE = require('../../../assets/lotbettermap.jpg');
 
 // Extracted from RegisterScreen to keep it light.
 export default function RegisterLotMapModal({
@@ -16,7 +24,7 @@ export default function RegisterLotMapModal({
   const [mapZoom, setMapZoom] = useState(1);
   const [selectedMapLot, setSelectedMapLot] = useState(null);
   const [showLotInfo, setShowLotInfo] = useState(false);
-  const [selectedPhase, setSelectedPhase] = useState(1);
+  const [selectedPhase, setSelectedPhase] = useState('all');
 
   const statusConfig = useMemo(
     () => ({
@@ -29,31 +37,45 @@ export default function RegisterLotMapModal({
 
   const getStatusConfig = (status) => statusConfig[status] || statusConfig.vacant;
 
-  const displayLots = mapViewMode === 'available' ? availableLots : allLots;
+  const mappedLots = useMemo(() => {
+    const sourceLots = mapViewMode === 'available' ? availableLots : allLots;
+    return sourceLots.filter((lot) => {
+      const position = lot.mapPosition;
+      return position?.isPositioned &&
+        [position.left, position.top, position.width, position.height]
+          .map(Number)
+          .every(Number.isFinite) &&
+        Number(position.width) > 0 &&
+        Number(position.height) > 0;
+    });
+  }, [allLots, availableLots, mapViewMode]);
 
-  // Get phases available
   const phases = useMemo(() => {
     const phaseSet = new Set();
-    displayLots.forEach(lot => {
-      if (lot.phase) phaseSet.add(lot.phase);
+    mappedLots.forEach(lot => {
+      if (lot.phase != null) phaseSet.add(Number(lot.phase));
     });
     return Array.from(phaseSet).sort((a, b) => a - b);
-  }, [displayLots]);
+  }, [mappedLots]);
 
-  // Filter lots by selected phase
   const phaseFilteredLots = useMemo(() => {
-    return displayLots.filter(lot => (lot.phase || 1) === selectedPhase);
-  }, [displayLots, selectedPhase]);
+    return selectedPhase === 'all'
+      ? mappedLots
+      : mappedLots.filter(lot => Number(lot.phase || 1) === Number(selectedPhase));
+  }, [mappedLots, selectedPhase]);
 
-  const { sortedBlocks, lotsByBlock } = useMemo(() => {
-    const by = phaseFilteredLots.reduce((acc, lot) => {
-      if (!acc[lot.block]) acc[lot.block] = [];
-      acc[lot.block].push(lot);
-      return acc;
-    }, {});
-    Object.keys(by).forEach((block) => by[block].sort((a, b) => a.lotNumber - b.lotNumber));
-    return { sortedBlocks: Object.keys(by).map(Number).sort((a, b) => a - b), lotsByBlock: by };
-  }, [phaseFilteredLots]);
+  const updateMapZoom = (nextZoom) => {
+    setMapZoom(Math.max(MIN_MAP_ZOOM, Math.min(MAX_MAP_ZOOM, Number(nextZoom.toFixed(2)))));
+  };
+
+  const handleLotPress = (lot) => {
+    if (lot.status !== 'vacant') {
+      Alert.alert('Not Available', `Lot ${lot.lotId} is ${lot.status}`);
+      return;
+    }
+    setSelectedMapLot(lot);
+    setShowLotInfo(true);
+  };
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -68,7 +90,19 @@ export default function RegisterLotMapModal({
 
         {/* Phase Selection */}
         {phases.length > 0 && (
-          <View style={styles.phaseToggleRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.phaseToggleRow}
+          >
+            <TouchableOpacity
+              style={[styles.phaseBtn, selectedPhase === 'all' && styles.phaseBtnActive]}
+              onPress={() => setSelectedPhase('all')}
+            >
+              <Text style={[styles.phaseBtnText, selectedPhase === 'all' && styles.phaseBtnTextActive]}>
+                All phases
+              </Text>
+            </TouchableOpacity>
             {phases.map(phase => (
               <TouchableOpacity
                 key={phase}
@@ -80,7 +114,7 @@ export default function RegisterLotMapModal({
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         )}
 
         <View style={styles.toggleRow}>
@@ -99,10 +133,10 @@ export default function RegisterLotMapModal({
         </View>
 
         <View style={styles.zoomRow}>
-          <TouchableOpacity style={styles.zoomBtn} onPress={() => setMapZoom((z) => Math.min(1.5, z + 0.1))}>
+          <TouchableOpacity style={styles.zoomBtn} onPress={() => updateMapZoom(mapZoom + MAP_ZOOM_STEP)}>
             <Ionicons name="add" size={20} color={themeColors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.zoomBtn} onPress={() => setMapZoom((z) => Math.max(0.6, z - 0.1))}>
+          <TouchableOpacity style={styles.zoomBtn} onPress={() => updateMapZoom(mapZoom - MAP_ZOOM_STEP)}>
             <Ionicons name="remove" size={20} color={themeColors.primary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.zoomBtn} onPress={() => setMapZoom(1)}>
@@ -111,59 +145,65 @@ export default function RegisterLotMapModal({
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={{ transform: [{ scale: mapZoom }] }}>
-            {sortedBlocks.map((block) => {
-              const blockLots = lotsByBlock[block] || [];
-              const vacantCount = blockLots.filter((l) => l.status === 'vacant').length;
-              return (
-                <View key={block} style={styles.block}>
-                  <View style={styles.blockHeader}>
-                    <Text style={styles.blockTitle}>BLOCK {block}</Text>
-                    {vacantCount > 0 ? <Text style={styles.blockBadge}>{vacantCount} available</Text> : null}
-                  </View>
-                  <View style={styles.grid}>
-                    {blockLots.map((lot) => {
-                      const cfg = getStatusConfig(lot.status);
-                      const isSelected = selectedLotId === lot.lotId;
-                      const isAvailable = lot.status === 'vacant';
-                      const tile = Math.max(50, Math.min(70, 55 * mapZoom));
-                      return (
-                        <TouchableOpacity
-                          key={lot.lotId}
-                          style={[
-                            styles.tile,
-                            {
-                              width: tile,
-                              height: tile * 0.8,
-                              backgroundColor: isSelected ? cfg.color + '40' : cfg.bg,
-                              borderColor: isSelected ? themeColors.primary : cfg.border,
-                              opacity: isAvailable ? 1 : 0.55,
-                            },
-                          ]}
-                          onPress={() => {
-                            if (!isAvailable) {
-                              Alert.alert('Not Available', `Lot ${lot.lotId} is ${lot.status}`);
-                              return;
-                            }
-                            setSelectedMapLot(lot);
-                            setShowLotInfo(true);
-                          }}
-                          disabled={!isAvailable}
-                        >
-                          <Text style={[styles.tileNum, { color: cfg.border }]}>{lot.lotNumber}</Text>
-                          {isSelected ? (
-                            <View style={styles.selBadge}>
-                              <Ionicons name="checkmark" size={12} color="white" />
-                            </View>
-                          ) : null}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
+          <Text style={styles.mapHelp}>Swipe to explore the actual lot map. Tap a green lot to select it.</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.mapScrollContent}>
+            <View
+              style={[
+                styles.mapCanvas,
+                {
+                  width: MAP_CANVAS_WIDTH * mapZoom,
+                  height: MAP_CANVAS_HEIGHT * mapZoom,
+                },
+              ]}
+            >
+              <Image source={LOT_MAP_IMAGE} style={styles.mapPlanImage} resizeMode="contain" />
+              {phaseFilteredLots.map((lot) => {
+                const cfg = getStatusConfig(lot.status);
+                const position = lot.mapPosition;
+                const isSelected = selectedLotId === lot.lotId;
+
+                return (
+                  <TouchableOpacity
+                    key={lot.lotId || lot._id}
+                    activeOpacity={0.75}
+                    onPress={() => handleLotPress(lot)}
+                    style={[
+                      styles.mapLotSquare,
+                      {
+                        left: `${Number(position.left)}%`,
+                        top: `${Number(position.top)}%`,
+                        width: `${Number(position.width)}%`,
+                        height: `${Number(position.height)}%`,
+                        borderColor: isSelected ? '#ffffff' : cfg.border,
+                        backgroundColor: `${cfg.color}38`,
+                        opacity: lot.status === 'vacant' ? 1 : 0.55,
+                        transform: [{ rotate: `${Number(position.rotate) || 0}deg` }],
+                      },
+                      isSelected && styles.activeMapLotSquare,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.mapLotLabel,
+                        {
+                          color: isSelected ? '#ffffff' : cfg.border,
+                          fontSize: Math.max(7, Math.min(13, 9 * mapZoom)),
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {lot.lotNumber}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+          {phaseFilteredLots.length === 0 ? (
+            <View style={styles.emptyMap}>
+              <Text style={styles.emptyMapText}>No positioned lots found for this view.</Text>
+            </View>
+          ) : null}
         </ScrollView>
 
         <Modal visible={showLotInfo} transparent animationType="slide" onRequestClose={() => setShowLotInfo(false)}>
@@ -207,7 +247,7 @@ const styles = StyleSheet.create({
   header: { paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerBack: { padding: 8 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: 'white' },
-  phaseToggleRow: { flexDirection: 'row', gap: 8, padding: 12, backgroundColor: 'rgba(0,0,0,0.3)', overflow: 'scroll' },
+  phaseToggleRow: { flexDirection: 'row', gap: 8, padding: 12, backgroundColor: 'rgba(0,0,0,0.3)' },
   phaseBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   phaseBtnActive: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
   phaseBtnText: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '700' },
@@ -220,14 +260,15 @@ const styles = StyleSheet.create({
   zoomRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(0,0,0,0.3)' },
   zoomBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   content: { padding: 12 },
-  block: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-  blockHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  blockTitle: { color: 'white', fontWeight: '900', letterSpacing: 1, fontSize: 12 },
-  blockBadge: { color: '#4ade80', fontWeight: '900', fontSize: 11 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tile: { borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 2, position: 'relative' },
-  tileNum: { fontWeight: '900' },
-  selBadge: { position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, backgroundColor: themeColors.primary, alignItems: 'center', justifyContent: 'center' },
+  mapHelp: { color: '#cbd5e1', fontSize: 12, fontWeight: '700', marginBottom: 10 },
+  mapScrollContent: { backgroundColor: '#020617' },
+  mapCanvas: { position: 'relative', overflow: 'hidden', backgroundColor: '#dbe4e8' },
+  mapPlanImage: { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' },
+  mapLotSquare: { position: 'absolute', borderWidth: 1, borderRadius: 2, minWidth: 3, minHeight: 3, alignItems: 'center', justifyContent: 'center' },
+  activeMapLotSquare: { borderWidth: 2, elevation: 5 },
+  mapLotLabel: { fontWeight: '900', textAlign: 'center', includeFontPadding: false },
+  emptyMap: { marginTop: 12, borderRadius: 12, padding: 14, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
+  emptyMapText: { color: '#cbd5e1', fontWeight: '800', textAlign: 'center' },
   infoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   infoCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18 },
   infoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },

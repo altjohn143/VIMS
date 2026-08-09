@@ -55,11 +55,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   const load = useCallback(async () => {
     if (!userLoaded) return;
     try {
-      const params = {};
-      if (status !== 'all') params.status = status;
-      if (priority !== 'all') params.priority = priority;
-      if (category !== 'all') params.category = category;
-      const res = await api.get('/service-requests', { params });
+      const res = await api.get('/service-requests');
       if (res.data?.success) {
         setRows(Array.isArray(res.data.data) ? res.data.data : []);
       } else {
@@ -71,7 +67,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [status, priority, category, userLoaded]);
+  }, [userLoaded]);
 
   const loadStaff = useCallback(async () => {
     if (!isHeadOfficer) {
@@ -128,9 +124,23 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       .filter((attachment) => attachment.uri);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return rows;
+    let nextRows = rows;
+
+    if (status !== 'all') {
+      nextRows = nextRows.filter((r) => String(r?.status || '').toLowerCase() === status);
+    }
+
+    if (category !== 'all') {
+      nextRows = nextRows.filter((r) => String(r?.category || '').toLowerCase() === category);
+    }
+
+    if (priority !== 'all') {
+      nextRows = nextRows.filter((r) => String(r?.priority || '').toLowerCase() === priority);
+    }
+
+    if (!query.trim()) return nextRows;
     const q = query.trim().toLowerCase();
-    return rows.filter((r) => {
+    return nextRows.filter((r) => {
       const residentName = `${r?.residentId?.firstName || ''} ${r?.residentId?.lastName || ''}`.toLowerCase();
       return (
         String(r?.title || '').toLowerCase().includes(q) ||
@@ -140,7 +150,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         String(r?.residentId?.houseNumber || '').toLowerCase().includes(q)
       );
     });
-  }, [rows, query]);
+  }, [rows, query, status, priority, category]);
 
   useEffect(() => {
     setPage(0);
@@ -184,6 +194,10 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   );
 
   const updateStatus = async (id, nextStatus) => {
+    if (String(selected?.status || '').toLowerCase() === nextStatus) {
+      Alert.alert('Already Updated', `This request is already marked as ${nextStatus.replace('-', ' ')}.`);
+      return;
+    }
     if (requiresAssignmentBeforeUpdate(selected)) {
       Alert.alert('Assign Staff First', 'Please assign this request to a security officer before changing its status.');
       return;
@@ -301,7 +315,6 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     const map = {
       low: themeColors.success,
       medium: themeColors.warning,
-      high: themeColors.error,
       urgent: themeColors.error,
     };
     return map[p] || themeColors.textSecondary;
@@ -375,7 +388,6 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
           { key: 'all', label: 'All Priority' },
           { key: 'low', label: 'Low' },
           { key: 'medium', label: 'Medium' },
-          { key: 'high', label: 'High' },
           { key: 'urgent', label: 'Urgent' },
         ].map((c) => (
           <TouchableOpacity key={c.key} style={[styles.chip, priority === c.key && styles.chipActive]} onPress={() => setPriority(c.key)}>
@@ -521,9 +533,22 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
 
               <View style={styles.actionsRow}>
                 <TouchableOpacity
-                  disabled={processing || !selected?._id || !canUpdate(selected)}
+                  disabled={
+                    processing ||
+                    !selected?._id ||
+                    !canUpdate(selected) ||
+                    String(selected?.status || '').toLowerCase() === 'in-progress'
+                  }
                   onPress={() => updateStatus(selected._id, 'in-progress')}
-                  style={[styles.actionBtn, styles.inProgressBtn, (processing || !canUpdate(selected)) && styles.disabled]}
+                  style={[
+                    styles.actionBtn,
+                    styles.inProgressBtn,
+                    (
+                      processing ||
+                      !canUpdate(selected) ||
+                      String(selected?.status || '').toLowerCase() === 'in-progress'
+                    ) && styles.disabled
+                  ]}
                 >
                   {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="time-outline" size={16} color="white" /><Text style={styles.actionText}>In Progress</Text></>}
                 </TouchableOpacity>

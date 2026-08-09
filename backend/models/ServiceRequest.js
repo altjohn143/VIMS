@@ -140,6 +140,16 @@ const serviceRequestSchema = new mongoose.Schema({
   timestamps: true
 });
 
+serviceRequestSchema.pre('validate', function normalizePriority(next) {
+  if (this.priority === 'high') {
+    this.priority = 'urgent';
+  }
+  if (this.category === 'security') {
+    this.priority = 'urgent';
+  }
+  next();
+});
+
 serviceRequestSchema.index({ residentId: 1, isArchived: 1, createdAt: -1 });
 serviceRequestSchema.index({ status: 1, isArchived: 1, createdAt: -1 });
 serviceRequestSchema.index({ assignedTo: 1, status: 1, createdAt: -1 });

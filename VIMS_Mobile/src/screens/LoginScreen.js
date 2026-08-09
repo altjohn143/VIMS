@@ -147,6 +147,22 @@ const LoginScreen = ({ navigation }) => {
     navigation.navigate('PublicLots');
   };
 
+  const handleSelectRole = (roleKey) => {
+    if (selectedRole !== roleKey) {
+      setEmail('');
+      setPassword('');
+      setShowPassword(false);
+    }
+    setSelectedRole(roleKey);
+  };
+
+  const handleBackToRoleSelection = () => {
+    setEmail('');
+    setPassword('');
+    setShowPassword(false);
+    setSelectedRole(null);
+  };
+
   // ============================================================
   // ROLE SELECTION SCREEN (Glassmorphism - Clean)
   // ============================================================
@@ -196,7 +212,7 @@ const LoginScreen = ({ navigation }) => {
                   {roles.map((role) => (
                     <Pressable
                       key={role.key}
-                      onPress={() => setSelectedRole(role.key)}
+                      onPress={() => handleSelectRole(role.key)}
                       style={({ pressed }) => [
                         styles.glassCard,
                         pressed && styles.glassCardPressed,
@@ -271,7 +287,7 @@ const LoginScreen = ({ navigation }) => {
           {/* Back Button - Clean */}
           <TouchableOpacity
             style={styles.backButtonFloat}
-            onPress={() => setSelectedRole(null)}
+            onPress={handleBackToRoleSelection}
             activeOpacity={0.8}
           >
             <Ionicons name="arrow-back" size={18} color="#FFFFFF" />

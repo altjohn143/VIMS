@@ -1501,6 +1501,12 @@ router.put('/admin/:id/override', protect, authorize('admin'), async (req, res) 
 router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
   try {
     const { startDate, endDate, status } = req.query;
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Start date must be before or equal to end date'
+      });
+    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -1652,6 +1658,12 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
   try {
     const { startDate, endDate, status, format = 'json', timezoneOffset = '0' } = req.query;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Start date must be before or equal to end date'
+      });
+    }
 
     let filter = {};
 
@@ -1919,6 +1931,12 @@ router.get('/admin/trend', protect, authorize('admin'), async (req, res) => {
 router.get('/admin/recent', protect, authorize('admin'), async (req, res) => {
   try {
     const { startDate, endDate, status, limit = 20 } = req.query;
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Start date must be before or equal to end date'
+      });
+    }
     
     let filter = {};
     

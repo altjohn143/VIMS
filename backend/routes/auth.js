@@ -728,6 +728,14 @@ router.post('/login', loginLimiter, async (req, res) => {
       });
     }
 
+    if (user.isArchived) {
+      console.log('Account is archived:', email);
+      return res.status(403).json({
+        success: false,
+        error: 'Your account has been archived. Please contact admin.'
+      });
+    }
+
     if (!user.isActive) {
       console.log('Account is deactivated:', email);
       return res.status(403).json({

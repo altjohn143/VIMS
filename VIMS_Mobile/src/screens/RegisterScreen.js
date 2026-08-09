@@ -1,5 +1,5 @@
 // src/screens/RegisterScreen.js
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -54,6 +54,51 @@ const REGISTRATION_STEPS = [
   { key: 'photo', label: 'Add Photo' },
 ];
 
+const createInitialFormData = () => ({
+  firstName: '',
+  lastName: '',
+  middleName: '',
+  dateOfBirth: '',
+  email: '',
+  phone: '',
+  countryCode: '+63',
+  password: '',
+  confirmPassword: '',
+  address: '',
+  selectedLot: '',
+  idNumber: '',
+  documentType: 'national_id',
+  noVehicles: false,
+  soloResident: false,
+  vehicles: [{ plateNumber: '', make: '', model: '', color: '', carImage: null }],
+  familyMembers: [{ name: '', relationship: '', otherRelationship: '', age: '', phone: '' }],
+});
+
+const splitFullName = (value = '') => {
+  const parts = String(value || '').trim().replace(/\s+/g, ' ').split(' ').filter(Boolean);
+  if (parts.length < 2) return {};
+  return {
+    firstName: parts.slice(0, -1).join(' '),
+    lastName: parts[parts.length - 1],
+  };
+};
+
+const normalizeOcrFields = (ocr = {}) => {
+  const notes = String(ocr.notes || ocr.rawText || '').trim();
+  const fullNameFallback = splitFullName(ocr.fullName || ocr.ocrName || ocr.name || '');
+  const labelValue = (label) => {
+    const match = notes.match(new RegExp(`${label}\\s*[:\\-]?\\s*([^\\n,]+)`, 'i'));
+    return match ? match[1].trim() : '';
+  };
+
+  return {
+    ...ocr,
+    firstName: ocr.firstName || ocr.givenName || labelValue('given name') || labelValue('first name') || fullNameFallback.firstName || '',
+    lastName: ocr.lastName || ocr.surname || labelValue('surname') || labelValue('last name') || fullNameFallback.lastName || '',
+    middleName: ocr.middleName || labelValue('middle name') || '',
+  };
+};
+
 const RegisterScreen = ({ navigation, route }) => {
   const { updateUser } = useAuth();
   const WebDateInput = Platform.OS === 'web'
@@ -87,25 +132,7 @@ const RegisterScreen = ({ navigation, route }) => {
     // Last resort: do nothing (prevents "action not handled" warning)
   }, [navigation]);
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    middleName: '',
-    dateOfBirth: '',
-    email: '',
-    phone: '',
-    countryCode: '+63',
-    password: '',
-    confirmPassword: '',
-    address: '',
-    selectedLot: '',
-    idNumber: '',
-    documentType: 'national_id',
-    noVehicles: false,
-    soloResident: false,
-    vehicles: [{ plateNumber: '', make: '', model: '', color: '', carImage: null }],
-    familyMembers: [{ name: '', relationship: '', otherRelationship: '', age: '', phone: '' }],
-  });
+  const [formData, setFormData] = useState(createInitialFormData);
 
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -127,6 +154,8 @@ const RegisterScreen = ({ navigation, route }) => {
   const [emailOtpLoading, setEmailOtpLoading] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [showCountryCodeDropdown, setShowCountryCodeDropdown] = useState(false);
+  const [showLotDropdown, setShowLotDropdown] = useState(false);
+  const registrationScrollRef = useRef(null);
 
   // OCR (backend-based)
   const [idDocs, setIdDocs] = useState({ frontUri: null, backUri: null });
@@ -279,10 +308,56 @@ const RegisterScreen = ({ navigation, route }) => {
       setFormData(prev => ({ ...prev, selectedLot: lot.lotId, address: lot.address }));
       setSelectedLotDetails(lot);
       setShowMapModal(false);
+      setShowLotDropdown(false);
       Alert.alert('Lot Selected', `You selected Lot ${lot.lotId} (${lot.sqm} sqm, ${lot.type})`);
     } else {
       Alert.alert('Not Available', `Lot ${lot.lotId} is not available for registration.`);
     }
+  };
+
+  const scrollToActiveInput = (y = 0) => {
+    if (Platform.OS !== 'ios') return;
+    setTimeout(() => {
+      registrationScrollRef.current?.scrollTo({ y, animated: true });
+    }, 120);
+  };
+
+  const resetRegistrationFormState = () => {
+    setFormData(createInitialFormData());
+    setProfilePhoto(null);
+    setSelectedLotDetails(null);
+    setErrors({});
+    setAvailability({ email: null, phone: null });
+    setCheckingAvailability({ email: false, phone: false });
+    setEmailVerificationToken('');
+    setEmailOtp('');
+    setEmailOtpOpen(false);
+    setShowLotDropdown(false);
+    setShowMapModal(false);
+    setIdDocs({ frontUri: null, backUri: null });
+    setOcrLoading(false);
+    setOcrUnavailable(false);
+    setLastOcrSignature('');
+    setLastOcrAt(0);
+    setOcrIdNumber('');
+    setDobTemp(null);
+    setDobPickerOpen(false);
+  };
+
+  const selectRegistrationMethod = (method) => {
+    resetRegistrationFormState();
+    setRegistrationMode(method);
+    setCurrentStepIndex(0);
+    setShowIdUploadStep(method === 'ocr');
+    setOcrStepCompleted(false);
+  };
+
+  const clearRegistrationMethod = () => {
+    resetRegistrationFormState();
+    setRegistrationMode(null);
+    setCurrentStepIndex(0);
+    setShowIdUploadStep(false);
+    setOcrStepCompleted(false);
   };
 
   const getSelectedCountry = () => {
@@ -474,7 +549,7 @@ const RegisterScreen = ({ navigation, route }) => {
       const data = await r.json().catch(() => null);
 
       if (r.ok && data?.success) {
-        const ocr = data.data || {};
+        const ocr = normalizeOcrFields(data.data || {});
         setFormData((prev) => ({
           ...prev,
           firstName: prev.firstName?.trim() ? prev.firstName : (ocr.firstName || prev.firstName),
@@ -1002,13 +1077,16 @@ const RegisterScreen = ({ navigation, route }) => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
     >
       <ScrollView
+        ref={registrationScrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
         automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        contentInsetAdjustmentBehavior="automatic"
       >
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
@@ -1040,12 +1118,7 @@ const RegisterScreen = ({ navigation, route }) => {
 
           {!registrationMode ? (
             <View>
-              <TouchableOpacity style={styles.modeCard} onPress={() => {
-                setRegistrationMode('manual');
-                setCurrentStepIndex(0);
-                setShowIdUploadStep(false);
-                setOcrStepCompleted(false);
-              }}>
+              <TouchableOpacity style={styles.modeCard} onPress={() => selectRegistrationMethod('manual')}>
                 <Text style={styles.modeTitle}>Manual entry</Text>
                 <Text style={styles.modeDescription}>
                   Enter your details manually and upload your ID. The ID upload will be used for verification only and will not trigger OCR automatically.
@@ -1055,12 +1128,7 @@ const RegisterScreen = ({ navigation, route }) => {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.modeCard} onPress={() => {
-                setRegistrationMode('ocr');
-                setCurrentStepIndex(0);
-                setShowIdUploadStep(true);
-                setOcrStepCompleted(false);
-              }}>
+              <TouchableOpacity style={styles.modeCard} onPress={() => selectRegistrationMethod('ocr')}>
                 <Text style={styles.modeTitle}>ID upload + OCR autofill</Text>
                 <Text style={styles.modeDescription}>
                   Upload your ID and let the OCR attempt to populate your name, date of birth, and ID number automatically.
@@ -1080,10 +1148,7 @@ const RegisterScreen = ({ navigation, route }) => {
                   ? 'Please fill in your fields manually. Your ID upload will be used for verification only and will not trigger OCR automatically.'
                   : 'Upload your ID images to automatically populate your name, date of birth, and ID number where possible.'}
               </Text>
-              <TouchableOpacity style={styles.selectedModeChangeButton} onPress={() => {
-                setRegistrationMode(null);
-                setCurrentStepIndex(0);
-              }}>
+              <TouchableOpacity style={styles.selectedModeChangeButton} onPress={clearRegistrationMethod}>
                 <Text style={styles.selectedModeChangeText}>Change registration method</Text>
               </TouchableOpacity>
             </View>
@@ -1183,10 +1248,7 @@ const RegisterScreen = ({ navigation, route }) => {
               <TouchableOpacity 
                 style={[styles.mapButton, { marginTop: 12 }]} 
                 onPress={() => {
-                  setShowIdUploadStep(false);
-                  setRegistrationMode('manual');
-                  setCurrentStepIndex(0);
-                  setOcrStepCompleted(false);
+                  selectRegistrationMethod('manual');
                 }}
               >
                 <Text style={styles.mapButtonText}>Skip OCR & Enter Manually</Text>
@@ -1486,35 +1548,6 @@ const RegisterScreen = ({ navigation, route }) => {
           </>
           )}
 
-          {currentStepKey === 'lot' && (
-          <>
-          {/* Address Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="location" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={[
-                styles.input,
-                { minHeight: 80 },
-                formData.selectedLot && { backgroundColor: '#f5f5f5' }
-              ]}
-              placeholder={formData.selectedLot ? "Address auto-filled from selected lot" : "Enter your residential address"}
-              value={formData.address}
-              onChangeText={(text) => handleChange('address', text)}
-              multiline
-              numberOfLines={3}
-              maxLength={250}
-              editable={!formData.selectedLot}
-            />
-            {formData.selectedLot && (
-              <Text style={[styles.helperText, { marginTop: 5 }]}>
-                Address auto-filled from selected lot
-              </Text>
-            )}
-          </View>
-          {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
-          </>
-          )}
-
           {currentStepKey === 'vehicles' && (
           <>
           <View style={styles.toggleRow}>
@@ -1731,7 +1764,14 @@ const RegisterScreen = ({ navigation, route }) => {
 
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
-            <TextInput style={styles.input} placeholder="Password" value={formData.password} onChangeText={(text) => handleChange('password', text)} secureTextEntry={!showPassword} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={formData.password}
+              onChangeText={(text) => handleChange('password', text)}
+              secureTextEntry={!showPassword}
+              onFocus={() => scrollToActiveInput(520)}
+            />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
             </TouchableOpacity>
@@ -1740,7 +1780,14 @@ const RegisterScreen = ({ navigation, route }) => {
 
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} style={styles.inputIcon} />
-            <TextInput style={styles.input} placeholder="Confirm Password" value={formData.confirmPassword} onChangeText={(text) => handleChange('confirmPassword', text)} secureTextEntry={!showConfirmPassword} />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              value={formData.confirmPassword}
+              onChangeText={(text) => handleChange('confirmPassword', text)}
+              secureTextEntry={!showConfirmPassword}
+              onFocus={() => scrollToActiveInput(580)}
+            />
             <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
               <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
             </TouchableOpacity>
@@ -1773,6 +1820,18 @@ const RegisterScreen = ({ navigation, route }) => {
             </View>
           ) : (
             <>
+              <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowLotDropdown(true)}>
+                <View style={styles.dropdownLeft}>
+                  <Ionicons name="home" size={20} color={themeColors.primary} />
+                  <Text style={styles.dropdownText}>
+                    {selectedLotDetails
+                      ? `Lot ${selectedLotDetails.lotNumber || selectedLotDetails.lotId} - Block ${selectedLotDetails.block || 'N/A'}`
+                      : 'Choose from available lots'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={20} color={themeColors.textSecondary} />
+              </TouchableOpacity>
+
               <TouchableOpacity style={styles.mapButton} onPress={() => setShowMapModal(true)}>
                 <View style={styles.dropdownLeft}>
                   <Ionicons name="map" size={20} color={themeColors.primary} />
@@ -1906,6 +1965,47 @@ const RegisterScreen = ({ navigation, route }) => {
                   {formData.countryCode === item.code && (
                     <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
                   )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Lot Dropdown Modal */}
+      <Modal visible={showLotDropdown} animationType="slide" transparent onRequestClose={() => setShowLotDropdown(false)}>
+        <View style={styles.dropdownOverlay}>
+          <View style={styles.dropdownModal}>
+            <View style={styles.dropdownModalHeader}>
+              <Text style={styles.dropdownModalTitle}>Select Available Lot</Text>
+              <TouchableOpacity onPress={() => setShowLotDropdown(false)}>
+                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={availableLots}
+              keyExtractor={(item) => item.lotId || item._id}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.lotOption, formData.selectedLot === item.lotId && styles.lotOptionSelected]}
+                  onPress={() => handleLotSelect(item)}
+                >
+                  <View style={styles.lotOptionLeft}>
+                    <Ionicons name="home-outline" size={22} color={themeColors.primary} />
+                    <View>
+                      <Text style={styles.lotOptionId}>Lot {item.lotNumber || item.lotId}</Text>
+                      <Text style={styles.lotOptionType}>
+                        Block {item.block || 'N/A'} • {item.type || 'Residential'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.lotOptionRight}>
+                    <Text style={styles.lotOptionSqm}>{item.sqm || 0} sqm</Text>
+                    {formData.selectedLot === item.lotId && (
+                      <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
+                    )}
+                  </View>
                 </TouchableOpacity>
               )}
             />

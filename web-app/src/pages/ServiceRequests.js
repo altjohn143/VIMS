@@ -146,7 +146,6 @@ const ServiceRequests = () => {
   const priorityLabels = useMemo(() => ({
     low: { label: 'Low', color: themeColors.success },
     medium: { label: 'Medium', color: themeColors.warning },
-    high: { label: 'High', color: themeColors.error },
     urgent: { label: 'Urgent', color: themeColors.error }
   }), []);
 

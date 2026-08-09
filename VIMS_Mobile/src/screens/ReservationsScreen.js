@@ -51,6 +51,7 @@ const ReservationsScreen = ({ navigation }) => {
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [selectSheet, setSelectSheet] = useState({
     visible: false,
+    field: '',
     title: '',
     options: [],
     value: '',
@@ -419,6 +420,7 @@ const ReservationsScreen = ({ navigation }) => {
       resourceName: '',
       quantity: 1,
     });
+    closeSelectSheet();
   };
 
   const getStatusColor = (status) => {
@@ -458,8 +460,13 @@ const ReservationsScreen = ({ navigation }) => {
     });
   };
 
-  const openSelectSheet = ({ title, options, value, onSelect }) => {
-    setSelectSheet({ visible: true, title, options, value, onSelect });
+  const openSelectSheet = ({ field, title, options, value, onSelect }) => {
+    setSelectSheet((previous) => {
+      if (previous.visible && previous.field === field) {
+        return { ...previous, visible: false };
+      }
+      return { visible: true, field, title, options, value, onSelect };
+    });
   };
 
   const closeSelectSheet = () => {
@@ -492,6 +499,41 @@ const ReservationsScreen = ({ navigation }) => {
       </View>
     </TouchableOpacity>
   );
+
+  const renderInlineSelectSheet = (field) => {
+    if (!selectSheet.visible || selectSheet.field !== field) return null;
+
+    return (
+      <View style={styles.inlineOptionSheet}>
+        <View style={styles.inlineOptionHeader}>
+          <Text style={styles.inlineOptionTitle}>{selectSheet.title}</Text>
+          <TouchableOpacity onPress={closeSelectSheet} style={styles.inlineOptionClose}>
+            <Ionicons name="close" size={18} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          style={styles.inlineOptionList}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={selectSheet.options.length > 4}
+          keyboardShouldPersistTaps="handled"
+        >
+          {selectSheet.options.map((option) => (
+            <TouchableOpacity
+              key={String(option.value)}
+              style={styles.optionSheetItem}
+              onPress={() => handleSelectSheetValue(option.value)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.optionSheetText}>{option.label}</Text>
+              {selectSheet.value === option.value && (
+                <Ionicons name="checkmark-circle" size={20} color="#166534" />
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
 
   const renderPlatformDateTimePicker = ({ visible, title, value, mode, minimumDate, onDismiss, onChange }) => {
     if (!visible) return null;
@@ -752,7 +794,10 @@ const ReservationsScreen = ({ navigation }) => {
         visible={modalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => {
+          closeSelectSheet();
+          setModalVisible(false);
+        }}
       >
         <KeyboardAvoidingView
           style={styles.modalOverlay}
@@ -762,7 +807,10 @@ const ReservationsScreen = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>New Reservation</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity onPress={() => {
+                closeSelectSheet();
+                setModalVisible(false);
+              }}>
                 <Ionicons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
@@ -781,6 +829,7 @@ const ReservationsScreen = ({ navigation }) => {
                 valueText: currentItem.resourceType === 'equipment' ? 'Equipment' : 'Venue',
                 placeholder: 'Select resource type',
                 onPress: () => openSelectSheet({
+                  field: 'resourceType',
                   title: 'Resource Type',
                   value: currentItem.resourceType,
                   options: [
@@ -790,6 +839,7 @@ const ReservationsScreen = ({ navigation }) => {
                   onSelect: (value) => setCurrentItem({ ...currentItem, resourceType: value, resourceName: '' }),
                 }),
               })}
+              {renderInlineSelectSheet('resourceType')}
 
               <Text style={styles.label}>Resource Name</Text>
               {renderSelectField({
@@ -797,12 +847,14 @@ const ReservationsScreen = ({ navigation }) => {
                 placeholder: 'Select resource...',
                 disabled: !(resources[currentItem.resourceType] || []).length,
                 onPress: () => openSelectSheet({
+                  field: 'resourceName',
                   title: 'Resource Name',
                   value: currentItem.resourceName,
                   options: (resources[currentItem.resourceType] || []).map((item) => ({ label: item, value: item })),
                   onSelect: (value) => setCurrentItem({ ...currentItem, resourceName: value }),
                 }),
               })}
+              {renderInlineSelectSheet('resourceName')}
 
               {/* Show quantity field only for equipment */}
               {currentItem.resourceType === 'equipment' && (
@@ -979,7 +1031,10 @@ const ReservationsScreen = ({ navigation }) => {
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
+                onPress={() => {
+                  closeSelectSheet();
+                  setModalVisible(false);
+                }}
                 disabled={submitting}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -1049,34 +1104,6 @@ const ReservationsScreen = ({ navigation }) => {
             )}
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-
-      <Modal transparent animationType="slide" visible={selectSheet.visible} onRequestClose={closeSelectSheet} presentationStyle="overFullScreen">
-        <View style={styles.iosPickerOverlay}>
-          <View style={styles.optionSheetCard}>
-            <View style={styles.iosPickerHeader}>
-              <TouchableOpacity onPress={closeSelectSheet} style={styles.iosPickerAction}>
-                <Text style={styles.iosPickerCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={styles.iosPickerTitle}>{selectSheet.title}</Text>
-              <View style={styles.iosPickerAction} />
-            </View>
-            <ScrollView style={styles.optionSheetList} showsVerticalScrollIndicator={false}>
-              {selectSheet.options.map((option) => (
-                <TouchableOpacity
-                  key={String(option.value)}
-                  style={styles.optionSheetItem}
-                  onPress={() => handleSelectSheetValue(option.value)}
-                >
-                  <Text style={styles.optionSheetText}>{option.label}</Text>
-                  {selectSheet.value === option.value && (
-                    <Ionicons name="checkmark-circle" size={20} color="#166534" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
       </Modal>
 
       {/* Date/Time Pickers */}
@@ -1690,6 +1717,40 @@ const styles = StyleSheet.create({
   optionSheetList: { maxHeight: 360 },
   optionSheetItem: { minHeight: 52, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#eef2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   optionSheetText: { flex: 1, color: '#1e293b', fontSize: 16, fontWeight: '700' },
+  inlineOptionSheet: {
+    marginTop: 8,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  inlineOptionHeader: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inlineOptionTitle: {
+    flex: 1,
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  inlineOptionClose: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inlineOptionList: {
+    maxHeight: 240,
+  },
   iosPickerHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
   iosPickerTitle: { flex: 1, textAlign: 'center', color: '#1e293b', fontSize: 15, fontWeight: '800' },

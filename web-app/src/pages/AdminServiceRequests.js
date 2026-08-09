@@ -142,7 +142,7 @@ const AdminServiceRequests = () => {
   const user = getCurrentUser();
 
   const categories = useMemo(() => ['plumbing', 'electrical', 'carpentry', 'cleaning', 'gardening', 'security', 'complaint', 'other'], []);
-  const priorities = useMemo(() => ['low', 'medium', 'high', 'urgent'], []);
+  const priorities = useMemo(() => ['low', 'medium', 'urgent'], []);
 
   const logout = useCallback(() => {
     contextLogout();
@@ -596,7 +596,6 @@ const paginatedRequests = useMemo(
     const colors = {
       low: themeColors.success,
       medium: themeColors.warning,
-      high: themeColors.error,
       urgent: themeColors.error
     };
     const color = colors[priority] || themeColors.textSecondary;

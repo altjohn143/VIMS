@@ -13,7 +13,14 @@ const { createInAppNotification } = require('../services/inAppNotificationServic
 const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
 
 const PROTECTED_MAIN_ACCOUNT_EMAILS = new Set(['admin@vims.com', 'security@vims.com']);
+const PRIMARY_SECURITY_HEAD_EMAIL = 'security@vims.com';
 const isProtectedMainAccount = (user) => PROTECTED_MAIN_ACCOUNT_EMAILS.has(String(user?.email || '').toLowerCase());
+
+const getPrimarySecurityHeadOfficer = async () => User.findOne({
+  email: PRIMARY_SECURITY_HEAD_EMAIL,
+  role: 'security',
+  isActive: true
+}).select('_id firstName lastName email securityLevel');
 
 const buildProfilePhotoUrl = (req, photo) => {
   if (!photo) return null;
@@ -110,6 +117,8 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
     const users = await User.find({ isArchived: false })
       .select('-password')
+      .populate('headOfficerId', 'firstName lastName email securityLevel')
+      .populate('secondaryHeadOfficerId', 'firstName lastName email securityLevel')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -156,6 +165,7 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
     const pendingUsers = await User.find({ 
       role: 'resident', 
       isApproved: false,
+      approvalStatus: { $ne: 'rejected' },
       isArchived: false
     })
     .select('-password')
@@ -277,6 +287,10 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
     
     user.approvalDate = new Date();
     user.isApproved = true;
+    user.approvalStatus = 'approved';
+    user.rejectedAt = null;
+    user.rejectedBy = null;
+    user.rejectionReason = '';
     await user.save();
 
     try {
@@ -318,6 +332,51 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
       success: false,
       error: 'Failed to approve user'
     });
+  }
+});
+
+router.put('/:id/reject', protect, authorize('admin'), async (req, res) => {
+  try {
+    const reason = String(req.body?.reason || '').trim();
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        error: 'Rejection reason is required'
+      });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    if (user.role !== 'resident') {
+      return res.status(400).json({ success: false, error: 'Only resident registrations can be rejected' });
+    }
+    if (user.isApproved) {
+      return res.status(400).json({ success: false, error: 'Approved residents cannot be rejected from the pending queue' });
+    }
+
+    user.isApproved = false;
+    user.isActive = false;
+    user.approvalStatus = 'rejected';
+    user.rejectedAt = new Date();
+    user.rejectedBy = req.user._id;
+    user.rejectionReason = reason;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Resident rejected successfully',
+      data: {
+        _id: user._id,
+        email: user.email,
+        approvalStatus: user.approvalStatus,
+        rejectionReason: user.rejectionReason
+      }
+    });
+  } catch (error) {
+    console.error('Reject resident error:', error);
+    res.status(500).json({ success: false, error: 'Failed to reject resident' });
   }
 });
 
@@ -373,7 +432,12 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     }
     
     // Archive the user instead of deleting
+    user.wasActiveBeforeArchive = user.isActive;
     user.isArchived = true;
+    user.isActive = false;
+    if (user.role === 'resident' && !user.isApproved && user.approvalStatus !== 'rejected') {
+      user.approvalStatus = 'pending';
+    }
     user.archivedAt = new Date();
     user.archivedBy = req.user._id;
     user.archivedReason = archiveReason;
@@ -415,9 +479,13 @@ router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
     }
     
     user.isArchived = false;
+    user.isActive = user.wasActiveBeforeArchive !== null && user.wasActiveBeforeArchive !== undefined
+      ? user.wasActiveBeforeArchive
+      : user.isActive;
     user.archivedAt = null;
     user.archivedBy = null;
     user.archivedReason = '';
+    user.wasActiveBeforeArchive = null;
     await user.save();
     
     console.log(`♻️ User restored: ${user.email}`);
@@ -1002,6 +1070,7 @@ router.post('/', protect, authorize('admin', 'security'), async (req, res) => {
       role,
       securityLevel: role === 'security' ? securityLevel : null,
       isApproved: true,
+      approvalStatus: 'approved',
       isActive: true,
       profileComplete: true,
       assignedPhases: validAssignedPhases,
@@ -1011,9 +1080,18 @@ router.post('/', protect, authorize('admin', 'security'), async (req, res) => {
 
     // If security personnel, link to head officer
     if (role === 'security' && securityLevel === 'personnel') {
-      userData.headOfficerId = req.user.role === 'security'
+      const primaryHeadOfficer = await getPrimarySecurityHeadOfficer();
+      const selectedSupervisorId = req.user.role === 'security'
         ? req.user._id
         : headOfficerId || null;
+
+      userData.headOfficerId = primaryHeadOfficer?._id || selectedSupervisorId || null;
+      userData.secondaryHeadOfficerId =
+        selectedSupervisorId &&
+        userData.headOfficerId &&
+        String(selectedSupervisorId) !== String(userData.headOfficerId)
+          ? selectedSupervisorId
+          : null;
     }
 
     const newUser = await User.create(userData);
@@ -1029,13 +1107,56 @@ router.post('/', protect, authorize('admin', 'security'), async (req, res) => {
 // Export users data (CSV or PDF format)
 router.get('/export', protect, authorize('admin'), async (req, res) => {
   try {
-    const { format = 'pdf', role, status, startDate, endDate, timezoneOffset = 0 } = req.query;
+    const {
+      format = 'pdf',
+      role,
+      status,
+      approval,
+      view,
+      search,
+      startDate,
+      endDate,
+      timezoneOffset = 0
+    } = req.query;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
     // Build filter based on query parameters
-    let filter = {};
-    if (role) filter.role = role;
-    if (status) filter.status = status;
+    let filter = { isArchived: { $ne: true } };
+    if (role && role !== 'all') filter.role = role;
+    if (status && status !== 'all') {
+      if (status === 'active') filter.isActive = true;
+      else if (status === 'inactive') filter.isActive = false;
+      else if (status === 'moveout') {
+        filter.role = 'resident';
+        filter.moveOutStatus = 'pending';
+      }
+    }
+    if (approval && approval !== 'all') {
+      filter.role = 'resident';
+      filter.isApproved = approval === 'approved';
+    }
+    if (view && view !== 'all') {
+      if (view === 'residents') filter.role = 'resident';
+      if (view === 'pending') {
+        filter.role = 'resident';
+        filter.isApproved = false;
+      }
+      if (view === 'moveout') {
+        filter.role = 'resident';
+        filter.moveOutStatus = 'pending';
+      }
+      if (view === 'staff') filter.role = { $in: ['admin', 'security'] };
+    }
+    if (search) {
+      const rx = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [
+        { firstName: rx },
+        { lastName: rx },
+        { email: rx },
+        { phone: rx },
+        { houseNumber: rx }
+      ];
+    }
 
     if (startDate || endDate) {
       filter.createdAt = {};

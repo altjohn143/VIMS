@@ -350,8 +350,17 @@ const AdminUserManagementScreen = ({ navigation }) => {
       const fileUri = `${FileSystem.documentDirectory}user_management_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${fileFormat}`;
       const token = await getAuthToken();
       const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
+      const params = new URLSearchParams({
+        format: fileFormat,
+        timezoneOffset: String(new Date().getTimezoneOffset()),
+      });
+      if (roleFilter !== 'all') params.append('role', roleFilter);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (approvalFilter !== 'all') params.append('approval', approvalFilter);
+      if (viewFilter !== 'all') params.append('view', viewFilter);
+      if (searchQuery.trim()) params.append('search', searchQuery.trim());
       const download = await FileSystem.downloadAsync(
-        `${baseUrl}/users/export?format=${fileFormat}&timezoneOffset=${new Date().getTimezoneOffset()}`,
+        `${baseUrl}/users/export?${params.toString()}`,
         fileUri,
         { headers: token ? { Authorization: `Bearer ${token}` } : {} }
       );
@@ -460,24 +469,37 @@ const AdminUserManagementScreen = ({ navigation }) => {
       return;
     }
 
-    setProcessing(true);
-    try {
-      const response = await api.delete(`/users/${selectedUser._id}`, {
-        data: { reason },
-      });
-      if (response.data.success) {
-        Alert.alert('Success', 'User archived successfully');
-        setShowDeleteModal(false);
-        setShowDetailsModal(false);
-        setSelectedUser(null);
-        setDeleteReason('');
-        fetchUsers();
-      }
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to archive user');
-    } finally {
-      setProcessing(false);
-    }
+    Alert.alert(
+      'Confirm Archive',
+      `Archive ${selectedUser.firstName} ${selectedUser.lastName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          style: 'destructive',
+          onPress: async () => {
+            setProcessing(true);
+            try {
+              const response = await api.delete(`/users/${selectedUser._id}`, {
+                data: { reason },
+              });
+              if (response.data.success) {
+                Alert.alert('Success', 'User archived successfully');
+                setShowDeleteModal(false);
+                setShowDetailsModal(false);
+                setSelectedUser(null);
+                setDeleteReason('');
+                fetchUsers();
+              }
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.error || 'Failed to archive user');
+            } finally {
+              setProcessing(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const formatDate = (dateString) => {
@@ -923,13 +945,13 @@ const AdminUserManagementScreen = ({ navigation }) => {
                   </View>
                   {newUserData.securityLevel === 'personnel' && (
                     <View style={styles.formRow}>
-                      <Text style={styles.fieldLabel}>Head officer (optional)</Text>
+                      <Text style={styles.fieldLabel}>Secondary supervisor (optional)</Text>
                       <View style={styles.pickerContainer}>
                         <Picker
                           selectedValue={newUserData.headOfficerId}
                           onValueChange={(value) => setNewUserData((prev) => ({ ...prev, headOfficerId: value }))}
                         >
-                          <Picker.Item label="Not assigned" value="" />
+                          <Picker.Item label="Primary head officer only" value="" />
                           {securityAssignments
                             .filter((officer) => officer.securityLevel === 'head-officer')
                             .map((officer) => (
@@ -1204,13 +1226,13 @@ const AdminUserManagementScreen = ({ navigation }) => {
                         </View>
                         {assignmentForm.securityLevel === 'personnel' && (
                           <>
-                            <Text style={styles.fieldLabel}>Head officer</Text>
+                            <Text style={styles.fieldLabel}>Secondary supervisor</Text>
                             <View style={styles.pickerContainer}>
                               <Picker
                                 selectedValue={assignmentForm.headOfficerId}
                                 onValueChange={(value) => setAssignmentForm((previous) => ({ ...previous, headOfficerId: value }))}
                               >
-                                <Picker.Item label="Not assigned" value="" />
+                                <Picker.Item label="Primary head officer only" value="" />
                                 {securityAssignments
                                   .filter((officer) => officer.securityLevel === 'head-officer' && officer._id !== selectedUser._id)
                                   .map((officer) => (
@@ -1444,7 +1466,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
                     setShowDeleteModal(false);
                     setDeleteReason('');
                   }}
-                  disabled={processing || !deleteReason.trim()}
+                  disabled={processing}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
@@ -1863,6 +1885,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
+    paddingBottom: 28,
     maxHeight: '92%',
     flexShrink: 1,
   },

@@ -404,7 +404,8 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.cardBackground,
     borderRadius: 12,
     width: '90%',
-    maxHeight: '80%',
+    maxHeight: '90%',
+    paddingBottom: 12,
     ...shadows.large,
   },
   modalHeader: {

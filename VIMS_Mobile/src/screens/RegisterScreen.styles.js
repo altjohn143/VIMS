@@ -4,7 +4,7 @@ import { themeColors } from '../utils/theme';
 // Extracted styles to keep `RegisterScreen.js` small and reduce reload cost.
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: themeColors.background },
-  scrollContent: { padding: 18, paddingTop: 48 },
+  scrollContent: { padding: 18, paddingTop: 48, paddingBottom: 180 },
   backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   backText: { color: themeColors.textPrimary, fontSize: 16, marginLeft: 8 },
 

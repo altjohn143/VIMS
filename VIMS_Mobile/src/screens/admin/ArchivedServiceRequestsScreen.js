@@ -87,7 +87,7 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'high': return themeColors.error;
+      case 'urgent': return themeColors.error;
       case 'medium': return themeColors.warning;
       case 'low': return themeColors.success;
       default: return themeColors.textSecondary;

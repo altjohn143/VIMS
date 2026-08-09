@@ -68,7 +68,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
 
   const getStaffForCategory = (category) => {
     if (category === 'security') {
-      return staffMembers.filter(staff => staff.role === 'security');
+      return staffMembers.filter(staff => staff.role === 'security' && staff.securityLevel !== 'head-officer');
     }
     return staffMembers.filter(staff => staff.role !== 'security');
   };
@@ -76,7 +76,6 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
   const priorityColors = {
     low: themeColors.success,
     medium: themeColors.warning,
-    high: themeColors.error,
     urgent: themeColors.error,
   };
 
@@ -188,7 +187,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
       const emergency = isEmergency(selectedRequest);
       let assignedStaffId = processForm.assignedTo;
       if (emergency && processForm.status === 'assigned') {
-        assignedStaffId = staffMembers.find((staff) => staff.role === 'security')?._id || '';
+        assignedStaffId = getStaffForCategory('security')[0]?._id || '';
         if (!assignedStaffId) {
           Alert.alert('No Security Staff', 'No active security personnel are available for automatic emergency assignment.');
           return;
@@ -422,7 +421,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
           ))}
         </ScrollView>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          {['all', 'low', 'medium', 'high', 'urgent'].map((value) => (
+          {['all', 'low', 'medium', 'urgent'].map((value) => (
             <TouchableOpacity key={value} style={[styles.filterChip, priorityFilter === value && styles.activeFilter]} onPress={() => setPriorityFilter(value)}>
               <Text style={[styles.filterText, priorityFilter === value && styles.activeFilterText]}>{value === 'all' ? 'All priority' : value}</Text>
             </TouchableOpacity>
@@ -1228,7 +1227,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '92%',
+    paddingBottom: 28,
   },
   modalHeader: {
     flexDirection: 'row',

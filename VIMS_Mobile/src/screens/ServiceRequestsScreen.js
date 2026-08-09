@@ -64,7 +64,6 @@ const ServiceRequestsScreen = ({ navigation }) => {
   const priorityColors = {
     low: themeColors.success,
     medium: themeColors.warning,
-    high: themeColors.error,
     urgent: themeColors.error,
   };
 
@@ -130,7 +129,10 @@ const ServiceRequestsScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const requestData = new FormData();
-      Object.entries(formData).forEach(([key, value]) => requestData.append(key, value || ''));
+      Object.entries({
+        ...formData,
+        priority: formData.category === 'security' ? 'urgent' : formData.priority,
+      }).forEach(([key, value]) => requestData.append(key, value || ''));
       attachments.forEach((asset, index) => {
         requestData.append('attachments', {
           uri: asset.uri,
@@ -500,7 +502,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
             <Text style={styles.label}>Category</Text>
             <View style={styles.pickerContainer}><Picker selectedValue={categoryFilter} onValueChange={setCategoryFilter} style={styles.picker}><Picker.Item label="All categories" value="all" />{categories.map(item => <Picker.Item key={item.value} label={item.label} value={item.value} />)}</Picker></View>
             <Text style={styles.label}>Priority</Text>
-            <View style={styles.pickerContainer}><Picker selectedValue={priorityFilter} onValueChange={setPriorityFilter} style={styles.picker}><Picker.Item label="All priorities" value="all" />{['low', 'medium', 'high', 'urgent'].map(value => <Picker.Item key={value} label={value[0].toUpperCase() + value.slice(1)} value={value} />)}</Picker></View>
+            <View style={styles.pickerContainer}><Picker selectedValue={priorityFilter} onValueChange={setPriorityFilter} style={styles.picker}><Picker.Item label="All priorities" value="all" />{['low', 'medium', 'urgent'].map(value => <Picker.Item key={value} label={value[0].toUpperCase() + value.slice(1)} value={value} />)}</Picker></View>
             <Text style={styles.label}>Requests per page</Text>
             <View style={styles.rowsSelector}>{[5, 10, 25].map(value => <TouchableOpacity key={value} style={[styles.rowChoice, rowsPerPage === value && styles.rowChoiceActive]} onPress={() => setRowsPerPage(value)}><Text style={[styles.rowChoiceText, rowsPerPage === value && styles.rowChoiceTextActive]}>{value}</Text></TouchableOpacity>)}</View>
             <View style={styles.modalActions}><TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => { setCategoryFilter('all'); setPriorityFilter('all'); }}><Text style={styles.cancelButtonText}>Reset</Text></TouchableOpacity><TouchableOpacity style={[styles.modalButton, styles.submitButton]} onPress={() => setShowFilterModal(false)}><Text style={styles.submitButtonText}>Show Results</Text></TouchableOpacity></View>

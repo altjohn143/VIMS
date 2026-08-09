@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,11 +13,11 @@ import {
   FlatList,
   Platform,
   KeyboardAvoidingView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import api from '../utils/api';
-import QRCode from 'react-native-qrcode-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { Camera, CameraView } from 'expo-camera';
@@ -47,7 +47,6 @@ const VisitorManagementScreen = ({ navigation }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [cancellingVisitorId, setCancellingVisitorId] = useState(null);
-  const qrRef = useRef(null);
 
   const [formData, setFormData] = useState({
     visitorName: '',
@@ -321,7 +320,12 @@ const VisitorManagementScreen = ({ navigation }) => {
     try {
       const response = await api.post('/visitors/confirm-arrival', { scanValue: data });
       if (response.data?.success) {
-        Alert.alert('Confirmed', response.data.message || 'Visitor confirmed successfully.');
+        const confirmedType = response.data?.data?.confirmedType;
+        const title = confirmedType === 'departure' ? 'Visitor Departure Confirmed' : 'Visitor Confirmed';
+        const fallbackMessage = confirmedType === 'departure'
+          ? 'Your visitor departure is confirmed.'
+          : 'Your visitor is confirmed.';
+        Alert.alert(title, response.data.message || fallbackMessage);
         setShowConfirmScanner(false);
         fetchVisitors();
       }
@@ -348,7 +352,10 @@ const VisitorManagementScreen = ({ navigation }) => {
   const getVisitorQrStatus = (visitor) => {
     if (!visitor) return 'Unknown';
     if (visitor.status === 'pending') return 'Pending';
-    if (visitor.status === 'approved') return 'Approved';
+    if (visitor.status === 'approved') {
+      if (visitor.residentEntryConfirmedAt) return 'Confirmed';
+      return 'Approved';
+    }
     if (visitor.status === 'active') {
       if (visitor.actualExit) return 'Exited';
       if (visitor.residentDepartureConfirmedAt) return 'Departed';
@@ -367,6 +374,7 @@ const VisitorManagementScreen = ({ navigation }) => {
     const config = {
       Pending: { label: 'Pending', color: themeColors.warning, icon: 'time', bg: themeColors.warning + '20' },
       Approved: { label: 'Approved', color: themeColors.success, icon: 'checkmark-circle', bg: themeColors.success + '20' },
+      Confirmed: { label: 'Confirmed', color: themeColors.success, icon: 'shield-checkmark', bg: themeColors.success + '20' },
       Entered: { label: 'Entered', color: themeColors.info, icon: 'log-in', bg: themeColors.info + '20' },
       Arrived: { label: 'Arrived', color: themeColors.success, icon: 'home', bg: themeColors.success + '20' },
       Departed: { label: 'Departed', color: themeColors.warning, icon: 'arrow-forward-circle', bg: themeColors.warning + '20' },
@@ -411,16 +419,22 @@ const VisitorManagementScreen = ({ navigation }) => {
       Alert.alert('Pass Unavailable', 'Rejected or cancelled visitor passes cannot be shared.');
       return;
     }
-    if (!qrRef.current) return;
-    qrRef.current.toDataURL(async data => {
+    const qrCodeDataUrl = selectedVisitor?.qrCode;
+    const base64Qr = typeof qrCodeDataUrl === 'string' ? qrCodeDataUrl.replace(/^data:image\/png;base64,/, '') : '';
+    if (!base64Qr) {
+      Alert.alert('QR Unavailable', 'The visitor QR code is not available yet.');
+      return;
+    }
+
+    (async () => {
       try {
         const target = `${FileSystem.cacheDirectory}visitor-qr-${selectedVisitor?._id || Date.now()}.png`;
-        await FileSystem.writeAsStringAsync(target, data, { encoding: FileSystem.EncodingType.Base64 });
+        await FileSystem.writeAsStringAsync(target, base64Qr, { encoding: FileSystem.EncodingType.Base64 });
         await Sharing.shareAsync(target, { mimeType: 'image/png', dialogTitle: 'Save or share visitor QR code' });
       } catch (error) {
         Alert.alert('Unable to share', 'The visitor QR code could not be saved or shared.');
       }
-    });
+    })();
   };
 
   const stats = {
@@ -856,12 +870,10 @@ const VisitorManagementScreen = ({ navigation }) => {
             {selectedVisitor && (
               <ScrollView>
                 <View style={styles.qrContainer}>
-                  <QRCode
-                    getRef={(ref) => { qrRef.current = ref; }}
-                    value={selectedVisitor.qrCode}
-                    size={200}
-                    color="black"
-                    backgroundColor="white"
+                  <Image
+                    source={{ uri: selectedVisitor.qrCode }}
+                    style={styles.qrImage}
+                    resizeMode="contain"
                   />
                 </View>
                 <TouchableOpacity style={styles.shareQrButton} onPress={shareVisitorQr}>
@@ -1489,6 +1501,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     marginBottom: 20,
+  },
+  qrImage: {
+    width: 200,
+    height: 200,
   },
   qrInfo: {
     padding: 16,

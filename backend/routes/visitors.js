@@ -67,7 +67,10 @@ const findVisitorByScanValue = async (scanValue) => {
 const getVisitorQrStatus = (visitor) => {
   if (!visitor) return 'Unknown';
   if (visitor.status === 'pending') return 'Pending';
-  if (visitor.status === 'approved') return 'Approved';
+  if (visitor.status === 'approved') {
+    if (visitor.residentEntryConfirmedAt) return 'Confirmed';
+    return 'Approved';
+  }
   if (visitor.status === 'active') {
     if (visitor.actualExit) return 'Exited';
     if (visitor.residentDepartureConfirmedAt) return 'Departed';
@@ -1038,21 +1041,24 @@ router.post('/confirm-arrival', protect, authorize('resident'), async (req, res)
       return res.status(403).json({ success: false, error: 'This pass does not belong to your account.' });
     }
 
-    if (visitor.status !== 'active') {
+    const canConfirmArrival = ['approved', 'active'].includes(visitor.status) && !visitor.residentEntryConfirmedAt;
+    const canConfirmDeparture = visitor.status === 'active' && visitor.residentEntryConfirmedAt && !visitor.residentDepartureConfirmedAt;
+
+    if (!canConfirmArrival && !canConfirmDeparture && visitor.status !== 'active') {
       return res.status(400).json({
         success: false,
-        error: `Visitor must be active before resident confirmation (current: ${visitor.status}).`
+        error: `Visitor must be approved or active before resident confirmation (current: ${visitor.status}).`
       });
     }
 
     let message = 'Visitor already confirmed.';
     let confirmedType = 'alreadyConfirmed';
 
-    if (!visitor.residentEntryConfirmedAt) {
+    if (canConfirmArrival) {
       visitor.residentEntryConfirmedAt = new Date();
       confirmedType = 'arrival';
       message = 'Visitor arrival confirmed successfully.';
-    } else if (!visitor.residentDepartureConfirmedAt) {
+    } else if (canConfirmDeparture) {
       visitor.residentDepartureConfirmedAt = new Date();
       confirmedType = 'departure';
       message = 'Visitor departure confirmed successfully.';

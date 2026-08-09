@@ -49,6 +49,16 @@ const UserDropdownMenu = ({ navigation }) => {
     // Don't navigate; AppNavigator will switch to auth stack.
   };
 
+  const roleMenuItems = user?.role === 'admin'
+    ? [
+        { label: 'Services', screen: 'ServicesTab', icon: 'construct-outline', color: '#2563eb', bg: '#eff6ff' },
+        { label: 'Payments', screen: 'PaymentsTab', icon: 'card-outline', color: '#7c3aed', bg: '#f5f3ff' },
+        { label: 'Users', screen: 'UsersTab', icon: 'people-outline', color: '#0f766e', bg: '#ecfdf5' },
+      ]
+    : user?.role === 'resident'
+      ? [{ label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#16a34a', bg: '#f0fdf4' }]
+      : [];
+
   return (
     <>
       <TouchableOpacity style={styles.userPill} onPress={openMenu} activeOpacity={0.8}>
@@ -94,12 +104,14 @@ const UserDropdownMenu = ({ navigation }) => {
                   <Text style={styles.dropdownItemText}>Dashboard</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.dropdownItem} onPress={() => onNavigate('ProfileTab')} activeOpacity={0.7}>
-                  <View style={[styles.dropdownItemIcon, { backgroundColor: '#f0fdf4' }]}>
-                    <Ionicons name="person-outline" size={18} color="#16a34a" />
-                  </View>
-                  <Text style={styles.dropdownItemText}>Profile Settings</Text>
-                </TouchableOpacity>
+                {roleMenuItems.map((item) => (
+                  <TouchableOpacity key={item.screen} style={styles.dropdownItem} onPress={() => onNavigate(item.screen)} activeOpacity={0.7}>
+                    <View style={[styles.dropdownItemIcon, { backgroundColor: item.bg }]}>
+                      <Ionicons name={item.icon} size={18} color={item.color} />
+                    </View>
+                    <Text style={styles.dropdownItemText}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
 
                 <View style={styles.dropdownDivider} />
 

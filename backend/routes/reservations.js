@@ -232,6 +232,9 @@ router.post('/', protect, async (req, res) => {
 
       // Validate each item
       for (const item of items) {
+        item.resourceType = String(item.resourceType || '').trim();
+        item.resourceName = String(item.resourceName || '').trim();
+        item.quantity = parseInt(item.quantity, 10) || 1;
         if (!item.resourceName || !item.resourceType) {
           return res.status(400).json({ success: false, error: 'Each item must have resourceType and resourceName' });
         }
@@ -245,16 +248,18 @@ router.post('/', protect, async (req, res) => {
       reservationItems = items;
     } else if (resourceType && resourceName) {
       // Legacy format: single item
-      if (!resourceType || !resourceName) {
+      const normalizedResourceType = String(resourceType).trim();
+      const normalizedResourceName = String(resourceName).trim();
+      if (!normalizedResourceType || !normalizedResourceName) {
         return res.status(400).json({ success: false, error: 'Resource type and name are required' });
       }
 
-      const resource = await Resource.findOne({ name: resourceName, type: resourceType, isActive: true });
+      const resource = await Resource.findOne({ name: normalizedResourceName, type: normalizedResourceType, isActive: true });
       if (!resource) {
         return res.status(400).json({ success: false, error: 'Invalid resource selected' });
       }
 
-      reservationItems = [{ resourceType, resourceName, quantity: quantity || 1 }];
+      reservationItems = [{ resourceType: normalizedResourceType, resourceName: normalizedResourceName, quantity: parseInt(quantity, 10) || 1 }];
     } else {
       return res.status(400).json({ success: false, error: 'Resource type and name are required' });
     }
@@ -264,6 +269,11 @@ router.post('/', protect, async (req, res) => {
     if (Number.isNaN(requestedStart.getTime()) || Number.isNaN(requestedEnd.getTime()) || requestedEnd <= requestedStart) {
       return res.status(400).json({ success: false, error: 'Please select a valid start and end time' });
     }
+
+    const requestedDayStart = new Date(requestedStart);
+    requestedDayStart.setHours(0, 0, 0, 0);
+    const requestedDayEnd = new Date(requestedStart);
+    requestedDayEnd.setHours(23, 59, 59, 999);
     
     // Check for conflicting reservations
     for (const item of reservationItems) {
@@ -273,8 +283,10 @@ router.post('/', protect, async (req, res) => {
           { resourceType: item.resourceType, resourceName: item.resourceName }
         ],
         status: { $in: ['pending', 'confirmed', 'borrowed'] },
-        startDate: { $lt: requestedEnd },
-        endDate: { $gt: requestedStart }
+        $and: [
+          { startDate: { $lte: requestedDayEnd } },
+          { endDate: { $gte: requestedDayStart } }
+        ]
       });
 
       if (existingActive) {

@@ -187,9 +187,45 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     }
     setExporting(true);
     try {
+      if (!exportStartDate && !exportEndDate) {
+        if (!filteredVisitors.length) {
+          Alert.alert('No Visitors', 'There are no visitors matching the active filters to export.');
+          return;
+        }
+        const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+        const rows = filteredVisitors.map((visitor) => [
+          visitor.visitorName,
+          visitor.visitorPhone,
+          visitor.residentId ? `${visitor.residentId.firstName || ''} ${visitor.residentId.lastName || ''}`.trim() : '',
+          visitor.residentId?.houseNumber || '',
+          visitor.purpose || '',
+          visitor.status || '',
+          visitor.expectedArrival ? format(new Date(visitor.expectedArrival), 'yyyy-MM-dd HH:mm') : '',
+          visitor.expectedDeparture ? format(new Date(visitor.expectedDeparture), 'yyyy-MM-dd HH:mm') : '',
+        ]);
+        const csv = [
+          ['Visitor', 'Phone', 'Resident', 'House', 'Purpose', 'Status', 'Expected Arrival', 'Expected Departure'].map(escapeCsv).join(','),
+          ...rows.map((row) => row.map(escapeCsv).join(','))
+        ].join('\n');
+        const fileUri = `${FileSystem.documentDirectory}visitors_filtered_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.csv`;
+        await FileSystem.writeAsStringAsync(fileUri, csv);
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Share Filtered Visitor Export',
+          });
+        } else {
+          Alert.alert('Export Complete', `File saved to ${fileUri}`);
+        }
+        setShowExportModal(false);
+        return;
+      }
+
       const params = new URLSearchParams();
       if (exportStartDate) params.append('startDate', exportStartDate);
       if (exportEndDate) params.append('endDate', exportEndDate);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (dateFilter) params.append('date', dateFilter);
       params.append('format', exportFormat);
       params.append('timezoneOffset', String(new Date().getTimezoneOffset()));
 
@@ -302,6 +338,73 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     );
   };
 
+  const renderVisitorListHeader = () => (
+    <View style={styles.listHeaderControls}>
+      <View style={styles.flowSummary}>
+        <View style={styles.flowSummaryItem}><Text style={styles.flowSummaryValue}>{stats.total}</Text><Text style={styles.flowSummaryLabel}>Total</Text></View>
+        <View style={styles.flowSummaryDivider} />
+        <View style={styles.flowSummaryItem}><Text style={[styles.flowSummaryValue, { color: themeColors.warning }]}>{stats.pending}</Text><Text style={styles.flowSummaryLabel}>Pending</Text></View>
+        <View style={styles.flowSummaryDivider} />
+        <View style={styles.flowSummaryItem}><Text style={[styles.flowSummaryValue, { color: themeColors.success }]}>{stats.approved}</Text><Text style={styles.flowSummaryLabel}>Approved</Text></View>
+        <View style={styles.flowSummaryDivider} />
+        <View style={styles.flowSummaryItem}><Text style={[styles.flowSummaryValue, { color: themeColors.info }]}>{stats.active}</Text><Text style={styles.flowSummaryLabel}>Active</Text></View>
+      </View>
+
+      <View style={styles.filterContainer}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={18} color={themeColors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search visitors..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {(searchQuery || statusFilter !== 'all' || dateFilter) ? (
+            <TouchableOpacity onPress={clearFilters}>
+              <Ionicons name="close-circle" size={19} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          {['all', 'pending', 'approved', 'active', 'completed', 'rejected'].map((status) => (
+            <TouchableOpacity
+              key={status}
+              style={[styles.filterChip, statusFilter === status && styles.activeFilter]}
+              onPress={() => setStatusFilter(status)}
+            >
+              <Text style={[styles.filterText, statusFilter === status && styles.activeFilterText]}>
+                {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <View style={styles.filterMetaRow}>
+          <Text style={styles.resultCount}>{filteredVisitors.length} shown</Text>
+          <TouchableOpacity style={styles.advancedFilterToggle} onPress={() => setShowAdvancedFilters((value) => !value)}>
+            <Ionicons name="calendar-outline" size={16} color={themeColors.primary} />
+            <Text style={styles.advancedFilterToggleText}>{showAdvancedFilters ? 'Hide date' : 'Filter date'}</Text>
+            {!!dateFilter && <View style={styles.activeFilterDot} />}
+          </TouchableOpacity>
+        </View>
+
+        {showAdvancedFilters && <View style={styles.dateFilterRow}>
+          <TextInput
+            style={[styles.dateInput, { flex: 1 }]}
+            placeholder="Arrival date (YYYY-MM-DD)"
+            value={dateFilter}
+            onChangeText={setDateFilter}
+          />
+          <TouchableOpacity style={styles.clearFilterButton} onPress={clearFilters}>
+            <Ionicons name="filter-outline" size={16} color={themeColors.primaryDeep} />
+            <Text style={styles.clearFilterText}>Clear</Text>
+          </TouchableOpacity>
+        </View>}
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.flowHeader}>
@@ -324,96 +427,12 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.flowSummary}>
-        <View style={styles.flowSummaryItem}><Text style={styles.flowSummaryValue}>{stats.total}</Text><Text style={styles.flowSummaryLabel}>Total</Text></View>
-        <View style={styles.flowSummaryDivider} />
-        <View style={styles.flowSummaryItem}><Text style={[styles.flowSummaryValue, { color: themeColors.warning }]}>{stats.pending}</Text><Text style={styles.flowSummaryLabel}>Pending</Text></View>
-        <View style={styles.flowSummaryDivider} />
-        <View style={styles.flowSummaryItem}><Text style={[styles.flowSummaryValue, { color: themeColors.success }]}>{stats.approved}</Text><Text style={styles.flowSummaryLabel}>Approved</Text></View>
-        <View style={styles.flowSummaryDivider} />
-        <View style={styles.flowSummaryItem}><Text style={[styles.flowSummaryValue, { color: themeColors.info }]}>{stats.active}</Text><Text style={styles.flowSummaryLabel}>Active</Text></View>
-      </View>
-
-      <View style={styles.filterContainer}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color={themeColors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search visitors..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {(searchQuery || statusFilter !== 'all' || dateFilter) ? (
-            <TouchableOpacity onPress={clearFilters}>
-              <Ionicons name="close-circle" size={21} color={themeColors.textSecondary} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'all' && styles.activeFilter]}
-            onPress={() => setStatusFilter('all')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'all' && styles.activeFilterText]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'pending' && styles.activeFilter]}
-            onPress={() => setStatusFilter('pending')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'pending' && styles.activeFilterText]}>Pending</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'approved' && styles.activeFilter]}
-            onPress={() => setStatusFilter('approved')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'approved' && styles.activeFilterText]}>Approved</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'active' && styles.activeFilter]}
-            onPress={() => setStatusFilter('active')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'active' && styles.activeFilterText]}>Active</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'completed' && styles.activeFilter]}
-            onPress={() => setStatusFilter('completed')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'completed' && styles.activeFilterText]}>Completed</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'rejected' && styles.activeFilter]}
-            onPress={() => setStatusFilter('rejected')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'rejected' && styles.activeFilterText]}>Rejected</Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        <TouchableOpacity style={styles.advancedFilterToggle} onPress={() => setShowAdvancedFilters((value) => !value)}>
-          <Ionicons name="calendar-outline" size={17} color={themeColors.primary} />
-          <Text style={styles.advancedFilterToggleText}>{showAdvancedFilters ? 'Hide date filter' : 'Filter by date'}</Text>
-          {!!dateFilter && <View style={styles.activeFilterDot} />}
-        </TouchableOpacity>
-
-        {showAdvancedFilters && <View style={styles.dateFilterRow}>
-          <TextInput
-            style={[styles.dateInput, { flex: 1 }]}
-            placeholder="Arrival date (YYYY-MM-DD)"
-            value={dateFilter}
-            onChangeText={setDateFilter}
-          />
-          <TouchableOpacity style={styles.clearFilterButton} onPress={clearFilters}>
-            <Ionicons name="filter-outline" size={17} color={themeColors.primaryDeep} />
-            <Text style={styles.clearFilterText}>Clear</Text>
-          </TouchableOpacity>
-        </View>}
-      </View>
-
       <FlatList
         data={filteredVisitors}
         renderItem={renderVisitorCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={renderVisitorListHeader}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -632,7 +651,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>Export Visitor Data</Text>
-                <Text style={styles.exportHelper}>Leave dates empty to export all visitor records.</Text>
+                <Text style={styles.exportHelper}>Leave dates empty to export the current visitor list using active search, status, and date filters.</Text>
               </View>
               <TouchableOpacity onPress={() => !exporting && setShowExportModal(false)}>
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
@@ -729,7 +748,8 @@ const styles = StyleSheet.create({
   flowActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
   flowAction: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: themeColors.accent, height: 42, paddingHorizontal: 15, borderRadius: 14 },
   flowActionText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
-  flowSummary: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: themeColors.surfaceTint, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', borderWidth: 1, borderColor: themeColors.border },
+  listHeaderControls: { paddingBottom: 8 },
+  flowSummary: { marginBottom: 10, paddingHorizontal: 10, paddingVertical: 12, borderRadius: 12, backgroundColor: themeColors.surfaceTint, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', borderWidth: 1, borderColor: themeColors.border },
   flowSummaryItem: { flex: 1, alignItems: 'center' },
   flowSummaryDivider: { width: 1, height: 32, backgroundColor: themeColors.border },
   flowSummaryValue: { textAlign: 'center', color: themeColors.primaryDeep, fontSize: 21, fontWeight: '900' },
@@ -792,10 +812,10 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     backgroundColor: 'white',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    padding: 0,
   },
+  filterMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
+  resultCount: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -870,6 +890,7 @@ const styles = StyleSheet.create({
   inlineExportPickerDoneText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   listContainer: {
     padding: 16,
+    paddingTop: 10,
   },
   visitorCard: {
     backgroundColor: 'white',

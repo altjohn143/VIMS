@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Dimensions,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
@@ -25,8 +26,21 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [datePickerField, setDatePickerField] = useState(null);
 
   const load = useCallback(async () => {
+    const validDate = (value) => !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
+    if (!validDate(startDate) || !validDate(endDate)) {
+      return;
+    }
+    if (startDate && endDate && startDate > endDate) {
+      setStats(null);
+      setRecentVisitors([]);
+      setLoading(false);
+      setRefreshing(false);
+      Alert.alert('Invalid Date Range', 'The start date must be before or equal to the end date.');
+      return;
+    }
     try {
       const params = {};
       if (startDate) params.startDate = startDate;
@@ -60,6 +74,22 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
     setRefreshing(true);
     load();
   };
+
+  const clearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setStatusFilter('all');
+  };
+
+  const selectDate = (field, selectedDate) => {
+    if (Platform.OS === 'android') setDatePickerField(null);
+    if (!selectedDate) return;
+    const value = format(selectedDate, 'yyyy-MM-dd');
+    if (field === 'start') setStartDate(value);
+    else setEndDate(value);
+  };
+
+  const openDatePicker = (field) => setDatePickerField(field);
 
   const formatWhen = (d) => {
     if (!d) return 'N/A';
@@ -167,6 +197,20 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
         {/* Filters */}
         <View style={styles.filtersSection}>
           <Text style={styles.sectionTitle}>Filters</Text>
+          <View style={styles.dateRow}>
+            <TouchableOpacity style={styles.dateInput} onPress={() => openDatePicker('start')}>
+              <Ionicons name="calendar-outline" size={16} color={themeColors.primaryDeep} />
+              <Text style={[styles.dateInputText, !startDate && styles.datePlaceholder]}>
+                {startDate || 'Start date'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dateInput} onPress={() => openDatePicker('end')}>
+              <Ionicons name="calendar-outline" size={16} color={themeColors.primaryDeep} />
+              <Text style={[styles.dateInputText, !endDate && styles.datePlaceholder]}>
+                {endDate || 'End date'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.filterRow}>
             <TouchableOpacity
               style={[
@@ -205,6 +249,16 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
               <Text style={[styles.filterText, statusFilter === 'rejected' && styles.filterTextActive]}>Rejected</Text>
             </TouchableOpacity>
           </View>
+          <View style={styles.reportFilterActions}>
+            <TouchableOpacity style={styles.applyButton} onPress={load}>
+              <Ionicons name="filter-outline" size={16} color="#fff" />
+              <Text style={styles.applyButtonText}>Apply filters</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
+              <Ionicons name="close-circle-outline" size={16} color={themeColors.primaryDeep} />
+              <Text style={styles.clearButtonText}>Clear filters</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Recent Visitors */}
@@ -229,6 +283,20 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
 
         <View style={{ height: 20 }} />
       </ScrollView>
+      {datePickerField ? (
+        <DateTimePicker
+          value={new Date((datePickerField === 'start' ? startDate : endDate) || Date.now())}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          onChange={(event, selectedDate) => {
+            if (event?.type === 'dismissed') {
+              setDatePickerField(null);
+              return;
+            }
+            selectDate(datePickerField, selectedDate);
+          }}
+        />
+      ) : null}
     </View>
   );
 };
@@ -273,6 +341,20 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 18, lineHeight: 21, fontWeight: '900', marginTop: 2 },
 
   filtersSection: { marginBottom: 24 },
+  dateRow: { gap: 8, marginBottom: 10 },
+  dateInput: {
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 10,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dateInputText: { color: themeColors.textPrimary, fontWeight: '800' },
+  datePlaceholder: { color: themeColors.textSecondary, fontWeight: '700' },
   filterRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   filterChip: {
     paddingHorizontal: 12,
@@ -285,6 +367,11 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
   filterText: { fontSize: 12, fontWeight: '700', color: themeColors.textSecondary },
   filterTextActive: { color: 'white' },
+  reportFilterActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 10 },
+  applyButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primary },
+  applyButtonText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+  clearButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primarySoft },
+  clearButtonText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '800' },
 
   visitorsSection: { marginBottom: 20 },
   visitorCard: {

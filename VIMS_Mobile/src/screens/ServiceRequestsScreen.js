@@ -19,7 +19,7 @@ import { Picker } from '@react-native-picker/picker';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import api from '../utils/api';
 import { format } from 'date-fns';
-import UserDropdownMenu from '../components/UserDropdownMenu';
+import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
 const ServiceRequestsScreen = ({ navigation }) => {
   const [requests, setRequests] = useState([]);
@@ -362,44 +362,37 @@ const ServiceRequestsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-<View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="white" />
-  </TouchableOpacity>
-  <View style={styles.headerTitleWrap}>
-    <Text style={styles.headerEyebrow}>COMMUNITY SUPPORT</Text>
-    <Text style={styles.headerTitle}>Service Requests</Text>
-    <Text style={styles.headerSubtitle}>Report, follow up and rate completed work</Text>
-  </View>
-  <View style={styles.headerRight}>
-    <TouchableOpacity onPress={fetchRequests} style={styles.refreshButton}>
-      <Ionicons name="refresh" size={16} color="white" />
-      <Text style={styles.headerActionText}>Refresh</Text>
-    </TouchableOpacity>
-    <UserDropdownMenu navigation={navigation} />
-  </View>
-</View>
+      <ResidentUtilityHeader
+        navigation={navigation}
+        eyebrow="COMMUNITY SUPPORT"
+        title="Service Requests"
+        subtitle="Report, follow up and rate completed work"
+        actions={[
+          { label: 'Refresh', icon: 'refresh', onPress: fetchRequests },
+          { label: 'New', icon: 'add', onPress: () => setShowCreateModal(true), primary: true },
+        ]}
+      />
 
       <View style={styles.statsGrid}>
-        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
+        <View style={styles.coloredStatCard}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="build-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.total}</Text>
           <Text style={styles.coloredStatLabel}>Total</Text>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
+        <View style={styles.coloredStatCard}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.pending}</Text>
           <Text style={styles.coloredStatLabel}>Pending</Text>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
+        <View style={styles.coloredStatCard}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="cog-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.inProgress}</Text>
           <Text style={styles.coloredStatLabel}>In Progress</Text>
         </View>
-        <View style={[styles.coloredStatCard, { backgroundColor: themeColors.nav }]}>
+        <View style={styles.coloredStatCard}>
           <View style={styles.statCardHighlight} />
           <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
           <Text style={styles.coloredStatValue}>{stats.completed}</Text>
@@ -868,22 +861,20 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    backgroundColor: themeColors.nav,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
+    paddingTop: 14,
+    paddingBottom: 10,
   },
   coloredStatCard: {
     flexGrow: 1,
     flexBasis: '46%',
-    borderRadius: radii.lg,
-    padding: 13,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     position: 'relative',
     overflow: 'hidden',
+    backgroundColor: themeColors.surfaceTint,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: themeColors.border,
   },
   statCardHighlight: {
     position: 'absolute',
@@ -892,25 +883,25 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(23,107,69,0.08)',
   },
   coloredStatBgIcon: {
     position: 'absolute',
     top: 6,
     right: 6,
     fontSize: 16,
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(23,107,69,0.20)',
   },
   coloredStatValue: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: themeColors.primaryDeep,
+    fontSize: 18,
+    fontWeight: '900',
     marginBottom: 2,
   },
   coloredStatLabel: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 9,
-    fontWeight: '600',
+    color: themeColors.textSecondary,
+    fontSize: 10,
+    fontWeight: '800',
   },
   tabContainer: {
     backgroundColor: 'transparent',
@@ -965,12 +956,14 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   requestCard: {
-    backgroundColor: roleLayouts.resident.card.backgroundColor,
+    backgroundColor: themeColors.cardBackground,
     borderRadius: 12,
-    padding: 18,
+    padding: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: themeColors.border,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.primary,
     ...shadows.small,
   },
   requestHeader: {

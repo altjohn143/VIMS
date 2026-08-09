@@ -227,7 +227,7 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
         filter.category = category;
       }
     }
-    if (priority) filter.priority = priority;
+    if (priority && priority !== 'all') filter.priority = priority;
     if (residentId) filter.residentId = residentId;
     
     const requests = await ServiceRequest.find(filter)
@@ -361,7 +361,14 @@ router.put('/:id/status', protect, async (req, res) => {
     else if (req.user.role === 'security') {
       const assignedToId = request.assignedTo?._id?.toString() || request.assignedTo?.toString();
       const canHeadOfficerHandle = isSecurityHeadOfficer(req.user) && ['security', 'complaint'].includes(request.category);
-      if (assignedToId !== req.user.id && !canHeadOfficerHandle) {
+      if (canHeadOfficerHandle && !assignedToId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Assign this request to a security officer before updating its status'
+        });
+      }
+      const currentSecurityId = req.user.id || req.user._id?.toString();
+      if (assignedToId !== currentSecurityId && !canHeadOfficerHandle) {
         return res.status(403).json({
           success: false,
           error: 'Not assigned to this request'
@@ -370,10 +377,6 @@ router.put('/:id/status', protect, async (req, res) => {
       
       if (['in-progress', 'completed'].includes(status)) {
         request.status = status;
-        if (canHeadOfficerHandle && !request.assignedTo) {
-          request.assignedTo = req.user.id;
-          request.assignedAt = new Date();
-        }
         
         if (status === 'completed') {
           request.completedAt = new Date();

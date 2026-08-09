@@ -153,9 +153,20 @@ router.post('/:id/pay', protect, authorize('resident'), async (req, res) => {
     if (!payment) {
       return res.status(404).json({ success: false, error: 'Payment not found' });
     }
+
+    if (String(payment.residentId) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: 'Not authorized to pay this invoice' });
+    }
     
     if (payment.status === 'paid') {
       return res.status(400).json({ success: false, error: 'Already paid' });
+    }
+
+    if (payment.status === 'pending' && (payment.paymentMethod || payment.referenceNumber || payment.receiptImage)) {
+      return res.status(409).json({
+        success: false,
+        error: 'A payment is already pending for this invoice'
+      });
     }
     
     const referenceNumber = `PAY-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -235,6 +246,21 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
     
     if (!payment) {
       return res.status(404).json({ success: false, error: 'Payment not found. Please refresh and try again.' });
+    }
+
+    if (String(payment.residentId) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: 'Not authorized to submit payment for this invoice' });
+    }
+
+    if (payment.status === 'paid') {
+      return res.status(400).json({ success: false, error: 'This invoice is already paid' });
+    }
+
+    if (payment.status === 'pending' && (payment.paymentMethod || payment.referenceNumber || payment.receiptImage)) {
+      return res.status(409).json({
+        success: false,
+        error: 'A payment is already pending for this invoice'
+      });
     }
     
     // Update payment with QRPh payment details
@@ -388,7 +414,8 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
       page = 1,
       limit = 20,
       format = 'json',
-      timezoneOffset = '0'
+      timezoneOffset = '0',
+      search
     } = req.query;
     const timezoneOffsetMinutes = Number.parseInt(timezoneOffset, 10) || 0;
     let filter = {};
@@ -401,9 +428,26 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     if (paymentType) filter.paymentType = paymentType;
     if (paymentMethod) filter.paymentMethod = paymentMethod;
 
-    const payments = await Payment.find(filter)
+    let payments = await Payment.find(filter)
       .populate('residentId', 'firstName lastName houseNumber')
       .sort({ createdAt: -1 });
+
+    const searchText = String(search || '').trim().toLowerCase();
+    if (searchText) {
+      payments = payments.filter((payment) => {
+        const residentName = payment.residentId
+          ? `${payment.residentId.firstName || ''} ${payment.residentId.lastName || ''}`.toLowerCase()
+          : '';
+        return (
+          residentName.includes(searchText) ||
+          String(payment.residentId?.houseNumber || '').toLowerCase().includes(searchText) ||
+          String(payment.invoiceNumber || '').toLowerCase().includes(searchText) ||
+          String(payment.referenceNumber || '').toLowerCase().includes(searchText) ||
+          String(payment.receiptNumber || '').toLowerCase().includes(searchText) ||
+          String(payment.description || '').toLowerCase().includes(searchText)
+        );
+      });
+    }
 
     const reportData = payments.map((payment) => ({
       Resident: payment.residentId ? `${payment.residentId.firstName || ''} ${payment.residentId.lastName || ''}`.trim() : 'Unknown',
@@ -521,9 +565,10 @@ router.get('/admin/monthly-dues-amount', protect, authorize('admin'), async (req
 // Admin: Update monthly dues amount
 router.put('/admin/monthly-dues-amount', protect, authorize('admin'), async (req, res) => {
   try {
-    const amount = Number(req.body.amount);
-    if (Number.isNaN(amount) || amount < 0) {
-      return res.status(400).json({ success: false, error: 'Invalid monthly dues amount' });
+    const rawAmount = String(req.body.amount ?? '').trim();
+    const amount = Number(rawAmount);
+    if (!rawAmount || !Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ success: false, error: 'Monthly dues amount must be greater than zero' });
     }
 
     const updated = await setMonthlyDuesAmount(amount);
@@ -538,6 +583,9 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id);
     if (!payment) return res.status(404).json({ success: false, error: 'Payment not found' });
+    if (payment.status === 'paid') {
+      return res.status(400).json({ success: false, error: 'Payment is already confirmed' });
+    }
     
     payment.status = 'paid';
     payment.paymentDate = new Date();
@@ -582,7 +630,11 @@ router.post('/send-reminders', protect, authorize('admin'), async (req, res) => 
       }
       remindersSent++;
     }
-    res.json({ success: true, message: `Sent ${remindersSent} reminders` });
+    res.json({
+      success: true,
+      message: remindersSent > 0 ? `Sent ${remindersSent} reminders` : 'No eligible unpaid accounts found for reminders',
+      data: { sent: remindersSent }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to send reminders' });
   }

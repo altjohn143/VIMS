@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
-import UserDropdownMenu from '../../components/UserDropdownMenu';
+import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 
 const SecurityVisitorApprovalScreen = ({ navigation }) => {
   const [pendingVisitors, setPendingVisitors] = useState([]);
@@ -208,24 +208,12 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerEyebrow}>SECURITY MODULE</Text>
-          <Text style={styles.headerTitle}>Visitor Approvals</Text>
-          <Text style={styles.headerSubtitle}>Review and process pending visitor requests.</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionButton}>
-            <Ionicons name="arrow-back" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={fetchPendingVisitors} style={styles.headerActionButton}>
-            <Ionicons name="refresh" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Refresh</Text>
-          </TouchableOpacity>
-          <UserDropdownMenu navigation={navigation} />
-        </View>
-      </View>
+      <SecurityUtilityHeader
+        navigation={navigation}
+        title="Visitor Approvals"
+        subtitle="Review and process pending visitor requests."
+        actions={[{ label: 'Refresh', icon: 'refresh', onPress: fetchPendingVisitors, primary: true }]}
+      />
 
       <View style={styles.statsCard}>
         <Ionicons name="time" size={24} color={themeColors.warning} />
@@ -394,20 +382,23 @@ const styles = StyleSheet.create({
   statsCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: themeColors.nav,
+    backgroundColor: themeColors.surfaceTint,
     margin: 16,
-    padding: 20,
+    padding: 14,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   statsLabel: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.68)',
+    color: themeColors.textSecondary,
     marginLeft: 12,
+    fontWeight: '800',
   },
   statsValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: themeColors.accent,
+    fontSize: 26,
+    fontWeight: '900',
+    color: themeColors.primaryDeep,
     marginLeft: 12,
   },
   listContainer: {
@@ -416,10 +407,12 @@ const styles = StyleSheet.create({
   visitorCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 18,
-    marginBottom: 14,
-    borderTopWidth: 5,
-    borderTopColor: themeColors.warning,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.primary,
   },
   cardHeader: {
     flexDirection: 'row',

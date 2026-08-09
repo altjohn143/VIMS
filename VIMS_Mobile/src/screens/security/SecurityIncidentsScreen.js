@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
-import LogoutButton from '../../components/LogoutButton';
+import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 
 const initialForm = { title: '', description: '', phase: '', block: '', lotNumber: '', severity: 'medium' };
 
@@ -136,6 +136,9 @@ const SecurityIncidentsScreen = ({ navigation }) => {
       const res = await api.put(`/incidents/${id}/status`, { status: nextStatus });
       if (res.data?.success) {
         Alert.alert('Success', `Incident marked as ${nextStatus}`);
+        if (res.data?.data) {
+          setRows((previous) => previous.map((row) => (row._id === id ? { ...row, ...res.data.data } : row)));
+        }
         load();
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to update status');
@@ -150,6 +153,7 @@ const SecurityIncidentsScreen = ({ navigation }) => {
   const renderItem = ({ item }) => {
     const sev = severityColor(item?.severity);
     const isResolved = item?.status === 'resolved';
+    const isInvestigating = item?.status === 'investigating';
     return (
       <View style={[styles.card, shadows.small]}>
         <View style={styles.cardTop}>
@@ -168,7 +172,7 @@ const SecurityIncidentsScreen = ({ navigation }) => {
         <View style={styles.actionsRow}>
           <TouchableOpacity
             style={[styles.actionBtn, styles.investigateBtn, (processing || isResolved) && styles.disabled]}
-            disabled={processing || isResolved}
+            disabled={processing || isResolved || isInvestigating}
             onPress={() => setStatus(item._id, 'investigating')}
           >
             <Ionicons name="search-outline" size={16} color="white" />
@@ -176,7 +180,7 @@ const SecurityIncidentsScreen = ({ navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, styles.resolveBtn, processing && styles.disabled]}
-            disabled={processing}
+            disabled={processing || isResolved}
             onPress={() => setStatus(item._id, 'resolved')}
           >
             <Ionicons name="checkmark-circle-outline" size={16} color="white" />
@@ -197,24 +201,12 @@ const SecurityIncidentsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerEyebrow}>SECURITY MODULE</Text>
-          <Text style={styles.headerTitle}>Incidents</Text>
-          <Text style={styles.headerSubtitle}>Report events and manage response status.</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionButton}>
-            <Ionicons name="arrow-back" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={load} style={styles.headerActionButton}>
-            <Ionicons name="refresh" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Refresh</Text>
-          </TouchableOpacity>
-          <LogoutButton navigation={navigation} color="white" size={18} />
-        </View>
-      </View>
+      <SecurityUtilityHeader
+        navigation={navigation}
+        title="Incident Reports"
+        subtitle="Report events and manage response status."
+        actions={[{ label: 'Refresh', icon: 'refresh', onPress: load, primary: true }]}
+      />
 
       <FlatList
         data={paginatedRows}

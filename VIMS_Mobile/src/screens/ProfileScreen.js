@@ -9,7 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
-    Image,
+  Image,
+  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -608,6 +609,10 @@ const ProfileScreen = ({ navigation }) => {
               />
             </View>
           </View>
+
+          <TouchableOpacity style={[styles.inlineUpdateButton, saving && styles.saveButtonDisabled]} onPress={handleSaveProfile} disabled={saving}>
+            {saving ? <ActivityIndicator color="white" /> : <><Ionicons name="save-outline" size={18} color="white" /><Text style={styles.inlineUpdateButtonText}>Update Information</Text></>}
+          </TouchableOpacity>
         </View>
 
         <View style={[styles.section, shadows.small]}>
@@ -808,102 +813,139 @@ const ProfileScreen = ({ navigation }) => {
 
       <Modal visible={showPasswordModal} animationType="slide" transparent onRequestClose={() => setShowPasswordModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Change Password</Text>
-              <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
-                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Current Password</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  value={passwordData.currentPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, currentPassword: text }))}
-                  secureTextEntry={!showPassword.current}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}>
-                  <Ionicons name={showPassword.current ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoidingSheet}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+          >
+            <View style={styles.passwordModalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Change Password</Text>
+                <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
+                  <Ionicons name="close" size={24} color={themeColors.textPrimary} />
                 </TouchableOpacity>
               </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>New Password</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  value={passwordData.newPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, newPassword: text }))}
-                  secureTextEntry={!showPassword.new}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}>
-                  <Ionicons name={showPassword.new ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Confirm New Password</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} />
-                <TextInput
-                  style={styles.input}
-                  value={passwordData.confirmPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, confirmPassword: text }))}
-                  secureTextEntry={!showPassword.confirm}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}>
-                  <Ionicons name={showPassword.confirm ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {passwordOtpSent && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email Verification Code</Text>
-                <View style={styles.inputContainer}>
-                  <Ionicons name="mail-open-outline" size={20} color={themeColors.textSecondary} />
-                  <TextInput style={styles.input} value={passwordOtp} onChangeText={(text) => setPasswordOtp(text.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} placeholder="6-digit code" />
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.passwordModalBody}
+              >
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Current Password</Text>
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} />
+                    <TextInput
+                      style={styles.input}
+                      value={passwordData.currentPassword}
+                      onChangeText={(text) => setPasswordData(prev => ({ ...prev, currentPassword: text }))}
+                      secureTextEntry={!showPassword.current}
+                      returnKeyType="next"
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}>
+                      <Ionicons name={showPassword.current ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <TouchableOpacity onPress={() => { setPasswordOtpSent(false); setPasswordOtp(''); }}><Text style={styles.documentLink}>Request a new code</Text></TouchableOpacity>
-              </View>
-            )}
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => { setShowPasswordModal(false); setPasswordOtpSent(false); setPasswordOtp(''); }}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.changeButton]} onPress={handleChangePassword} disabled={saving}>
-                {saving ? <ActivityIndicator color="white" /> : <Text style={styles.changeButtonText}>{passwordOtpSent ? 'Verify & Change' : 'Send Email Code'}</Text>}
-              </TouchableOpacity>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>New Password</Text>
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} />
+                    <TextInput
+                      style={styles.input}
+                      value={passwordData.newPassword}
+                      onChangeText={(text) => setPasswordData(prev => ({ ...prev, newPassword: text }))}
+                      secureTextEntry={!showPassword.new}
+                      returnKeyType="next"
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}>
+                      <Ionicons name={showPassword.new ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Confirm New Password</Text>
+                  <View style={styles.inputContainer}>
+                    <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} />
+                    <TextInput
+                      style={styles.input}
+                      value={passwordData.confirmPassword}
+                      onChangeText={(text) => setPasswordData(prev => ({ ...prev, confirmPassword: text }))}
+                      secureTextEntry={!showPassword.confirm}
+                      returnKeyType={passwordOtpSent ? 'next' : 'done'}
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}>
+                      <Ionicons name={showPassword.confirm ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {passwordOtpSent && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Email Verification Code</Text>
+                    <View style={styles.inputContainer}>
+                      <Ionicons name="mail-open-outline" size={20} color={themeColors.textSecondary} />
+                      <TextInput style={styles.input} value={passwordOtp} onChangeText={(text) => setPasswordOtp(text.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} placeholder="6-digit code" returnKeyType="done" />
+                    </View>
+                    <TouchableOpacity onPress={() => { setPasswordOtpSent(false); setPasswordOtp(''); }}><Text style={styles.documentLink}>Request a new code</Text></TouchableOpacity>
+                  </View>
+                )}
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => { setShowPasswordModal(false); setPasswordOtpSent(false); setPasswordOtp(''); }}>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.modalButton, styles.changeButton, saving && styles.modalButtonDisabled]} onPress={handleChangePassword} disabled={saving}>
+                    {saving ? <ActivityIndicator color="white" /> : <Text style={styles.changeButtonText}>{passwordOtpSent ? 'Verify & Change' : 'Send Email Code'}</Text>}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
       <Modal visible={showMoveOutModal} animationType="slide" transparent onRequestClose={() => setShowMoveOutModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Request Move-out</Text>
-              <TouchableOpacity onPress={() => setShowMoveOutModal(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoidingSheet}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+          >
+            <View style={styles.moveOutModalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Request Move-out</Text>
+                <TouchableOpacity onPress={() => setShowMoveOutModal(false)}><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
+              </View>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.moveOutModalBody}
+              >
+                <Text style={styles.helperText}>An administrator will review this request before your lot and account status change.</Text>
+                <Text style={styles.label}>Reason</Text>
+                <TextInput
+                  style={styles.reasonInput}
+                  value={moveOutReason}
+                  onChangeText={setMoveOutReason}
+                  placeholder="Explain your move-out request"
+                  multiline
+                  textAlignVertical="top"
+                  returnKeyType="default"
+                />
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowMoveOutModal(false)}><Text style={styles.cancelButtonText}>Cancel</Text></TouchableOpacity>
+                  <TouchableOpacity style={[styles.modalButton, styles.changeButton, (moveOutSubmitting || !moveOutReason.trim()) && styles.modalButtonDisabled]} onPress={requestMoveOut} disabled={moveOutSubmitting || !moveOutReason.trim()}>
+                    {moveOutSubmitting ? <ActivityIndicator color="white" /> : <Text style={styles.changeButtonText}>Submit Request</Text>}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
-            <Text style={styles.helperText}>An administrator will review this request before your lot and account status change.</Text>
-            <Text style={styles.label}>Reason</Text>
-            <TextInput style={styles.reasonInput} value={moveOutReason} onChangeText={setMoveOutReason} placeholder="Explain your move-out request" multiline textAlignVertical="top" />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowMoveOutModal(false)}><Text style={styles.cancelButtonText}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.changeButton]} onPress={requestMoveOut} disabled={moveOutSubmitting}>
-                {moveOutSubmitting ? <ActivityIndicator color="white" /> : <Text style={styles.changeButtonText}>Submit Request</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -981,15 +1023,23 @@ const styles = StyleSheet.create({
   saveButton: { backgroundColor: themeColors.primaryDeep, padding: 17, borderRadius: 18, marginTop: 8, marginBottom: 32, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, ...shadows.medium },
   saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  inlineUpdateButton: { backgroundColor: themeColors.primaryDeep, minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 4 },
+  inlineUpdateButtonText: { color: 'white', fontSize: 15, fontWeight: '800' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  keyboardAvoidingSheet: { flex: 1, justifyContent: 'flex-end' },
   modalContent: { backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 22 },
+  passwordModalContent: { backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: '92%' },
+  passwordModalBody: { paddingBottom: 120 },
+  moveOutModalContent: { backgroundColor: 'white', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 22, paddingTop: 22, maxHeight: '92%' },
+  moveOutModalBody: { paddingBottom: 120 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: '600', color: themeColors.textPrimary },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 },
-  modalButton: { flex: 1, padding: 16, borderRadius: 8, alignItems: 'center' },
-  cancelButton: { backgroundColor: '#f1f5f9', marginRight: 8 },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, gap: 10 },
+  modalButton: { flex: 1, minHeight: 52, paddingHorizontal: 12, paddingVertical: 15, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  modalButtonDisabled: { opacity: 0.55 },
+  cancelButton: { backgroundColor: '#f1f5f9' },
   cancelButtonText: { color: themeColors.textPrimary, fontSize: 16, fontWeight: '600' },
-  changeButton: { backgroundColor: themeColors.primary, marginLeft: 8 },
+  changeButton: { backgroundColor: themeColors.primary },
   changeButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
   reasonInput: { minHeight: 110, borderWidth: 1, borderColor: themeColors.borderStrong, borderRadius: 14, backgroundColor: themeColors.surfaceMuted, padding: 13, color: themeColors.textPrimary },
   previewNotice: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e5f4ec', borderRadius: 8, padding: 12, marginTop: 12 },

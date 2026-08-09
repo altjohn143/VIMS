@@ -20,10 +20,10 @@ import api from '../utils/api';
 import QRCode from 'react-native-qrcode-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
-import UserDropdownMenu from '../components/UserDropdownMenu';
 import { Camera, CameraView } from 'expo-camera';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -269,7 +269,13 @@ const VisitorManagementScreen = ({ navigation }) => {
           onPress: async () => {
             setCancellingVisitorId(visitorId);
             try {
-              const response = await api.put(`/visitors/${visitorId}/status`, { status: 'cancelled' });
+              let response;
+              try {
+                response = await api.put(`/visitors/${visitorId}/cancel`, { status: 'cancelled' });
+              } catch (primaryError) {
+                if (primaryError?.response?.status !== 404) throw primaryError;
+                response = await api.put(`/visitors/${visitorId}/status`, { status: 'cancelled' });
+              }
               if (response.data.success) {
                 Alert.alert('Success', 'Visitor request cancelled');
                 await fetchVisitors();
@@ -520,45 +526,35 @@ const VisitorManagementScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-<View style={styles.header}>
-  <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="white" />
-  </TouchableOpacity>
-  <View style={styles.headerTitleWrap}>
-    <Text style={styles.headerEyebrow}>GUEST ACCESS</Text>
-    <Text style={styles.headerTitle}>{historyMode ? 'Visitor History' : 'Visitor Management'}</Text>
-    <Text style={styles.headerSubtitle}>{historyMode ? 'Review previous community entries' : 'Invite, approve and track visitors'}</Text>
-  </View>
-  <View style={styles.headerRight}>
-    <TouchableOpacity onPress={() => setHistoryMode(!historyMode)} style={styles.historyButton}>
-      <Ionicons name={historyMode ? 'people' : 'time'} size={16} color="white" />
-      <Text style={styles.headerActionText}>{historyMode ? 'Active' : 'History'}</Text>
-    </TouchableOpacity>
-    <UserDropdownMenu navigation={navigation} />
-  </View>
-</View>
+      <ResidentUtilityHeader
+        navigation={navigation}
+        eyebrow="GUEST ACCESS"
+        title={historyMode ? 'Visitor History' : 'Visitor Management'}
+        subtitle={historyMode ? 'Review previous community entries' : 'Invite, approve and track visitors'}
+        actions={[{ label: historyMode ? 'Active' : 'History', icon: historyMode ? 'people' : 'time', onPress: () => setHistoryMode(!historyMode), primary: true }]}
+      />
 
       {!historyMode && (
         <View style={styles.statsGrid}>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#eef6f1' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="people-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.total}</Text>
             <Text style={styles.coloredStatLabel}>Total Visitors</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#e7f5ec' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="today-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.today}</Text>
             <Text style={styles.coloredStatLabel}>Today's Visitors</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#edf7f5' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="radio-button-on-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.active}</Text>
             <Text style={styles.coloredStatLabel}>Active Visitors</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#fff5e8' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.pending}</Text>
@@ -967,7 +963,7 @@ const VisitorManagementScreen = ({ navigation }) => {
           <View style={styles.scannerHeader}>
             <Text style={styles.scannerTitle}>{confirmScannerTitle}</Text>
             <TouchableOpacity onPress={() => setShowConfirmScanner(false)}>
-              <Ionicons name="close" size={28} color="white" />
+              <Ionicons name="close" size={28} color={themeColors.primaryDeep} />
             </TouchableOpacity>
           </View>
           <CameraView
@@ -1031,17 +1027,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
     backgroundColor: themeColors.background,
   },
   coloredStatCard: {
     flexGrow: 1,
     flexBasis: '46%',
-    borderRadius: radii.lg,
-    padding: 13,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     position: 'relative',
     overflow: 'hidden',
+    backgroundColor: themeColors.surfaceTint,
     borderWidth: 1,
     borderColor: themeColors.border,
   },
@@ -1129,12 +1127,14 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   visitorCard: {
-    backgroundColor: roleLayouts.resident.card.backgroundColor,
+    backgroundColor: themeColors.cardBackground,
     borderRadius: 12,
-    padding: 18,
+    padding: 16,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: themeColors.border,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.primary,
     ...shadows.small,
   },
   visitorHeader: {
@@ -1518,33 +1518,40 @@ const styles = StyleSheet.create({
   },
   scannerContainer: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: themeColors.background,
   },
   scannerHeader: {
-    paddingTop: 54,
+    paddingTop: 48,
     paddingHorizontal: 16,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: themeColors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
   },
   scannerTitle: {
-    color: 'white',
+    color: themeColors.textPrimary,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '900',
+    flex: 1,
+    marginRight: 12,
   },
   cameraView: {
     flex: 1,
   },
   scannerHintWrap: {
     padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: themeColors.cardBackground,
+    borderTopWidth: 1,
+    borderTopColor: themeColors.border,
   },
   scannerHint: {
-    color: 'white',
+    color: themeColors.textSecondary,
     textAlign: 'center',
     fontSize: 13,
+    fontWeight: '700',
   },
 });
 

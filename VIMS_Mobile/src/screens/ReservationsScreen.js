@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../utils/api';
+import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
 const ReservationsScreen = ({ navigation }) => {
   const [reservations, setReservations] = useState([]);
@@ -138,11 +139,19 @@ const ReservationsScreen = ({ navigation }) => {
     new Date(startA) < new Date(endB) && new Date(endA) > new Date(startB)
   );
 
+  const sameReservationDay = (selectedStart, slotStart, slotEnd) => {
+    const dayStart = new Date(selectedStart);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(selectedStart);
+    dayEnd.setHours(23, 59, 59, 999);
+    return new Date(slotStart) <= dayEnd && new Date(slotEnd) >= dayStart;
+  };
+
   const getSelectedScheduleConflicts = () => {
     const selectedKeys = new Set(formData.items.map((item) => `${item.resourceType}:${item.resourceName}`));
     return availability.filter((slot) =>
       selectedKeys.has(`${slot.resourceType}:${slot.resourceName}`) &&
-      rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
+      sameReservationDay(formData.startDate, slot.startDate, slot.endDate)
     );
   };
 
@@ -175,7 +184,7 @@ const ReservationsScreen = ({ navigation }) => {
     )));
 
     return responses.flatMap((response) => response.data?.data || []).filter((slot) =>
-      rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
+      sameReservationDay(formData.startDate, slot.startDate, slot.endDate)
     );
   };
 
@@ -437,10 +446,16 @@ const ReservationsScreen = ({ navigation }) => {
       disabled={disabled}
       activeOpacity={0.85}
     >
-      <Text style={[styles.selectFieldText, !valueText && styles.selectFieldPlaceholder]}>
-        {valueText || placeholder}
-      </Text>
-      <Ionicons name="chevron-down" size={18} color={disabled ? '#cbd5e1' : '#64748b'} />
+      <View style={styles.selectFieldLeft}>
+        <Ionicons name="list-outline" size={17} color={disabled ? '#cbd5e1' : '#166534'} />
+        <Text style={[styles.selectFieldText, !valueText && styles.selectFieldPlaceholder]}>
+          {valueText || placeholder}
+        </Text>
+      </View>
+      <View style={styles.selectFieldAction}>
+        <Text style={styles.selectFieldActionText}>Choose</Text>
+        <Ionicons name="chevron-down" size={17} color={disabled ? '#cbd5e1' : '#166534'} />
+      </View>
     </TouchableOpacity>
   );
 
@@ -506,46 +521,36 @@ const ReservationsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerEyebrow}>PLAN YOUR TIME</Text>
-          <Text style={styles.headerTitle}>My Reservations</Text>
-          <Text style={styles.headerSubtitle}>Venues and community equipment</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <Ionicons name="add" size={16} color="#fff" />
-          <Text style={styles.headerActionText}>New</Text>
-        </TouchableOpacity>
-      </View>
+      <ResidentUtilityHeader
+        navigation={navigation}
+        eyebrow="PLAN YOUR TIME"
+        title="My Reservations"
+        subtitle="Venues and community equipment"
+        actions={[{ label: 'New', icon: 'add', onPress: () => setModalVisible(true), primary: true }]}
+      />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Stats Section */}
         <View style={styles.statsGrid}>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#2563eb' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="calendar-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.total}</Text>
             <Text style={styles.coloredStatLabel}>Total</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#16a34a' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="today-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.today}</Text>
             <Text style={styles.coloredStatLabel}>Today</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#0284c7' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="radio-button-on-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.active}</Text>
             <Text style={styles.coloredStatLabel}>Active</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#dc2626' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue}>{stats.pending}</Text>
@@ -771,8 +776,9 @@ const ReservationsScreen = ({ navigation }) => {
               )}
 
               <TouchableOpacity
-                style={styles.addItemButton}
+                style={[styles.addItemButton, !currentItem.resourceName && styles.addItemButtonDisabled]}
                 onPress={handleAddItem}
+                disabled={!currentItem.resourceName}
               >
                 <Ionicons name="add-circle" size={20} color="#fff" />
                 <Text style={styles.addItemButtonText}>Add Item to Reservation</Text>
@@ -1001,7 +1007,7 @@ const ReservationsScreen = ({ navigation }) => {
         </KeyboardAvoidingView>
       </Modal>
 
-      <Modal transparent animationType="fade" visible={selectSheet.visible} onRequestClose={closeSelectSheet}>
+      <Modal transparent animationType="slide" visible={selectSheet.visible} onRequestClose={closeSelectSheet} presentationStyle="overFullScreen">
         <View style={styles.iosPickerOverlay}>
           <View style={styles.optionSheetCard}>
             <View style={styles.iosPickerHeader}>
@@ -1126,20 +1132,23 @@ const styles = StyleSheet.create({
   headerActionText: { color: '#fff', fontSize: 12, fontWeight: '900' },
   content: {
     flex: 1,
-    padding: 18,
+    padding: 16,
   },
   statsGrid: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 24,
+    marginBottom: 14,
   },
   coloredStatCard: {
     flex: 1,
-    borderRadius: radii.lg,
-    padding: 13,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     position: 'relative',
     overflow: 'hidden',
-    ...shadows.small,
+    backgroundColor: themeColors.surfaceTint,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   statCardHighlight: {
     position: 'absolute',
@@ -1148,25 +1157,25 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(23,107,69,0.08)',
   },
   coloredStatBgIcon: {
     position: 'absolute',
     top: 6,
     right: 6,
     fontSize: 16,
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(23,107,69,0.20)',
   },
   coloredStatValue: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: themeColors.primaryDeep,
+    fontSize: 18,
+    fontWeight: '900',
     marginBottom: 2,
   },
   coloredStatLabel: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 9,
-    fontWeight: '600',
+    color: themeColors.textSecondary,
+    fontSize: 10,
+    fontWeight: '800',
   },
   quickActions: {
     flexDirection: 'row',
@@ -1318,27 +1327,32 @@ const styles = StyleSheet.create({
     height: 50,
   },
   selectField: {
-    minHeight: 50,
+    minHeight: 54,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    backgroundColor: '#f9fafb',
+    borderColor: '#86efac',
+    borderRadius: 12,
+    backgroundColor: '#f0fdf4',
     paddingHorizontal: 12,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
+    marginBottom: 10,
   },
   selectFieldDisabled: {
     backgroundColor: '#f1f5f9',
     opacity: 0.75,
   },
   selectFieldText: {
-    flex: 1,
+    flexShrink: 1,
     fontSize: 16,
     color: '#374151',
     fontWeight: '600',
   },
+  selectFieldLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
+  selectFieldAction: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingLeft: 8 },
+  selectFieldActionText: { color: '#166534', fontSize: 12, fontWeight: '900' },
   selectFieldPlaceholder: {
     color: '#9ca3af',
     fontWeight: '500',
@@ -1482,7 +1496,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     marginVertical: 12,
+    minHeight: 50,
   },
+  addItemButtonDisabled: { backgroundColor: '#94a3b8' },
   addItemButtonText: {
     color: '#fff',
     fontSize: 14,
@@ -1612,7 +1628,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 3,
   },
-  iosPickerOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  iosPickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 9999, elevation: 9999 },
   iosPickerCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 24 },
   inlineIosPickerCard: { marginTop: 10, marginHorizontal: 16, marginBottom: 10, backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.border, borderRadius: 16, overflow: 'hidden' },
   optionSheetCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '72%', paddingBottom: 18 },

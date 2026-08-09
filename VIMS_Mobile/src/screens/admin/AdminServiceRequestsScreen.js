@@ -48,7 +48,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
   });
 
   const [processForm, setProcessForm] = useState({
-    status: 'under-review',
+    status: '',
     adminNotes: '',
     assignedTo: '',
     estimatedCompletion: '',
@@ -165,6 +165,16 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
 
   const handleProcessRequest = async () => {
     if (!selectedRequest) return;
+
+    if (!processForm.status) {
+      Alert.alert('Action Required', 'Select an action before processing this request.');
+      return;
+    }
+
+    if (!processForm.adminNotes.trim()) {
+      Alert.alert('Process Details Required', 'Enter admin notes or instructions before processing this request.');
+      return;
+    }
 
     if (processForm.status === 'assigned' && !isEmergency(selectedRequest) && !processForm.assignedTo) {
       Alert.alert('Staff Required', 'Select a staff member before processing this request.');
@@ -426,7 +436,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
               onPress={() => {
                 setSelectedRequest(item);
                 setProcessForm({
-                  status: 'under-review',
+                  status: '',
                   adminNotes: item.adminNotes || '',
                   assignedTo: item.assignedTo?._id || '',
                   estimatedCompletion: item.estimatedCompletion ? 
@@ -472,154 +482,8 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.queueHeader}>
-        <View style={styles.queueHeaderTop}>
-          <View>
-            <Text style={styles.queueEyebrow}>MAINTENANCE DESK</Text>
-            <Text style={styles.queueTitle}>Service Requests</Text>
-            <Text style={styles.queueSubtitle}>{stats.pending || 0} waiting · {stats.inProgress || 0} being handled</Text>
-          </View>
-          <UserDropdownMenu navigation={navigation} />
-        </View>
-        <View style={styles.queueToolbar}>
-          <TouchableOpacity onPress={fetchData} style={styles.queueToolPrimary}>
-            <Ionicons name="sync-outline" size={18} color="white" />
-            <Text style={styles.queueToolPrimaryText}>Sync queue</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('ArchivedServiceRequests')} style={styles.queueTool}>
-            <Ionicons name="archive-outline" size={20} color={themeColors.primaryDeep} />
-            <Text style={styles.queueToolText}>Archived</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleExportFile('pdf')} style={styles.queueTool} disabled={exporting}>
-            {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : (
-              <Ionicons name="document-text-outline" size={20} color={themeColors.primaryDeep} />
-            )}
-            <Text style={styles.queueToolText}>PDF</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleExportFile('csv')} style={styles.queueTool} disabled={exporting}>
-            <Ionicons name="grid-outline" size={20} color={themeColors.primaryDeep} />
-            <Text style={styles.queueToolText}>CSV</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      <View style={styles.queueProgress}>
-        <View style={styles.queueProgressTrack}>
-          <View style={[styles.queueProgressFill, { flex: Math.max(1, stats.completed || 0) }]} />
-          <View style={[styles.queueProgressPending, { flex: Math.max(1, (stats.total || 0) - (stats.completed || 0)) }]} />
-        </View>
-        <View style={styles.queueProgressLabels}>
-          <Text style={styles.queueProgressText}>{stats.total} total · {stats.completed} resolved</Text>
-          <Text style={[styles.queueProgressText, { color: themeColors.error }]}>{stats.urgent} urgent · ★ {stats.averageRating.toFixed(1)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.filterContainer}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color={themeColors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search requests..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {(searchQuery || statusFilter !== 'all' || categoryFilter !== 'all' || priorityFilter !== 'all') ? (
-            <TouchableOpacity onPress={clearFilters}>
-              <Ionicons name="close-circle" size={21} color={themeColors.textSecondary} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'all' && styles.activeFilter]}
-            onPress={() => setStatusFilter('all')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'all' && styles.activeFilterText]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'pending' && styles.activeFilter]}
-            onPress={() => setStatusFilter('pending')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'pending' && styles.activeFilterText]}>Pending</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'under-review' && styles.activeFilter]}
-            onPress={() => setStatusFilter('under-review')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'under-review' && styles.activeFilterText]}>Under Review</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'assigned' && styles.activeFilter]}
-            onPress={() => setStatusFilter('assigned')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'assigned' && styles.activeFilterText]}>Assigned</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'in-progress' && styles.activeFilter]}
-            onPress={() => setStatusFilter('in-progress')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'in-progress' && styles.activeFilterText]}>In Progress</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'completed' && styles.activeFilter]}
-            onPress={() => setStatusFilter('completed')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'completed' && styles.activeFilterText]}>Completed</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'cancelled' && styles.activeFilter]}
-            onPress={() => setStatusFilter('cancelled')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'cancelled' && styles.activeFilterText]}>Cancelled</Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        <TouchableOpacity style={styles.advancedFilterToggle} onPress={() => setShowAdvancedFilters((value) => !value)}>
-          <Ionicons name="options-outline" size={17} color={themeColors.primary} />
-          <Text style={styles.advancedFilterToggleText}>{showAdvancedFilters ? 'Hide category and priority' : 'Category and priority'}</Text>
-          {(categoryFilter !== 'all' || priorityFilter !== 'all') && <View style={styles.activeFilterDot} />}
-        </TouchableOpacity>
-
-        {showAdvancedFilters && <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          <TouchableOpacity
-            style={[styles.filterChip, categoryFilter === 'all' && styles.activeFilter]}
-            onPress={() => setCategoryFilter('all')}
-          >
-            <Text style={[styles.filterText, categoryFilter === 'all' && styles.activeFilterText]}>All Categories</Text>
-          </TouchableOpacity>
-          {categories.map(cat => (
-            <TouchableOpacity
-              key={cat.value}
-              style={[styles.filterChip, categoryFilter === cat.value && styles.activeFilter]}
-              onPress={() => setCategoryFilter(cat.value)}
-            >
-              <Ionicons name={cat.icon} size={14} color={categoryFilter === cat.value ? 'white' : themeColors.textSecondary} />
-              <Text style={[styles.filterText, categoryFilter === cat.value && styles.activeFilterText]}>{cat.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>}
-
-        {showAdvancedFilters && <><View style={styles.filterLabelRow}>
-          <Text style={styles.filterGroupLabel}>Priority</Text>
-          <TouchableOpacity onPress={clearFilters}><Text style={styles.clearFiltersText}>Clear all</Text></TouchableOpacity>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          {['all', 'low', 'medium', 'high', 'urgent'].map((priority) => (
-            <TouchableOpacity
-              key={priority}
-              style={[styles.filterChip, priorityFilter === priority && styles.activeFilter]}
-              onPress={() => setPriorityFilter(priority)}
-            >
-              <Text style={[styles.filterText, priorityFilter === priority && styles.activeFilterText]}>
-                {priority === 'all' ? 'All Priorities' : priority.charAt(0).toUpperCase() + priority.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView></>}
-      </View>
-
+  const renderRequestListHeader = () => (
+    <View style={styles.listHeaderControls}>
       <FlatList
         data={filteredRequests}
         renderItem={renderRequestCard}
@@ -673,6 +537,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                         onValueChange={(value) => setProcessForm(prev => ({ ...prev, status: value }))}
                         style={styles.picker}
                       >
+                        <Picker.Item label="Select action" value="" />
                         <Picker.Item label="Under Review" value="under-review" />
                         <Picker.Item label="Assign to Staff" value="assigned" />
                         <Picker.Item label="Reject" value="rejected" />
@@ -734,9 +599,9 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                       <Text style={styles.cancelButtonText}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.modalButton, styles.submitButton, (processForm.status === 'assigned' && !isEmergency(selectedRequest) && !processForm.assignedTo) && styles.disabledButton]}
+                      style={[styles.modalButton, styles.submitButton, (!processForm.status || !processForm.adminNotes.trim() || (processForm.status === 'assigned' && !isEmergency(selectedRequest) && !processForm.assignedTo)) && styles.disabledButton]}
                       onPress={handleProcessRequest}
-                      disabled={loading || (processForm.status === 'assigned' && !isEmergency(selectedRequest) && !processForm.assignedTo)}
+                      disabled={loading || !processForm.status || !processForm.adminNotes.trim() || (processForm.status === 'assigned' && !isEmergency(selectedRequest) && !processForm.assignedTo)}
                     >
                       {loading ? <ActivityIndicator color="white" /> : <Text style={styles.submitButtonText}>Process</Text>}
                     </TouchableOpacity>
@@ -932,7 +797,7 @@ const styles = StyleSheet.create({
   queueToolPrimaryText: { color: 'white', fontSize: 12, fontWeight: '900' },
   queueTool: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, height: 43, paddingHorizontal: 13, borderRadius: 14, backgroundColor: themeColors.accent },
   queueToolText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
-  queueProgress: { margin: 16, padding: 16, backgroundColor: themeColors.surfaceTint, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border },
+  queueProgress: { marginBottom: 10, padding: 12, backgroundColor: themeColors.surfaceTint, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border },
   advancedFilterToggle: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
   advancedFilterToggleText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
   activeFilterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.warning },
@@ -1016,12 +881,13 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '600',
   },
+  listHeaderControls: { paddingBottom: 8 },
   filterContainer: {
     backgroundColor: 'white',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.border,
+    padding: 0,
   },
+  filterMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2, marginBottom: 8 },
+  resultCount: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1068,6 +934,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
+    paddingTop: 10,
   },
   requestCard: {
     backgroundColor: themeColors.cardBackground,

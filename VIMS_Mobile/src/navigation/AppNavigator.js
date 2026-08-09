@@ -100,10 +100,10 @@ const AdminTabs = () => {
       }}
     >
       <Tab.Screen name="DashboardTab" component={DashboardScreen} options={{ title: 'Dashboard' }} />
-      <Tab.Screen name="UsersTab" component={AdminUserManagementScreen} options={{ title: 'Users' }} />
-      <Tab.Screen name="VisitorsTab" component={AdminVisitorManagementScreen} options={{ title: 'Visitors' }} />
       <Tab.Screen name="ServicesTab" component={AdminServiceRequestsScreen} options={{ title: 'Services' }} />
       <Tab.Screen name="PaymentsTab" component={AdminPaymentsScreen} options={{ title: 'Payments' }} />
+      <Tab.Screen name="UsersTab" component={AdminUserManagementScreen} options={{ title: 'Users' }} />
+      <Tab.Screen name="VisitorsTab" component={AdminVisitorManagementScreen} options={{ title: 'Visitors' }} />
       <Tab.Screen name="ReservationsTab" component={AdminReservationsScreen} options={{ title: 'Reservations' }} />
       <Tab.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} options={{ title: 'Posts' }} />
       <Tab.Screen name="AdminLotManagement" component={AdminLotManagementScreen} options={{ title: 'Lots' }} />
@@ -184,6 +184,8 @@ const AppNavigator = () => {
               <Stack.Screen name="AdminVisitorReports" component={AdminVisitorReportsScreen} />
               <Stack.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} />
               <Stack.Screen name="AdminReservations" component={AdminReservationsScreen} />
+              <Stack.Screen name="AdminServiceRequests" component={AdminServiceRequestsScreen} />
+              <Stack.Screen name="AdminPayments" component={AdminPaymentsScreen} />
               <Stack.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} />
               <Stack.Screen name="AdminLotManagement" component={AdminLotManagementScreen} />
               <Stack.Screen name="AdminLotMapEditor" component={AdminLotMapEditorScreen} />
@@ -199,16 +201,8 @@ const AppNavigator = () => {
       )}
 
       {/* ✅ ALWAYS OUTSIDE CONDITION */}
-      <Stack.Screen name="Announcements" component={AnnouncementsScreen} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Complaints" component={ComplaintsScreen} />
       <Stack.Screen name="PublicLots" component={PublicLotMapScreen} />
-      <Stack.Screen name="SecurityServiceRequests" component={SecurityServiceRequestsScreen} />
-      <Stack.Screen name="SecurityPatrolSchedule" component={SecurityPatrolScheduleScreen} />
-      <Stack.Screen name="SecurityIncidents" component={SecurityIncidentsScreen} />
-      <Stack.Screen name="TeamPerformanceTab" component={HeadOfficerTeamScreen} />
-      <Stack.Screen name="PersonnelTab" component={HeadOfficerTeamScreen} />
-      <Stack.Screen name="AnalyticsTab" component={HeadOfficerTeamScreen} />
       <Stack.Screen name="PaymentRedirect" component={PaymentRedirectScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
       <Stack.Screen name="PaymentCancelled" component={PaymentCancelledScreen} />

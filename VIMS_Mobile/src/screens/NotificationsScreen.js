@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../utils/api';
 import { themeColors, shadows, roleLayouts } from '../utils/theme';
-import LogoutButton from '../components/LogoutButton';
+import SecurityUtilityHeader from '../components/SecurityUtilityHeader';
 
 const NotificationsScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
@@ -57,7 +57,7 @@ const NotificationsScreen = ({ navigation }) => {
   const formatWhen = useCallback((dateValue) => {
     if (!dateValue) return 'N/A';
     try {
-      return format(new Date(dateValue), 'MMM dd, yyyy • hh:mm a');
+      return format(new Date(dateValue), 'MMM dd, yyyy â€¢ hh:mm a');
     } catch {
       return 'N/A';
     }
@@ -109,6 +109,40 @@ const NotificationsScreen = ({ navigation }) => {
     if (!relatedId) return null;
     return String(relatedId);
   }, []);
+
+  const getRelatedDestination = useCallback((notification) => {
+    const metadata = notification?.metadata || {};
+    const type = String(notification?.type || metadata?.type || '').toLowerCase();
+    const has = (key) => !!metadata?.[key];
+
+    if (has('visitorId') || type.includes('visitor')) {
+      return { screen: 'VisitorsTab', label: 'View visitor request' };
+    }
+    if (has('paymentId') || type.includes('payment')) {
+      return { screen: 'PaymentsTab', label: 'View payment' };
+    }
+    if (has('serviceRequestId') || type.includes('service')) {
+      return { screen: 'ServicesTab', label: 'View service request' };
+    }
+    if (has('announcementId') || type.includes('announcement')) {
+      return { screen: 'Announcements', label: 'View announcement' };
+    }
+    if (has('reservationId') || type.includes('reservation')) {
+      return { screen: 'ReservationsTab', label: 'View reservation' };
+    }
+    return null;
+  }, []);
+
+  const openRelatedRecord = useCallback((notification) => {
+    const destination = getRelatedDestination(notification);
+    if (!destination) {
+      Alert.alert('Notification Details', 'No related record is available for this notification.');
+      return;
+    }
+
+    setSelectedNotification(null);
+    navigation.navigate(destination.screen);
+  }, [getRelatedDestination, navigation]);
 
   const openNotification = useCallback((item) => {
     if (!item) return;
@@ -165,32 +199,13 @@ const NotificationsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Notifications</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {unreadCount} unread • {rows.length} total
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            onPress={markAllRead}
-            disabled={processingAll || unreadCount === 0}
-            style={[styles.headerActionBtn, (processingAll || unreadCount === 0) ? styles.headerActionBtnDisabled : null]}
-          >
-            {processingAll ? (
-              <ActivityIndicator size={16} color="white" />
-            ) : (
-              <Ionicons name="checkmark-done" size={18} color="white" />
-            )}
-            <Text style={styles.headerActionText}>Read all</Text>
-          </TouchableOpacity>
-          <LogoutButton navigation={navigation} color="white" size={24} />
-        </View>
-      </View>
+      <SecurityUtilityHeader
+        navigation={navigation}
+        eyebrow="SYSTEM ALERTS"
+        title="Notifications"
+        subtitle={`${unreadCount} unread • ${rows.length} total`}
+        actions={[{ label: 'Read all', icon: 'checkmark-done', onPress: markAllRead, primary: true, disabled: processingAll || unreadCount === 0, loading: processingAll }]}
+      />
 
       <FlatList
         data={rows}
@@ -202,7 +217,7 @@ const NotificationsScreen = ({ navigation }) => {
           <View style={styles.emptyContainer}>
             <Ionicons name="notifications-off-outline" size={64} color={themeColors.textSecondary} />
             <Text style={styles.emptyTitle}>No notifications</Text>
-            <Text style={styles.emptyText}>When the system sends updates, they’ll appear here.</Text>
+            <Text style={styles.emptyText}>When the system sends updates, theyâ€™ll appear here.</Text>
           </View>
         }
       />
@@ -231,9 +246,20 @@ const NotificationsScreen = ({ navigation }) => {
             </View>
 
             <ScrollView style={styles.detailBodyWrap} contentContainerStyle={styles.detailBodyContent}>
-              <Text style={styles.detailBodyText}>
-                {selectedNotification?.body || 'No additional details were provided.'}
-              </Text>
+              <TouchableOpacity
+                style={getRelatedDestination(selectedNotification) ? styles.detailBodyAction : null}
+                onPress={() => {
+                  if (getRelatedDestination(selectedNotification)) openRelatedRecord(selectedNotification);
+                }}
+                activeOpacity={getRelatedDestination(selectedNotification) ? 0.85 : 1}
+              >
+                <Text style={styles.detailBodyText}>
+                  {selectedNotification?.body || 'No additional details were provided.'}
+                </Text>
+                {getRelatedDestination(selectedNotification) ? (
+                  <Text style={styles.detailBodyActionHint}>Tap message to open related record</Text>
+                ) : null}
+              </TouchableOpacity>
 
               <View style={styles.detailMetaRow}>
                 <Text style={styles.detailMetaLabel}>Type</Text>
@@ -243,14 +269,33 @@ const NotificationsScreen = ({ navigation }) => {
               </View>
 
               {getNotificationRecordLabel(selectedNotification) ? (
-                <View style={styles.detailMetaRow}>
+                <TouchableOpacity
+                  style={[styles.detailMetaRow, styles.detailMetaActionRow]}
+                  onPress={() => openRelatedRecord(selectedNotification)}
+                  activeOpacity={0.85}
+                >
                   <Text style={styles.detailMetaLabel}>Related record</Text>
-                  <Text style={styles.detailMetaValue} numberOfLines={1}>
-                    {getNotificationRecordLabel(selectedNotification)}
-                  </Text>
-                </View>
+                  <View style={styles.detailMetaActionValue}>
+                    <Text style={styles.detailMetaValue} numberOfLines={1}>
+                      {getNotificationRecordLabel(selectedNotification)}
+                    </Text>
+                    <Ionicons name="open-outline" size={16} color={themeColors.primary} />
+                  </View>
+                </TouchableOpacity>
               ) : null}
             </ScrollView>
+
+            {getRelatedDestination(selectedNotification) ? (
+              <TouchableOpacity
+                style={styles.detailRelatedBtn}
+                onPress={() => openRelatedRecord(selectedNotification)}
+              >
+                <Ionicons name="open-outline" size={17} color="white" />
+                <Text style={styles.detailRelatedText}>
+                  {getRelatedDestination(selectedNotification).label}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
 
             <TouchableOpacity style={styles.detailDoneBtn} onPress={() => setSelectedNotification(null)}>
               <Text style={styles.detailDoneText}>Done</Text>
@@ -265,28 +310,6 @@ const NotificationsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: roleLayouts.resident.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-
-  header: { ...roleLayouts.resident.header, paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
-  backButton: { padding: 8 },
-  headerTitleWrap: { flex: 1, minWidth: 0 },
-  headerTitle: { color: 'white', fontSize: 23, fontWeight: '900' },
-  headerSubtitle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  headerActionBtnDisabled: {
-    opacity: 0.5,
-  },
-  headerActionText: { color: 'white', fontWeight: '800', fontSize: 12 },
 
   listContainer: { padding: 16, paddingBottom: 24 },
 
@@ -368,6 +391,8 @@ const styles = StyleSheet.create({
   detailBodyWrap: { maxHeight: 320 },
   detailBodyContent: { padding: 16, gap: 12 },
   detailBodyText: { color: themeColors.textPrimary, fontSize: 14, lineHeight: 21 },
+  detailBodyAction: { padding: 12, borderRadius: 8, backgroundColor: themeColors.primary + '08', borderWidth: 1, borderColor: themeColors.primary + '35' },
+  detailBodyActionHint: { color: themeColors.primary, fontSize: 12, fontWeight: '800', marginTop: 8 },
   detailMetaRow: {
     padding: 12,
     borderRadius: 6,
@@ -377,6 +402,21 @@ const styles = StyleSheet.create({
   },
   detailMetaLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   detailMetaValue: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800', marginTop: 4 },
+  detailMetaActionRow: { borderColor: themeColors.primary + '55', backgroundColor: themeColors.primary + '08' },
+  detailMetaActionValue: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  detailRelatedBtn: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 10,
+    backgroundColor: themeColors.primaryDeep,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
+    paddingVertical: 12,
+  },
+  detailRelatedText: { color: 'white', fontSize: 14, fontWeight: '900' },
   detailDoneBtn: {
     margin: 16,
     marginTop: 0,
@@ -389,4 +429,3 @@ const styles = StyleSheet.create({
 });
 
 export default NotificationsScreen;
-

@@ -485,7 +485,15 @@ router.get('/admin/queue', protect, authorize('admin'), async (req, res) => {
   try {
     const { status } = req.query;
     const filter = {};
-    if (status && status !== 'all') filter.status = status;
+    if (status && status !== 'all') {
+      if (status === 'pending') {
+        filter.status = { $in: ['pending_upload', 'queued_ai', 'ai_processing', 'manual_review'] };
+      } else if (status === 'verified') {
+        filter.status = { $in: ['documents_verified', 'approved'] };
+      } else {
+        filter.status = status;
+      }
+    }
 
     const rows = await IdentityVerification.find(filter)
       .populate('userId', 'firstName lastName email houseNumber')

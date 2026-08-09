@@ -137,7 +137,7 @@ const ArchivedUsersScreen = ({ navigation }) => {
             }}
             disabled={restoring}
           >
-            <Ionicons name="refresh" size={16} color={themeColors.primary} />
+            <Ionicons name="refresh" size={16} color="#fff" />
             <Text style={styles.restoreButtonText}>Restore</Text>
           </TouchableOpacity>
         </View>
@@ -291,10 +291,12 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: themeColors.cardBackground,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: themeColors.textMuted,
+    borderLeftColor: themeColors.primary,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -343,22 +345,29 @@ const styles = StyleSheet.create({
   },
   cardActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
+    borderTopWidth: 1,
+    borderTopColor: themeColors.border,
+    paddingTop: 12,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 42,
+    minWidth: 128,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 9,
+    borderRadius: 12,
+    gap: 7,
   },
   restoreButton: {
-    backgroundColor: themeColors.primary + '10',
+    backgroundColor: themeColors.primary,
   },
   restoreButtonText: {
-    color: themeColors.primary,
-    fontWeight: '600',
-    marginLeft: 6,
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '900',
   },
   loadingContainer: {
     flex: 1,

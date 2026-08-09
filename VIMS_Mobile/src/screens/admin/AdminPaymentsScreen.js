@@ -67,6 +67,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
       if (statusFilter !== 'all') params.status = statusFilter;
       if (paymentTypeFilter !== 'all') params.paymentType = paymentTypeFilter;
       if (paymentMethodFilter !== 'all') params.paymentMethod = paymentMethodFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
       
       const response = await api.get('/payments', { params });
       
@@ -82,7 +83,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, statusFilter, paymentTypeFilter, paymentMethodFilter]);
+  }, [page, statusFilter, paymentTypeFilter, paymentMethodFilter, searchQuery]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -114,7 +115,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, paymentTypeFilter, paymentMethodFilter]);
+  }, [statusFilter, paymentTypeFilter, paymentMethodFilter, searchQuery]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -124,9 +125,10 @@ const AdminPaymentsScreen = ({ navigation }) => {
   };
 
   const handleUpdateDuesAmount = async () => {
-    const amount = Number(duesAmountDraft);
-    if (!Number.isFinite(amount) || amount < 0) {
-      Alert.alert('Invalid amount', 'Enter a valid monthly dues amount.');
+    const draft = String(duesAmountDraft || '').trim();
+    const amount = Number(draft);
+    if (!draft || !/^\d+(\.\d+)?$/.test(draft) || !Number.isFinite(amount) || amount <= 0) {
+      Alert.alert('Invalid amount', 'Enter a monthly dues amount greater than zero.');
       return;
     }
     setProcessing(true);
@@ -150,6 +152,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (paymentTypeFilter !== 'all') params.set('paymentType', paymentTypeFilter);
       if (paymentMethodFilter !== 'all') params.set('paymentMethod', paymentMethodFilter);
+      if (searchQuery.trim()) params.set('search', searchQuery.trim());
       const target = `${FileSystem.cacheDirectory}VIMS_Payments_${new Date().toISOString().slice(0, 10)}.${fileFormat}`;
       const result = await FileSystem.downloadAsync(
         `${api.defaults.baseURL}/payments?${params.toString()}`,
@@ -223,26 +226,28 @@ const AdminPaymentsScreen = ({ navigation }) => {
       const response = await api.post('/payments/send-reminders', {});
       
       if (response.data.success) {
-        Alert.alert('Success', response.data.message);
+        const message = response.data.message || 'Payment reminders processed.';
+        const sentCount = response.data.data?.sent ?? Number(String(message).match(/\d+/)?.[0] || 0);
+        Alert.alert(sentCount > 0 ? 'Reminders Sent' : 'No Eligible Accounts', message);
         setShowReminderDialog(false);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to send reminders');
+      Alert.alert('Error', error.response?.data?.error || 'Failed to send reminders');
     } finally {
       setProcessing(false);
     }
   };
 
   const handleViewReceiptImage = async (payment) => {
-    if (!payment?.receiptImage) {
-      Alert.alert('Info', 'No receipt image available for this payment');
-      return;
-    }
-
     setSelectedImage(payment.receiptImage);
     setSelectedImagePayment(payment);
     setSelectedImageUri(null);
     setShowImageViewer(true);
+
+    if (!payment?.receiptImage) {
+      Alert.alert('Receipt Missing', 'No receipt image is available for this payment.');
+      return;
+    }
 
     const previewUri = await getProtectedImageDataUrl(`/payments/receipt-image/payment/${payment._id}`);
     if (previewUri) {
@@ -264,6 +269,14 @@ const AdminPaymentsScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert('Unable to share', 'The receipt image could not be saved or shared.');
     }
+  };
+
+  const clearPaymentFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setPaymentTypeFilter('all');
+    setPaymentMethodFilter('all');
+    setPage(1);
   };
 
   const formatCurrency = (amount) => {
@@ -309,8 +322,15 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const filteredPayments = payments.filter(payment => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    const residentName = `${payment.residentId?.firstName} ${payment.residentId?.lastName}`.toLowerCase();
-    return residentName.includes(query) || payment.invoiceNumber?.toLowerCase().includes(query);
+    const residentName = `${payment.residentId?.firstName || ''} ${payment.residentId?.lastName || ''}`.toLowerCase();
+    return (
+      residentName.includes(query) ||
+      String(payment.residentId?.houseNumber || '').toLowerCase().includes(query) ||
+      String(payment.invoiceNumber || '').toLowerCase().includes(query) ||
+      String(payment.referenceNumber || '').toLowerCase().includes(query) ||
+      String(payment.receiptNumber || '').toLowerCase().includes(query) ||
+      String(payment.description || '').toLowerCase().includes(query)
+    );
   });
 
   const renderPaymentCard = ({ item: payment }) => {
@@ -400,117 +420,20 @@ const AdminPaymentsScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
           
-          {payment.receiptImage && (
-            <TouchableOpacity
-              style={[styles.actionButton, styles.viewButton]}
-              onPress={() => handleViewReceiptImage(payment)}
-            >
-              <Ionicons name="image" size={18} color={themeColors.info} />
-              <Text style={[styles.actionButtonText, { color: themeColors.info }]}>View Receipt</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.viewButton]}
+            onPress={() => handleViewReceiptImage(payment)}
+          >
+            <Ionicons name="image" size={18} color={themeColors.info} />
+            <Text style={[styles.actionButtonText, { color: themeColors.info }]}>View Receipt</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.ledgerHeader}>
-        <Text style={styles.ledgerEyebrow}>FINANCE LEDGER</Text>
-        <Text style={styles.ledgerTitle}>Payment Management</Text>
-        <Text style={styles.ledgerSubtitle}>Monitor dues, receipts and outstanding balances</Text>
-        <View style={styles.ledgerBalance}>
-          <Text style={styles.ledgerBalanceLabel}>TOTAL COLLECTED</Text>
-          <Text style={styles.ledgerBalanceValue}>{formatCurrency(summary.totalCollected)}</Text>
-          <View style={styles.ledgerBalanceBottom}>
-            <Text style={styles.ledgerBalanceMeta}>This month {formatCurrency(summary.monthlyCollected)}</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Chatbot')} style={styles.ledgerAssistant}>
-              <Ionicons name="sparkles-outline" size={18} color={themeColors.primaryDeep} />
-              <Text style={styles.ledgerAssistantText}>Assistant</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-      <View style={styles.ledgerActions}>
-        <TouchableOpacity style={styles.ledgerActionPrimary} onPress={() => setShowReminderDialog(true)}>
-          <Ionicons name="paper-plane-outline" size={18} color="white" />
-          <Text style={styles.ledgerActionPrimaryText}>Send reminders</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={() => setShowDuesDialog(true)}>
-          <Ionicons name="settings-outline" size={20} color={themeColors.primaryDeep} />
-          <Text style={styles.ledgerActionSecondaryText}>Set dues</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={() => handleExportFile('pdf')} disabled={exporting}>
-          {exporting
-            ? <ActivityIndicator size="small" color={themeColors.primaryDeep} />
-            : <Ionicons name="document-text-outline" size={20} color={themeColors.primaryDeep} />}
-          <Text style={styles.ledgerActionSecondaryText}>PDF</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={() => handleExportFile('csv')} disabled={exporting}>
-          <Ionicons name="grid-outline" size={20} color={themeColors.primaryDeep} />
-          <Text style={styles.ledgerActionSecondaryText}>CSV</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.ledgerActionSecondary} onPress={onRefresh}>
-          <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
-          <Text style={styles.ledgerActionSecondaryText}>Refresh</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.financeSnapshot}>
-        <View style={styles.snapshotItem}>
-          <Text style={styles.snapshotLabel}>MONTHLY DUES</Text>
-          <Text style={styles.snapshotValue}>{formatCurrency(monthlyDuesAmount)}</Text>
-        </View>
-        <View style={styles.snapshotItem}>
-          <Text style={styles.snapshotLabel}>PENDING</Text>
-          <Text style={styles.snapshotValue}>{formatCurrency(summary.pendingTotal)}</Text>
-        </View>
-        <View style={styles.snapshotItem}>
-          <Text style={styles.snapshotLabel}>COLLECTION</Text>
-          <Text style={styles.snapshotValue}>{summary.collectionRate || 0}%</Text>
-        </View>
-      </View>
-
-      {/* Search & Filter */}
-      <View style={styles.filterBar}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color={themeColors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by resident or invoice..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-        <TouchableOpacity
-          style={[styles.compactFilterButton, (paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') && styles.compactFilterButtonActive]}
-          onPress={() => setShowFiltersDialog(true)}
-        >
-          <Ionicons name="options-outline" size={20} color={(paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') ? 'white' : themeColors.primaryDeep} />
-          {(paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') && <View style={styles.filterDot} />}
-        </TouchableOpacity>
-      </View>
-      <View style={styles.filterPanel}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {['all', 'pending', 'paid', 'overdue'].map(value => (
-            <TouchableOpacity key={value} style={[styles.filterChip, statusFilter === value && styles.filterChipActive]} onPress={() => setStatusFilter(value)}>
-              <Text style={[styles.filterChipText, statusFilter === value && styles.filterChipTextActive]}>{value === 'all' ? 'All' : value[0].toUpperCase() + value.slice(1)}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        {(paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') && (
-          <View style={styles.activeFilterSummary}>
-            <Ionicons name="funnel" size={13} color={themeColors.primaryDeep} />
-            <Text style={styles.activeFilterSummaryText}>
-              {[paymentTypeFilter !== 'all' ? paymentTypeFilter.replace(/_/g, ' ') : null, paymentMethodFilter !== 'all' ? paymentMethodFilter.replace(/_/g, ' ') : null].filter(Boolean).join(' · ')}
-            </Text>
-            <TouchableOpacity onPress={() => { setPaymentTypeFilter('all'); setPaymentMethodFilter('all'); }}>
-              <Ionicons name="close-circle" size={18} color={themeColors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
+  const renderPaymentListHeader = () => (
+    <View style={styles.listHeaderControls}>
       {/* Payments List */}
       <FlatList
         data={filteredPayments}
@@ -568,7 +491,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
               ))}
             </View>
             <View style={styles.filterSheetActions}>
-              <TouchableOpacity style={styles.clearFilterButton} onPress={() => { setPaymentTypeFilter('all'); setPaymentMethodFilter('all'); }}>
+              <TouchableOpacity style={styles.clearFilterButton} onPress={clearPaymentFilters}>
                 <Text style={styles.clearFilterButtonText}>Reset</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.applyFilterButton} onPress={() => setShowFiltersDialog(false)}>
@@ -621,6 +544,10 @@ const AdminPaymentsScreen = ({ navigation }) => {
                 {!!selectedPayment.inclusions?.length && <><Text style={styles.detailSectionTitle}>Inclusions</Text><Text style={styles.detailBody}>{selectedPayment.inclusions.join(' • ')}</Text></>}
                 {!!selectedPayment.notes && <><Text style={styles.detailSectionTitle}>Notes</Text><Text style={styles.detailBody}>{selectedPayment.notes}</Text></>}
                 {!!selectedPayment.receiptAi && <><Text style={styles.detailSectionTitle}>AI receipt review</Text><Text style={[styles.detailBody, { color: getReceiptAiMeta(selectedPayment.receiptAi).color }]}>{getReceiptAiMeta(selectedPayment.receiptAi).label} · Fraud score {typeof selectedPayment.receiptAi.fraudScore === 'number' ? selectedPayment.receiptAi.fraudScore.toFixed(2) : 'N/A'}</Text><Text style={styles.detailBody}>{selectedPayment.receiptAi.explanation || 'No AI explanation provided.'}</Text></>}
+                <TouchableOpacity style={[styles.actionButton, styles.viewButton, { marginTop: 14, alignSelf: 'flex-start' }]} onPress={() => handleViewReceiptImage(selectedPayment)}>
+                  <Ionicons name="image-outline" size={18} color={themeColors.info} />
+                  <Text style={[styles.actionButtonText, { color: themeColors.info }]}>View / Save Receipt</Text>
+                </TouchableOpacity>
               </ScrollView>
             )}
           </View>
@@ -792,9 +719,14 @@ const AdminPaymentsScreen = ({ navigation }) => {
             />
           ) : selectedImage ? (
             <View style={[styles.fullImage, styles.noPreviewContainer]}>
-              <Text style={styles.noPreviewText}>Loading receipt preview...</Text>
+              <Text style={styles.noPreviewText}>Receipt image could not be loaded. It may be missing or corrupted.</Text>
             </View>
-          ) : null}
+          ) : (
+            <View style={[styles.fullImage, styles.noPreviewContainer]}>
+              <Ionicons name="alert-circle-outline" size={42} color="white" />
+              <Text style={styles.noPreviewText}>No receipt image is attached to this payment.</Text>
+            </View>
+          )}
           {selectedImagePayment && (
             <View style={styles.imageInfo}>
               <Text style={styles.imageInfoText}>Invoice: {selectedImagePayment.invoiceNumber}</Text>
@@ -824,16 +756,17 @@ const styles = StyleSheet.create({
   ledgerBalanceMeta: { color: 'rgba(255,255,255,0.66)', fontSize: 11, fontWeight: '700' },
   ledgerAssistant: { height: 28, paddingHorizontal: 8, borderRadius: 8, backgroundColor: themeColors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   ledgerAssistantText: { color: themeColors.primaryDeep, fontSize: 10, fontWeight: '900' },
-  ledgerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
+  listHeaderControls: { paddingBottom: 8 },
+  ledgerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, paddingBottom: 8 },
   ledgerActionPrimary: { height: 40, paddingHorizontal: 13, borderRadius: 10, backgroundColor: themeColors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   ledgerActionPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },
   ledgerActionSecondary: { height: 40, paddingHorizontal: 12, borderRadius: 10, backgroundColor: themeColors.primarySoft, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   ledgerActionSecondaryText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
-  financeSnapshot: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 8, backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, paddingVertical: 8 },
+  financeSnapshot: { flexDirection: 'row', marginBottom: 8, backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, paddingVertical: 8 },
   snapshotItem: { flex: 1, paddingHorizontal: 8, borderRightWidth: 1, borderRightColor: themeColors.border },
   snapshotLabel: { color: themeColors.textSecondary, fontSize: 8, fontWeight: '900', letterSpacing: 0.7 },
   snapshotValue: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '800', marginTop: 2 },
-  filterPanel: { paddingHorizontal: 16, paddingBottom: 7 },
+  filterPanel: { paddingBottom: 7 },
   compactFilterButton: { width: 42, height: 42, borderRadius: 10, backgroundColor: themeColors.primarySoft, borderWidth: 1, borderColor: themeColors.border, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   compactFilterButtonActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },
   filterDot: { position: 'absolute', right: 8, top: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.accent },
@@ -943,7 +876,6 @@ const styles = StyleSheet.create({
   },
   filterBar: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
     paddingBottom: 12,
     gap: 12,
   },
@@ -986,7 +918,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
-    paddingTop: 0,
+    paddingTop: 10,
   },
   paymentCard: {
     backgroundColor: themeColors.cardBackground,

@@ -569,6 +569,63 @@ router.get('/:id/qr', protect, authorize('resident'), async (req, res) => {
   }
 });
 
+const cancelResidentVisitorRequest = async (req, res) => {
+  try {
+    const { status = 'cancelled' } = req.body;
+
+    if (status !== 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        error: 'Residents can only cancel visitor requests'
+      });
+    }
+
+    const visitor = await Visitor.findById(req.params.id);
+    if (!visitor) {
+      return res.status(404).json({
+        success: false,
+        error: 'Visitor not found'
+      });
+    }
+
+    if (String(visitor.residentId) !== String(req.user.id)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to update this visitor request'
+      });
+    }
+
+    if (visitor.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        error: 'Only pending visitor requests can be cancelled'
+      });
+    }
+
+    visitor.status = 'cancelled';
+    visitor.qrCodeVisible = false;
+    visitor.cancelledAt = new Date();
+    visitor.cancelledBy = req.user._id;
+    await visitor.save();
+    attachQrStatus(visitor);
+
+    return res.json({
+      success: true,
+      message: 'Visitor request cancelled',
+      data: visitor
+    });
+  } catch (error) {
+    console.error('Cancel visitor request error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to cancel visitor request'
+    });
+  }
+};
+
+router.put('/:id/status', protect, authorize('resident'), cancelResidentVisitorRequest);
+router.put('/:id/cancel', protect, authorize('resident'), cancelResidentVisitorRequest);
+
 router.post('/admin/send-reminders', protect, authorize('admin'), async (req, res) => {
   try {
     const now = new Date();
@@ -622,11 +679,14 @@ router.put('/:id/entry', protect, authorize('security'), async (req, res) => {
       });
     }
     
-    if (visitor.status === 'cancelled') {
+    if (visitor.status !== 'approved') {
       return res.status(400).json({
         success: false,
-        error: 'Visitor pass has been cancelled'
+        error: `Visitor must be approved before entry can be logged (current: ${visitor.status})`
       });
+    }
+    if (visitor.actualEntry) {
+      return res.status(400).json({ success: false, error: 'Visitor entry was already logged' });
     }
     
     visitor.actualEntry = new Date();
@@ -781,7 +841,7 @@ router.get('/debug/all', async (req, res) => {
 router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
   try {
     await notifyResidentOverstays();
-    const { status, date, format = 'json', timezoneOffset = '0' } = req.query;
+    const { status, date, search = '', format = 'json', timezoneOffset = '0' } = req.query;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
     
     let filter = {};
@@ -1195,6 +1255,23 @@ router.get('/admin/logs', protect, authorize('admin'), async (req, res) => {
       endDate.setHours(23, 59, 59, 999);
       filter.expectedArrival = { $gte: startDate, $lte: endDate };
     }
+    if (String(search).trim()) {
+      const searchRegex = new RegExp(String(search).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const residents = await User.find({
+        role: 'resident',
+        $or: [
+          { firstName: searchRegex },
+          { lastName: searchRegex },
+          { houseNumber: searchRegex }
+        ]
+      }).select('_id');
+      filter.$or = [
+        { visitorName: searchRegex },
+        { visitorPhone: searchRegex },
+        { purpose: searchRegex },
+        { residentId: { $in: residents.map((resident) => resident._id) } }
+      ];
+    }
     
     // Resident name filter (using regex)
     if (residentName) {
@@ -1341,26 +1418,51 @@ router.put('/admin/:id/override', protect, authorize('admin'), async (req, res) 
 // Get visitor statistics for admin
 router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
   try {
+    const { startDate, endDate, status } = req.query;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const filter = {};
+    if (status && status !== 'all') filter.status = status;
+    if (startDate || endDate) {
+      filter.expectedArrival = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        filter.expectedArrival.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.expectedArrival.$lte = end;
+      }
+    }
     
     // Basic counts
-    const totalVisitors = await Visitor.countDocuments();
+    const totalVisitors = await Visitor.countDocuments(filter);
     const todayVisitors = await Visitor.countDocuments({
+      ...filter,
       createdAt: { $gte: today }
     });
-    const pendingVisitors = await Visitor.countDocuments({ status: 'pending' });
-    const activeVisitors = await Visitor.countDocuments({ status: 'active' });
-    const approvedVisitors = await Visitor.countDocuments({ status: 'approved' });
-    const rejectedVisitors = await Visitor.countDocuments({ status: 'rejected' });
+    const statusCount = async (targetStatus) => {
+      if (status && status !== 'all' && status !== targetStatus) return 0;
+      return Visitor.countDocuments({ ...filter, status: targetStatus });
+    };
+    const [pendingVisitors, activeVisitors, approvedVisitors, rejectedVisitors] = await Promise.all([
+      statusCount('pending'),
+      statusCount('active'),
+      statusCount('approved'),
+      statusCount('rejected')
+    ]);
     
     // Daily stats for last 30 days
     const dailyStats = await Visitor.aggregate([
       {
         $match: {
+          ...filter,
           createdAt: { $gte: thirtyDaysAgo }
         }
       },
@@ -1391,6 +1493,9 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
     // Status distribution
     const statusDistribution = await Visitor.aggregate([
       {
+        $match: filter
+      },
+      {
         $group: {
           _id: '$status',
           count: { $sum: 1 }
@@ -1401,7 +1506,7 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
     // Security personnel approval stats
     const securityApprovals = await Visitor.aggregate([
       {
-        $match: { approvedBy: { $exists: true } }
+        $match: { ...filter, approvedBy: { $exists: true } }
       },
       {
         $lookup: {

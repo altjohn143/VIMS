@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../utils/api';
 import { themeColors, shadows, roleLayouts } from '../utils/theme';
-import LogoutButton from '../components/LogoutButton';
+import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
 const AnnouncementsScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
@@ -119,6 +119,16 @@ const AnnouncementsScreen = ({ navigation }) => {
     );
   };
 
+  const renderListHeader = () => (
+    <View style={styles.categoryFilters}>
+      {[['all', 'All announcements'], ['monthlyCollection', 'Monthly collection']].map(([value, label]) => (
+        <TouchableOpacity key={value} style={[styles.categoryChip, filterCategory === value && styles.categoryChipActive]} onPress={() => setFilterCategory(value)}>
+          <Text style={[styles.categoryChipText, filterCategory === value && styles.categoryChipTextActive]}>{label}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -129,24 +139,13 @@ const AnnouncementsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Announcements</Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {headerSubtitle}
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={load} style={styles.headerIconButton} accessibilityLabel="Refresh announcements">
-            <Ionicons name="refresh" size={16} color="white" />
-            <Text style={styles.headerActionText}>Refresh</Text>
-          </TouchableOpacity>
-          <LogoutButton navigation={navigation} color="white" size={24} />
-        </View>
-      </View>
+      <ResidentUtilityHeader
+        navigation={navigation}
+        eyebrow="COMMUNITY POSTS"
+        title="Announcements"
+        subtitle={headerSubtitle}
+        actions={[{ label: 'Refresh', icon: 'refresh', onPress: load, primary: true }]}
+      />
 
       {error ? (
         <View style={styles.errorBox}>
@@ -158,19 +157,12 @@ const AnnouncementsScreen = ({ navigation }) => {
         </View>
       ) : null}
 
-      <View style={styles.categoryFilters}>
-        {[['all', 'All announcements'], ['monthlyCollection', 'Monthly collection']].map(([value, label]) => (
-          <TouchableOpacity key={value} style={[styles.categoryChip, filterCategory === value && styles.categoryChipActive]} onPress={() => setFilterCategory(value)}>
-            <Text style={[styles.categoryChipText, filterCategory === value && styles.categoryChipTextActive]}>{label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       <FlatList
         data={visibleRows}
         renderItem={renderItem}
         keyExtractor={(item, index) => item?._id || `announcement-${index}`}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={renderListHeader}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -248,20 +240,23 @@ const styles = StyleSheet.create({
   },
   retryText: { color: themeColors.warning, fontWeight: '700', fontSize: 12 },
 
-  listContainer: { padding: 16, paddingBottom: 24 },
-  categoryFilters: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14 },
-  categoryChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 999, backgroundColor: 'white', borderWidth: 1, borderColor: themeColors.border },
-  categoryChipActive: { backgroundColor: themeColors.primarySoft, borderColor: themeColors.primary },
+  listContainer: { padding: 16, paddingTop: 10, paddingBottom: 24 },
+  categoryFilters: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  categoryChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: 'white', borderWidth: 1, borderColor: themeColors.border },
+  categoryChipActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },
   categoryChipText: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
-  categoryChipTextActive: { color: themeColors.primaryDeep },
+  categoryChipTextActive: { color: 'white' },
 
   card: {
     backgroundColor: 'white',
-    borderRadius: 26,
-    padding: 18,
-    marginBottom: 18,
-    borderTopWidth: 6,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: themeColors.border,
     borderTopColor: themeColors.primary,
+    borderLeftColor: themeColors.primary,
   },
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   badge: {

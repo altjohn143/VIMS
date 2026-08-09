@@ -126,24 +126,29 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
   const handleReject = async () => {
     if (!selectedUser) return;
+    const reason = rejectReason.trim();
+    if (!reason) {
+      Alert.alert('Reject Reason Required', 'Please enter a reason before rejecting this resident.');
+      return;
+    }
 
     Alert.alert(
-      'Archive User',
-      `Archive ${selectedUser.firstName} ${selectedUser.lastName}?`,
+      'Reject Resident',
+      `Reject ${selectedUser.firstName} ${selectedUser.lastName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Archive',
+          text: 'Reject',
           style: 'destructive',
           onPress: async () => {
             setProcessing(true);
             try {
               const response = await api.delete(`/users/${selectedUser._id}`, {
-                data: { reason: rejectReason || 'No reason provided' }
+                data: { reason }
               });
               
               if (response.data.success) {
-                Alert.alert('Success', 'User archived successfully');
+                Alert.alert('Success', 'Resident rejected successfully');
                 setPendingUsers(prev => prev.filter(user => user._id !== selectedUser._id));
                 setShowRejectModal(false);
                 setShowDetailsModal(false);
@@ -284,7 +289,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
             disabled={processing}
           >
             <Ionicons name="close-circle" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Archive</Text>
+            <Text style={styles.actionButtonText}>Reject</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -504,7 +509,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Archive Modal */}
+      {/* Reject Modal */}
       <Modal
         visible={showRejectModal}
         animationType="slide"
@@ -521,7 +526,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Archive User</Text>
+              <Text style={styles.modalTitle}>Reject Resident</Text>
               <TouchableOpacity onPress={() => {
                 setShowRejectModal(false);
                 setRejectReason('');
@@ -538,7 +543,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
               <View style={styles.warningBox}>
                 <Ionicons name="information-circle" size={24} color={themeColors.warning} />
                 <Text style={styles.warningText}>
-                  This user will be archived and can be restored later if needed. The user will no longer have access to the system.
+                  This resident registration will be rejected and removed from Pending Approvals. A reason is required for audit history.
                 </Text>
               </View>
 
@@ -558,7 +563,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
 
               <TextInput
                 style={styles.rejectInput}
-                placeholder="Reason for archiving (optional)"
+                placeholder="Reason for rejection (required)"
                 placeholderTextColor={themeColors.textMuted}
                 selectionColor={themeColors.primary}
                 value={rejectReason}
@@ -575,7 +580,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
                     setShowRejectModal(false);
                     setRejectReason('');
                   }}
-                  disabled={processing}
+                  disabled={processing || !rejectReason.trim()}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
@@ -587,7 +592,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
                   {processing ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <Text style={styles.modalActionText}>Archive</Text>
+                    <Text style={styles.modalActionText}>Reject</Text>
                   )}
                 </TouchableOpacity>
               </View>

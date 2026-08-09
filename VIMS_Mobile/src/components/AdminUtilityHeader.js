@@ -37,14 +37,14 @@ const AdminUtilityHeader = ({ navigation, eyebrow = 'ADMIN OPERATIONS', title, s
 );
 
 const styles = StyleSheet.create({
-  header: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 18, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  header: { backgroundColor: themeColors.cardBackground, paddingTop: 44, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   heading: { flex: 1, minWidth: 0 },
-  eyebrow: { color: themeColors.primary, fontSize: 10, lineHeight: 14, fontWeight: '800', letterSpacing: 1.4 },
-  title: { color: themeColors.textPrimary, fontSize: 28, lineHeight: 34, fontWeight: '800', letterSpacing: -0.8, marginTop: 2 },
-  subtitle: { color: themeColors.textSecondary, fontSize: 12, lineHeight: 17, fontWeight: '500', marginTop: 2 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 16 },
-  action: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 13, borderRadius: 13, backgroundColor: themeColors.accent },
+  eyebrow: { color: themeColors.primary, fontSize: 10, lineHeight: 14, fontWeight: '800', letterSpacing: 1.2 },
+  title: { color: themeColors.textPrimary, fontSize: 22, lineHeight: 27, fontWeight: '900', marginTop: 1 },
+  subtitle: { color: themeColors.textSecondary, fontSize: 12, lineHeight: 16, fontWeight: '500', marginTop: 2 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  action: { height: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 12, backgroundColor: themeColors.accent },
   primaryAction: { backgroundColor: themeColors.primary },
   actionText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   primaryActionText: { color: themeColors.white },

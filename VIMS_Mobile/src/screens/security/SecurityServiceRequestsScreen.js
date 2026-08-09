@@ -17,12 +17,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
-import LogoutButton from '../../components/LogoutButton';
+import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 
 const SecurityServiceRequestsScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userLoaded, setUserLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
@@ -45,10 +46,13 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       if (raw) setUser(JSON.parse(raw));
     } catch (error) {
       console.warn('Unable to restore security session:', error?.message);
+    } finally {
+      setUserLoaded(true);
     }
   }, []);
 
   const load = useCallback(async () => {
+    if (!userLoaded) return;
     try {
       const params = {};
       if (status !== 'all') params.status = status;
@@ -66,7 +70,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [status, priority, category]);
+  }, [status, priority, category, userLoaded]);
 
   const loadStaff = useCallback(async () => {
     if (!isHeadOfficer) {
@@ -122,7 +126,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         String(r?.residentId?.houseNumber || '').toLowerCase().includes(q)
       );
     });
-  }, [rows, query, user]);
+  }, [rows, query]);
 
   useEffect(() => {
     setPage(0);
@@ -143,8 +147,9 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         String(user?.email || '').toLowerCase() === 'security@vims.com';
       return Boolean(
         myId &&
+        assignedId &&
         (
-          (assignedId && String(assignedId) === String(myId)) ||
+          String(assignedId) === String(myId) ||
           (isHeadOfficer && ['security', 'complaint'].includes(req?.category))
         )
       );
@@ -152,14 +157,31 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     [user]
   );
 
+  const requiresAssignmentBeforeUpdate = useCallback(
+    (req) => {
+      const assignedId = req?.assignedTo?._id || req?.assignedTo;
+      return Boolean(
+        isHeadOfficer &&
+        ['security', 'complaint'].includes(req?.category) &&
+        !assignedId
+      );
+    },
+    [isHeadOfficer]
+  );
+
   const updateStatus = async (id, nextStatus) => {
+    if (requiresAssignmentBeforeUpdate(selected)) {
+      Alert.alert('Assign Staff First', 'Please assign this request to a security officer before changing its status.');
+      return;
+    }
     setProcessing(true);
     try {
       const res = await api.put(`/service-requests/${id}/status`, { status: nextStatus });
       if (res.data?.success) {
         Alert.alert('Success', `Marked as ${nextStatus}`);
-        setDetailsOpen(false);
-        setSelected(null);
+        if (res.data?.data) {
+          setSelected(res.data.data);
+        }
         load();
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to update status');
@@ -228,7 +250,11 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
 
   const recommendedStaff = useMemo(() => {
     if (!selected || !staffMembers.length) return [];
-    return staffMembers
+    const assignedStaff = selected?.assignedTo && typeof selected.assignedTo === 'object' ? selected.assignedTo : null;
+    const availableStaff = assignedStaff && !staffMembers.some((staff) => String(staff._id) === String(assignedStaff._id))
+      ? [...staffMembers, assignedStaff]
+      : staffMembers;
+    return availableStaff
       .map((staff) => getStaffRecommendation(staff, selected))
       .sort((a, b) => b.recommendationScore - a.recommendationScore || String(a.firstName || '').localeCompare(String(b.firstName || '')));
   }, [selected, staffMembers]);
@@ -291,7 +317,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     );
   };
 
-  if (loading) {
+  if (loading || !userLoaded) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={themeColors.primary} />
@@ -301,24 +327,12 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerEyebrow}>SECURITY MODULE</Text>
-          <Text style={styles.headerTitle}>Services & Complaints</Text>
-          <Text style={styles.headerSubtitle}>Monitor assigned security requests and resident complaints.</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionButton}>
-            <Ionicons name="arrow-back" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={load} style={styles.headerActionButton}>
-            <Ionicons name="refresh" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Refresh</Text>
-          </TouchableOpacity>
-          <LogoutButton navigation={navigation} color="white" size={18} />
-        </View>
-      </View>
+      <SecurityUtilityHeader
+        navigation={navigation}
+        title="Services & Complaints"
+        subtitle={isHeadOfficer ? 'Review, assign, and track security requests and complaints.' : 'Track requests and complaints assigned to you.'}
+        actions={[{ label: 'Refresh', icon: 'refresh', onPress: load, primary: true }]}
+      />
 
       <View style={styles.filters}>
         <View style={styles.searchBox}>
@@ -356,6 +370,20 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
+          {[
+            { key: 'all', label: 'All Priority' },
+            { key: 'low', label: 'Low' },
+            { key: 'medium', label: 'Medium' },
+            { key: 'high', label: 'High' },
+            { key: 'urgent', label: 'Urgent' },
+          ].map((c) => (
+            <TouchableOpacity key={c.key} style={[styles.chip, priority === c.key && styles.chipActive]} onPress={() => setPriority(c.key)}>
+              <Text style={[styles.chipText, priority === c.key && styles.chipTextActive]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <FlatList
@@ -363,15 +391,21 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         renderItem={renderItem}
         keyExtractor={(item, index) => item?._id || `service-${index}`}
         contentContainerStyle={styles.listContainer}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="build-outline" size={64} color={themeColors.textSecondary} />
             <Text style={styles.emptyTitle}>No requests</Text>
             <Text style={styles.emptyText}>
-              {status === 'all' && priority === 'all' && category === 'all'
-                ? 'No security requests or complaints are assigned to this staff account yet.'
-                : 'No assigned security requests match your filters.'}
+              {isHeadOfficer
+                ? (status === 'all' && priority === 'all' && category === 'all'
+                  ? 'No security requests or complaints are waiting for review.'
+                  : 'No security requests or complaints match your filters.')
+                : (status === 'all' && priority === 'all' && category === 'all'
+                  ? 'No security requests or complaints are assigned to this staff account yet.'
+                  : 'No assigned security requests match your filters.')}
             </Text>
           </View>
         }
@@ -407,7 +441,11 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
 
               <View style={styles.divider} />
               <Text style={styles.note}>
-                {isHeadOfficer ? 'Head officers can assign or reassign security requests and complaints to supervised staff.' : 'Status updates are only allowed if this request is assigned to you.'}
+                {isHeadOfficer
+                  ? (requiresAssignmentBeforeUpdate(selected)
+                    ? 'Assign this request to a security officer before marking it in progress or completed.'
+                    : 'Head officers can reassign security requests and complaints to supervised staff.')
+                  : 'Status updates are only allowed if this request is assigned to you.'}
               </Text>
 
               {isHeadOfficer && (
@@ -508,17 +546,21 @@ const styles = StyleSheet.create({
   chipTextActive: { color: 'white' },
   listContainer: { padding: 16, paddingBottom: 24 },
   card: {
-    backgroundColor: themeColors.nav,
-    borderRadius: 20,
-    padding: 18,
+    backgroundColor: themeColors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.primary,
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
-  cardTitle: { fontSize: 15, fontWeight: '900', color: 'white', flex: 1, minWidth: 0 },
+  cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary, flex: 1, minWidth: 0 },
   pill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
   pillText: { fontSize: 11, fontWeight: '900' },
-  cardSub: { marginTop: 10, fontSize: 13, color: 'rgba(255,255,255,0.82)' },
-  meta: { marginTop: 8, fontSize: 11, color: 'rgba(255,255,255,0.54)', fontWeight: '600' },
+  cardSub: { marginTop: 10, fontSize: 13, color: themeColors.textSecondary },
+  meta: { marginTop: 8, fontSize: 11, color: themeColors.textSecondary, fontWeight: '700' },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyTitle: { marginTop: 14, fontSize: 18, fontWeight: '700', color: themeColors.textPrimary },
   emptyText: { marginTop: 6, fontSize: 13, color: themeColors.textSecondary, textAlign: 'center' },

@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
+import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 
 const officerName = (officer) =>
   `${officer?.firstName || ''} ${officer?.lastName || ''}`.trim() || 'Unassigned officer';
@@ -261,20 +262,13 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={16} color="white" />
-          <Text style={styles.headerButtonText}>Back</Text>
-        </TouchableOpacity>
-        <View style={styles.titleBlock}>
-          <Text style={styles.eyebrow}>HEAD OFFICER</Text>
-          <Text style={styles.headerTitle}>{title}</Text>
-        </View>
-        <TouchableOpacity onPress={load} style={styles.headerButton}>
-          <Ionicons name="refresh" size={16} color="white" />
-          <Text style={styles.headerButtonText}>Refresh</Text>
-        </TouchableOpacity>
-      </View>
+      <SecurityUtilityHeader
+        navigation={navigation}
+        eyebrow="HEAD OFFICER"
+        title={title}
+        subtitle={view === 'team' ? 'Manage personnel routes and assignments' : view === 'analytics' ? 'Review live patrol analytics' : 'Review team patrol performance'}
+        actions={[{ label: 'Refresh', icon: 'refresh', onPress: load, primary: true }]}
+      />
 
       <FlatList
         data={data}
@@ -344,19 +338,13 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: roleLayouts.security.screen,
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  topBar: { ...roleLayouts.security.header, gap: 10 },
-  headerButton: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
-  headerButtonText: { color: 'white', fontSize: 11, fontWeight: '800' },
-  titleBlock: { flex: 1, marginLeft: 8 },
-  eyebrow: { color: themeColors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
-  headerTitle: { color: 'white', fontSize: 23, fontWeight: '900', marginTop: 2 },
   list: { padding: 16, paddingBottom: 32 },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   summaryCard: { width: '48%', backgroundColor: 'white', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: themeColors.border },
   summaryValue: { fontSize: 25, fontWeight: '900', color: themeColors.textPrimary, marginTop: 8 },
   summaryLabel: { fontSize: 12, color: themeColors.textSecondary, fontWeight: '700', marginTop: 2 },
   sectionTitle: { fontSize: 18, fontWeight: '900', color: themeColors.textPrimary, marginBottom: 12, marginTop: 4 },
-  card: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border },
+  card: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border, borderLeftWidth: 4, borderLeftColor: themeColors.primary },
   cardHeading: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   cardHeadingText: { flex: 1, minWidth: 0 },
   avatar: { width: 42, height: 42, borderRadius: 14, backgroundColor: themeColors.primary + '18', alignItems: 'center', justifyContent: 'center', marginRight: 10 },

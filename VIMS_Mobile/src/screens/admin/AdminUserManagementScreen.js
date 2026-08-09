@@ -27,6 +27,7 @@ import { getAuthToken } from '../../utils/secureSession';
 
 const AdminUserManagementScreen = ({ navigation }) => {
   const [users, setUsers] = useState([]);
+  const [lots, setLots] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,6 +90,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
   useEffect(() => {
     fetchUsers();
     loadSecurityAssignments();
+    loadLots();
   }, []);
 
   useEffect(() => {
@@ -102,6 +104,35 @@ const AdminUserManagementScreen = ({ navigation }) => {
     } catch (error) {
       console.warn('Unable to load security assignments:', error?.response?.data?.error || error.message);
     }
+  };
+
+  const loadLots = async () => {
+    try {
+      const response = await api.get('/lots');
+      if (response.data?.success) setLots(Array.isArray(response.data.data) ? response.data.data : []);
+    } catch (error) {
+      console.warn('Unable to load assignment dropdowns:', error?.response?.data?.error || error.message);
+    }
+  };
+
+  const assignmentPhases = Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => Number(a) - Number(b));
+  const assignmentCheckpoints = lots.filter((lot) => String(lot.phase) === String(assignmentForm.assignedPhases));
+  const scheduleOptions = ['Morning shift', 'Afternoon shift', 'Night shift', 'Weekday patrol', 'Weekend patrol', 'Rotating patrol'];
+
+  const setAssignmentPhase = (phase) => {
+    setAssignmentForm((previous) => ({
+      ...previous,
+      assignedPhases: phase,
+      assignedAreas: '',
+    }));
+  };
+
+  const setAssignmentCheckpoint = (lotId) => {
+    const lot = lots.find((item) => String(item.lotId) === String(lotId));
+    setAssignmentForm((previous) => ({
+      ...previous,
+      assignedAreas: lot ? `Phase ${lot.phase} - Block ${lot.block} - Lot ${lot.lotNumber}` : '',
+    }));
   };
 
   const fetchUsers = async () => {
@@ -271,6 +302,10 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
   const saveAssignment = async () => {
     if (!selectedUser || selectedUser.role !== 'security') return;
+    if (assignmentForm.securityLevel === 'personnel' && (!assignmentForm.assignedPhases || !assignmentForm.assignedAreas || !assignmentForm.patrolSchedule)) {
+      Alert.alert('Complete Assignment', 'Please select a phase, checkpoint, and schedule before saving.');
+      return;
+    }
     setAssignmentProcessing(true);
     try {
       const payload = {
@@ -391,11 +426,16 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
   const handleArchiveUser = async () => {
     if (!selectedUser) return;
+    const reason = deleteReason.trim();
+    if (!reason) {
+      Alert.alert('Archive Reason Required', 'Please enter a reason before archiving this user.');
+      return;
+    }
 
     setProcessing(true);
     try {
       const response = await api.delete(`/users/${selectedUser._id}`, {
-        data: { reason: deleteReason },
+        data: { reason },
       });
       if (response.data.success) {
         Alert.alert('Success', 'User archived successfully');
@@ -572,47 +612,8 @@ const AdminUserManagementScreen = ({ navigation }) => {
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.directoryHeader}>
-        <View style={styles.directoryTopRow}>
-          <View>
-            <Text style={styles.directoryEyebrow}>ADMIN DIRECTORY</Text>
-            <Text style={styles.directoryTitle}>User Management</Text>
-            <Text style={styles.directorySubtitle}>{stats.total} community accounts</Text>
-          </View>
-          <UserDropdownMenu navigation={navigation} />
-        </View>
-        <View style={styles.directoryActions}>
-          <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.directoryPrimaryAction}>
-            <Ionicons name="person-add-outline" size={18} color="white" />
-            <Text style={styles.directoryPrimaryText}>Add staff</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={fetchUsers} style={styles.directoryIconAction}>
-            <Ionicons name="refresh" size={20} color={themeColors.primaryDeep} />
-            <Text style={styles.directoryIconActionText}>Refresh</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('ArchivedUsers')} style={styles.directoryIconAction}>
-            <Ionicons name="archive-outline" size={20} color={themeColors.primaryDeep} />
-            <Text style={styles.directoryIconActionText}>Archived</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('AdminVerificationQueue')} style={styles.directoryIconAction}>
-            <Ionicons name="shield-checkmark-outline" size={20} color={themeColors.primaryDeep} />
-            <Text style={styles.directoryIconActionText}>Verifications</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleExportFile('pdf')} style={styles.directoryIconAction} disabled={exporting}>
-            {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : (
-              <Ionicons name="document-text-outline" size={20} color={themeColors.primaryDeep} />
-            )}
-            <Text style={styles.directoryIconActionText}>PDF</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleExportFile('csv')} style={styles.directoryIconAction} disabled={exporting}>
-            <Ionicons name="grid-outline" size={20} color={themeColors.primaryDeep} />
-            <Text style={styles.directoryIconActionText}>CSV</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
+  const renderDirectoryControls = () => (
+    <View style={styles.directoryControls}>
       <View style={styles.directorySummary}>
         <View style={styles.directorySummaryItem}>
           <Text style={styles.directorySummaryValue}>{stats.residents}</Text>
@@ -649,7 +650,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
           ))}
         </ScrollView>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color={themeColors.textSecondary} />
+          <Ionicons name="search" size={18} color={themeColors.textSecondary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search users..."
@@ -658,16 +659,19 @@ const AdminUserManagementScreen = ({ navigation }) => {
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={themeColors.textSecondary} />
+              <Ionicons name="close-circle" size={18} color={themeColors.textSecondary} />
             </TouchableOpacity>
           ) : null}
         </View>
 
-        <TouchableOpacity style={styles.advancedFilterToggle} onPress={() => setShowAdvancedFilters((value) => !value)}>
-          <Ionicons name="options-outline" size={17} color={themeColors.primary} />
-          <Text style={styles.advancedFilterToggleText}>{showAdvancedFilters ? 'Hide advanced filters' : 'More filters'}</Text>
-          {(roleFilter !== 'all' || statusFilter !== 'all' || approvalFilter !== 'all') && <View style={styles.activeFilterDot} />}
-        </TouchableOpacity>
+        <View style={styles.filterMetaRow}>
+          <Text style={styles.resultCount}>{filteredUsers.length} shown</Text>
+          <TouchableOpacity style={styles.advancedFilterToggle} onPress={() => setShowAdvancedFilters((value) => !value)}>
+            <Ionicons name="options-outline" size={16} color={themeColors.primary} />
+            <Text style={styles.advancedFilterToggleText}>{showAdvancedFilters ? 'Hide filters' : 'More filters'}</Text>
+            {(roleFilter !== 'all' || statusFilter !== 'all' || approvalFilter !== 'all') && <View style={styles.activeFilterDot} />}
+          </TouchableOpacity>
+        </View>
 
         {showAdvancedFilters && <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <TouchableOpacity
@@ -731,12 +735,56 @@ const AdminUserManagementScreen = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>}
       </View>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.directoryHeader}>
+        <View style={styles.directoryTopRow}>
+          <View>
+            <Text style={styles.directoryEyebrow}>ADMIN DIRECTORY</Text>
+            <Text style={styles.directoryTitle}>User Management</Text>
+            <Text style={styles.directorySubtitle}>{stats.total} community accounts</Text>
+          </View>
+          <UserDropdownMenu navigation={navigation} />
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.directoryActions}>
+          <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.directoryPrimaryAction}>
+            <Ionicons name="person-add-outline" size={16} color="white" />
+            <Text style={styles.directoryPrimaryText}>Add</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={fetchUsers} style={styles.directoryIconAction}>
+            <Ionicons name="refresh" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Refresh</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('ArchivedUsers')} style={styles.directoryIconAction}>
+            <Ionicons name="archive-outline" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Archived</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('AdminVerificationQueue')} style={styles.directoryIconAction}>
+            <Ionicons name="shield-checkmark-outline" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>Verify</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleExportFile('pdf')} style={styles.directoryIconAction} disabled={exporting}>
+            {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : (
+              <Ionicons name="document-text-outline" size={17} color={themeColors.primaryDeep} />
+            )}
+            <Text style={styles.directoryIconActionText}>PDF</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleExportFile('csv')} style={styles.directoryIconAction} disabled={exporting}>
+            <Ionicons name="grid-outline" size={17} color={themeColors.primaryDeep} />
+            <Text style={styles.directoryIconActionText}>CSV</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
       <FlatList
         data={filteredUsers}
         renderItem={renderUserCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={renderDirectoryControls}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -1128,9 +1176,47 @@ const AdminUserManagementScreen = ({ navigation }) => {
                                   ))}
                               </Picker>
                             </View>
-                            <TextInput style={styles.input} placeholder="Assigned phases (1, 2)" value={assignmentForm.assignedPhases} onChangeText={(value) => setAssignmentForm((previous) => ({ ...previous, assignedPhases: value }))} />
-                            <TextInput style={styles.input} placeholder="Assigned areas" value={assignmentForm.assignedAreas} onChangeText={(value) => setAssignmentForm((previous) => ({ ...previous, assignedAreas: value }))} />
-                            <TextInput style={styles.input} placeholder="Patrol schedule" value={assignmentForm.patrolSchedule} onChangeText={(value) => setAssignmentForm((previous) => ({ ...previous, patrolSchedule: value }))} />
+                            <Text style={styles.fieldLabel}>Phase</Text>
+                            <View style={styles.pickerContainer}>
+                              <Picker
+                                selectedValue={assignmentForm.assignedPhases}
+                                onValueChange={setAssignmentPhase}
+                              >
+                                <Picker.Item label="Select phase" value="" />
+                                {assignmentPhases.map((phase) => (
+                                  <Picker.Item key={phase} label={`Phase ${phase}`} value={String(phase)} />
+                                ))}
+                              </Picker>
+                            </View>
+                            <Text style={styles.fieldLabel}>Patrol checkpoint</Text>
+                            <View style={[styles.pickerContainer, !assignmentForm.assignedPhases && styles.pickerDisabled]}>
+                              <Picker
+                                selectedValue={assignmentCheckpoints.find((lot) => assignmentForm.assignedAreas === `Phase ${lot.phase} - Block ${lot.block} - Lot ${lot.lotNumber}`)?.lotId || ''}
+                                enabled={!!assignmentForm.assignedPhases}
+                                onValueChange={setAssignmentCheckpoint}
+                              >
+                                <Picker.Item label={assignmentForm.assignedPhases ? 'Select checkpoint' : 'Select phase first'} value="" />
+                                {assignmentCheckpoints.map((lot) => (
+                                  <Picker.Item
+                                    key={lot.lotId}
+                                    label={`Block ${lot.block} - Lot ${lot.lotNumber}`}
+                                    value={lot.lotId}
+                                  />
+                                ))}
+                              </Picker>
+                            </View>
+                            <Text style={styles.fieldLabel}>Schedule</Text>
+                            <View style={styles.pickerContainer}>
+                              <Picker
+                                selectedValue={assignmentForm.patrolSchedule}
+                                onValueChange={(value) => setAssignmentForm((previous) => ({ ...previous, patrolSchedule: value }))}
+                              >
+                                <Picker.Item label="Select schedule" value="" />
+                                {scheduleOptions.map((option) => (
+                                  <Picker.Item key={option} label={option} value={option} />
+                                ))}
+                              </Picker>
+                            </View>
                           </>
                         )}
                         <View style={styles.inlineActions}>
@@ -1266,7 +1352,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
               <TextInput
                 style={styles.deleteInput}
-                placeholder="Reason for archiving (optional)"
+                placeholder="Reason for archiving (required)"
                 placeholderTextColor={themeColors.textMuted}
                 selectionColor={themeColors.primary}
                 value={deleteReason}
@@ -1283,7 +1369,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
                     setShowDeleteModal(false);
                     setDeleteReason('');
                   }}
-                  disabled={processing}
+                  disabled={processing || !deleteReason.trim()}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
@@ -1377,30 +1463,33 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: roleLayouts.admin.screen,
-  directoryHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 54, paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  directoryHeader: { backgroundColor: themeColors.cardBackground, paddingTop: 42, paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   directoryTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   directoryEyebrow: { color: themeColors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
-  directoryTitle: { color: themeColors.textPrimary, fontSize: 30, fontWeight: '800', letterSpacing: -1, marginTop: 2 },
+  directoryTitle: { color: themeColors.textPrimary, fontSize: 24, fontWeight: '800', letterSpacing: 0, marginTop: 1 },
   directorySubtitle: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '500', marginTop: 2 },
-  directoryActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 18 },
-  directoryPrimaryAction: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: themeColors.primary, paddingHorizontal: 16, height: 44, borderRadius: 14 },
-  directoryPrimaryText: { color: 'white', fontSize: 13, fontWeight: '900' },
-  directoryIconAction: { flexDirection: 'row', height: 44, paddingHorizontal: 12, borderRadius: 14, alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: themeColors.accent },
-  directoryIconActionText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
-  directorySummary: { marginHorizontal: 16, marginTop: 14, backgroundColor: themeColors.surfaceTint, borderRadius: 12, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors.border },
+  directoryActions: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingRight: 16 },
+  directoryPrimaryAction: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: themeColors.primary, paddingHorizontal: 12, height: 36, borderRadius: 12 },
+  directoryPrimaryText: { color: 'white', fontSize: 12, fontWeight: '900' },
+  directoryIconAction: { flexDirection: 'row', height: 36, paddingHorizontal: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: themeColors.accent },
+  directoryIconActionText: { color: themeColors.primaryDeep, fontSize: 11, fontWeight: '900' },
+  directoryControls: { paddingTop: 10 },
+  directorySummary: { marginHorizontal: 0, marginBottom: 10, backgroundColor: themeColors.surfaceTint, borderRadius: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors.border },
   directorySummaryItem: { flex: 1, alignItems: 'center' },
-  directorySummaryValue: { color: themeColors.primaryDeep, fontSize: 21, fontWeight: '900' },
+  directorySummaryValue: { color: themeColors.primaryDeep, fontSize: 18, fontWeight: '900' },
   directorySummaryLabel: { color: themeColors.textSecondary, fontSize: 10, fontWeight: '800', marginTop: 2 },
-  directorySummaryDivider: { width: 1, height: 34, backgroundColor: themeColors.border },
-  viewFilterScroll: { marginBottom: 12 },
-  viewChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12, marginRight: 8, backgroundColor: themeColors.surfaceMuted, borderWidth: 1, borderColor: themeColors.border },
+  directorySummaryDivider: { width: 1, height: 28, backgroundColor: themeColors.border },
+  viewFilterScroll: { marginBottom: 8 },
+  viewChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, marginRight: 7, backgroundColor: themeColors.surfaceMuted, borderWidth: 1, borderColor: themeColors.border },
   viewChipActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },
   viewChipText: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
   viewChipTextActive: { color: 'white' },
   disabledAction: { opacity: 0.45 },
-  advancedFilterToggle: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
+  advancedFilterToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
   advancedFilterToggleText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
   activeFilterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.warning },
+  filterMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  resultCount: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
   fieldLabel: { color: themeColors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 6, marginTop: 6 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   linkText: { color: themeColors.primary, fontSize: 13, fontWeight: '800' },
@@ -1469,25 +1558,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: themeColors.textSecondary,
   },
-  filterContainer: {
-    backgroundColor: themeColors.background,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
+  filterContainer: { backgroundColor: themeColors.background, paddingHorizontal: 0, paddingVertical: 0 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: themeColors.surfaceMuted,
-    borderRadius: 14,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    marginBottom: 12,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: themeColors.borderStrong,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 10,
-    fontSize: 16,
+    paddingVertical: 8,
+    fontSize: 14,
     color: themeColors.textPrimary,
     marginLeft: 8,
   },
@@ -1497,7 +1582,7 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 20,
     marginRight: 8,
@@ -1523,13 +1608,15 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   listContainer: {
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingTop: 0,
+    paddingBottom: 16,
   },
   userCard: {
     backgroundColor: themeColors.cardBackground,
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     marginBottom: 8,
     borderLeftWidth: 4,
     borderLeftColor: themeColors.primary,
@@ -1537,7 +1624,7 @@ const styles = StyleSheet.create({
   userHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 9,
   },
   userAvatar: {
     width: 40,
@@ -1561,7 +1648,7 @@ const styles = StyleSheet.create({
     color: themeColors.textSecondary,
   },
   userDetails: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   detailRow: {
     flexDirection: 'row',
@@ -1575,7 +1662,7 @@ const styles = StyleSheet.create({
   },
   userFooter: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   roleBadge: {
     paddingHorizontal: 8,
@@ -1599,15 +1686,17 @@ const styles = StyleSheet.create({
   },
   userActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     borderTopWidth: 1,
     borderTopColor: themeColors.border,
-    paddingTop: 12,
+    paddingTop: 9,
+    gap: 10,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 16,
+    marginLeft: 0,
   },
   actionButtonText: {
     fontSize: 13,
@@ -1679,6 +1768,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: themeColors.border,
     borderRadius: 10,
+  },
+  pickerDisabled: {
+    opacity: 0.6,
   },
   secondaryBtn: {
     flex: 1,

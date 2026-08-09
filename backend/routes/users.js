@@ -321,6 +321,14 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
 // Archive user (instead of delete) - UPDATED to free up lot
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
+    const archiveReason = String(req.body?.reason || '').trim();
+    if (!archiveReason) {
+      return res.status(400).json({
+        success: false,
+        error: 'Archive reason is required'
+      });
+    }
+
     const user = await User.findById(req.params.id);
     
     if (!user) {
@@ -358,7 +366,7 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     user.isArchived = true;
     user.archivedAt = new Date();
     user.archivedBy = req.user._id;
-    user.archivedReason = req.body.reason || 'No reason provided';
+    user.archivedReason = archiveReason;
     await user.save();
     
     console.log(`📦 User archived: ${user.email}, Reason: ${user.archivedReason}`);
@@ -601,6 +609,31 @@ router.put('/profile', protect, async (req, res) => {
         success: false,
         error: 'User not found'
       });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(filteredUpdates, 'phone')) {
+      const phoneDigits = String(filteredUpdates.phone || '').replace(/\D/g, '');
+      if (!phoneDigits || (!/^09\d{9}$/.test(phoneDigits) && !/^\d{10}$/.test(phoneDigits))) {
+        return res.status(400).json({
+          success: false,
+          error: 'Please enter a valid phone number'
+        });
+      }
+      filteredUpdates.phone = phoneDigits;
+    }
+
+    if (filteredUpdates.emergencyContact?.phone) {
+      const emergencyPhoneDigits = String(filteredUpdates.emergencyContact.phone || '').replace(/\D/g, '');
+      if (emergencyPhoneDigits.length < 10) {
+        return res.status(400).json({
+          success: false,
+          error: 'Please enter a valid emergency contact phone number'
+        });
+      }
+      filteredUpdates.emergencyContact = {
+        ...filteredUpdates.emergencyContact,
+        phone: emergencyPhoneDigits
+      };
     }
 
     Object.assign(user, filteredUpdates);

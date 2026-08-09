@@ -11,14 +11,17 @@ import {
   Modal,
   RefreshControl,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-import UserDropdownMenu from '../../components/UserDropdownMenu';
+import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 import { getAuthToken } from '../../utils/secureSession';
 
 const SecurityVisitorLogsScreen = ({ navigation }) => {
@@ -42,6 +45,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(0);
   const [showAllRecentActivity, setShowAllRecentActivity] = useState(false);
@@ -202,6 +206,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       });
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (dateFilter) params.set('date', dateFilter);
+      if (searchQuery.trim()) params.set('search', searchQuery.trim());
 
       const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
       const fileUri = `${FileSystem.documentDirectory}VIMS_Visitor_Logs_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.${fileFormat}`;
@@ -225,6 +230,12 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert('Export Failed', error.message || `Failed to export ${fileFormat.toUpperCase()}`);
     }
+  };
+
+  const handleDatePicked = (event, value) => {
+    if (Platform.OS === 'android') setDatePickerOpen(false);
+    if (event?.type === 'dismissed') return;
+    if (value) setDateFilter(format(value, 'yyyy-MM-dd'));
   };
 
   const handleExport = () => {
@@ -462,12 +473,30 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>
 
-        <TextInput
-          style={styles.dateInput}
-          placeholder="Filter by date (YYYY-MM-DD)"
-          value={dateFilter}
-          onChangeText={setDateFilter}
-        />
+        <View style={styles.dateFilterRow}>
+          <TouchableOpacity style={styles.datePickerButton} onPress={() => setDatePickerOpen(true)}>
+            <Ionicons name="calendar-outline" size={18} color={themeColors.primary} />
+            <Text style={styles.datePickerText}>{dateFilter || 'Select calendar date'}</Text>
+          </TouchableOpacity>
+          {!!dateFilter && (
+            <TouchableOpacity style={styles.clearDateButton} onPress={() => setDateFilter('')}>
+              <Ionicons name="close" size={18} color={themeColors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {datePickerOpen && (
+          <DateTimePicker
+            value={dateFilter ? new Date(`${dateFilter}T12:00:00`) : new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'inline' : 'default'}
+            onChange={handleDatePicked}
+          />
+        )}
+        {Platform.OS === 'ios' && datePickerOpen && (
+          <TouchableOpacity style={styles.doneDateButton} onPress={() => setDatePickerOpen(false)}>
+            <Text style={styles.doneDateText}>Done</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={[styles.activityCard, shadows.small]}>
@@ -605,38 +634,16 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerEyebrow}>SECURITY MODULE</Text>
-          <Text style={styles.headerTitle}>Visitor Logs</Text>
-          <Text style={styles.headerSubtitle}>Track visits, scanner activity, and gate records.</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionButton}>
-            <Ionicons name="arrow-back" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('ScannerTab')} style={styles.headerActionButton}>
-            <Ionicons name="qr-code" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Scan</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleExport} style={styles.headerActionButton}>
-            <Ionicons name="download" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Export</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              setManualEntryOpen(true);
-              setManualEntryErrors({});
-            }}
-            style={styles.headerActionButton}
-          >
-            <Ionicons name="car-outline" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Manual</Text>
-          </TouchableOpacity>
-          <UserDropdownMenu navigation={navigation} />
-        </View>
-      </View>
+      <SecurityUtilityHeader
+        navigation={navigation}
+        title="Visitor Logs"
+        subtitle="Track visits, scanner activity, and gate records."
+        actions={[
+          { label: 'Scan', icon: 'qr-code', onPress: () => navigation.navigate('ScannerTab'), primary: true },
+          { label: 'Export', icon: 'download', onPress: handleExport },
+          { label: 'Manual', icon: 'car-outline', onPress: () => { setManualEntryOpen(true); setManualEntryErrors({}); } },
+        ]}
+      />
 
       <FlatList
         data={paginatedVisitors}
@@ -644,6 +651,8 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         keyExtractor={(item) => item._id}
         ListHeaderComponent={renderListHeader}
         contentContainerStyle={styles.listContainer}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -768,7 +777,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setManualEntryOpen(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Manual Visitor / Vehicle Entry</Text>
@@ -822,7 +831,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Entry Modal */}
@@ -832,7 +841,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setShowEntryModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Log Visitor Entry</Text>
@@ -879,7 +888,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
               </View>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Exit Modal */}
@@ -889,7 +898,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setShowExitModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Log Visitor Exit</Text>
@@ -936,7 +945,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
               </View>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     </View>
@@ -1035,15 +1044,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: '#f8fafc',
   },
+  dateFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  datePickerButton: {
+    flex: 1,
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8fafc',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  datePickerText: {
+    color: themeColors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  clearDateButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  doneDateButton: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  doneDateText: {
+    color: themeColors.primary,
+    fontWeight: '900',
+  },
   listContainer: {
     paddingBottom: 24,
   },
   visitorCard: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 18,
+    borderRadius: 12,
+    padding: 16,
     marginHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: themeColors.border,
     borderLeftWidth: 4,
     borderLeftColor: themeColors.primary,
   },

@@ -16,8 +16,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows } from '../utils/theme';
 import QRCode from 'react-native-qrcode-svg';
-import UserDropdownMenu from '../components/UserDropdownMenu';
 import api from '../utils/api';
+import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
 const { width } = Dimensions.get('window');
 const MAP_CANVAS_WIDTH = Math.max(width - 32, 720);
@@ -275,31 +275,29 @@ const PublicLotMapScreen = ({ navigation }) => {
     </View>
   ) : (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Westville Lot Map</Text>
-        <UserDropdownMenu navigation={navigation} />
-      </View>
-
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color={themeColors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search lot (e.g., A-3)"
-            placeholderTextColor={themeColors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-      </View>
+      <ResidentUtilityHeader
+        navigation={navigation}
+        eyebrow="VILLAGE LOTS"
+        title="Westville Lot Map"
+        subtitle="Browse availability and lot details"
+      />
 
       <ScrollView
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={20} color={themeColors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search lot (e.g., A-3)"
+              placeholderTextColor={themeColors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+        </View>
         {loadError ? (
           <View style={styles.errorBanner}>
             <Ionicons name="alert-circle" size={18} color={themeColors.error} />
@@ -747,17 +745,17 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: themeColors.primary,
+    marginBottom: 12,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     height: 44,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   searchInput: {
     flex: 1,
@@ -790,21 +788,23 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: themeColors.surfaceTint,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   statValue: {
     fontSize: 20,
-    fontWeight: '700',
-    color: themeColors.primary,
+    fontWeight: '900',
+    color: themeColors.primaryDeep,
   },
   statLabel: {
     fontSize: 12,
     color: themeColors.textSecondary,
     marginTop: 4,
+    fontWeight: '800',
   },
   filterRow: {
     flexDirection: 'row',

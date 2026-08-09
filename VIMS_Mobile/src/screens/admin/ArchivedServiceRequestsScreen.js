@@ -164,7 +164,7 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
             }}
             disabled={restoring}
           >
-            <Ionicons name="refresh" size={16} color={themeColors.primary} />
+            <Ionicons name="refresh" size={16} color="#fff" />
             <Text style={styles.restoreButtonText}>Restore</Text>
           </TouchableOpacity>
         </View>
@@ -181,30 +181,33 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
     );
   }
 
+  const renderListHeader = () => (
+    <View style={styles.searchContainer}>
+      <Ionicons name="search" size={20} color={themeColors.textSecondary} />
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search archived requests..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+      {searchQuery ? (
+        <TouchableOpacity onPress={() => setSearchQuery('')}>
+          <Ionicons name="close-circle" size={20} color={themeColors.textSecondary} />
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ARCHIVE" title="Archived Services" subtitle={`${serviceRequests.length} archived requests available for review`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => navigation.goBack() }, { label: 'Refresh', icon: 'refresh', onPress: loadArchivedServiceRequests, primary: true, loading: refreshing }]} />
-
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color={themeColors.textSecondary} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search archived requests..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery ? (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color={themeColors.textSecondary} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
 
       <FlatList
         data={filteredServiceRequests}
         renderItem={renderServiceRequestCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={renderListHeader}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -315,7 +318,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   statsContainer: { paddingHorizontal: 16, paddingVertical: 16 },
-  searchContainer: { marginHorizontal: 20, marginBottom: 12, height: 46, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white', paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchContainer: { marginBottom: 12, height: 46, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, backgroundColor: 'white', paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   searchInput: { flex: 1, color: themeColors.textPrimary, fontSize: 15 },
   statCard: {
     backgroundColor: themeColors.cardBackground,
@@ -338,10 +341,12 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: themeColors.cardBackground,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: themeColors.textMuted,
+    borderLeftColor: themeColors.primary,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -395,22 +400,29 @@ const styles = StyleSheet.create({
   },
   cardActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
+    borderTopWidth: 1,
+    borderTopColor: themeColors.border,
+    paddingTop: 12,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 42,
+    minWidth: 128,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 9,
+    borderRadius: 12,
+    gap: 7,
   },
   restoreButton: {
-    backgroundColor: themeColors.primary + '10',
+    backgroundColor: themeColors.primary,
   },
   restoreButtonText: {
-    color: themeColors.primary,
-    fontWeight: '600',
-    marginLeft: 6,
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '900',
   },
   loadingContainer: {
     flex: 1,

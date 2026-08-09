@@ -16,9 +16,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-import UserDropdownMenu from '../components/UserDropdownMenu';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import api from '../utils/api';
+import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
@@ -292,18 +292,12 @@ const PaymentsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerEyebrow}>MY WALLET</Text>
-          <Text style={styles.headerTitle}>Payments & Dues</Text>
-          <Text style={styles.headerSubtitle}>Balances, receipts and payment history</Text>
-        </View>
-        <UserDropdownMenu navigation={navigation} />
-      </View>
+      <ResidentUtilityHeader
+        navigation={navigation}
+        eyebrow="MY WALLET"
+        title="Payments & Dues"
+        subtitle="Balances, receipts and payment history"
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -311,19 +305,19 @@ const PaymentsScreen = ({ navigation }) => {
       >
         {/* Stats Cards */}
         <View style={styles.statsGrid}>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#e8f5ed' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="checkmark-circle-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalPaid)}</Text>
             <Text style={styles.coloredStatLabel}>Total Paid</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#fff4df' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="time-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.totalPending)}</Text>
             <Text style={styles.coloredStatLabel}>Pending Balance</Text>
           </View>
-          <View style={[styles.coloredStatCard, { backgroundColor: '#fff0f0' }]}>
+          <View style={styles.coloredStatCard}>
             <View style={styles.statCardHighlight} />
             <Ionicons name="alert-circle-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.overdueAmount)}</Text>
@@ -723,16 +717,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
     backgroundColor: themeColors.background,
   },
   coloredStatCard: {
     flex: 1,
     borderRadius: 12,
-    padding: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
     position: 'relative',
     overflow: 'hidden',
+    backgroundColor: themeColors.surfaceTint,
     borderWidth: 1,
     borderColor: themeColors.border,
   },
@@ -753,24 +749,24 @@ const styles = StyleSheet.create({
     color: 'rgba(20,113,61,0.24)',
   },
   coloredStatValue: {
-    color: themeColors.textPrimary,
+    color: themeColors.primaryDeep,
     fontSize: 17,
     fontWeight: '900',
     marginBottom: 2,
   },
   coloredStatLabel: {
     color: themeColors.textSecondary,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
   },
   currentDuesCard: {
     backgroundColor: '#fffbeb',
     marginHorizontal: 16,
     marginBottom: 20,
-    borderRadius: radii.xl,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#f4d58a',
-    padding: 20,
+    padding: 16,
     ...shadows.small,
   },
   currentDuesContent: {
@@ -846,10 +842,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginHorizontal: 16,
     marginBottom: 12,
-    borderRadius: radii.lg,
-    padding: 18,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
     borderColor: themeColors.border,
+    borderLeftWidth: 4,
+    borderLeftColor: themeColors.primary,
     ...shadows.small,
   },
   paymentHeader: {

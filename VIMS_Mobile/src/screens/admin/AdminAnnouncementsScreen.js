@@ -305,6 +305,29 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
     );
   };
 
+  const renderListHeader = () => (
+    <View style={styles.listHeaderActions}>
+      <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.headerIconButton}>
+        <Ionicons name="add-circle-outline" size={22} color={themeColors.primaryDeep} />
+        <Text style={styles.headerIconButtonText}>Create</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={load} style={styles.headerIconButton}>
+        <Ionicons name="refresh" size={22} color={themeColors.primaryDeep} />
+        <Text style={styles.headerIconButtonText}>Refresh</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('ArchivedAnnouncements')}
+        style={styles.headerIconButton}
+      >
+        <Ionicons name="archive-outline" size={22} color={themeColors.primaryDeep} />
+        <Text style={styles.headerIconButtonText}>Archived</Text>
+      </TouchableOpacity>
+      <View style={styles.logoutSlot}>
+        <LogoutButton navigation={navigation} color={themeColors.primaryDeep} size={24} />
+      </View>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -325,24 +348,6 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
             {publishCounts.published} published • {publishCounts.scheduled} scheduled • {publishCounts.drafts} drafts
           </Text>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => setCreateOpen(true)} style={styles.headerIconButton}>
-            <Ionicons name="add-circle-outline" size={22} color={themeColors.primaryDeep} />
-            <Text style={styles.headerIconButtonText}>Create</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={load} style={styles.headerIconButton}>
-            <Ionicons name="refresh" size={22} color={themeColors.primaryDeep} />
-            <Text style={styles.headerIconButtonText}>Refresh</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('ArchivedAnnouncements')}
-            style={styles.headerIconButton}
-          >
-            <Ionicons name="archive-outline" size={22} color={themeColors.primaryDeep} />
-            <Text style={styles.headerIconButtonText}>Archived</Text>
-          </TouchableOpacity>
-          <LogoutButton navigation={navigation} color={themeColors.primaryDeep} size={24} />
-        </View>
       </View>
 
       <FlatList
@@ -350,6 +355,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
         renderItem={renderItem}
         keyExtractor={(item, index) => item?._id || `announcement-${index}`}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={renderListHeader}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -500,14 +506,15 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: roleLayouts.admin.screen,
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { backgroundColor: themeColors.cardBackground, paddingTop: 44, paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: themeColors.border, flexDirection: 'column', alignItems: 'stretch', gap: 10 },
+  header: { backgroundColor: themeColors.cardBackground, paddingTop: 44, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border, flexDirection: 'column', alignItems: 'stretch', gap: 10 },
   backButton: { position: 'absolute', top: 44, left: 16, width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.accent, zIndex: 2 },
   headerTitleWrap: { width: '100%', minWidth: 0, paddingLeft: 50, paddingRight: 34, minHeight: 42, justifyContent: 'center' },
   headerTitle: { color: themeColors.textPrimary, fontSize: 22, fontWeight: '900' },
   headerSubtitle: { color: themeColors.textSecondary, fontSize: 12, marginTop: 2 },
-  headerRight: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8 },
+  listHeaderActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 },
   headerIconButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 10, width: 104, height: 38, borderRadius: 12, backgroundColor: themeColors.accent },
   headerIconButtonText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
+  logoutSlot: { width: 44, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.accent },
 
   listContainer: { padding: 16, paddingBottom: 32 },
   card: { backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border, borderLeftWidth: 4, borderLeftColor: themeColors.primary },

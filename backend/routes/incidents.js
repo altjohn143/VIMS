@@ -142,9 +142,19 @@ router.post('/', protect, authorize('security', 'admin'), async (req, res) => {
 router.put('/:id/status', protect, authorize('security', 'admin'), async (req, res) => {
   try {
     const { status, resolutionNotes = '' } = req.body;
+    const allowedStatuses = ['open', 'investigating', 'resolved'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid incident status' });
+    }
     const filter = await buildAssignedRouteIncidentFilter(req.user);
     const row = await Incident.findOne({ _id: req.params.id, ...filter });
     if (!row) return res.status(404).json({ success: false, error: 'Incident not found' });
+    if (row.status === status) {
+      return res.json({ success: true, data: row, message: 'Incident status is already up to date' });
+    }
+    if (row.status === 'open' && status === 'resolved') {
+      return res.status(400).json({ success: false, error: 'Move the incident to investigating before resolving it' });
+    }
     if (row.status === 'resolved' && status === 'investigating') {
       return res.status(400).json({ success: false, error: 'Resolved incidents cannot be moved back to investigating' });
     }

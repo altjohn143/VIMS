@@ -498,7 +498,7 @@ const DashboardScreen = ({ navigation }) => {
       hints: ['assigned team members', 'in progress', 'awaiting review', 'today\'s total'],
       quickActions: [
         { title: 'Team Performance', subtitle: 'View team metrics',       icon: 'stats-chart-outline',      screen: 'TeamPerformanceTab', color: modulePalette.primary, bg: modulePalette.soft },
-        { title: 'Personnel Mgmt',   subtitle: 'Manage team members',     icon: 'people-outline',           screen: 'PersonnelTab',      color: modulePalette.deep, bg: modulePalette.softer },
+        { title: 'Personnel Management', subtitle: 'Manage team members', icon: 'people-outline',           screen: 'PersonnelTab',      color: modulePalette.deep, bg: modulePalette.softer },
         { title: 'Service Requests', subtitle: 'Handle assigned requests', icon: 'construct-outline',        screen: 'SecurityServiceRequests', color: modulePalette.primary, bg: modulePalette.soft },
         { title: 'Patrol Schedule',  subtitle: 'Submit patrol logs',       icon: 'shield-checkmark-outline', screen: 'SecurityPatrolSchedule', color: modulePalette.deep, bg: modulePalette.softer },
         { title: 'Patrol Analytics', subtitle: 'Review patrol data',      icon: 'document-text-outline',    screen: 'AnalyticsTab',      color: modulePalette.primary, bg: modulePalette.soft },

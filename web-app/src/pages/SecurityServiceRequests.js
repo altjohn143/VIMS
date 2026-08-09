@@ -203,11 +203,22 @@ const SecurityServiceRequests = () => {
       String(currentUser?.email || '').toLowerCase() === 'security@vims.com';
     return Boolean(
       myId &&
+      assignedId &&
       (
-        (assignedId && String(assignedId) === String(myId)) ||
+        String(assignedId) === String(myId) ||
         (isHeadOfficer && ['security', 'complaint'].includes(item.category))
       )
     );
+  };
+
+  const getStatusActionHint = (item) => {
+    const assignedId = item.assignedTo?._id || item.assignedTo;
+    if (isHeadOfficer && ['security', 'complaint'].includes(item.category) && !assignedId) {
+      return 'Assign security staff before changing status';
+    }
+    if (!canHandleRequest(item)) return 'Only assigned security staff can update status';
+    if (item.status === 'completed') return 'Request already completed';
+    return '';
   };
 
   useEffect(() => {
@@ -438,6 +449,11 @@ const SecurityServiceRequests = () => {
                     )}
                   </TableCell>
                   <TableCell align="right">
+                    {getStatusActionHint(item) && (
+                      <Typography variant="caption" sx={{ display: 'block', color: themeColors.textSecondary, mb: 0.5 }}>
+                        {getStatusActionHint(item)}
+                      </Typography>
+                    )}
                     <Button
                       size="small"
                       disabled={!canHandleRequest(item) || item.status === 'completed'}

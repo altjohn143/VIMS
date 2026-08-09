@@ -48,6 +48,22 @@ const suggestedQuestionsByRole = {
 
 const getSuggestedPrompts = (role) => suggestedQuestionsByRole[role] || suggestedQuestionsByRole.default;
 
+const assistantPalette = {
+  screen: '#F7F8F5',
+  header: '#0A3F2B',
+  card: '#FFFFFF',
+  userBubble: '#176B45',
+  assistantBubble: '#FFFFFF',
+  input: '#FFFFFF',
+  text: '#17221C',
+  secondaryText: '#5E6D64',
+  mutedText: '#89958E',
+  inverseText: '#FFFFFF',
+  border: '#DEE4DE',
+  borderStrong: '#C7D1C9',
+  softGreen: '#DDF1E6',
+};
+
 const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -137,8 +153,10 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
           value={message}
           onChangeText={setMessage}
           placeholder="Type your question..."
-          placeholderTextColor={themeColors.textMuted}
-          selectionColor={themeColors.primary}
+          placeholderTextColor={assistantPalette.mutedText}
+          selectionColor={assistantPalette.userBubble}
+          cursorColor={assistantPalette.userBubble}
+          keyboardAppearance="light"
           multiline
         />
         <TouchableOpacity style={styles.sendBtn} onPress={() => sendMessage()} disabled={loading}>
@@ -150,7 +168,7 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: themeColors.background },
+  container: { flex: 1, backgroundColor: assistantPalette.screen },
   header: {
     paddingTop: 52,
     paddingHorizontal: 16,
@@ -158,36 +176,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: themeColors.nav
+    backgroundColor: assistantPalette.header
   },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: '#fff' },
+  headerTitle: { fontSize: 18, fontWeight: '900', color: assistantPalette.inverseText },
   headerActionButton: { minWidth: 76, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
-  headerActionText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  headerActionText: { color: assistantPalette.inverseText, fontSize: 11, fontWeight: '800' },
   messages: { flex: 1 },
   messagesContent: { padding: 12, flexGrow: 1 },
-  empty: { color: themeColors.textSecondary, textAlign: 'center', marginTop: 20 },
+  empty: { color: assistantPalette.secondaryText, textAlign: 'center', marginTop: 20 },
   bubble: { padding: 10, borderRadius: 12, marginBottom: 10, maxWidth: '88%' },
-  userBubble: { alignSelf: 'flex-end', backgroundColor: themeColors.primary },
-  assistantBubble: { alignSelf: 'flex-start', backgroundColor: themeColors.cardBackground, borderWidth: 1, borderColor: themeColors.border },
-  userBubbleText: { color: themeColors.white, fontSize: 14, lineHeight: 20 },
-  assistantBubbleText: { color: themeColors.textPrimary, fontSize: 14, lineHeight: 20 },
+  userBubble: { alignSelf: 'flex-end', backgroundColor: assistantPalette.userBubble },
+  assistantBubble: { alignSelf: 'flex-start', backgroundColor: assistantPalette.assistantBubble, borderWidth: 1, borderColor: assistantPalette.border },
+  userBubbleText: { color: assistantPalette.inverseText, fontSize: 14, lineHeight: 20 },
+  assistantBubbleText: { color: assistantPalette.text, fontSize: 14, lineHeight: 20 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     borderTopWidth: 1,
-    borderTopColor: themeColors.border,
+    borderTopColor: assistantPalette.border,
     padding: 10,
-    backgroundColor: themeColors.cardBackground
+    backgroundColor: assistantPalette.card
   },
   suggestionsContainer: {
-    backgroundColor: themeColors.nav,
+    backgroundColor: assistantPalette.header,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0'
+    borderBottomColor: assistantPalette.border
   },
   suggestionsTitle: {
-    color: '#fff',
+    color: assistantPalette.inverseText,
     fontWeight: '700',
     marginBottom: 8
   },
@@ -196,16 +214,16 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   suggestionPill: {
-    backgroundColor: themeColors.cardBackground,
+    backgroundColor: assistantPalette.card,
     borderRadius: 18,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginRight: 10,
     borderWidth: 1,
-    borderColor: themeColors.border
+    borderColor: assistantPalette.border
   },
   suggestionText: {
-    color: themeColors.textPrimary,
+    color: assistantPalette.text,
     fontSize: 13,
     fontWeight: '700'
   },
@@ -214,12 +232,12 @@ const styles = StyleSheet.create({
     minHeight: 40,
     maxHeight: 100,
     borderWidth: 1,
-    borderColor: themeColors.borderStrong,
+    borderColor: assistantPalette.borderStrong,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    backgroundColor: themeColors.background,
-    color: themeColors.textPrimary
+    backgroundColor: assistantPalette.input,
+    color: assistantPalette.text
   },
   sendBtn: {
     marginLeft: 8,

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import UserDropdownMenu from '../../components/UserDropdownMenu';
 
 const AdminVerificationQueueScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
+  const [queueStats, setQueueStats] = useState({ total: 0, pending: 0, verified: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState('all'); // all | queued_ai | ai_processing | manual_review | approved | rejected
@@ -35,9 +36,19 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
 
   const load = useCallback(async () => {
     try {
-      const res = await api.get('/verifications/admin/queue', { params: { status } });
+      const [res, allRes] = await Promise.all([
+        api.get('/verifications/admin/queue', { params: { status } }),
+        status === 'all' ? Promise.resolve(null) : api.get('/verifications/admin/queue', { params: { status: 'all' } })
+      ]);
       if (res.data?.success) {
         setRows(Array.isArray(res.data.data) ? res.data.data : []);
+        const allRows = Array.isArray(allRes?.data?.data) ? allRes.data.data : (Array.isArray(res.data.data) ? res.data.data : []);
+        setQueueStats({
+          total: allRows.length,
+          pending: allRows.filter((r) => ['pending_upload', 'queued_ai', 'ai_processing', 'manual_review'].includes(r?.status)).length,
+          verified: allRows.filter((r) => ['documents_verified', 'approved'].includes(r?.status)).length,
+          rejected: allRows.filter((r) => r?.status === 'rejected').length,
+        });
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to load verification queue');
       }
@@ -67,23 +78,11 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
     }
   };
 
-  const stats = useMemo(() => {
-    const by = (s) => rows.filter((r) => r?.status === s).length;
-    return {
-      total: rows.length,
-      manual: by('manual_review'),
-      docVerified: by('documents_verified'),
-      approved: by('approved'),
-      rejected: by('rejected'),
-    };
-  }, [rows]);
-
   const statusChips = [
-    { key: 'all', label: `All (${stats.total})` },
-    { key: 'manual_review', label: `Manual (${stats.manual})` },
-    { key: 'documents_verified', label: `Doc OK (${stats.docVerified})` },
-    { key: 'approved', label: `Admin (${stats.approved})` },
-    { key: 'rejected', label: `Rejected (${stats.rejected})` },
+    { key: 'all', label: `All (${queueStats.total})` },
+    { key: 'pending', label: `Pending (${queueStats.pending})` },
+    { key: 'verified', label: `Verified (${queueStats.verified})` },
+    { key: 'rejected', label: `Rejected (${queueStats.rejected})` },
   ];
 
   const openDetails = (item) => {

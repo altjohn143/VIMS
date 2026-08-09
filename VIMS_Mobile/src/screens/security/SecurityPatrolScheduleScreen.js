@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
-import LogoutButton from '../../components/LogoutButton';
+import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 
 const initialForm = { phase: '', area: '', checkpoint: '', notes: '', status: 'completed' };
 
@@ -173,24 +173,12 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerEyebrow}>SECURITY MODULE</Text>
-          <Text style={styles.headerTitle}>Patrol Logs</Text>
-          <Text style={styles.headerSubtitle}>Submit checkpoint rounds and review patrol activity.</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionButton}>
-            <Ionicons name="arrow-back" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={load} style={styles.headerActionButton}>
-            <Ionicons name="refresh" size={17} color="white" />
-            <Text style={styles.headerButtonText}>Refresh</Text>
-          </TouchableOpacity>
-          <LogoutButton navigation={navigation} color="white" size={18} />
-        </View>
-      </View>
+      <SecurityUtilityHeader
+        navigation={navigation}
+        title="Patrol Logs"
+        subtitle="Submit checkpoint rounds and review patrol activity."
+        actions={[{ label: 'Refresh', icon: 'refresh', onPress: load, primary: true }]}
+      />
 
       <FlatList
         data={paginatedRows}

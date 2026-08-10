@@ -96,6 +96,24 @@ const SecurityIncidentsScreen = ({ navigation }) => {
     return map[s] || themeColors.textSecondary;
   };
 
+  const statusColor = (s) => {
+    const map = {
+      open: themeColors.warning,
+      investigating: themeColors.info,
+      resolved: themeColors.success,
+    };
+    return map[s] || themeColors.textSecondary;
+  };
+
+  const statusLabel = (s) => {
+    const map = {
+      open: 'Open',
+      investigating: 'Investigating',
+      resolved: 'Resolved',
+    };
+    return map[s] || s || 'Open';
+  };
+
   const submit = async () => {
     if (!form.title.trim() || !form.description.trim()) {
       Alert.alert('Error', 'Title and description are required');
@@ -152,14 +170,21 @@ const SecurityIncidentsScreen = ({ navigation }) => {
 
   const renderItem = ({ item }) => {
     const sev = severityColor(item?.severity);
+    const st = String(item?.status || 'open');
+    const sc = statusColor(item?.status);
     const isResolved = item?.status === 'resolved';
     const isInvestigating = item?.status === 'investigating';
     return (
       <View style={[styles.card, shadows.small]}>
         <View style={styles.cardTop}>
           <Text style={styles.cardTitle} numberOfLines={1}>{item?.title || 'Incident'}</Text>
-          <View style={[styles.pill, { backgroundColor: sev + '20' }]}>
-            <Text style={[styles.pillText, { color: sev }]}>{String(item?.severity || 'medium').toUpperCase()}</Text>
+          <View style={styles.cardPills}>
+            <View style={[styles.pill, { backgroundColor: sc + '20' }]}>
+              <Text style={[styles.pillText, { color: sc }]}>{statusLabel(st)}</Text>
+            </View>
+            <View style={[styles.pill, { backgroundColor: sev + '20' }]}>
+              <Text style={[styles.pillText, { color: sev }]}>{String(item?.severity || 'medium').toUpperCase()}</Text>
+            </View>
           </View>
         </View>
         <Text style={styles.cardBody} numberOfLines={3}>{item?.description || ''}</Text>
@@ -167,11 +192,11 @@ const SecurityIncidentsScreen = ({ navigation }) => {
           {item?.location ? `Location: ${item.location} • ` : ''}{formatWhen(item?.createdAt)}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          Status: {item?.status || 'open'} • Reported by {item?.reportedBy?.firstName || ''} {item?.reportedBy?.lastName || ''}
+          Reported by {item?.reportedBy?.firstName || ''} {item?.reportedBy?.lastName || ''}
         </Text>
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.investigateBtn, (processing || isResolved) && styles.disabled]}
+            style={[styles.actionBtn, styles.investigateBtn, (processing || isResolved || isInvestigating) && styles.disabled]}
             disabled={processing || isResolved || isInvestigating}
             onPress={() => setStatus(item._id, 'investigating')}
           >
@@ -179,7 +204,7 @@ const SecurityIncidentsScreen = ({ navigation }) => {
             <Text style={styles.actionText}>Investigate</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.resolveBtn, processing && styles.disabled]}
+            style={[styles.actionBtn, styles.resolveBtn, (processing || isResolved) && styles.disabled]}
             disabled={processing || isResolved}
             onPress={() => setStatus(item._id, 'resolved')}
           >
@@ -403,6 +428,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: themeColors.border, borderLeftWidth: 4, borderLeftColor: themeColors.error },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary, flex: 1, minWidth: 0 },
+  cardPills: { flexDirection: 'row', gap: 6, flexShrink: 0 },
   pill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
   pillText: { fontSize: 11, fontWeight: '900' },
   cardBody: { marginTop: 10, fontSize: 13, color: themeColors.textPrimary, opacity: 0.9, lineHeight: 19 },

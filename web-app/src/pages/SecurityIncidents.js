@@ -47,6 +47,25 @@ const SecurityIncidents = () => {
     border: 'rgba(15, 23, 42, 0.08)'
   };
 
+  const statusChipColor = (status) => {
+    const map = {
+      open: 'warning',
+      investigating: 'info',
+      resolved: 'success',
+    };
+    return map[String(status || '').toLowerCase()] || 'default';
+  };
+
+  const severityChipColor = (severity) => {
+    const map = {
+      low: 'success',
+      medium: 'warning',
+      high: 'error',
+      critical: 'error',
+    };
+    return map[String(severity || '').toLowerCase()] || 'default';
+  };
+
   const [rows, setRows] = useState([]);
   const [lots, setLots] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -259,22 +278,29 @@ const SecurityIncidents = () => {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Chip size="small" label={item.severity} color={item.severity === 'critical' ? 'error' : item.severity === 'high' ? 'warning' : 'default'} />
+                          <Chip size="small" label={item.severity} color={severityChipColor(item.severity)} />
                         </TableCell>
                         <TableCell>
-                          <Chip size="small" label={item.status} />
+                          <Chip size="small" label={item.status} color={statusChipColor(item.status)} />
                         </TableCell>
                         <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
                         <TableCell align="right">
                           <Button
                             size="small"
-                            disabled={item.status === 'resolved'}
+                            disabled={item.status === 'resolved' || item.status === 'investigating'}
                             onClick={() => setStatus(item._id, 'investigating')}
                             sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                           >
                             Investigate
                           </Button>
-                          <Button size="small" onClick={() => setStatus(item._id, 'resolved')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Resolve</Button>
+                          <Button
+                            size="small"
+                            disabled={item.status === 'resolved'}
+                            onClick={() => setStatus(item._id, 'resolved')}
+                            sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
+                          >
+                            Resolve
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

@@ -16,7 +16,7 @@ import {
   Paper,
   Tab,
   Tabs,
-  Table,
+   Table,
   TableBody,
   TableCell,
   TableContainer,
@@ -25,10 +25,12 @@ import {
   TableRow,
   TextField,
   Toolbar,
+  Tooltip,
   Typography
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
+  Lock as LockIcon,
   Logout as LogoutIcon,
   Search as SearchIcon,
   Settings as SettingsIcon
@@ -107,9 +109,23 @@ const SecurityServiceRequests = () => {
     loadStaff();
   }, [loadStaff]);
 
-  const updateStatus = async (id, nextStatus) => {
+  const updateStatus = async (item, nextStatus) => {
+    if (!item?._id) return;
+    const currentStatus = String(item?.status || '').toLowerCase();
+    if (currentStatus === nextStatus.toLowerCase()) {
+      toast(`Already ${nextStatus.replace(/-/g, ' ')}`);
+      return;
+    }
+    if (isTerminalStatus(item)) {
+      toast.error(`Cannot update a ${currentStatus.replace(/-/g, ' ')} request`);
+      return;
+    }
+    if (requiresAssignmentBeforeUpdate(item)) {
+      toast('Assign security staff before changing status');
+      return;
+    }
     try {
-      await axios.put(`/api/service-requests/${id}/status`, { status: nextStatus });
+      await axios.put(`/api/service-requests/${item._id}/status`, { status: nextStatus });
       toast.success(`Marked as ${nextStatus}`);
       load();
     } catch (error) {
@@ -195,29 +211,59 @@ const SecurityServiceRequests = () => {
     }
   };
 
+  const requiresAssignmentBeforeUpdate = (item) => {
+    const assignedId = item.assignedTo?._id || item.assignedTo;
+    return Boolean(
+      isHeadOfficer &&
+      ['security', 'complaint'].includes(item.category) &&
+      !assignedId
+    );
+  };
+
   const canHandleRequest = (item) => {
     const assignedId = item.assignedTo?._id || item.assignedTo;
     const myId = currentUser?._id || currentUser?.id;
-    const isHeadOfficer =
-      currentUser?.securityLevel === 'head-officer' ||
-      String(currentUser?.email || '').toLowerCase() === 'security@vims.com';
     return Boolean(
-      myId &&
-      assignedId &&
-      (
-        String(assignedId) === String(myId) ||
+      myId && (
+        (assignedId && String(assignedId) === String(myId)) ||
         (isHeadOfficer && ['security', 'complaint'].includes(item.category))
       )
     );
   };
 
+  const isTerminalStatus = (item) => {
+    const st = String(item?.status || '').toLowerCase();
+    return ['completed', 'cancelled', 'rejected'].includes(st);
+  };
+
+  const getStatusChipColor = (status) => {
+    const map = {
+      pending: 'warning',
+      assigned: 'primary',
+      'in-progress': 'info',
+      completed: 'success',
+      cancelled: 'error',
+      rejected: 'error',
+      'under-review': 'info',
+    };
+    return map[String(status || '').toLowerCase()] || 'default';
+  };
+
+  const getPriorityChipColor = (priority) => {
+    const map = {
+      low: 'success',
+      medium: 'warning',
+      high: 'error',
+      urgent: 'error',
+    };
+    return map[String(priority || '').toLowerCase()] || 'default';
+  };
+
   const getStatusActionHint = (item) => {
-    const assignedId = item.assignedTo?._id || item.assignedTo;
-    if (isHeadOfficer && ['security', 'complaint'].includes(item.category) && !assignedId) {
-      return 'Assign security staff before changing status';
-    }
     if (!canHandleRequest(item)) return 'Only assigned security staff can update status';
-    if (item.status === 'completed') return 'Request already completed';
+    if (requiresAssignmentBeforeUpdate(item)) return 'Assign security staff before changing status';
+    if (isTerminalStatus(item)) return `Request already ${String(item?.status || '').replace(/-/g, ' ')}`;
+    if (String(item?.status || '').toLowerCase() === 'in-progress') return 'Already in progress';
     return '';
   };
 
@@ -415,38 +461,45 @@ const SecurityServiceRequests = () => {
                   </TableCell>
                   <TableCell>{item.residentId?.firstName || ''} {item.residentId?.lastName || ''}</TableCell>
                   <TableCell>
-                    <Chip size="small" label={item.priority || 'normal'} color={item.priority === 'urgent' ? 'error' : 'default'} />
+                    <Chip size="small" label={item.priority || 'normal'} color={getPriorityChipColor(item.priority)} />
                   </TableCell>
-                  <TableCell><Chip size="small" label={item.status} /></TableCell>
-                  <TableCell>
-                    {isHeadOfficer ? (
-                      <TextField
-                        select
-                        size="small"
-                        fullWidth
-                        value={item.assignedTo?._id || item.assignedTo || ''}
-                        disabled={assigningId === item._id}
-                        onChange={(event) => assignStaff(item, event.target.value)}
-                        sx={{ minWidth: 220 }}
-                      >
-                        <MenuItem value="" disabled>Assign security staff</MenuItem>
-                        {getRecommendedStaff(item).map((staff) => (
-                          <MenuItem key={staff._id} value={staff._id}>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                                {staff.firstName} {staff.lastName}{staff.recommendationScore > 0 ? ' • Recommended' : ''}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {staff.recommendationReason}
-                              </Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    ) : (
-                      item.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}` : 'Unassigned'
-                    )}
-                  </TableCell>
+                  <TableCell><Chip size="small" label={item.status} color={getStatusChipColor(item.status)} /></TableCell>
+                   <TableCell>
+                     {isHeadOfficer ? (
+                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                         <TextField
+                           select
+                           size="small"
+                           fullWidth
+                           value={item.assignedTo?._id || item.assignedTo || ''}
+                           disabled={assigningId === item._id || Boolean(item.assignedTo?._id || item.assignedTo)}
+                           onChange={(event) => assignStaff(item, event.target.value)}
+                           sx={{ minWidth: 200, flexShrink: 1 }}
+                         >
+                           <MenuItem value="" disabled>Assign security staff</MenuItem>
+                           {getRecommendedStaff(item).map((staff) => (
+                             <MenuItem key={staff._id} value={staff._id}>
+                               <Box>
+                                 <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                                   {staff.firstName} {staff.lastName}{staff.recommendationScore > 0 ? ' • Recommended' : ''}
+                                 </Typography>
+                                 <Typography variant="caption" color="text.secondary">
+                                   {staff.recommendationReason}
+                                 </Typography>
+                               </Box>
+                             </MenuItem>
+                           ))}
+                         </TextField>
+                         {item.assignedTo ? (
+                           <Tooltip title="Assignment locked — cannot be changed">
+                             <LockIcon sx={{ color: themeColors.textSecondary, fontSize: 18 }} />
+                           </Tooltip>
+                         ) : null}
+                       </Box>
+                     ) : (
+                       item.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}` : 'Unassigned'
+                     )}
+                   </TableCell>
                   <TableCell align="right">
                     {getStatusActionHint(item) && (
                       <Typography variant="caption" sx={{ display: 'block', color: themeColors.textSecondary, mb: 0.5 }}>
@@ -455,16 +508,16 @@ const SecurityServiceRequests = () => {
                     )}
                     <Button
                       size="small"
-                      disabled={!canHandleRequest(item) || item.status === 'completed'}
-                      onClick={() => updateStatus(item._id, 'in-progress')}
+                      disabled={!canHandleRequest(item) || isTerminalStatus(item) || item.status === 'in-progress'}
+                      onClick={() => updateStatus(item, 'in-progress')}
                       sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                     >
                       Start
                     </Button>
                     <Button
                       size="small"
-                      disabled={!canHandleRequest(item) || item.status === 'completed'}
-                      onClick={() => updateStatus(item._id, 'completed')}
+                      disabled={!canHandleRequest(item) || isTerminalStatus(item)}
+                      onClick={() => updateStatus(item, 'completed')}
                       sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                     >
                       Complete

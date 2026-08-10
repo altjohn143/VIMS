@@ -860,6 +860,14 @@ router.put('/:id/assign-staff', protect, authorize('admin', 'security'), async (
       });
     }
 
+    // Once a request is assigned to security personnel, the assignment is locked
+    if (request.assignedTo) {
+      return res.status(403).json({
+        success: false,
+        error: 'This request is already assigned and cannot be reassigned'
+      });
+    }
+
     if (['security', 'complaint'].includes(request.category) && staff.role !== 'security') {
       return res.status(400).json({
         success: false,

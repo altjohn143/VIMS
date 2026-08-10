@@ -316,6 +316,12 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       });
   }, [selected, staffMembers, isHeadOfficer, user]);
 
+  const getAssignedToStaff = (request) => {
+    const staff = request?.assignedTo;
+    if (!staff) return null;
+    return { name: `${staff.firstName || ''} ${staff.lastName || ''}`, _id: staff._id || staff };
+  };
+
   const assignRequest = async () => {
     if (!selected?._id || !assigningTo) {
       Alert.alert('Select Staff', 'Please select a security staff member to assign this request.');
@@ -379,7 +385,8 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     const pr = getPriorityColor(item?.priority);
     const sr = getStatusColor(item?.status);
     const st = String(item?.status || 'pending');
-    const showStatusBar = ['in-progress', 'completed', 'cancelled', 'rejected'].includes(st);
+    const assignedToStaff = getAssignedToStaff(item);
+    const isTerminal = ['completed', 'cancelled', 'rejected'].includes(st);
     return (
       <TouchableOpacity style={[styles.card, shadows.small]} onPress={() => { setSelected(item); setAssigningTo(item?.assignedTo?._id || item?.assignedTo || ''); setDetailsOpen(true); }}>
         <View style={styles.cardTop}>
@@ -401,11 +408,17 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
           Resident: {item?.residentId?.firstName} {item?.residentId?.lastName} • House {item?.residentId?.houseNumber || 'N/A'}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          Assigned to: {item?.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}`.trim() || 'Security staff' : 'Unassigned'}
+          Assigned to: {assignedToStaff ? `${assignedToStaff.name}` : 'Unassigned'}
         </Text>
-        {showStatusBar && (
+        {assignedToStaff && !isTerminal && (
+          <View style={[styles.assignedBadge, { backgroundColor: themeColors.warning + '20' }]}>
+            <Ionicons name="checkmark-circle" size={13} color={themeColors.warning} />
+            <Text style={[styles.assignedBadgeText, { color: themeColors.warning }]}>Assigned to {assignedToStaff.name}</Text>
+          </View>
+        )}
+        {isTerminal && (
           <View style={[styles.terminalBar, { backgroundColor: sr + '15' }]}>
-            <Ionicons name={st === 'completed' ? 'checkmark-circle' : st === 'in-progress' ? 'construct' : 'close-circle'} size={13} color={sr} />
+            <Ionicons name={st === 'completed' ? 'checkmark-circle' : 'close-circle'} size={13} color={sr} />
             <Text style={[styles.terminalText, { color: sr }]}>{getStatusLabel(st)}</Text>
           </View>
         )}
@@ -564,51 +577,71 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
                 {['completed', 'cancelled', 'rejected'].includes(String(selected?.status || '').toLowerCase())
                   ? `This request is already ${getStatusLabel(selected?.status).toLowerCase()}. No further status changes are allowed.`
                   : isHeadOfficer
-                    ? (requiresAssignmentBeforeUpdate(selected)
-                      ? 'Assign this request to a security officer before marking it in progress or completed.'
-                      : 'Head officers can reassign security requests and complaints to supervised staff.')
+                    ? (selected?.assignedTo
+                      ? 'The assigned officer is displayed below. Once assigned, the assignment cannot be changed.'
+                      : (requiresAssignmentBeforeUpdate(selected)
+                        ? 'Assign this request to a security officer before marking it in progress or completed.'
+                        : 'Select a security officer to assign this request. The assignment will be locked once set.'))
                     : 'Status updates are only allowed if this request is assigned to you.'}
               </Text>
 
               {isHeadOfficer && (
                 <View style={styles.assignmentBox}>
-                  <Text style={styles.assignmentTitle}>Recommended Security Staff</Text>
-                  {recommendedStaff.length ? (
-                    recommendedStaff.map((staff) => {
-                      const selectedStaff = String(assigningTo) === String(staff._id);
-                      return (
-                        <TouchableOpacity
-                          key={staff._id}
-                          style={[styles.staffOption, selectedStaff && styles.staffOptionActive]}
-                          onPress={() => setAssigningTo(staff._id)}
-                        >
-                          <View style={styles.staffTextWrap}>
-                            <Text style={[styles.staffName, selectedStaff && styles.staffNameActive]}>
-                              {staff.firstName} {staff.lastName}{staff.isSelf ? ' (You)' : ''}
-                            </Text>
-                            <Text style={[styles.staffMeta, selectedStaff && styles.staffMetaActive]}>
-                              {staff.isSelf ? 'Head Officer' : staff.recommendationScore > 0 ? 'Recommended: ' : ''}{staff.isSelf ? '' : staff.recommendationReason}
-                            </Text>
-                          </View>
-                          {selectedStaff && <Ionicons name="checkmark-circle" size={20} color="white" />}
-                        </TouchableOpacity>
-                      );
-                    })
+                  {selected?.assignedTo ? (
+                    <>
+                      <Text style={styles.assignmentTitle}>Assigned Security Officer</Text>
+                      <View style={[styles.staffOption, { backgroundColor: themeColors.surfaceMuted, opacity: 0.7 }]}>
+                        <View style={styles.staffTextWrap}>
+                          <Text style={styles.staffName}>
+                            {selected.assignedTo.firstName} {selected.assignedTo.lastName}
+                          </Text>
+                          <Text style={styles.staffMeta}>Assignment locked — cannot be changed</Text>
+                        </View>
+                        <Ionicons name="lock-closed" size={20} color={themeColors.textSecondary} />
+                      </View>
+                      <Text style={styles.note}>Assignment is locked. The assigned officer cannot be changed once set.</Text>
+                    </>
                   ) : (
-                    <Text style={styles.emptyText}>No supervised security staff found.</Text>
+                    <>
+                      <Text style={styles.assignmentTitle}>Recommended Security Staff</Text>
+                      {recommendedStaff.length ? (
+                        recommendedStaff.map((staff) => {
+                          const selectedStaff = String(assigningTo) === String(staff._id);
+                          return (
+                            <TouchableOpacity
+                              key={staff._id}
+                              style={[styles.staffOption, selectedStaff && styles.staffOptionActive]}
+                              onPress={() => setAssigningTo(staff._id)}
+                            >
+                              <View style={styles.staffTextWrap}>
+                                <Text style={[styles.staffName, selectedStaff && styles.staffNameActive]}>
+                                  {staff.firstName} {staff.lastName}{staff.isSelf ? ' (You)' : ''}
+                                </Text>
+                                <Text style={[styles.staffMeta, selectedStaff && styles.staffMetaActive]}>
+                                  {staff.isSelf ? 'Head Officer' : staff.recommendationScore > 0 ? 'Recommended: ' : ''}{staff.isSelf ? '' : staff.recommendationReason}
+                                </Text>
+                              </View>
+                              {selectedStaff && <Ionicons name="checkmark-circle" size={20} color="white" />}
+                            </TouchableOpacity>
+                          );
+                        })
+                      ) : (
+                        <Text style={styles.emptyText}>No supervised security staff found.</Text>
+                      )}
+                      <TouchableOpacity
+                        disabled={processing || !assigningTo}
+                        onPress={assignRequest}
+                        style={[styles.assignBtn, (processing || !assigningTo) && styles.disabled]}
+                      >
+                        {processing ? <ActivityIndicator color="white" /> : (
+                          <>
+                            <Ionicons name={String(assigningTo) === String(user?.id || user?._id) ? 'person-outline' : 'person-add-outline'} size={16} color="white" />
+                            <Text style={styles.actionText}>{String(assigningTo) === String(user?.id || user?._id) ? 'Assign to Self' : 'Assign Staff'}</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </>
                   )}
-                  <TouchableOpacity
-                    disabled={processing || !assigningTo}
-                    onPress={assignRequest}
-                    style={[styles.assignBtn, (processing || !assigningTo) && styles.disabled]}
-                  >
-                    {processing ? <ActivityIndicator color="white" /> : (
-                      <>
-                        <Ionicons name={String(assigningTo) === String(user?.id || user?._id) ? 'person-outline' : 'person-add-outline'} size={16} color="white" />
-                        <Text style={styles.actionText}>{String(assigningTo) === String(user?.id || user?._id) ? 'Assign to Self' : 'Assign Staff'}</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
                 </View>
               )}
 
@@ -717,6 +750,8 @@ const styles = StyleSheet.create({
   meta: { marginTop: 8, fontSize: 11, color: themeColors.textSecondary, fontWeight: '700' },
   terminalBar: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8 },
   terminalText: { fontSize: 11, fontWeight: '900' },
+  assignedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(255,193,7,0.15)' },
+  assignedBadgeText: { fontSize: 10, fontWeight: '800', color: themeColors.warning, marginLeft: 4 },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyTitle: { marginTop: 14, fontSize: 18, fontWeight: '700', color: themeColors.textPrimary },
   emptyText: { marginTop: 6, fontSize: 13, color: themeColors.textSecondary, textAlign: 'center' },

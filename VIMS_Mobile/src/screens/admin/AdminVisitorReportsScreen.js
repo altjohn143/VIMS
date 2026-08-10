@@ -294,19 +294,31 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
 
         <View style={{ height: 20 }} />
       </ScrollView>
-      {datePickerField ? (
-        <DateTimePicker
-          value={new Date((datePickerField === 'start' ? startDate : endDate) || Date.now())}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onChange={(event, selectedDate) => {
-            if (event?.type === 'dismissed') {
-              setDatePickerField(null);
-              return;
-            }
-            selectDate(datePickerField, selectedDate);
-          }}
-        />
+{datePickerField ? (
+        <View style={Platform.OS === 'ios' ? styles.inlineExportPicker : undefined}>
+          {Platform.OS === 'ios' && (
+            <View style={styles.inlineExportPickerHeader}>
+              <Text style={styles.inlineExportPickerTitle}>
+                {datePickerField === 'start' ? 'Select start date' : 'Select end date'}
+              </Text>
+              <TouchableOpacity style={styles.inlineExportPickerDone} onPress={() => setDatePickerField(null)}>
+                <Text style={styles.inlineExportPickerDoneText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <DateTimePicker
+            value={new Date((datePickerField === 'start' ? startDate : endDate) || Date.now())}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'inline' : 'default'}
+            onChange={(event, selectedDate) => {
+              if (event?.type === 'dismissed') {
+                setDatePickerField(null);
+                return;
+              }
+              selectDate(datePickerField, selectedDate);
+            }}
+          />
+        </View>
       ) : null}
     </View>
   );
@@ -403,6 +415,11 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
   emptyTitle: { fontSize: 16, fontWeight: '700', color: themeColors.textPrimary, marginTop: 12 },
   emptyText: { fontSize: 12, color: themeColors.textSecondary, marginTop: 4 },
+  inlineExportPicker: { marginBottom: 10, borderWidth: 1, borderColor: themeColors.border, borderRadius: 14, overflow: 'hidden', backgroundColor: themeColors.cardBackground },
+  inlineExportPickerHeader: { minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  inlineExportPickerTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800' },
+  inlineExportPickerDone: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, backgroundColor: themeColors.primarySoft },
+  inlineExportPickerDoneText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
 });
 
 export default AdminVisitorReportsScreen;

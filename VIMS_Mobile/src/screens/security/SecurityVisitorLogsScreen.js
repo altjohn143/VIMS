@@ -486,19 +486,24 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
         </View>
-        {datePickerOpen && (
-          <DateTimePicker
-            value={dateFilter ? new Date(`${dateFilter}T12:00:00`) : new Date()}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onChange={handleDatePicked}
-          />
-        )}
-        {Platform.OS === 'ios' && datePickerOpen && (
-          <TouchableOpacity style={styles.doneDateButton} onPress={() => setDatePickerOpen(false)}>
-            <Text style={styles.doneDateText}>Done</Text>
-          </TouchableOpacity>
-        )}
+{datePickerOpen ? (
+          <View style={Platform.OS === 'ios' ? styles.inlineDatePickerWrapper : undefined}>
+            {Platform.OS === 'ios' && (
+              <View style={styles.inlineDatePickerHeader}>
+                <Text style={styles.inlineDatePickerTitle}>Select date</Text>
+                <TouchableOpacity style={styles.inlineDatePickerDone} onPress={() => setDatePickerOpen(false)}>
+                  <Text style={styles.inlineDatePickerDoneText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <DateTimePicker
+              value={dateFilter ? new Date(`${dateFilter}T12:00:00`) : new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              onChange={handleDatePicked}
+            />
+          </View>
+        ) : null}
       </View>
 
       <View style={[styles.activityCard, shadows.small]}>
@@ -1078,7 +1083,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#f8fafc',
   },
-  doneDateButton: {
+doneDateButton: {
     alignSelf: 'flex-end',
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -1087,6 +1092,11 @@ const styles = StyleSheet.create({
     color: themeColors.primary,
     fontWeight: '900',
   },
+  inlineDatePickerWrapper: { marginBottom: 10, borderWidth: 1, borderColor: themeColors.border, borderRadius: 14, overflow: 'hidden', backgroundColor: themeColors.cardBackground },
+  inlineDatePickerHeader: { minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  inlineDatePickerTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800' },
+  inlineDatePickerDone: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, backgroundColor: themeColors.primarySoft },
+  inlineDatePickerDoneText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   listContainer: {
     paddingBottom: 24,
   },

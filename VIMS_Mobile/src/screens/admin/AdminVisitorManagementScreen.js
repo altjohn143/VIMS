@@ -563,6 +563,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
                     style={[styles.modalButton, styles.approveButton]}
                     onPress={() => {
                       setOverrideAction('approve');
+                      setShowDetailsModal(false);
                       setShowOverrideModal(true);
                     }}
                   >
@@ -573,6 +574,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
                     style={[styles.modalButton, styles.rejectButton]}
                     onPress={() => {
                       setOverrideAction('reject');
+                      setShowDetailsModal(false);
                       setShowOverrideModal(true);
                     }}
                   >

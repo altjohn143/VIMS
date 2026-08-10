@@ -45,11 +45,12 @@ const ProfileScreen = ({ navigation }) => {
   });
   const [passwordOtpSent, setPasswordOtpSent] = useState(false);
   const [passwordOtp, setPasswordOtp] = useState('');
-  const [showMoveOutModal, setShowMoveOutModal] = useState(false);
+const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   const [moveOutReason, setMoveOutReason] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const passwordScrollRef = useRef(null);
   const moveOutScrollRef = useRef(null);
+  const moveOutSubmittingRef = useRef(false);
 
   const scrollModalTo = (ref, y) => {
     setTimeout(() => {
@@ -142,6 +143,9 @@ const ProfileScreen = ({ navigation }) => {
         const response = await api.get('/users/profile');
         if (response.data.success) {
           const profileData = response.data.data;
+          const updatedUser = { ...userData, ...profileData };
+          setUser(updatedUser);
+          await updateUser(updatedUser);
           setFormData({
             firstName: profileData.firstName || '',
             lastName: profileData.lastName || '',
@@ -282,7 +286,7 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const requestMoveOut = async () => {
-    if (moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved') {
+    if (moveOutSubmittingRef.current || moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved') {
       Alert.alert('Move-out Request Exists', 'You already have an active move-out request.');
       return;
     }
@@ -293,8 +297,12 @@ const ProfileScreen = ({ navigation }) => {
     }
     try {
       setMoveOutSubmitting(true);
+      moveOutSubmittingRef.current = true;
       const res = await api.post('/users/move-out/request', { reason: moveOutReason.trim() });
       if (res.data?.success) {
+        const updatedUser = { ...user, ...(res.data?.data || {}), moveOutStatus: 'pending' };
+        setUser(updatedUser);
+        await updateUser(updatedUser);
         Alert.alert('Submitted', res.data.message || 'Move-out request submitted');
         setShowMoveOutModal(false);
         setMoveOutReason('');
@@ -306,6 +314,7 @@ const ProfileScreen = ({ navigation }) => {
       Alert.alert('Error', e?.response?.data?.error || 'Failed to submit move-out request');
     } finally {
       setMoveOutSubmitting(false);
+      moveOutSubmittingRef.current = false;
     }
   };
 

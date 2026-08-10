@@ -170,10 +170,8 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         user?.securityLevel === 'head-officer' ||
         String(user?.email || '').toLowerCase() === 'security@vims.com';
       return Boolean(
-        myId &&
-        assignedId &&
-        (
-          String(assignedId) === String(myId) ||
+        myId && (
+          (assignedId && String(assignedId) === String(myId)) ||
           (isHeadOfficer && ['security', 'complaint'].includes(req?.category))
         )
       );
@@ -206,10 +204,15 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     try {
       const res = await api.put(`/service-requests/${id}/status`, { status: nextStatus });
       if (res.data?.success) {
-        Alert.alert('Success', `Marked as ${nextStatus}`);
-        if (res.data?.data) {
-          setSelected(res.data.data);
-        }
+        Alert.alert('Success', `Marked as ${nextStatus.replace('-', ' ')}`);
+        const updated = res.data?.data;
+        const newStatus = updated?.status || nextStatus;
+        setSelected((prev) => prev ? { ...prev, status: newStatus } : (updated || { status: newStatus }));
+        setRows((prevRows) =>
+          prevRows.map((row) =>
+            row?._id === id ? { ...row, status: newStatus } : row
+          )
+        );
         load();
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to update status');
@@ -277,15 +280,41 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   };
 
   const recommendedStaff = useMemo(() => {
-    if (!selected || !staffMembers.length) return [];
+    if (!selected) return [];
+
+    const selfOption = isHeadOfficer && user ? {
+      _id: user.id || user._id,
+      firstName: user.firstName || 'You',
+      lastName: user.lastName || '(Self)',
+      role: 'security',
+      securityLevel: user.securityLevel || 'head-officer',
+      assignedPhases: user.assignedPhases || [],
+      assignedAreas: user.assignedAreas || [],
+      patrolSchedule: user.patrolSchedule || '',
+      isSelf: true,
+    } : null;
+
+    let availableStaff = [...staffMembers];
+    if (selfOption) {
+      const alreadyIncluded = availableStaff.some((s) => String(s._id) === String(selfOption._id));
+      if (!alreadyIncluded) {
+        availableStaff.unshift(selfOption);
+      }
+    }
+
     const assignedStaff = selected?.assignedTo && typeof selected.assignedTo === 'object' ? selected.assignedTo : null;
-    const availableStaff = assignedStaff && !staffMembers.some((staff) => String(staff._id) === String(assignedStaff._id))
-      ? [...staffMembers, assignedStaff]
-      : staffMembers;
+    if (assignedStaff && !availableStaff.some((staff) => String(staff._id) === String(assignedStaff._id))) {
+      availableStaff.push(assignedStaff);
+    }
+
     return availableStaff
       .map((staff) => getStaffRecommendation(staff, selected))
-      .sort((a, b) => b.recommendationScore - a.recommendationScore || String(a.firstName || '').localeCompare(String(b.firstName || '')));
-  }, [selected, staffMembers]);
+      .sort((a, b) => {
+        if (a.isSelf && !b.isSelf) return -1;
+        if (!a.isSelf && b.isSelf) return 1;
+        return b.recommendationScore - a.recommendationScore || String(a.firstName || '').localeCompare(String(b.firstName || ''));
+      });
+  }, [selected, staffMembers, isHeadOfficer, user]);
 
   const assignRequest = async () => {
     if (!selected?._id || !assigningTo) {
@@ -320,19 +349,53 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     return map[p] || themeColors.textSecondary;
   };
 
+  const getStatusColor = (s) => {
+    const map = {
+      pending: themeColors.warning,
+      assigned: themeColors.primary,
+      'in-progress': themeColors.info,
+      completed: themeColors.success,
+      cancelled: themeColors.error,
+      rejected: themeColors.error,
+      'under-review': themeColors.info,
+    };
+    return map[s] || themeColors.textSecondary;
+  };
+
+  const getStatusLabel = (s) => {
+    const map = {
+      pending: 'Pending',
+      assigned: 'Assigned',
+      'in-progress': 'In Progress',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+      rejected: 'Rejected',
+      'under-review': 'Under Review',
+    };
+    return map[s] || s || 'Pending';
+  };
+
   const renderItem = ({ item }) => {
     const pr = getPriorityColor(item?.priority);
+    const sr = getStatusColor(item?.status);
+    const st = String(item?.status || 'pending');
+    const showStatusBar = ['in-progress', 'completed', 'cancelled', 'rejected'].includes(st);
     return (
       <TouchableOpacity style={[styles.card, shadows.small]} onPress={() => { setSelected(item); setAssigningTo(item?.assignedTo?._id || item?.assignedTo || ''); setDetailsOpen(true); }}>
         <View style={styles.cardTop}>
           <Text style={styles.cardTitle} numberOfLines={1}>{item?.title || 'Service request'}</Text>
-          <View style={[styles.pill, { backgroundColor: pr + '20' }]}>
-            <Text style={[styles.pillText, { color: pr }]}>{String(item?.priority || 'medium').toUpperCase()}</Text>
+          <View style={styles.cardPills}>
+            <View style={[styles.pill, { backgroundColor: sr + '20' }]}>
+              <Text style={[styles.pillText, { color: sr }]}>{getStatusLabel(st)}</Text>
+            </View>
+            <View style={[styles.pill, { backgroundColor: pr + '20' }]}>
+              <Text style={[styles.pillText, { color: pr }]}>{String(item?.priority || 'medium').toUpperCase()}</Text>
+            </View>
           </View>
         </View>
         <Text style={styles.cardSub} numberOfLines={2}>{item?.description || ''}</Text>
         <Text style={styles.meta}>
-          {item?.category || 'other'} • {item?.status || 'pending'} • {formatWhen(item?.createdAt)}
+          {item?.category || 'other'} • {formatWhen(item?.createdAt)}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
           Resident: {item?.residentId?.firstName} {item?.residentId?.lastName} • House {item?.residentId?.houseNumber || 'N/A'}
@@ -340,6 +403,12 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         <Text style={styles.meta} numberOfLines={1}>
           Assigned to: {item?.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}`.trim() || 'Security staff' : 'Unassigned'}
         </Text>
+        {showStatusBar && (
+          <View style={[styles.terminalBar, { backgroundColor: sr + '15' }]}>
+            <Ionicons name={st === 'completed' ? 'checkmark-circle' : st === 'in-progress' ? 'construct' : 'close-circle'} size={13} color={sr} />
+            <Text style={[styles.terminalText, { color: sr }]}>{getStatusLabel(st)}</Text>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -421,8 +490,8 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
         keyExtractor={(item, index) => item?._id || `service-${index}`}
         contentContainerStyle={styles.listContainer}
         ListHeaderComponent={renderListHeader()}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="none"
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="on-drag"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -463,7 +532,12 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
             </View>
             <ScrollView>
               <Text style={styles.dTitle}>{selected?.title || 'Service request'}</Text>
-              <Text style={styles.dMeta}>{selected?.category || 'other'} • {selected?.status || 'pending'}</Text>
+              <View style={styles.dMetaRow}>
+                <Text style={styles.dMeta}>{selected?.category || 'other'}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selected?.status) + '20' }]}>
+                  <Text style={[styles.statusBadgeText, { color: getStatusColor(selected?.status) }]}>{getStatusLabel(selected?.status)}</Text>
+                </View>
+              </View>
               <Text style={styles.dMeta}>Created: {formatWhen(selected?.createdAt)}</Text>
               <Text style={styles.dMeta}>Resident: {selected?.residentId?.firstName} {selected?.residentId?.lastName} • House {selected?.residentId?.houseNumber || 'N/A'}</Text>
               <View style={styles.divider} />
@@ -487,11 +561,13 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
 
               <View style={styles.divider} />
               <Text style={styles.note}>
-                {isHeadOfficer
-                  ? (requiresAssignmentBeforeUpdate(selected)
-                    ? 'Assign this request to a security officer before marking it in progress or completed.'
-                    : 'Head officers can reassign security requests and complaints to supervised staff.')
-                  : 'Status updates are only allowed if this request is assigned to you.'}
+                {['completed', 'cancelled', 'rejected'].includes(String(selected?.status || '').toLowerCase())
+                  ? `This request is already ${getStatusLabel(selected?.status).toLowerCase()}. No further status changes are allowed.`
+                  : isHeadOfficer
+                    ? (requiresAssignmentBeforeUpdate(selected)
+                      ? 'Assign this request to a security officer before marking it in progress or completed.'
+                      : 'Head officers can reassign security requests and complaints to supervised staff.')
+                    : 'Status updates are only allowed if this request is assigned to you.'}
               </Text>
 
               {isHeadOfficer && (
@@ -508,10 +584,10 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
                         >
                           <View style={styles.staffTextWrap}>
                             <Text style={[styles.staffName, selectedStaff && styles.staffNameActive]}>
-                              {staff.firstName} {staff.lastName}
+                              {staff.firstName} {staff.lastName}{staff.isSelf ? ' (You)' : ''}
                             </Text>
                             <Text style={[styles.staffMeta, selectedStaff && styles.staffMetaActive]}>
-                              {staff.recommendationScore > 0 ? 'Recommended: ' : ''}{staff.recommendationReason}
+                              {staff.isSelf ? 'Head Officer' : staff.recommendationScore > 0 ? 'Recommended: ' : ''}{staff.isSelf ? '' : staff.recommendationReason}
                             </Text>
                           </View>
                           {selectedStaff && <Ionicons name="checkmark-circle" size={20} color="white" />}
@@ -526,7 +602,12 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
                     onPress={assignRequest}
                     style={[styles.assignBtn, (processing || !assigningTo) && styles.disabled]}
                   >
-                    {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="person-add-outline" size={16} color="white" /><Text style={styles.actionText}>Assign Staff</Text></>}
+                    {processing ? <ActivityIndicator color="white" /> : (
+                      <>
+                        <Ionicons name={String(assigningTo) === String(user?.id || user?._id) ? 'person-outline' : 'person-add-outline'} size={16} color="white" />
+                        <Text style={styles.actionText}>{String(assigningTo) === String(user?.id || user?._id) ? 'Assign to Self' : 'Assign Staff'}</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
               )}
@@ -537,7 +618,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
                     processing ||
                     !selected?._id ||
                     !canUpdate(selected) ||
-                    String(selected?.status || '').toLowerCase() === 'in-progress'
+                    ['in-progress', 'completed', 'cancelled', 'rejected'].includes(String(selected?.status || '').toLowerCase())
                   }
                   onPress={() => updateStatus(selected._id, 'in-progress')}
                   style={[
@@ -546,16 +627,29 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
                     (
                       processing ||
                       !canUpdate(selected) ||
-                      String(selected?.status || '').toLowerCase() === 'in-progress'
+                      ['in-progress', 'completed', 'cancelled', 'rejected'].includes(String(selected?.status || '').toLowerCase())
                     ) && styles.disabled
                   ]}
                 >
                   {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="time-outline" size={16} color="white" /><Text style={styles.actionText}>In Progress</Text></>}
                 </TouchableOpacity>
                 <TouchableOpacity
-                  disabled={processing || !selected?._id || !canUpdate(selected)}
+                  disabled={
+                    processing ||
+                    !selected?._id ||
+                    !canUpdate(selected) ||
+                    ['completed', 'cancelled', 'rejected'].includes(String(selected?.status || '').toLowerCase())
+                  }
                   onPress={() => updateStatus(selected._id, 'completed')}
-                  style={[styles.actionBtn, styles.completedBtn, (processing || !canUpdate(selected)) && styles.disabled]}
+                  style={[
+                    styles.actionBtn,
+                    styles.completedBtn,
+                    (
+                      processing ||
+                      !canUpdate(selected) ||
+                      ['completed', 'cancelled', 'rejected'].includes(String(selected?.status || '').toLowerCase())
+                    ) && styles.disabled
+                  ]}
                 >
                   {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="checkmark-circle-outline" size={16} color="white" /><Text style={styles.actionText}>Completed</Text></>}
                 </TouchableOpacity>
@@ -616,10 +710,13 @@ const styles = StyleSheet.create({
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
   cardTitle: { fontSize: 15, fontWeight: '900', color: themeColors.textPrimary, flex: 1, minWidth: 0 },
+  cardPills: { flexDirection: 'row', gap: 6, flexShrink: 0 },
   pill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
   pillText: { fontSize: 11, fontWeight: '900' },
   cardSub: { marginTop: 10, fontSize: 13, color: themeColors.textSecondary },
   meta: { marginTop: 8, fontSize: 11, color: themeColors.textSecondary, fontWeight: '700' },
+  terminalBar: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8 },
+  terminalText: { fontSize: 11, fontWeight: '900' },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyTitle: { marginTop: 14, fontSize: 18, fontWeight: '700', color: themeColors.textPrimary },
   emptyText: { marginTop: 6, fontSize: 13, color: themeColors.textSecondary, textAlign: 'center' },
@@ -628,7 +725,10 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10 },
   modalTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary },
   dTitle: { fontSize: 18, fontWeight: '900', color: themeColors.textPrimary, marginTop: 6 },
+  dMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   dMeta: { marginTop: 4, fontSize: 12, color: themeColors.textSecondary, fontWeight: '600' },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  statusBadgeText: { fontSize: 11, fontWeight: '900' },
   divider: { height: 1, backgroundColor: themeColors.border, marginVertical: 12 },
   dBody: { fontSize: 14, color: themeColors.textPrimary, lineHeight: 22 },
   sectionTitle: { marginTop: 14, marginBottom: 8, color: themeColors.textPrimary, fontSize: 13, fontWeight: '900' },

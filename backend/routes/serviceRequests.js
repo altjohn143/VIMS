@@ -869,14 +869,16 @@ router.put('/:id/assign-staff', protect, authorize('admin', 'security'), async (
 
     if (req.user.role === 'security') {
       const requesterIsPrimaryHeadOfficer = isPrimarySecurityHeadOfficer(req.user);
+      const isSelfAssignment = String(staff._id) === String(req.user.id);
       const isUnassignedPersonnel = !staff.headOfficerId;
       const supervisedByCurrentOfficer = staff.headOfficerId && String(staff.headOfficerId) === String(req.user.id);
       const secondarySupervisedByCurrentOfficer =
         staff.secondaryHeadOfficerId && String(staff.secondaryHeadOfficerId) === String(req.user.id);
       if (
-        staff.securityLevel === 'head-officer' ||
+        (staff.securityLevel === 'head-officer' && !isSelfAssignment) ||
         (
           !requesterIsPrimaryHeadOfficer &&
+          !isSelfAssignment &&
           !supervisedByCurrentOfficer &&
           !secondarySupervisedByCurrentOfficer &&
           !isUnassignedPersonnel

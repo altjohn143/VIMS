@@ -85,8 +85,19 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
     if (Platform.OS === 'android') setDatePickerField(null);
     if (!selectedDate) return;
     const value = format(selectedDate, 'yyyy-MM-dd');
-    if (field === 'start') setStartDate(value);
-    else setEndDate(value);
+    if (field === 'start') {
+      if (endDate && value > endDate) {
+        Alert.alert('Invalid Date Range', 'The start date must be before or equal to the end date.');
+        return;
+      }
+      setStartDate(value);
+    } else {
+      if (startDate && value < startDate) {
+        Alert.alert('Invalid Date Range', 'The end date must be after or equal to the start date.');
+        return;
+      }
+      setEndDate(value);
+    }
   };
 
   const openDatePicker = (field) => setDatePickerField(field);
@@ -341,8 +352,9 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 18, lineHeight: 21, fontWeight: '900', marginTop: 2 },
 
   filtersSection: { marginBottom: 24 },
-  dateRow: { gap: 8, marginBottom: 10 },
+  dateRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   dateInput: {
+    flex: 1,
     minHeight: 44,
     borderWidth: 1,
     borderColor: themeColors.border,

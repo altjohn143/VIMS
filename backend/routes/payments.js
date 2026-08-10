@@ -411,6 +411,8 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
       status,
       paymentType,
       paymentMethod,
+      startDate,
+      endDate,
       page = 1,
       limit = 20,
       format = 'json',
@@ -427,6 +429,8 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     }
     if (paymentType) filter.paymentType = paymentType;
     if (paymentMethod) filter.paymentMethod = paymentMethod;
+    if (startDate) filter.createdAt = { ...filter.createdAt, $gte: new Date(startDate) };
+    if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate + 'T23:59:59.999') };
 
     let payments = await Payment.find(filter)
       .populate('residentId', 'firstName lastName houseNumber')

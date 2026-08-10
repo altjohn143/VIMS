@@ -16,6 +16,8 @@ import {
   Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api, { getProtectedImageDataUrl } from '../../utils/api';
@@ -52,6 +54,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+  const [paymentStartDate, setPaymentStartDate] = useState('');
+  const [paymentEndDate, setPaymentEndDate] = useState('');
+  const [paymentDatePicker, setPaymentDatePicker] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchDraft, setSearchDraft] = useState('');
   const [monthlyDuesAmount, setMonthlyDuesAmount] = useState(0);
@@ -69,6 +74,8 @@ const AdminPaymentsScreen = ({ navigation }) => {
       if (statusFilter !== 'all') params.status = statusFilter;
       if (paymentTypeFilter !== 'all') params.paymentType = paymentTypeFilter;
       if (paymentMethodFilter !== 'all') params.paymentMethod = paymentMethodFilter;
+      if (paymentStartDate) params.startDate = paymentStartDate;
+      if (paymentEndDate) params.endDate = paymentEndDate;
       if (searchQuery.trim()) params.search = searchQuery.trim();
       
       const response = await api.get('/payments', { params });
@@ -85,7 +92,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, statusFilter, paymentTypeFilter, paymentMethodFilter, searchQuery]);
+  }, [page, statusFilter, paymentTypeFilter, paymentMethodFilter, paymentStartDate, paymentEndDate, searchQuery]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -124,7 +131,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, paymentTypeFilter, paymentMethodFilter, searchQuery]);
+  }, [statusFilter, paymentTypeFilter, paymentMethodFilter, paymentStartDate, paymentEndDate, searchQuery]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -161,6 +168,8 @@ const AdminPaymentsScreen = ({ navigation }) => {
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (paymentTypeFilter !== 'all') params.set('paymentType', paymentTypeFilter);
       if (paymentMethodFilter !== 'all') params.set('paymentMethod', paymentMethodFilter);
+      if (paymentStartDate) params.set('startDate', paymentStartDate);
+      if (paymentEndDate) params.set('endDate', paymentEndDate);
       if (searchQuery.trim()) params.set('search', searchQuery.trim());
       const target = `${FileSystem.cacheDirectory}VIMS_Payments_${new Date().toISOString().slice(0, 10)}.${fileFormat}`;
       const result = await FileSystem.downloadAsync(
@@ -290,7 +299,29 @@ const AdminPaymentsScreen = ({ navigation }) => {
     setStatusFilter('all');
     setPaymentTypeFilter('all');
     setPaymentMethodFilter('all');
+    setPaymentStartDate('');
+    setPaymentEndDate('');
+    setPaymentDatePicker(null);
     setPage(1);
+  };
+
+  const selectPaymentDate = (field, selectedDate) => {
+    if (Platform.OS === 'android') setPaymentDatePicker(null);
+    if (!selectedDate) return;
+    const value = format(selectedDate, 'yyyy-MM-dd');
+    if (field === 'start') {
+      if (paymentEndDate && value > paymentEndDate) {
+        Alert.alert('Invalid Date Range', 'The start date must be before or equal to the end date.');
+        return;
+      }
+      setPaymentStartDate(value);
+    } else {
+      if (paymentStartDate && value < paymentStartDate) {
+        Alert.alert('Invalid Date Range', 'The end date must be after or equal to the start date.');
+        return;
+      }
+      setPaymentEndDate(value);
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -309,6 +340,12 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const getStatusChip = (status, dueDate) => {
     if (status === 'paid') {
       return { label: 'Paid', color: themeColors.success, icon: 'checkmark-circle' };
+    }
+    if (status === 'failed') {
+      return { label: 'Failed', color: themeColors.error, icon: 'close-circle' };
+    }
+    if (status === 'refunded') {
+      return { label: 'Refunded', color: themeColors.info, icon: 'return-up-back' };
     }
     if (dueDate && new Date() > new Date(dueDate)) {
       return { label: 'Overdue', color: themeColors.error, icon: 'warning' };
@@ -571,7 +608,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
             </View>
             <Text style={styles.filterGroupLabel}>STATUS</Text>
             <View style={styles.wrappedFilters}>
-              {[['all', 'All statuses'], ['pending', 'Pending'], ['paid', 'Paid'], ['overdue', 'Overdue'], ['rejected', 'Rejected']].map(([value, label]) => (
+              {[['all', 'All statuses'], ['pending', 'Pending'], ['paid', 'Paid'], ['overdue', 'Overdue'], ['failed', 'Failed'], ['refunded', 'Refunded']].map(([value, label]) => (
                 <TouchableOpacity key={value} style={[styles.filterChip, statusFilter === value && styles.filterChipActive]} onPress={() => setStatusFilter(value)}>
                   <Text style={[styles.filterChipText, statusFilter === value && styles.filterChipTextActive]}>{label}</Text>
                 </TouchableOpacity>
@@ -584,8 +621,48 @@ const AdminPaymentsScreen = ({ navigation }) => {
                   <Text style={[styles.filterChipText, paymentMethodFilter === value && styles.filterChipTextActive]}>{label}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
-            <View style={styles.filterSheetActions}>
+             </View>
+             <Text style={styles.filterGroupLabel}>DATE RANGE</Text>
+             <View style={styles.filterDateRow}>
+               <TouchableOpacity style={styles.filterDateInput} onPress={() => setPaymentDatePicker('start')} disabled={exporting}>
+                 <Ionicons name="calendar-outline" size={16} color={themeColors.primaryDeep} />
+                 <Text style={[styles.filterDateText, !paymentStartDate && styles.filterDatePlaceholder]}>
+                   {paymentStartDate || 'Start date'}
+                 </Text>
+                 {paymentStartDate ? (
+                   <TouchableOpacity onPress={() => setPaymentStartDate('')}>
+                     <Ionicons name="close-circle" size={16} color={themeColors.textSecondary} />
+                   </TouchableOpacity>
+                 ) : null}
+               </TouchableOpacity>
+               <TouchableOpacity style={styles.filterDateInput} onPress={() => setPaymentDatePicker('end')} disabled={exporting}>
+                 <Ionicons name="calendar-outline" size={16} color={themeColors.primaryDeep} />
+                 <Text style={[styles.filterDateText, !paymentEndDate && styles.filterDatePlaceholder]}>
+                   {paymentEndDate || 'End date'}
+                 </Text>
+                 {paymentEndDate ? (
+                   <TouchableOpacity onPress={() => setPaymentEndDate('')}>
+                     <Ionicons name="close-circle" size={16} color={themeColors.textSecondary} />
+                   </TouchableOpacity>
+                 ) : null}
+               </TouchableOpacity>
+             </View>
+             {paymentDatePicker ? (
+               <DateTimePicker
+                 value={new Date((paymentDatePicker === 'start' ? paymentStartDate : paymentEndDate) || Date.now())}
+                 mode="date"
+                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                 onChange={(event, date) => {
+                   if (Platform.OS === 'android') setPaymentDatePicker(null);
+                   if (event?.type === 'dismissed') {
+                     setPaymentDatePicker(null);
+                     return;
+                   }
+                   selectPaymentDate(paymentDatePicker, date);
+                 }}
+               />
+             ) : null}
+             <View style={styles.filterSheetActions}>
               <TouchableOpacity style={styles.clearFilterButton} onPress={clearPaymentFilters}>
                 <Text style={styles.clearFilterButtonText}>Reset</Text>
               </TouchableOpacity>
@@ -887,6 +964,22 @@ const styles = StyleSheet.create({
   filterSheet: { width: '100%', backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 28 },
   wrappedFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
   filterSheetActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  filterDateRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  filterDateInput: {
+    flex: 1,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#f8fafc',
+  },
+  filterDateText: { flex: 1, color: themeColors.textPrimary, fontSize: 13, fontWeight: '600' },
+  filterDatePlaceholder: { color: themeColors.textSecondary, fontWeight: '500' },
   clearFilterButton: { flex: 1, alignItems: 'center', paddingVertical: 13, borderRadius: 12, backgroundColor: '#f1f5f9' },
   clearFilterButtonText: { color: themeColors.textSecondary, fontWeight: '800' },
   applyFilterButton: { flex: 2, alignItems: 'center', paddingVertical: 13, borderRadius: 12, backgroundColor: themeColors.primaryDeep },

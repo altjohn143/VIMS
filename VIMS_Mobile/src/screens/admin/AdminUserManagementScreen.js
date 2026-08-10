@@ -614,15 +614,15 @@ const AdminUserManagementScreen = ({ navigation }) => {
                 style={[styles.actionButton, styles.approveMoveOutButton]}
                 onPress={() => openMoveOutDialog(item, 'approve')}
               >
-                <Ionicons name="checkmark-circle" size={20} color={themeColors.success} />
-                <Text style={[styles.actionButtonText, { color: themeColors.success }]}>Move-out</Text>
+                <Ionicons name="checkmark-circle" size={20} color={themeColors.white} />
+                <Text style={[styles.actionButtonText, { color: themeColors.white }]}>Move-out</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionButton, styles.denyMoveOutButton]}
                 onPress={() => openMoveOutDialog(item, 'deny')}
               >
-                <Ionicons name="close-circle" size={20} color={themeColors.warning} />
-                <Text style={[styles.actionButtonText, { color: themeColors.warning }]}>Deny</Text>
+                <Ionicons name="close-circle" size={20} color={themeColors.white} />
+                <Text style={[styles.actionButtonText, { color: themeColors.white }]}>Deny</Text>
               </TouchableOpacity>
             </>
           )}
@@ -663,10 +663,10 @@ const AdminUserManagementScreen = ({ navigation }) => {
             }}
             disabled={protectedAccount}
           >
-            <Ionicons name={protectedAccount ? 'shield-checkmark' : 'trash'} size={20} color={protectedAccount ? themeColors.textMuted : themeColors.error} />
-            <Text style={[styles.actionButtonText, { color: protectedAccount ? themeColors.textMuted : themeColors.error }]}>
-              {protectedAccount ? 'Protected' : 'Archive'}
-            </Text>
+          <Ionicons name={protectedAccount ? 'shield-checkmark' : 'trash'} size={20} color={protectedAccount ? themeColors.textMuted : themeColors.white} />
+          <Text style={[styles.actionButtonText, { color: protectedAccount ? themeColors.textMuted : themeColors.white }]}>
+            {protectedAccount ? 'Protected' : 'Archive'}
+          </Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -1384,11 +1384,11 @@ const AdminUserManagementScreen = ({ navigation }) => {
                     <Ionicons
                       name={isProtectedMainAccount(selectedUser) ? 'shield-checkmark' : 'trash'}
                       size={20}
-                      color={isProtectedMainAccount(selectedUser) ? themeColors.textMuted : themeColors.error}
+                      color={isProtectedMainAccount(selectedUser) ? themeColors.textMuted : themeColors.white}
                     />
                     <Text style={[
                       styles.modalActionText,
-                      { color: isProtectedMainAccount(selectedUser) ? themeColors.textMuted : themeColors.error }
+                      { color: isProtectedMainAccount(selectedUser) ? themeColors.textMuted : themeColors.white }
                     ]}>
                       {isProtectedMainAccount(selectedUser) ? 'Protected' : 'Archive'}
                     </Text>
@@ -1844,6 +1844,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 0,
+    backgroundColor: themeColors.surfaceMuted,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minHeight: 42,
   },
   actionButtonText: {
     fontSize: 13,
@@ -1851,16 +1856,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   statusButton: {
-    // inherits
+    backgroundColor: themeColors.surfaceMuted,
   },
   deleteButton: {
-    // inherits
+    backgroundColor: themeColors.error,
   },
   approveMoveOutButton: {
-    // inherits
+    backgroundColor: themeColors.success,
   },
   denyMoveOutButton: {
-    // inherits
+    backgroundColor: themeColors.warning,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -2063,6 +2068,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 8,
+    backgroundColor: themeColors.surfaceMuted,
   },
   modalActionText: {
     color: themeColors.white,

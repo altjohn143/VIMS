@@ -24,7 +24,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
   const [queueStats, setQueueStats] = useState({ total: 0, pending: 0, verified: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [status, setStatus] = useState('all'); // all | queued_ai | ai_processing | manual_review | approved | rejected
+  const [status, setStatus] = useState('all'); // all | pending | verified | rejected
   const [selected, setSelected] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -36,9 +36,8 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
 
   const load = useCallback(async () => {
     try {
-      const apiStatus = status === 'verified' ? 'approved' : status;
       const [res, allRes] = await Promise.all([
-        api.get('/verifications/admin/queue', { params: { status: apiStatus } }),
+        api.get('/verifications/admin/queue', { params: { status } }),
         status === 'all' ? Promise.resolve(null) : api.get('/verifications/admin/queue', { params: { status: 'all' } })
       ]);
       if (res.data?.success) {

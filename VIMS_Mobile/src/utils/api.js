@@ -164,7 +164,19 @@ if (Platform.OS !== 'web') {
   api.defaults.adapter = async (config) => {
     let timeoutId;
     try {
-      const url = `${config.baseURL}${config.url}`;
+      let url = `${config.baseURL}${config.url}`;
+      if (config.params) {
+        const params = new URLSearchParams();
+        Object.entries(config.params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            params.append(key, String(value));
+          }
+        });
+        const qs = params.toString();
+        if (qs) {
+          url += (url.includes('?') ? '&' : '?') + qs;
+        }
+      }
       const controller = new AbortController();
       timeoutId = setTimeout(() => controller.abort(), config.timeout || 180000);
       const requestOptions = {

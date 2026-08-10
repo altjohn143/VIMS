@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
   advancedFilterToggle: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
   advancedFilterToggleText: { color: themeColors.primary, fontSize: 12, fontWeight: '800' },
   activeFilterDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: themeColors.warning },
-  exportModalCard: { width: '92%', maxWidth: 520, maxHeight: '92%', backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 20, paddingBottom: 28 },
+  exportModalCard: { width: '100%', maxWidth: '100%', maxHeight: '92%', backgroundColor: themeColors.cardBackground, borderRadius: 12, padding: 20, paddingBottom: 28 },
   exportModalBody: { paddingBottom: 2 },
   exportHelper: { color: themeColors.textSecondary, fontSize: 12, marginTop: 3 },
   exportLabel: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800', marginTop: 16, marginBottom: 8 },

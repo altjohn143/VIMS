@@ -79,6 +79,19 @@ const themeColors = {
   border: 'rgba(15, 23, 42, 0.08)'
 };
 
+const getAttachmentUrl = (attachment) => {
+  const value = attachment?.url || attachment?.secure_url || attachment?.imageUrl || attachment?.uri;
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value) || /^data:image\//i.test(value)) return value;
+  return getBackendApiUrl(value.startsWith('/') ? value : `/uploads/service-requests/${value}`);
+};
+
+const getRequestAttachments = (request) => (
+  (request?.attachments || [])
+    .map((attachment) => ({ ...attachment, previewUrl: getAttachmentUrl(attachment) }))
+    .filter((attachment) => attachment.previewUrl)
+);
+
 const AdminServiceRequests = () => {
   const [requests, setRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
@@ -1872,6 +1885,46 @@ const paginatedRequests = useMemo(
                     </Typography>
                   </Paper>
                 </Grid>
+
+                {getRequestAttachments(selectedRequest).length > 0 && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+                      Resident Uploaded Photos
+                    </Typography>
+                    <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 2, borderColor: themeColors.border }}>
+                      <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1 }}>
+                        {getRequestAttachments(selectedRequest).map((attachment, index) => (
+                          <Box
+                            key={attachment._id || attachment.publicId || attachment.previewUrl || index}
+                            component="a"
+                            href={attachment.previewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ display: 'block', flex: '0 0 160px', textDecoration: 'none' }}
+                          >
+                            <Box
+                              component="img"
+                              src={attachment.previewUrl}
+                              alt={attachment.filename || `Service request photo ${index + 1}`}
+                              loading="lazy"
+                              sx={{
+                                width: 160,
+                                height: 116,
+                                objectFit: 'cover',
+                                borderRadius: 2,
+                                border: `1px solid ${themeColors.border}`,
+                                bgcolor: themeColors.cardBackground
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: themeColors.textSecondary }} noWrap>
+                              {attachment.filename || `Photo ${index + 1}`}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Paper>
+                  </Grid>
+                )}
 
                 {/* Details Grid */}
                 <Grid item xs={12} md={6}>

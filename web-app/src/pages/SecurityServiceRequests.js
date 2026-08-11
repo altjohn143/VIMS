@@ -39,6 +39,7 @@ import axios from '../config/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { getBackendApiUrl } from '../utils/api';
 
 const themeColors = {
   primary: '#166534',
@@ -54,6 +55,19 @@ const themeColors = {
   textSecondary: '#64748b',
   border: 'rgba(15, 23, 42, 0.08)'
 };
+
+const getAttachmentUrl = (attachment) => {
+  const value = attachment?.url || attachment?.secure_url || attachment?.imageUrl || attachment?.uri;
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value) || /^data:image\//i.test(value)) return value;
+  return getBackendApiUrl(value.startsWith('/') ? value : `/uploads/service-requests/${value}`);
+};
+
+const getRequestAttachments = (request) => (
+  (request?.attachments || [])
+    .map((attachment) => ({ ...attachment, previewUrl: getAttachmentUrl(attachment) }))
+    .filter((attachment) => attachment.previewUrl)
+);
 
 const SecurityServiceRequests = () => {
   const { getCurrentUser, logout } = useAuth();
@@ -458,6 +472,36 @@ const SecurityServiceRequests = () => {
                   <TableCell>
                     <Typography sx={{ fontWeight: 700 }}>{item.title}</Typography>
                     <Typography variant="caption" color="text.secondary">{item.description}</Typography>
+                    {getRequestAttachments(item).length > 0 && (
+                      <Box sx={{ display: 'flex', gap: 0.75, mt: 1, overflowX: 'auto', maxWidth: 260 }}>
+                        {getRequestAttachments(item).map((attachment, index) => (
+                          <Box
+                            key={attachment._id || attachment.publicId || attachment.previewUrl || index}
+                            component="a"
+                            href={attachment.previewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={attachment.filename || `Photo ${index + 1}`}
+                            sx={{ flex: '0 0 auto', display: 'block' }}
+                          >
+                            <Box
+                              component="img"
+                              src={attachment.previewUrl}
+                              alt={attachment.filename || `Service request photo ${index + 1}`}
+                              loading="lazy"
+                              sx={{
+                                width: 54,
+                                height: 44,
+                                objectFit: 'cover',
+                                borderRadius: 1.5,
+                                border: `1px solid ${themeColors.border}`,
+                                bgcolor: '#f8fafc'
+                              }}
+                            />
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
                   </TableCell>
                   <TableCell>{item.residentId?.firstName || ''} {item.residentId?.lastName || ''}</TableCell>
                   <TableCell>

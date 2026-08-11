@@ -66,6 +66,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { getBackendApiUrl } from '../utils/api';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -82,6 +83,19 @@ const themeColors = {
   textSecondary: '#64748b',
   border: 'rgba(15, 23, 42, 0.08)'
 };
+
+const getAttachmentUrl = (attachment) => {
+  const value = attachment?.url || attachment?.secure_url || attachment?.imageUrl || attachment?.uri;
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value) || /^data:image\//i.test(value)) return value;
+  return getBackendApiUrl(value.startsWith('/') ? value : `/uploads/service-requests/${value}`);
+};
+
+const getRequestAttachments = (request) => (
+  (request?.attachments || [])
+    .map((attachment) => ({ ...attachment, previewUrl: getAttachmentUrl(attachment) }))
+    .filter((attachment) => attachment.previewUrl)
+);
 
 const ServiceRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -1792,6 +1806,43 @@ const ServiceRequests = () => {
                       </Typography>
                     </Paper>
                   </Grid>
+                  {getRequestAttachments(selectedRequest).length > 0 && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
+                        Uploaded Photos
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1 }}>
+                        {getRequestAttachments(selectedRequest).map((attachment, index) => (
+                          <Box
+                            key={attachment._id || attachment.publicId || attachment.previewUrl || index}
+                            component="a"
+                            href={attachment.previewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ display: 'block', flex: '0 0 150px', textDecoration: 'none' }}
+                          >
+                            <Box
+                              component="img"
+                              src={attachment.previewUrl}
+                              alt={attachment.filename || `Service request photo ${index + 1}`}
+                              loading="lazy"
+                              sx={{
+                                width: 150,
+                                height: 110,
+                                objectFit: 'cover',
+                                borderRadius: 2,
+                                border: `1px solid ${themeColors.border}`,
+                                bgcolor: '#f8fafc'
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: themeColors.textSecondary }} noWrap>
+                              {attachment.filename || `Photo ${index + 1}`}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Grid>
+                  )}
                   <Grid item xs={12} sm={6}>
                     <Typography variant="subtitle2" sx={{ 
                       color: themeColors.textPrimary,

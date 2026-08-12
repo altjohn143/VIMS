@@ -785,6 +785,16 @@ const SecurityVisitorLogs = () => {
     return date.toLocaleString();
   };
 
+  const getSecurityProgress = (visitor) => {
+    const progress = visitor?.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
+    return {
+      total,
+      entered: Number(progress.entryScanCount || 0),
+      exited: Number(progress.exitScanCount || 0)
+    };
+  };
+
   const handleLogEntry = async (visitor) => {
     if (!visitor?._id) return;
 
@@ -1509,7 +1519,12 @@ const SecurityVisitorLogs = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                visitors.map((visitor) => (
+                visitors.map((visitor) => {
+                  const securityProgress = getSecurityProgress(visitor);
+                  const canCheckIn = ['approved', 'active'].includes(visitor.status) && securityProgress.entered < securityProgress.total;
+                  const canCheckOut = visitor.status === 'active' && securityProgress.exited < securityProgress.total;
+
+                  return (
                   <TableRow 
                     key={visitor._id || visitor.id} 
                     hover
@@ -1612,8 +1627,7 @@ const SecurityVisitorLogs = () => {
                           <ViewIcon />
                         </IconButton>
 
-                        {['approved', 'active'].includes(visitor.status) &&
-                          Number(visitor.scanProgress?.entryScanCount || 0) < Math.max(1, Number(visitor.scanProgress?.groupSize || visitor.numberOfCompanions || 0)) && (
+                        {canCheckIn && (
                           <Button
                             size="small"
                             variant="outlined"
@@ -1631,12 +1645,11 @@ const SecurityVisitorLogs = () => {
                               }
                             }}
                           >
-                            Check In
+                            Check In {securityProgress.entered + 1}/{securityProgress.total}
                           </Button>
                         )}
 
-                        {visitor.status === 'active' &&
-                          Number(visitor.scanProgress?.exitScanCount || 0) < Math.max(1, Number(visitor.scanProgress?.groupSize || visitor.numberOfCompanions || 0)) && (
+                        {canCheckOut && (
                           <Button
                             size="small"
                             variant="outlined"
@@ -1654,7 +1667,7 @@ const SecurityVisitorLogs = () => {
                               }
                             }}
                           >
-                            Check Out
+                            Check Out {securityProgress.exited + 1}/{securityProgress.total}
                           </Button>
                         )}
 
@@ -1677,7 +1690,8 @@ const SecurityVisitorLogs = () => {
                       </Box>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>

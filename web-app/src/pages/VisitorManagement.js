@@ -1347,7 +1347,7 @@ const VisitorManagement = () => {
                                   }
                                 }}
                               >
-                                Confirm Household
+                                Confirm Household {confirmationProgress.arrived + 1}/{confirmationProgress.total}
                               </Button>
                             )}
 
@@ -1369,7 +1369,7 @@ const VisitorManagement = () => {
                                   }
                                 }}
                               >
-                                Confirm Departure
+                                Confirm Departure {confirmationProgress.departed + 1}/{confirmationProgress.total}
                               </Button>
                             )}
 

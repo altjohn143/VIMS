@@ -790,9 +790,16 @@ const SecurityVisitorLogs = () => {
     const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
     return {
       total,
-      entered: Number(progress.entryScanCount || 0),
-      exited: Number(progress.exitScanCount || 0)
+      entered: Number(progress.entryScanCount ?? visitor?.entryScanCount ?? 0),
+      exited: Number(progress.exitScanCount ?? visitor?.exitScanCount ?? 0)
     };
+  };
+
+  const replaceVisitorRow = (updatedVisitor) => {
+    if (!updatedVisitor?._id) return;
+    setVisitors((current) => current.map((visitor) => (
+      visitor._id === updatedVisitor._id ? { ...visitor, ...updatedVisitor } : visitor
+    )));
   };
 
   const handleLogEntry = async (visitor) => {
@@ -803,6 +810,7 @@ const SecurityVisitorLogs = () => {
       const response = await axios.put(`/api/visitors/${visitor._id}/entry`, {});
       if (response.data.success) {
         toast.success(response.data.message || 'Visitor checked in successfully');
+        replaceVisitorRow(response.data.data);
         fetchVisitors();
       }
     } catch (error) {
@@ -820,6 +828,7 @@ const SecurityVisitorLogs = () => {
       const response = await axios.put(`/api/visitors/${visitor._id}/exit`, {});
       if (response.data.success) {
         toast.success(response.data.message || 'Visitor checked out successfully');
+        replaceVisitorRow(response.data.data);
         fetchVisitors();
       }
     } catch (error) {

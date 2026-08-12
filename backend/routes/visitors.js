@@ -109,8 +109,15 @@ const getVisitorQrStatus = (visitor) => {
 const attachQrStatus = (visitor) => {
   if (!visitor) return visitor;
   normalizeVisitorScanCounters(visitor);
-  visitor.qrStatus = getVisitorQrStatus(visitor);
-  visitor.scanProgress = getVisitorProgress(visitor);
+  const qrStatus = getVisitorQrStatus(visitor);
+  const scanProgress = getVisitorProgress(visitor);
+
+  if (typeof visitor.set === 'function') {
+    visitor.set('qrStatus', qrStatus, { strict: false });
+    visitor.set('scanProgress', scanProgress, { strict: false });
+  }
+  visitor.qrStatus = qrStatus;
+  visitor.scanProgress = scanProgress;
   return visitor;
 };
 

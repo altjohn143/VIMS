@@ -4,6 +4,26 @@ const Lot = require('../models/Lot');
 const OccupancyHistory = require('../models/OccupancyHistory');
 const { protect, authorize } = require('../middleware/auth');
 
+const normalizeUnassignedOccupiedLot = async (lot, persist = false) => {
+  if (!lot) return lot;
+  if (lot.status === 'occupied' && !lot.occupiedBy) {
+    lot.status = 'vacant';
+    lot.occupiedBy = null;
+    lot.occupiedAt = null;
+    if (persist && typeof lot.save === 'function') {
+      await lot.save();
+    }
+  }
+  return lot;
+};
+
+const cleanupUnassignedOccupiedLots = async () => {
+  await Lot.updateMany(
+    { status: 'occupied', $or: [{ occupiedBy: null }, { occupiedBy: { $exists: false } }] },
+    { $set: { status: 'vacant', occupiedBy: null, occupiedAt: null } }
+  );
+};
+
 // Generate all lots with phases (run once to populate database)
 router.post('/generate', async (req, res) => {
   try {
@@ -59,6 +79,7 @@ router.post('/generate', async (req, res) => {
 // Get all available (vacant) lots
 router.get('/available', async (req, res) => {
   try {
+    await cleanupUnassignedOccupiedLots();
     const lots = await Lot.find({
       status: 'vacant',
       'mapPosition.isPositioned': true
@@ -80,9 +101,14 @@ router.get('/available', async (req, res) => {
 // Get all lots (for admin/map)
 router.get('/', async (req, res) => {
   try {
+    await cleanupUnassignedOccupiedLots();
     const lots = await Lot.find()
       .sort({ phase: 1, block: 1, lotNumber: 1 })
       .populate('occupiedBy', 'firstName lastName email');
+
+    for (const lot of lots) {
+      await normalizeUnassignedOccupiedLot(lot, true);
+    }
     
     res.json({
       success: true,
@@ -110,14 +136,15 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
       return res.status(404).json({ success: false, error: 'Lot not found' });
     }
     
+    const nextStatus = status === 'occupied' && !occupiedBy ? 'vacant' : status;
     const previousStatus = lot.status;
     const previousOccupiedBy = lot.occupiedBy;
-    lot.status = status;
+    lot.status = nextStatus;
     
-    if (status === 'occupied' && occupiedBy) {
+    if (nextStatus === 'occupied' && occupiedBy) {
       lot.occupiedBy = occupiedBy;
       lot.occupiedAt = new Date();
-    } else if (status === 'vacant') {
+    } else if (nextStatus === 'vacant') {
       lot.occupiedBy = null;
       lot.occupiedAt = null;
     }
@@ -125,17 +152,17 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
     await lot.save();
     await OccupancyHistory.create({
       lotId: lot.lotId,
-      residentId: status === 'occupied' ? lot.occupiedBy : previousOccupiedBy,
-      action: status === 'occupied' ? 'move_in' : status === 'vacant' ? 'move_out' : 'status_update',
+      residentId: nextStatus === 'occupied' ? lot.occupiedBy : previousOccupiedBy,
+      action: nextStatus === 'occupied' ? 'move_in' : nextStatus === 'vacant' ? 'move_out' : 'status_update',
       previousStatus,
-      newStatus: status,
+      newStatus: nextStatus,
       reason: 'Manual lot status update',
       performedBy: req.user._id
     });
     
     res.json({
       success: true,
-      message: `Lot ${lot.lotId} status updated to ${status}`,
+      message: `Lot ${lot.lotId} status updated to ${nextStatus}`,
       data: lot
     });
   } catch (error) {
@@ -440,6 +467,7 @@ router.post('/map-data/import', protect, authorize('admin'), async (req, res) =>
 // Check if a specific lot is available
 router.get('/check/:block/:lot', async (req, res) => {
   try {
+    await cleanupUnassignedOccupiedLots();
     const { block, lot } = req.params;
     const lotId = `${block.toUpperCase()}-${lot}`;
     
@@ -468,6 +496,7 @@ router.get('/check/:block/:lot', async (req, res) => {
 // Export lots data (CSV or PDF format)
 router.get('/export', protect, async (req, res) => {
   try {
+    await cleanupUnassignedOccupiedLots();
     const { format = 'pdf', phase, block, status, type, timezoneOffset = 0 } = req.query;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 

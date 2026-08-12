@@ -610,7 +610,9 @@ const AdminLotMapEditor = () => {
       setSaving(true);
       const response = await axios.post('/api/lots/map-data/import', payload);
       const result = response.data?.data;
-      toast.success(`Imported ${result?.total || lotCount} lots`);
+      const corrected = Number(result?.correctedPositionLabels) || 0;
+      const positioned = Number(result?.positioned) || 0;
+      toast.success(`Imported ${result?.total || lotCount} lots (${positioned} placed, ${corrected} labels corrected)`);
       setDraftPositions({});
       setUndoStack([]);
       setRedoStack([]);

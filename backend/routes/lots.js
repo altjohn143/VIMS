@@ -64,48 +64,7 @@ const emptyMapPosition = () => ({
   updatedAt: new Date()
 });
 
-const copyMapPosition = (mapPosition) => ({
-  isPositioned: true,
-  left: mapPosition.left,
-  top: mapPosition.top,
-  width: mapPosition.width,
-  height: mapPosition.height,
-  rotate: mapPosition.rotate || 0,
-  shape: mapPosition.shape || 'rectangle',
-  updatedBy: mapPosition.updatedBy || null,
-  updatedAt: new Date()
-});
-
-const correctPositionedLotLabels = async () => {
-  for (const [phaseText, blockMap] of Object.entries(POSITIONED_BLOCK_RENUMBERING)) {
-    const phase = Number(phaseText);
-
-    for (const [fromBlockText, toBlock] of Object.entries(blockMap)) {
-      const fromBlock = Number(fromBlockText);
-      const positionedLots = await Lot.find({
-        phase,
-        block: fromBlock,
-        'mapPosition.isPositioned': true
-      });
-
-      for (const sourceLot of positionedLots) {
-        const targetLotId = `P${phase}-B${toBlock}-L${sourceLot.lotNumber}`;
-        const targetLot = await Lot.findOne({ lotId: targetLotId });
-        if (!targetLot) continue;
-
-        targetLot.mapPosition = copyMapPosition(sourceLot.mapPosition);
-        sourceLot.mapPosition = emptyMapPosition();
-
-        await targetLot.save();
-        await sourceLot.save();
-      }
-    }
-  }
-};
-
 const cleanupUnassignedOccupiedLots = async () => {
-  await correctPositionedLotLabels();
-
   await Lot.updateMany(
     { lotId: { $in: OLD_AMENITY_LOTS }, status: 'amenity' },
     {

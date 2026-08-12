@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
+import { safeGoBack } from '../../utils/navigation';
 
 const AdminVerificationQueueScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
@@ -36,19 +37,9 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
 
   const load = useCallback(async () => {
     try {
-      const [res, allRes] = await Promise.all([
-        api.get('/verifications/admin/queue', { params: { status } }),
-        status === 'all' ? Promise.resolve(null) : api.get('/verifications/admin/queue', { params: { status: 'all' } })
-      ]);
+      const res = await api.get('/verifications/admin/queue', { params: { status: 'all' } });
       if (res.data?.success) {
         setRows(Array.isArray(res.data.data) ? res.data.data : []);
-        const allRows = Array.isArray(allRes?.data?.data) ? allRes.data.data : (Array.isArray(res.data.data) ? res.data.data : []);
-        setQueueStats({
-          total: allRows.length,
-          pending: allRows.filter((r) => ['pending_upload', 'queued_ai', 'ai_processing', 'manual_review'].includes(r?.status)).length,
-          verified: allRows.filter((r) => ['documents_verified', 'approved'].includes(r?.status)).length,
-          rejected: allRows.filter((r) => r?.status === 'rejected').length,
-        });
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to load verification queue');
       }
@@ -58,7 +49,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [status]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -84,6 +75,34 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
     { key: 'verified', label: `Verified (${queueStats.verified})` },
     { key: 'rejected', label: `Rejected (${queueStats.rejected})` },
   ];
+
+  const matchesStatusFilter = useCallback((item, nextStatus = status) => {
+    if (nextStatus === 'all') return true;
+    if (nextStatus === 'pending') {
+      return ['pending_upload', 'queued_ai', 'ai_processing', 'manual_review'].includes(item?.status);
+    }
+    if (nextStatus === 'verified') {
+      return ['documents_verified', 'approved'].includes(item?.status);
+    }
+    if (nextStatus === 'rejected') {
+      return item?.status === 'rejected';
+    }
+    return true;
+  }, [status]);
+
+  const filteredRows = useMemo(
+    () => rows.filter((item) => matchesStatusFilter(item)),
+    [rows, matchesStatusFilter]
+  );
+
+  useEffect(() => {
+    setQueueStats({
+      total: rows.length,
+      pending: rows.filter((r) => matchesStatusFilter(r, 'pending')).length,
+      verified: rows.filter((r) => matchesStatusFilter(r, 'verified')).length,
+      rejected: rows.filter((r) => matchesStatusFilter(r, 'rejected')).length,
+    });
+  }, [rows, matchesStatusFilter]);
 
   const openDetails = (item) => {
     setSelected(item);
@@ -212,12 +231,12 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
           <View style={styles.directoryHeading}>
             <Text style={styles.directoryEyebrow}>ADMIN DIRECTORY</Text>
             <Text style={styles.directoryTitle}>Verification Queue</Text>
-            <Text style={styles.directorySubtitle}>{rows.length} identity records in the selected view</Text>
+            <Text style={styles.directorySubtitle}>{filteredRows.length} identity records in the selected view</Text>
           </View>
           <UserDropdownMenu navigation={navigation} />
         </View>
         <View style={styles.directoryActions}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.directoryIconAction}>
+          <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.directoryIconAction}>
             <Ionicons name="arrow-back" size={19} color={themeColors.primaryDeep} />
             <Text style={styles.directoryIconActionText}>Back</Text>
           </TouchableOpacity>
@@ -245,7 +264,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
       </ScrollView>
 
       <FlatList
-        data={rows}
+        data={filteredRows}
         renderItem={renderItem}
         keyExtractor={(item, index) => item?._id || `verification-${index}`}
         contentContainerStyle={[roleLayouts.admin.content, styles.listContainer]}

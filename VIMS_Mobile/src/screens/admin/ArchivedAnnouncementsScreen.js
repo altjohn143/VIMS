@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import AdminUtilityHeader from '../../components/AdminUtilityHeader';
+import { safeGoBack } from '../../utils/navigation';
 
 const ArchivedAnnouncementsScreen = ({ navigation }) => {
   const [announcements, setAnnouncements] = useState([]);
@@ -151,7 +152,7 @@ const ArchivedAnnouncementsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ARCHIVE" title="Archived Posts" subtitle={`${announcements.length} archived announcements available for review`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => navigation.goBack() }, { label: 'Refresh', icon: 'refresh', onPress: loadArchivedAnnouncements, primary: true, loading: refreshing }]} />
+      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ARCHIVE" title="Archived Posts" subtitle={`${announcements.length} archived announcements available for review`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => safeGoBack(navigation) }, { label: 'Refresh', icon: 'refresh', onPress: loadArchivedAnnouncements, primary: true, loading: refreshing }]} />
 
       <FlatList
         data={announcements}

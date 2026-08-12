@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
+import { safeGoBack } from '../../utils/navigation';
 
 const STATUS_OPTIONS = ['all', 'vacant', 'occupied', 'reserved'];
 
@@ -129,7 +130,7 @@ const AdminLotManagementScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => safeGoBack(navigation)}>
           <Ionicons name="arrow-back" size={24} color={themeColors.primaryDeep} />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
@@ -138,10 +139,6 @@ const AdminLotManagementScreen = ({ navigation }) => {
           <Text style={styles.headerSubtitle}>Monitor lot inventory, ownership, and availability.</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerActionButton} onPress={() => navigation.navigate('AdminLotMapEditor')}>
-            <Ionicons name="map-outline" size={21} color={themeColors.primaryDeep} />
-            <Text style={styles.headerButtonText}>Map Editor</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.headerActionButton} onPress={() => loadLots(true)}>
             <Ionicons name="refresh" size={22} color={themeColors.primaryDeep} />
             <Text style={styles.headerButtonText}>Refresh</Text>

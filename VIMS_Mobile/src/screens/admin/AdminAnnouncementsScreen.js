@@ -16,13 +16,15 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { format } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
+import { safeGoBack } from '../../utils/navigation';
 
-const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null };
+const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null, image: null };
 
 const AdminAnnouncementsScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
@@ -60,6 +62,12 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
     load();
   };
 
+  const closeCreateModal = () => {
+    setCreateOpen(false);
+    setForm(emptyForm);
+    closeSchedulePicker();
+  };
+
   const formatWhen = (d) => {
     if (!d) return 'N/A';
     try {
@@ -93,15 +101,31 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
     }
     setProcessing(true);
     try {
-      const payload = {
+      const payload = form.image ? new FormData() : {
         title: form.title,
         body: form.body,
         status: form.status,
       };
-      if (form.status === 'scheduled') {
+
+      if (form.image) {
+        payload.append('title', form.title);
+        payload.append('body', form.body);
+        payload.append('status', form.status);
+        if (form.status === 'scheduled') {
+          payload.append('scheduledAt', form.scheduledAt.toISOString());
+        }
+        payload.append('image', {
+          uri: form.image.uri,
+          name: form.image.name,
+          type: form.image.type,
+        });
+      } else if (form.status === 'scheduled') {
         payload.scheduledAt = form.scheduledAt.toISOString();
       }
-      const res = await api.post('/announcements', payload);
+
+      const res = await api.post('/announcements', payload, form.image ? {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      } : undefined);
       if (res.data?.success) {
         Alert.alert('Success', form.status === 'scheduled' ? 'Announcement scheduled' : 'Announcement posted');
         setForm(emptyForm);
@@ -115,6 +139,33 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Needed', 'Please allow photo access to add an announcement image.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.85,
+    });
+
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+
+    const asset = result.assets[0];
+    const uri = asset.uri;
+    const filename = asset.fileName || uri.split('/').pop() || `announcement-${Date.now()}.jpg`;
+    const extension = filename.includes('.') ? filename.split('.').pop().toLowerCase() : 'jpg';
+    const type = asset.mimeType || (extension === 'png' ? 'image/png' : 'image/jpeg');
+
+    setForm((prev) => ({
+      ...prev,
+      image: { uri, name: filename, type },
+    }));
   };
 
   const openSchedulePicker = () => {
@@ -339,7 +390,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={themeColors.primaryDeep} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
@@ -370,7 +421,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
         }
       />
 
-      <Modal visible={createOpen} transparent animationType="slide" onRequestClose={() => setCreateOpen(false)}>
+      <Modal visible={createOpen} transparent animationType="slide" onRequestClose={closeCreateModal}>
         <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -379,7 +430,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Create Announcement</Text>
-              <TouchableOpacity onPress={() => setCreateOpen(false)}>
+              <TouchableOpacity onPress={closeCreateModal}>
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
             </View>
@@ -401,6 +452,37 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
                 numberOfLines={6}
                 textAlignVertical="top"
               />
+
+              <Text style={styles.label}>Image</Text>
+              <View style={styles.imagePickerBox}>
+                {form.image ? (
+                  <>
+                    <Image source={{ uri: form.image.uri }} style={styles.imagePreview} resizeMode="cover" />
+                    <View style={styles.imageInfoRow}>
+                      <View style={styles.imageInfoTextWrap}>
+                        <Text style={styles.imageName} numberOfLines={1}>{form.image.name}</Text>
+                        <Text style={styles.imageMeta}>Attached to this announcement</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.removeImageButton}
+                        onPress={() => setForm((p) => ({ ...p, image: null }))}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={themeColors.error} />
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.imageEmptyState}>
+                    <Ionicons name="image-outline" size={28} color={themeColors.primary} />
+                    <Text style={styles.imageEmptyTitle}>No image selected</Text>
+                    <Text style={styles.imageEmptyText}>Add a photo for residents to see with the announcement.</Text>
+                  </View>
+                )}
+                <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
+                  <Ionicons name={form.image ? 'swap-horizontal-outline' : 'add-circle-outline'} size={18} color={themeColors.primaryDeep} />
+                  <Text style={styles.imagePickerButtonText}>{form.image ? 'Change Image' : 'Add Image'}</Text>
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.label}>Status</Text>
               <View style={styles.statusRow}>
@@ -459,7 +541,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
               )}
 
               <View style={styles.modalActions}>
-                <TouchableOpacity style={[styles.actionBtn, styles.secondaryBtn]} onPress={() => setCreateOpen(false)} disabled={processing}>
+                <TouchableOpacity style={[styles.actionBtn, styles.secondaryBtn]} onPress={closeCreateModal} disabled={processing}>
                   <Text style={styles.secondaryText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.actionBtn, styles.primaryBtn, processing && styles.disabled]} onPress={create} disabled={processing}>
@@ -546,6 +628,18 @@ const styles = StyleSheet.create({
   label: { marginTop: 10, fontSize: 12, color: themeColors.textSecondary, fontWeight: '800' },
   input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginTop: 8, backgroundColor: '#f8fafc' },
   textArea: { minHeight: 150 },
+  imagePickerBox: { marginTop: 8, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc', gap: 10 },
+  imagePreview: { width: '100%', height: 150, borderRadius: 10, backgroundColor: '#e2e8f0' },
+  imageInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  imageInfoTextWrap: { flex: 1, minWidth: 0 },
+  imageName: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '900' },
+  imageMeta: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '700', marginTop: 2 },
+  removeImageButton: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.error + '12' },
+  imageEmptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 18, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'white', borderWidth: 1, borderColor: themeColors.border },
+  imageEmptyTitle: { marginTop: 8, color: themeColors.textPrimary, fontSize: 13, fontWeight: '900' },
+  imageEmptyText: { marginTop: 3, color: themeColors.textSecondary, fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  imagePickerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, minHeight: 42, borderRadius: 10, backgroundColor: themeColors.accent },
+  imagePickerButtonText: { color: themeColors.primaryDeep, fontSize: 13, fontWeight: '900' },
   publishRow: {
     marginTop: 12,
     padding: 12,
@@ -566,7 +660,7 @@ const styles = StyleSheet.create({
   toggleKnobOn: { alignSelf: 'flex-end' },
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 10 },
 
-  statusRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  statusRow: { flexDirection: 'column', gap: 8, marginTop: 8 },
   statusOption: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc' },
   statusOptionSelected: { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
   statusText: { fontSize: 12, fontWeight: '700', color: themeColors.textSecondary },

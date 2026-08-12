@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import api from '../utils/api';
 import { themeColors, roleLayouts } from '../utils/theme';
+import { safeGoBack } from '../utils/navigation';
 
 const issueTypes = [
   'Noise complaint',
@@ -254,7 +255,7 @@ const ComplaintsScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => safeGoBack(navigation)}>
           <Ionicons name="arrow-back" size={22} color={themeColors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Complaints Form</Text>

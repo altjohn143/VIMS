@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors } from '../utils/theme';
 import api from '../utils/api';
+import { safeGoBack } from '../utils/navigation';
 
 const PaymentRedirectScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
@@ -68,7 +69,7 @@ const PaymentRedirectScreen = ({ navigation, route }) => {
   }, [error, countdown, navigation]);
 
   const handleGoBack = () => {
-    navigation.goBack();
+    safeGoBack(navigation, 'PaymentsTab');
   };
 
   const handleRetry = () => {

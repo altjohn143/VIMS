@@ -25,6 +25,7 @@ import UserDropdownMenu from '../components/UserDropdownMenu';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAuthToken } from '../utils/secureSession';
+import { safeGoBack } from '../utils/navigation';
 
 const ProfileScreen = ({ navigation }) => {
   const { updateUser } = useAuth();
@@ -552,7 +553,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={themeColors.primaryDeep} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile Settings</Text>

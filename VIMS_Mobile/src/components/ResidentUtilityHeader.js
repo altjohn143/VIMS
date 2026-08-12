@@ -3,11 +3,12 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import UserDropdownMenu from './UserDropdownMenu';
 import { themeColors } from '../utils/theme';
+import { safeGoBack } from '../utils/navigation';
 
 const ResidentUtilityHeader = ({ navigation, eyebrow = 'RESIDENT MODULE', title, subtitle, actions = [] }) => (
   <View style={styles.header}>
     <View style={styles.topRow}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.backButton}>
         <Ionicons name="arrow-back" size={20} color={themeColors.primaryDeep} />
       </TouchableOpacity>
       <View style={styles.heading}>

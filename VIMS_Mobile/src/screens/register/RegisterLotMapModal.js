@@ -206,7 +206,7 @@ export default function RegisterLotMapModal({
           ) : null}
         </ScrollView>
 
-        <Modal visible={showLotInfo} transparent animationType="slide" onRequestClose={() => setShowLotInfo(false)}>
+        {showLotInfo && (
           <View style={styles.infoOverlay}>
             <View style={styles.infoCard}>
               <View style={styles.infoHeader}>
@@ -236,7 +236,7 @@ export default function RegisterLotMapModal({
               ) : null}
             </View>
           </View>
-        </Modal>
+        )}
       </View>
     </Modal>
   );
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   mapLotLabel: { fontWeight: '900', textAlign: 'center', includeFontPadding: false },
   emptyMap: { marginTop: 12, borderRadius: 12, padding: 14, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
   emptyMapText: { color: '#cbd5e1', fontWeight: '800', textAlign: 'center' },
-  infoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  infoOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 20, elevation: 20, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   infoCard: { backgroundColor: 'white', borderTopLeftRadius: 18, borderTopRightRadius: 18 },
   infoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   infoTitle: { fontSize: 16, fontWeight: '900', color: themeColors.textPrimary },

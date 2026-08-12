@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import AdminUtilityHeader from '../../components/AdminUtilityHeader';
+import { safeGoBack } from '../../utils/navigation';
 
 const ArchivedServiceRequestsScreen = ({ navigation }) => {
   const [serviceRequests, setServiceRequests] = useState([]);
@@ -201,7 +202,7 @@ const ArchivedServiceRequestsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ARCHIVE" title="Archived Services" subtitle={`${serviceRequests.length} archived requests available for review`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => navigation.goBack() }, { label: 'Refresh', icon: 'refresh', onPress: loadArchivedServiceRequests, primary: true, loading: refreshing }]} />
+      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ARCHIVE" title="Archived Services" subtitle={`${serviceRequests.length} archived requests available for review`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => safeGoBack(navigation) }, { label: 'Refresh', icon: 'refresh', onPress: loadArchivedServiceRequests, primary: true, loading: refreshing }]} />
 
       <FlatList
         data={filteredServiceRequests}

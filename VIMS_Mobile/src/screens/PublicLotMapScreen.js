@@ -478,13 +478,8 @@ const PublicLotMapScreen = ({ navigation }) => {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* ========== Lot Details Modal ========== */}
-      <Modal
-        visible={showLotModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowLotModal(false)}
-      >
+      {/* ========== Lot Details Sheet ========== */}
+      {showLotModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -579,7 +574,7 @@ const PublicLotMapScreen = ({ navigation }) => {
             )}
           </View>
         </View>
-      </Modal>
+      )}
 
       {/* ========== VIRTUAL TOUR MODAL ========== */}
       <Modal
@@ -1053,7 +1048,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   modalOverlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 20,
+    elevation: 20,
     backgroundColor: 'white',
     paddingTop: 60,
   },

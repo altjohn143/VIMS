@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { themeColors } from '../utils/theme';
+import { safeGoBack } from '../utils/navigation';
 
 const suggestedQuestionsByRole = {
   resident: [
@@ -115,7 +116,7 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
       keyboardVerticalOffset={embedded ? 0 : 12}
     >
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerActionButton} onPress={embedded ? onClose : () => navigation.goBack()}>
+        <TouchableOpacity style={styles.headerActionButton} onPress={embedded ? onClose : () => safeGoBack(navigation)}>
           <Ionicons name={embedded ? 'close' : 'arrow-back'} size={16} color="#fff" />
           <Text style={styles.headerActionText}>{embedded ? 'Close' : 'Back'}</Text>
         </TouchableOpacity>

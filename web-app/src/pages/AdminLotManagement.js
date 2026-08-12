@@ -31,8 +31,7 @@ import {
   ArrowBack as ArrowBackIcon,
   Search as SearchIcon,
   Assessment as AssessmentIcon,
-  Business as BusinessIcon,
-  Map as MapIcon
+  Business as BusinessIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -294,21 +293,6 @@ const AdminLotManagement = () => {
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
             Lot Management
           </Typography>
-          <Button
-            onClick={() => navigate('/dashboard/admin/lot-map-editor')}
-            startIcon={<MapIcon />}
-            sx={{
-              color: themeColors.primary,
-              borderRadius: 2.5,
-              textTransform: 'none',
-              fontWeight: 700,
-              mr: 1,
-              bgcolor: 'rgba(14, 165, 233, 0.12)',
-              '&:hover': { bgcolor: 'rgba(14, 165, 233, 0.22)' }
-            }}
-          >
-            Map Editor
-          </Button>
           <Button
             onClick={() => navigate('/dashboard')}
             sx={{

@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import AdminUtilityHeader from '../../components/AdminUtilityHeader';
+import { safeGoBack } from '../../utils/navigation';
 
 const AdminVisitorReportsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -161,7 +162,7 @@ const AdminVisitorReportsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ANALYTICS" title="Visitor Reports" subtitle={`${recentVisitors.length} recent visitor records`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => navigation.goBack() }, { label: 'Refresh', icon: 'refresh', onPress: load, primary: true, loading: refreshing }]} />
+      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ANALYTICS" title="Visitor Reports" subtitle={`${recentVisitors.length} recent visitor records`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => safeGoBack(navigation) }, { label: 'Refresh', icon: 'refresh', onPress: load, primary: true, loading: refreshing }]} />
 
       <ScrollView
         style={styles.content}

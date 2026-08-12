@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import AdminUtilityHeader from '../../components/AdminUtilityHeader';
+import { safeGoBack } from '../../utils/navigation';
 
 const ArchivedUsersScreen = ({ navigation }) => {
   const [users, setUsers] = useState([]);
@@ -156,7 +157,7 @@ const ArchivedUsersScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ARCHIVE" title="Archived Users" subtitle={`${users.length} archived accounts available for review`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => navigation.goBack() }, { label: 'Refresh', icon: 'refresh', onPress: loadArchivedUsers, primary: true, loading: refreshing }]} />
+      <AdminUtilityHeader navigation={navigation} eyebrow="ADMIN ARCHIVE" title="Archived Users" subtitle={`${users.length} archived accounts available for review`} actions={[{ label: 'Back', icon: 'arrow-back', onPress: () => safeGoBack(navigation) }, { label: 'Refresh', icon: 'refresh', onPress: loadArchivedUsers, primary: true, loading: refreshing }]} />
 
       <FlatList
         data={users}

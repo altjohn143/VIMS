@@ -34,7 +34,6 @@ import AdminVisitorReportsScreen from '../screens/admin/AdminVisitorReportsScree
 import AdminVerificationQueueScreen from '../screens/admin/AdminVerificationQueueScreen';
 import AdminAnnouncementsScreen from '../screens/admin/AdminAnnouncementsScreen';
 import AdminLotManagementScreen from '../screens/admin/AdminLotManagementScreen';
-import AdminLotMapEditorScreen from '../screens/admin/AdminLotMapEditorScreen';
 import ArchivedUsersScreen from '../screens/admin/ArchivedUsersScreen';
 import ArchivedAnnouncementsScreen from '../screens/admin/ArchivedAnnouncementsScreen';
 import ArchivedServiceRequestsScreen from '../screens/admin/ArchivedServiceRequestsScreen';
@@ -79,7 +78,6 @@ const ResidentTabs = () => {
       <Tab.Screen name="Complaints" component={ComplaintsScreen} options={hiddenTabOptions} />
       <Tab.Screen name="Announcements" component={AnnouncementsScreen} options={hiddenTabOptions} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} options={hiddenTabOptions} />
-      <Tab.Screen name="PublicLots" component={PublicLotMapScreen} options={hiddenTabOptions} />
       <Tab.Screen name="Chatbot" component={ChatbotScreen} options={hiddenTabOptions} />
       <Tab.Screen name="PaymentRedirect" component={PaymentRedirectScreen} options={hiddenTabOptions} />
       <Tab.Screen name="PaymentSuccess" component={PaymentSuccessScreen} options={hiddenTabOptions} />
@@ -110,7 +108,6 @@ const AdminTabs = () => {
       <Tab.Screen name="AdminApprovals" component={AdminApprovalsScreen} options={hiddenTabOptions} />
       <Tab.Screen name="AdminVisitorReports" component={AdminVisitorReportsScreen} options={hiddenTabOptions} />
       <Tab.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} options={hiddenTabOptions} />
-      <Tab.Screen name="AdminLotMapEditor" component={AdminLotMapEditorScreen} options={hiddenTabOptions} />
       <Tab.Screen name="ArchivedUsers" component={ArchivedUsersScreen} options={hiddenTabOptions} />
       <Tab.Screen name="ArchivedAnnouncements" component={ArchivedAnnouncementsScreen} options={hiddenTabOptions} />
       <Tab.Screen name="ArchivedServiceRequests" component={ArchivedServiceRequestsScreen} options={hiddenTabOptions} />
@@ -188,7 +185,6 @@ const AppNavigator = () => {
               <Stack.Screen name="AdminPayments" component={AdminPaymentsScreen} />
               <Stack.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} />
               <Stack.Screen name="AdminLotManagement" component={AdminLotManagementScreen} />
-              <Stack.Screen name="AdminLotMapEditor" component={AdminLotMapEditorScreen} />
               <Stack.Screen name="ArchivedUsers" component={ArchivedUsersScreen} />
               <Stack.Screen name="ArchivedAnnouncements" component={ArchivedAnnouncementsScreen} />
               <Stack.Screen name="ArchivedServiceRequests" component={ArchivedServiceRequestsScreen} />

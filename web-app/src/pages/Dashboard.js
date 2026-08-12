@@ -809,6 +809,26 @@ const Dashboard = () => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
+  const getActivePageKey = () => {
+    const base = '/dashboard/';
+    const path = location.pathname.replace(/\/+$/, '');
+    if (path === '/dashboard') return 'dashboard';
+    if (path.startsWith(base)) return path.slice(base.length);
+    return 'dashboard';
+  };
+
+  const activePageKey = getActivePageKey();
+
+  useEffect(() => {
+    if (
+      user?.role === 'admin' &&
+      activePageKey === 'admin/lot-map-editor' &&
+      !lotMapEditorNavVisible
+    ) {
+      navigate('/dashboard/admin/lot-management', { replace: true });
+    }
+  }, [activePageKey, lotMapEditorNavVisible, navigate, user?.role]);
+
   if (loading) {
     return (
       <Container>
@@ -959,16 +979,6 @@ const Dashboard = () => {
   const navConfig = { ...config, features: visibleFeatures };
   const panelLabel = config.panelLabel || 'Panel';
 
-  const getActivePageKey = () => {
-    const base = '/dashboard/';
-    const path = location.pathname.replace(/\/+$/, '');
-    if (path === '/dashboard') return 'dashboard';
-    if (path.startsWith(base)) return path.slice(base.length);
-    return 'dashboard';
-  };
-
-  const activePageKey = getActivePageKey();
-
   const getPageLabelFromKey = (key) => {
     const pageLabels = {
       dashboard: config.title,
@@ -1029,7 +1039,7 @@ const Dashboard = () => {
     'admin/visitor-reports': <AdminVisitorReports />,
     'admin/report-schedules': <AdminReservations />,
     'admin/lot-management': <AdminLotManagement />,
-    'admin/lot-map-editor': <AdminLotMapEditor />,
+    'admin/lot-map-editor': lotMapEditorNavVisible ? <AdminLotMapEditor /> : null,
     'admin/archived-users': <ArchivedUsers />,
     'admin/archived-announcements': <ArchivedAnnouncements />,
     'admin/archived-service-requests': <ArchivedServiceRequests />,

@@ -21,6 +21,7 @@ import api from '../../utils/api';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeGoBack } from '../../utils/navigation';
 
 const AdminApprovalsScreen = ({ navigation }) => {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -334,7 +335,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
           <UserDropdownMenu navigation={navigation} />
         </View>
         <View style={styles.directoryActions}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.directoryIconAction}>
+          <TouchableOpacity onPress={() => safeGoBack(navigation)} style={styles.directoryIconAction}>
             <Ionicons name="arrow-back" size={19} color={themeColors.primaryDeep} />
             <Text style={styles.directoryIconActionText}>Back</Text>
           </TouchableOpacity>

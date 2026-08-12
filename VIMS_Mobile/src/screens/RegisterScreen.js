@@ -1088,7 +1088,7 @@ const RegisterScreen = ({ navigation, route }) => {
         automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         contentInsetAdjustmentBehavior="automatic"
       >
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={safeGoToLogin}>
           <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
           <Text style={styles.backText}>Back to Login</Text>
         </TouchableOpacity>

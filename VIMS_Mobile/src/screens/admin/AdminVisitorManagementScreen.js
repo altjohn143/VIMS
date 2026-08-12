@@ -127,11 +127,26 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     setFilteredVisitors(filtered);
   };
 
+  const canChangeVisitorStatus = (visitor) => visitor?.status === 'pending';
+
+  const openDecisionModal = (action) => {
+    if (!canChangeVisitorStatus(selectedVisitor)) {
+      Alert.alert('Status Locked', 'This visitor status can no longer be changed.');
+      return;
+    }
+
+    setOverrideAction(action);
+    setOverrideReason('');
+    setShowDetailsModal(false);
+    setShowOverrideModal(true);
+  };
+
   const handleOverride = async () => {
     if (!selectedVisitor) return;
 
-    if (overrideAction === 'reject' && !overrideReason.trim()) {
-      Alert.alert('Error', 'Rejection reason is required');
+    const trimmedReason = overrideReason.trim();
+    if (!trimmedReason) {
+      Alert.alert('Error', 'Reason is required');
       return;
     }
 
@@ -139,19 +154,19 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     try {
       const response = await api.put(`/visitors/admin/${selectedVisitor._id}/override`, {
         action: overrideAction,
-        reason: overrideReason || `Admin override ${overrideAction}`,
-        notes: `Overriding previous status: ${selectedVisitor.status}`,
+        reason: trimmedReason,
+        notes: `${overrideAction === 'approve' ? 'Approval' : 'Rejection'} reason: ${trimmedReason}`,
       });
 
       if (response.data.success) {
-        Alert.alert('Success', `Visitor ${overrideAction}d successfully`);
+        Alert.alert('Success', `Visitor ${overrideAction === 'approve' ? 'approved' : 'rejected'} successfully`);
         setShowOverrideModal(false);
         setShowDetailsModal(false);
         setOverrideReason('');
         fetchData();
       }
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to process override');
+      Alert.alert('Error', error.response?.data?.error || `Failed to ${overrideAction} visitor`);
     } finally {
       setProcessing(false);
     }
@@ -192,40 +207,14 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
           Alert.alert('No Visitors', 'There are no visitors matching the active filters to export.');
           return;
         }
-        const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-        const rows = filteredVisitors.map((visitor) => [
-          visitor.visitorName,
-          visitor.visitorPhone,
-          visitor.residentId ? `${visitor.residentId.firstName || ''} ${visitor.residentId.lastName || ''}`.trim() : '',
-          visitor.residentId?.houseNumber || '',
-          visitor.purpose || '',
-          visitor.status || '',
-          visitor.expectedArrival ? format(new Date(visitor.expectedArrival), 'yyyy-MM-dd HH:mm') : '',
-          visitor.expectedDeparture ? format(new Date(visitor.expectedDeparture), 'yyyy-MM-dd HH:mm') : '',
-        ]);
-        const csv = [
-          ['Visitor', 'Phone', 'Resident', 'House', 'Purpose', 'Status', 'Expected Arrival', 'Expected Departure'].map(escapeCsv).join(','),
-          ...rows.map((row) => row.map(escapeCsv).join(','))
-        ].join('\n');
-        const fileUri = `${FileSystem.documentDirectory}visitors_filtered_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.csv`;
-        await FileSystem.writeAsStringAsync(fileUri, csv);
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'text/csv',
-            dialogTitle: 'Share Filtered Visitor Export',
-          });
-        } else {
-          Alert.alert('Export Complete', `File saved to ${fileUri}`);
-        }
-        setShowExportModal(false);
-        return;
       }
 
       const params = new URLSearchParams();
-      if (exportStartDate) params.append('startDate', exportStartDate);
-      if (exportEndDate) params.append('endDate', exportEndDate);
+      const effectiveStartDate = exportStartDate || dateFilter;
+      const effectiveEndDate = exportEndDate || dateFilter;
+      if (effectiveStartDate) params.append('startDate', effectiveStartDate);
+      if (effectiveEndDate) params.append('endDate', effectiveEndDate);
       if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (dateFilter) params.append('date', dateFilter);
       if (searchQuery.trim()) params.append('search', searchQuery.trim());
       params.append('format', exportFormat);
       params.append('timezoneOffset', String(new Date().getTimezoneOffset()));
@@ -242,6 +231,13 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
         );
         if (download.status < 200 || download.status >= 300) {
           throw new Error(`Export server returned status ${download.status}`);
+        }
+        const contentType = String(download.headers?.['content-type'] || download.headers?.['Content-Type'] || '').toLowerCase();
+        if (exportFormat === 'pdf' && contentType && !contentType.includes('application/pdf')) {
+          throw new Error('Server did not return a PDF file.');
+        }
+        if (exportFormat === 'csv' && contentType && !contentType.includes('text/csv')) {
+          throw new Error('Server did not return a CSV file.');
         }
       }
 
@@ -560,23 +556,25 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
 
                 <View style={styles.modalActions}>
                   <TouchableOpacity
-                    style={[styles.modalButton, styles.approveButton]}
-                    onPress={() => {
-                      setOverrideAction('approve');
-                      setShowDetailsModal(false);
-                      setShowOverrideModal(true);
-                    }}
+                    style={[
+                      styles.modalButton,
+                      styles.approveButton,
+                      !canChangeVisitorStatus(selectedVisitor) && styles.disabledButton,
+                    ]}
+                    onPress={() => openDecisionModal('approve')}
+                    disabled={!canChangeVisitorStatus(selectedVisitor)}
                   >
                     <Ionicons name="checkmark-circle" size={20} color="white" />
                     <Text style={styles.modalButtonText}>Approve</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.modalButton, styles.rejectButton]}
-                    onPress={() => {
-                      setOverrideAction('reject');
-                      setShowDetailsModal(false);
-                      setShowOverrideModal(true);
-                    }}
+                    style={[
+                      styles.modalButton,
+                      styles.rejectButton,
+                      !canChangeVisitorStatus(selectedVisitor) && styles.disabledButton,
+                    ]}
+                    onPress={() => openDecisionModal('reject')}
+                    disabled={!canChangeVisitorStatus(selectedVisitor)}
                   >
                     <Ionicons name="close-circle" size={20} color="white" />
                     <Text style={styles.modalButtonText}>Reject</Text>
@@ -588,7 +586,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Override Modal */}
+      {/* Visitor decision modal */}
       <Modal
         visible={showOverrideModal}
         animationType="slide"
@@ -618,7 +616,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
 
               <TextInput
                 style={styles.overrideInput}
-                placeholder={overrideAction === 'reject' ? 'Rejection reason *' : 'Reason for override (optional)'}
+                placeholder="Reason *"
                 value={overrideReason}
                 onChangeText={setOverrideReason}
                 multiline
@@ -638,9 +636,13 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalButton, overrideAction === 'approve' ? styles.approveButton : styles.rejectButton]}
+                  style={[
+                    styles.modalButton,
+                    overrideAction === 'approve' ? styles.approveButton : styles.rejectButton,
+                    (!overrideReason.trim() || processing) && styles.disabledButton,
+                  ]}
                   onPress={handleOverride}
-                  disabled={processing || (overrideAction === 'reject' && !overrideReason.trim())}
+                  disabled={processing || !overrideReason.trim()}
                 >
                   {processing ? (
                     <ActivityIndicator color="white" />
@@ -1102,6 +1104,9 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: '#f1f5f9',
+  },
+  disabledButton: {
+    opacity: 0.45,
   },
   modalButtonText: {
     color: 'white',

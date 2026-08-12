@@ -549,9 +549,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
             {exporting ? <ActivityIndicator size="small" color={themeColors.primaryDeep} /> : <Ionicons name="document-text-outline" size={17} color={themeColors.primaryDeep} />}
             <Text style={styles.directoryIconActionText}>PDF</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowReminderDialog(true)} style={styles.directoryIconAction}>
+          <TouchableOpacity onPress={() => setShowReminderDialog(true)} style={styles.directoryIconAction} disabled={processing}>
             <Ionicons name="mail-outline" size={17} color={themeColors.primaryDeep} />
-            <Text style={styles.directoryIconActionText}>Remind</Text>
+            <Text style={styles.directoryIconActionText}>Send Reminders</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -855,10 +855,10 @@ const AdminPaymentsScreen = ({ navigation }) => {
             <Ionicons name="mail" size={48} color={themeColors.warning} />
             <Text style={styles.reminderTitle}>Send Overdue Reminders</Text>
             <Text style={styles.reminderMessage}>
-              This will send SMS/Email reminders to all residents with overdue payments.
+              This will send email reminders to all residents with overdue payments.
             </Text>
             <View style={styles.reminderActions}>
-              <TouchableOpacity style={styles.cancelReminderButton} onPress={() => setShowReminderDialog(false)}>
+              <TouchableOpacity style={styles.cancelReminderButton} onPress={() => setShowReminderDialog(false)} disabled={processing}>
                 <Text style={styles.cancelReminderText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.sendReminderButton} onPress={handleSendReminders} disabled={processing}>

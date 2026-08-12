@@ -1404,15 +1404,23 @@ router.get('/admin/logs', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// Admin override approval/rejection
+// Admin approval/rejection decision
 router.put('/admin/:id/override', protect, authorize('admin'), async (req, res) => {
   try {
     const { action, reason, notes } = req.body;
+    const decisionReason = typeof reason === 'string' ? reason.trim() : '';
     
     if (!action || !['approve', 'reject'].includes(action)) {
       return res.status(400).json({
         success: false,
         error: 'Action must be either "approve" or "reject"'
+      });
+    }
+
+    if (!decisionReason) {
+      return res.status(400).json({
+        success: false,
+        error: 'Reason is required'
       });
     }
     
@@ -1422,6 +1430,13 @@ router.put('/admin/:id/override', protect, authorize('admin'), async (req, res) 
       return res.status(404).json({
         success: false,
         error: 'Visitor not found'
+      });
+    }
+
+    if (visitor.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        error: 'This visitor status can no longer be changed'
       });
     }
     
@@ -1434,22 +1449,12 @@ router.put('/admin/:id/override', protect, authorize('admin'), async (req, res) 
       visitor.approvedBy = req.user.id;
       visitor.approvedAt = new Date();
       visitor.qrCodeVisible = true;
-      
-      if (reason) {
-        visitor.overrideReason = `Admin override: ${reason}`;
-      }
+      visitor.overrideReason = decisionReason;
     } else if (action === 'reject') {
-      if (!reason) {
-        return res.status(400).json({
-          success: false,
-          error: 'Reason is required for rejection'
-        });
-      }
-      
       visitor.status = 'rejected';
-      visitor.rejectionReason = reason;
+      visitor.rejectionReason = decisionReason;
       visitor.qrCodeVisible = false;
-      visitor.overrideReason = `Admin override: ${reason}`;
+      visitor.overrideReason = decisionReason;
     }
     
     if (notes) {
@@ -1463,7 +1468,7 @@ router.put('/admin/:id/override', protect, authorize('admin'), async (req, res) 
       performedBy: req.user.id,
       previousStatus,
       newStatus: visitor.status,
-      reason: reason || notes,
+      reason: decisionReason || notes,
       timestamp: new Date()
     });
     
@@ -1489,10 +1494,10 @@ router.put('/admin/:id/override', protect, authorize('admin'), async (req, res) 
     });
     
   } catch (error) {
-    console.error('Admin override error:', error);
+    console.error('Admin visitor decision error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to process override'
+      error: 'Failed to process visitor decision'
     });
   }
 });

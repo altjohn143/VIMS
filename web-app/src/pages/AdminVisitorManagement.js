@@ -92,6 +92,10 @@ const AdminVisitorManagement = () => {
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
   const [exportDateError, setExportDateError] = useState('');
+  const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
+  const [decisionAction, setDecisionAction] = useState('approve');
+  const [decisionReason, setDecisionReason] = useState('');
+  const [decisionReasonError, setDecisionReasonError] = useState('');
 
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -185,63 +189,60 @@ const AdminVisitorManagement = () => {
     setAnchorEl(null);
   };
 
+  const canChangeVisitorStatus = (visitor) => visitor?.status === 'pending';
+
   const handleViewDetails = () => {
     setViewDialogOpen(true);
     handleMenuClose();
   };
 
-  const handleApprove = async () => {
-  if (!selectedVisitor) return;
-  
-  try {
-    const overrideReason = prompt("Enter reason for overriding (optional):", "Admin override approval");
-    
-    const response = await axios.put(`/api/visitors/admin/${selectedVisitor._id}/override`, {
-      action: 'approve',
-      reason: overrideReason || 'Admin override approval',
-      notes: `Overriding previous status: ${selectedVisitor.status}`
-    });
-    
-    if (response.data.success) {
-      toast.success('Visitor approved (override)');
-      fetchVisitors(buildActiveFilters());
-      fetchStats();
-    }
-  } catch (error) {
-    toast.error('Failed to approve visitor');
-    console.error('Error approving visitor:', error);
-  }
-  handleMenuClose();
-};
-
-const handleReject = async () => {
-  if (!selectedVisitor) return;
-  
-  try {
-    const rejectionReason = prompt("Enter rejection reason (required):", "Admin override rejection");
-    
-    if (!rejectionReason || rejectionReason.trim() === '') {
-      toast.error('Rejection reason is required for override');
+  const openDecisionDialog = (action) => {
+    if (!canChangeVisitorStatus(selectedVisitor)) {
+      toast.error('This visitor status can no longer be changed');
+      handleMenuClose();
       return;
     }
-    
-    const response = await axios.put(`/api/visitors/admin/${selectedVisitor._id}/override`, {
-      action: 'reject',
-      reason: rejectionReason,
-      notes: `Overriding previous status: ${selectedVisitor.status}`
-    });
-    
-    if (response.data.success) {
-      toast.success('Visitor rejected (override)');
-      fetchVisitors(buildActiveFilters());
-      fetchStats();
+
+    setDecisionAction(action);
+    setDecisionReason('');
+    setDecisionReasonError('');
+    setDecisionDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const closeDecisionDialog = () => {
+    setDecisionDialogOpen(false);
+    setDecisionReason('');
+    setDecisionReasonError('');
+  };
+
+  const handleDecisionSubmit = async () => {
+    if (!selectedVisitor) return;
+
+    const trimmedReason = decisionReason.trim();
+    if (!trimmedReason) {
+      setDecisionReasonError('Reason is required');
+      return;
     }
-  } catch (error) {
-    toast.error('Failed to reject visitor');
-    console.error('Error rejecting visitor:', error);
-  }
-  handleMenuClose();
-};
+
+    try {
+      const response = await axios.put(`/api/visitors/admin/${selectedVisitor._id}/override`, {
+        action: decisionAction,
+        reason: trimmedReason,
+        notes: `${decisionAction === 'approve' ? 'Approval' : 'Rejection'} reason: ${trimmedReason}`
+      });
+
+      if (response.data.success) {
+        toast.success(`Visitor ${decisionAction === 'approve' ? 'approved' : 'rejected'}`);
+        closeDecisionDialog();
+        fetchVisitors(buildActiveFilters());
+        fetchStats();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || `Failed to ${decisionAction} visitor`);
+      console.error(`Error ${decisionAction}ing visitor:`, error);
+    }
+  };
 
   const handleExport = async (fileFormat = 'pdf') => {
     setExportDateError('');
@@ -1153,6 +1154,72 @@ const handleReject = async () => {
           </DialogActions>
         </Dialog>
 
+        {/* Visitor Decision Dialog */}
+        <Dialog
+          open={decisionDialogOpen}
+          onClose={closeDecisionDialog}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.15)'
+            }
+          }}
+        >
+          <DialogTitle sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            color: decisionAction === 'approve' ? themeColors.success : themeColors.error
+          }}>
+            {decisionAction === 'approve' ? (
+              <ApproveIcon sx={{ color: themeColors.success }} />
+            ) : (
+              <RejectIcon sx={{ color: themeColors.error }} />
+            )}
+            {decisionAction === 'approve' ? 'Approve Visitor' : 'Reject Visitor'}
+          </DialogTitle>
+          <DialogContent>
+            {selectedVisitor && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {selectedVisitor.visitorName} - {selectedVisitor.purpose}
+              </Alert>
+            )}
+            <TextField
+              label="Reason"
+              value={decisionReason}
+              onChange={(event) => {
+                setDecisionReason(event.target.value);
+                if (decisionReasonError) setDecisionReasonError('');
+              }}
+              error={Boolean(decisionReasonError)}
+              helperText={decisionReasonError || 'Required for visitor approvals and rejections.'}
+              fullWidth
+              multiline
+              minRows={3}
+              autoFocus
+              required
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
+            <Button onClick={closeDecisionDialog}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={handleDecisionSubmit}
+              disabled={!decisionReason.trim()}
+              sx={{
+                bgcolor: decisionAction === 'approve' ? themeColors.success : themeColors.error,
+                '&:hover': {
+                  bgcolor: decisionAction === 'approve' ? '#059669' : '#dc2626'
+                }
+              }}
+            >
+              {decisionAction === 'approve' ? 'Approve' : 'Reject'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         {/* Action Menu */}
         <Menu
           anchorEl={anchorEl}
@@ -1176,18 +1243,23 @@ const handleReject = async () => {
           </MenuItem>
           <Divider />
           
-          {/* Show override options regardless of current status */}
-          <MenuItem onClick={handleApprove}>
+          <MenuItem
+            onClick={() => openDecisionDialog('approve')}
+            disabled={!canChangeVisitorStatus(selectedVisitor)}
+          >
             <ListItemIcon>
               <ApproveIcon fontSize="small" sx={{ color: themeColors.success }} />
             </ListItemIcon>
-            Approve (Override)
+            Approve
           </MenuItem>
-          <MenuItem onClick={handleReject}>
+          <MenuItem
+            onClick={() => openDecisionDialog('reject')}
+            disabled={!canChangeVisitorStatus(selectedVisitor)}
+          >
             <ListItemIcon>
               <RejectIcon fontSize="small" sx={{ color: themeColors.error }} />
             </ListItemIcon>
-            Reject (Override)
+            Reject
           </MenuItem>
         </Menu>
       </Container>

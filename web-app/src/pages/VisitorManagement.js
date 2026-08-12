@@ -84,7 +84,7 @@ const VisitorManagement = () => {
   const [historyMode, setHistoryMode] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
   const [confirmingVisitorId, setConfirmingVisitorId] = useState(null);
-  const [confirmingArrival, setConfirmingArrival] = useState(false);
+  const [confirmingAction, setConfirmingAction] = useState('');
   const [confirmError, setConfirmError] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -362,6 +362,17 @@ const VisitorManagement = () => {
     return <Chip label={shouldShowCount ? `${config.label} ${count}/${total}` : config.label} color={config.color} size="small" />;
   };
 
+  const getResidentConfirmationProgress = (visitor) => {
+    const progress = visitor?.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
+    return {
+      total,
+      entered: Number(progress.entryScanCount || 0),
+      arrived: Number(progress.residentArrivalConfirmCount || 0),
+      departed: Number(progress.residentDepartureConfirmCount || 0)
+    };
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
@@ -381,32 +392,33 @@ const VisitorManagement = () => {
     return visitor.actualExit && visitor.status === 'completed';
   };
 
-  const handleConfirmArrival = async (visitor) => {
+  const handleResidentConfirmation = async (visitor, action) => {
     if (!visitor || !visitor.qrToken) {
-      toast.error('Unable to confirm arrival for this visitor');
+      toast.error(`Unable to confirm ${action} for this visitor`);
       return;
     }
 
     setConfirmingVisitorId(visitor._id);
-    setConfirmingArrival(true);
+    setConfirmingAction(action);
     setConfirmError('');
 
     try {
       const response = await axios.post('/api/visitors/confirm-arrival', {
-        scanValue: visitor.qrToken
+        scanValue: visitor.qrToken,
+        action
       });
 
       if (response.data.success) {
-        toast.success('Visitor arrival confirmed successfully');
+        toast.success(response.data.message || `Visitor ${action} confirmed successfully`);
         fetchMyVisitors();
         fetchAllVisitors();
       }
     } catch (error) {
-      const message = error.response?.data?.error || 'Failed to confirm visitor arrival';
+      const message = error.response?.data?.error || `Failed to confirm visitor ${action}`;
       setConfirmError(message);
       toast.error(message);
     } finally {
-      setConfirmingArrival(false);
+      setConfirmingAction('');
       setConfirmingVisitorId(null);
     }
   };
@@ -1180,6 +1192,11 @@ const VisitorManagement = () => {
                     const expired = isQRExpired(visitor);
                     const left = isVisitorLeft(visitor);
                     const qrValid = isQRValid(visitor);
+                    const confirmationProgress = getResidentConfirmationProgress(visitor);
+                    const isConfirmingArrival = confirmingVisitorId === visitor._id && confirmingAction === 'arrival';
+                    const isConfirmingDeparture = confirmingVisitorId === visitor._id && confirmingAction === 'departure';
+                    const canConfirmArrival = visitor.status === 'active' && confirmationProgress.arrived < confirmationProgress.entered;
+                    const canConfirmDeparture = visitor.status === 'active' && confirmationProgress.departed < confirmationProgress.arrived;
                     
                     return (
                       <TableRow 
@@ -1218,10 +1235,26 @@ const VisitorManagement = () => {
 
                         <TableCell sx={{ color: themeColors.textPrimary }}>{visitor.visitorPhone}</TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                             <Typography sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
                               {visitor.numberOfCompanions || 0}
                             </Typography>
+                            {['approved', 'active', 'completed'].includes(visitor.status) && (
+                              <>
+                                <Chip
+                                  label={`Arrived ${confirmationProgress.arrived}/${confirmationProgress.total}`}
+                                  size="small"
+                                  color={confirmationProgress.arrived >= confirmationProgress.total ? 'success' : 'default'}
+                                  variant="outlined"
+                                />
+                                <Chip
+                                  label={`Departed ${confirmationProgress.departed}/${confirmationProgress.total}`}
+                                  size="small"
+                                  color={confirmationProgress.departed >= confirmationProgress.total ? 'success' : 'default'}
+                                  variant="outlined"
+                                />
+                              </>
+                            )}
                             {visitor.specialNotes && (
                               <Chip 
                                 label="Special" 
@@ -1313,23 +1346,44 @@ const VisitorManagement = () => {
                               <VisibilityIcon />
                             </IconButton>
 
-                            {visitor.status === 'active' && !visitor.residentEntryConfirmedAt && (
+                            {canConfirmArrival && (
                               <IconButton
                                 size="small"
                                 color="success"
-                                onClick={() => handleConfirmArrival(visitor)}
-                                title={confirmingArrival && confirmingVisitorId === visitor._id ? 'Confirming arrival...' : 'Confirm Visitor Arrival'}
-                                disabled={confirmingArrival && confirmingVisitorId === visitor._id}
+                                onClick={() => handleResidentConfirmation(visitor, 'arrival')}
+                                title={isConfirmingArrival ? 'Confirming arrival...' : 'Confirm Visitor Arrival'}
+                                disabled={Boolean(confirmingAction)}
                                 sx={{
                                   '&:hover': {
                                     backgroundColor: themeColors.success + '20'
                                   }
                                 }}
                               >
-                                {confirmingArrival && confirmingVisitorId === visitor._id ? (
+                                {isConfirmingArrival ? (
                                   <CircularProgress size={18} sx={{ color: themeColors.success }} />
                                 ) : (
                                   <CheckCircleIcon />
+                                )}
+                              </IconButton>
+                            )}
+
+                            {canConfirmDeparture && (
+                              <IconButton
+                                size="small"
+                                color="warning"
+                                onClick={() => handleResidentConfirmation(visitor, 'departure')}
+                                title={isConfirmingDeparture ? 'Confirming departure...' : 'Confirm Visitor Departure'}
+                                disabled={Boolean(confirmingAction)}
+                                sx={{
+                                  '&:hover': {
+                                    backgroundColor: themeColors.warning + '20'
+                                  }
+                                }}
+                              >
+                                {isConfirmingDeparture ? (
+                                  <CircularProgress size={18} sx={{ color: themeColors.warning }} />
+                                ) : (
+                                  <ExitToAppIcon />
                                 )}
                               </IconButton>
                             )}

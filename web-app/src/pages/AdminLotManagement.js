@@ -72,7 +72,8 @@ const AdminLotManagement = () => {
     total: 0,
     vacant: 0,
     occupied: 0,
-    reserved: 0
+    reserved: 0,
+    amenities: 0
   });
 
   // Fetch lots data
@@ -91,8 +92,9 @@ const AdminLotManagement = () => {
       const vacant = placedLots.filter(lot => lot.status === 'vacant').length;
       const occupied = placedLots.filter(lot => lot.status === 'occupied').length;
       const reserved = placedLots.filter(lot => lot.status === 'reserved').length;
-
-      setStats({ total, vacant, occupied, reserved });
+      const amenities = placedLots.filter(lot => lot.status === 'amenity').length;
+      
+      setStats({ total, vacant, occupied, reserved, amenities });
     } catch (error) {
       console.error('Error fetching lots:', error);
       toast.error('Failed to load lots data');
@@ -233,6 +235,7 @@ const AdminLotManagement = () => {
       case 'vacant': return themeColors.success;
       case 'occupied': return themeColors.primary;
       case 'reserved': return themeColors.warning;
+      case 'amenity': return themeColors.info;
       default: return themeColors.textSecondary;
     }
   };
@@ -434,6 +437,7 @@ const AdminLotManagement = () => {
                   <MenuItem value="vacant">Vacant</MenuItem>
                   <MenuItem value="occupied">Occupied</MenuItem>
                   <MenuItem value="reserved">Reserved</MenuItem>
+                  <MenuItem value="amenity">Community Amenities</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -506,11 +510,11 @@ const AdminLotManagement = () => {
                       <Typography variant="body2">{lot.sqm} sqm</Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{formatCurrency(lot.price)}</Typography>
+                      <Typography variant="body2">{lot.status === 'amenity' ? 'N/A' : formatCurrency(lot.price)}</Typography>
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={lot.status.charAt(0).toUpperCase() + lot.status.slice(1)}
+                        label={lot.status === 'amenity' ? 'Community Amenity' : lot.status.charAt(0).toUpperCase() + lot.status.slice(1)}
                         sx={{
                           bgcolor: `${getStatusColor(lot.status)}20`,
                           color: getStatusColor(lot.status),

@@ -24,7 +24,7 @@ const lotSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['vacant', 'occupied', 'reserved'],
+    enum: ['vacant', 'occupied', 'reserved', 'amenity'],
     default: 'vacant'
   },
   type: {

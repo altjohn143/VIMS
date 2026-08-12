@@ -17,8 +17,9 @@ const normalizeAmenityLot = async (lot, persist = false) => {
   const amenityType = AMENITY_LOTS[String(lot.lotId || '').toUpperCase()];
   if (!amenityType) return lot;
 
-  lot.status = 'reserved';
+  lot.status = 'amenity';
   lot.type = amenityType;
+  lot.price = null;
   lot.occupiedBy = null;
   lot.occupiedAt = null;
   lot.features = [amenityType, 'Community Amenity'];
@@ -50,8 +51,9 @@ const cleanupUnassignedOccupiedLots = async () => {
       { lotId },
       {
         $set: {
-          status: 'reserved',
+          status: 'amenity',
           type: amenityType,
+          price: null,
           occupiedBy: null,
           occupiedAt: null,
           features: [amenityType, 'Community Amenity']
@@ -169,7 +171,7 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
   try {
     const { status, occupiedBy } = req.body;
     
-    if (!['vacant', 'occupied', 'reserved'].includes(status)) {
+    if (!['vacant', 'occupied', 'reserved', 'amenity'].includes(status)) {
       return res.status(400).json({ success: false, error: 'Invalid status' });
     }
     
@@ -187,12 +189,14 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
       });
     }
     
-    const nextStatus = status === 'occupied' && !occupiedBy ? 'vacant' : status;
+    const nextStatus = isAmenityLot(lot.lotId) ? 'amenity' : status === 'occupied' && !occupiedBy ? 'vacant' : status;
     const previousStatus = lot.status;
     const previousOccupiedBy = lot.occupiedBy;
     lot.status = nextStatus;
     
-    if (nextStatus === 'occupied' && occupiedBy) {
+    if (nextStatus === 'amenity') {
+      await normalizeAmenityLot(lot, false);
+    } else if (nextStatus === 'occupied' && occupiedBy) {
       lot.occupiedBy = occupiedBy;
       lot.occupiedAt = new Date();
     } else if (nextStatus === 'vacant') {
@@ -412,7 +416,7 @@ const normalizeBackupLot = (lot, userId = null) => {
     block,
     lotId: String(lot.lotId),
     lotNumber,
-    status: ['vacant', 'occupied', 'reserved'].includes(lot.status) ? lot.status : 'vacant',
+    status: ['vacant', 'occupied', 'reserved', 'amenity'].includes(lot.status) ? lot.status : 'vacant',
     type: lot.type || 'Single Family',
     sqm,
     price: lot.price === null || lot.price === undefined || lot.price === '' ? null : Number(lot.price),
@@ -585,7 +589,7 @@ router.get('/export', protect, async (req, res) => {
       Status: lot.status,
       Type: lot.type,
       'Area (sqm)': lot.sqm,
-      'Price': lot.price ? `₱${lot.price.toLocaleString()}` : 'N/A',
+      'Price': lot.status === 'amenity' ? 'N/A' : lot.price ? `₱${lot.price.toLocaleString()}` : 'N/A',
       Address: lot.address,
       Features: lot.features ? lot.features.join(', ') : 'None',
       'Occupied By': lot.occupiedBy ? `${lot.occupiedBy.firstName} ${lot.occupiedBy.lastName}` : 'Vacant'
@@ -613,7 +617,8 @@ router.get('/export', protect, async (req, res) => {
       occupied: lots.filter(l => l.status === 'occupied').length,
       vacant: lots.filter(l => l.status === 'vacant').length,
       reserved: lots.filter(l => l.status === 'reserved').length,
-      other: lots.filter(l => !['occupied', 'vacant', 'reserved'].includes(l.status)).length
+      amenities: lots.filter(l => l.status === 'amenity').length,
+      other: lots.filter(l => !['occupied', 'vacant', 'reserved', 'amenity'].includes(l.status)).length
     };
 
     if (format === 'pdf') {

@@ -16,7 +16,7 @@ import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { safeGoBack } from '../../utils/navigation';
 
-const STATUS_OPTIONS = ['all', 'vacant', 'occupied', 'reserved'];
+const STATUS_OPTIONS = ['all', 'vacant', 'occupied', 'reserved', 'amenity'];
 
 const isPlacedLot = (lot) => Boolean(lot?.mapPosition?.isPositioned);
 
@@ -28,6 +28,8 @@ const getStatusStyle = (status) => {
       return { color: themeColors.error, bg: themeColors.error + '18', icon: 'home-outline' };
     case 'reserved':
       return { color: themeColors.warning, bg: themeColors.warning + '18', icon: 'time-outline' };
+    case 'amenity':
+      return { color: themeColors.info, bg: themeColors.info + '18', icon: 'business-outline' };
     default:
       return { color: themeColors.textSecondary, bg: themeColors.surfaceMuted, icon: 'ellipse-outline' };
   }
@@ -74,6 +76,7 @@ const AdminLotManagementScreen = ({ navigation }) => {
     vacant: lots.filter((lot) => lot.status === 'vacant').length,
     occupied: lots.filter((lot) => lot.status === 'occupied').length,
     reserved: lots.filter((lot) => lot.status === 'reserved').length,
+    amenities: lots.filter((lot) => lot.status === 'amenity').length,
   }), [lots]);
 
   const filteredLots = useMemo(() => {
@@ -162,6 +165,7 @@ const AdminLotManagementScreen = ({ navigation }) => {
             {renderStat('Vacant', stats.vacant, themeColors.success, 'checkmark-circle-outline')}
             {renderStat('Occupied', stats.occupied, themeColors.error, 'home-outline')}
             {renderStat('Reserved', stats.reserved, themeColors.warning, 'time-outline')}
+            {renderStat('Amenities', stats.amenities, themeColors.info, 'business-outline')}
           </ScrollView>
 
           <View style={styles.searchBox}>

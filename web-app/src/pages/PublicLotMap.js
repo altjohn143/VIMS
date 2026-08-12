@@ -61,6 +61,7 @@ const STATUS_CONFIG = {
   vacant:   { color: '#22c55e', bg: '#dcfce7', label: 'Vacant',   border: '#16a34a' },
   occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', border: '#dc2626' },
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
+  amenity:  { color: '#14b8a6', bg: '#ccfbf1', label: 'Community Amenity', border: '#0f766e' },
 };
 
 const MAP_FIT_ZOOM = 14;
@@ -473,6 +474,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
 const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
   if (!lot) return null;
   const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
+  const isAmenity = lot.status === 'amenity';
 
   return (
     <Box sx={{
@@ -528,7 +530,12 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
 
       {/* Scrollable content */}
       <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5 }}>
-        <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.35rem', mb: 0.3 }}>
+        {isAmenity && (
+          <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.35rem', mb: 0.3 }}>
+            {lot.type}
+          </Typography>
+        )}
+        <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.35rem', mb: 0.3, display: isAmenity ? 'none' : 'block' }}>
           Lot {lot.lotNumber} — Phase {lot.phase} Block {lot.phaseBlock}
         </Typography>
         <Typography sx={{ color: 'rgba(255,255,255,0.38)', fontSize: '0.73rem', mb: 2.5 }}>
@@ -557,7 +564,7 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
         </Box>
 
         {/* Price */}
-        {lot.price && (
+        {!isAmenity && lot.price && (
           <Box sx={{
             p: 2, borderRadius: 2, mb: 2.5, textAlign: 'center',
             backgroundColor: 'rgba(59,130,246,0.08)',
@@ -597,9 +604,18 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
           </Alert>
         )}
 
-        <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.68rem', lineHeight: 1.65, mt: 2 }}>
-          To claim this lot, register as a resident. Your selected lot will be reserved pending admin approval.
-        </Typography>
+        {!isAmenity && (
+          <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.68rem', lineHeight: 1.65, mt: 2 }}>
+            To claim this lot, register as a resident. Your selected lot will be reserved pending admin approval.
+          </Typography>
+        )}
+        {isAmenity && (
+          <Alert severity="info" sx={{ mt: 2, borderRadius: 2, backgroundColor: 'rgba(20,184,166,0.1)', border: '1px solid rgba(20,184,166,0.3)' }}>
+            <Typography variant="caption" sx={{ color: '#5eead4' }}>
+              Community amenity only. This area is not available for registration, occupancy, pricing, or virtual tour.
+            </Typography>
+          </Alert>
+        )}
       </Box>
 
       {/* Action buttons */}
@@ -608,7 +624,7 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
         borderTop: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', flexDirection: 'column', gap: 1.2,
       }}>
-        <Button fullWidth variant="outlined"
+        {!isAmenity && <Button fullWidth variant="outlined"
           onClick={() => onTour(lot)}
           sx={{
             borderColor: 'rgba(255,255,255,0.18)', color: 'white',
@@ -617,7 +633,7 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
             '&:hover': { borderColor: 'rgba(255,255,255,0.45)', backgroundColor: 'rgba(255,255,255,0.04)' },
           }}>
           🎥 &nbsp; Start Virtual Tour
-        </Button>
+        </Button>}
         {lot.status === 'vacant' && (
           <Button fullWidth variant="contained"
             startIcon={<RegisterIcon />}
@@ -683,6 +699,7 @@ const PublicLotMap = () => {
     vacant:   allLots.filter(l => l.status === 'vacant').length,
     occupied: allLots.filter(l => l.status === 'occupied').length,
     reserved: allLots.filter(l => l.status === 'reserved').length,
+    amenities: allLots.filter(l => l.status === 'amenity').length,
     total:    allLots.length,
   }), [allLots]);
 
@@ -715,6 +732,7 @@ const PublicLotMap = () => {
     vacant: selectedPhaseLots.filter(l => l.status === 'vacant').length,
     occupied: selectedPhaseLots.filter(l => l.status === 'occupied').length,
     reserved: selectedPhaseLots.filter(l => l.status === 'reserved').length,
+    amenities: selectedPhaseLots.filter(l => l.status === 'amenity').length,
     total: selectedPhaseLots.length,
   }), [selectedPhaseLots]);
 
@@ -1029,7 +1047,7 @@ const PublicLotMap = () => {
           }}
         >
           Available only
-        </Button>
+        </Button>}
         <Box sx={{ ml: 'auto', display: 'flex', gap: 0.8 }}>
           <IconButton size="small"
             onClick={() => setMapZoom(z => Math.min(19, z + 1))}
@@ -1229,7 +1247,7 @@ const PublicLotMap = () => {
                 </Typography>
                 <Typography sx={{ color: (STATUS_CONFIG[hoverPreview.lot.status] || STATUS_CONFIG.vacant).color, fontWeight: 800, fontSize: '0.7rem', mt: 0.5 }}>
                   {(STATUS_CONFIG[hoverPreview.lot.status] || STATUS_CONFIG.vacant).label}
-                  {hoverPreview.lot.price ? ` · ₱${hoverPreview.lot.price.toLocaleString()}` : ''}
+                  {hoverPreview.lot.status !== 'amenity' && hoverPreview.lot.price ? ` · ₱${hoverPreview.lot.price.toLocaleString()}` : ''}
                 </Typography>
               </Box>
             )}
@@ -1257,7 +1275,7 @@ const PublicLotMap = () => {
               lot={selectedLot}
               onClose={() => setSelectedLot(null)}
               onRegister={() => handleRegister(selectedLot)}
-              onTour={(l) => setTourLot(l)}
+              onTour={(l) => l?.status !== 'amenity' && setTourLot(l)}
             />
           ) : (
             <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -1391,7 +1409,7 @@ const PublicLotMap = () => {
           lot={selectedLot}
           onClose={() => setSelectedLot(null)}
           onRegister={() => handleRegister(selectedLot)}
-          onTour={(l) => setTourLot(l)}
+          onTour={(l) => l?.status !== 'amenity' && setTourLot(l)}
         />
       )}
 

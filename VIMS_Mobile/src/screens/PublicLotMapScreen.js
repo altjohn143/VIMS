@@ -86,6 +86,7 @@ const PublicLotMapScreen = ({ navigation }) => {
     vacant: selectedPhaseLots.filter(l => l.status === 'vacant').length,
     occupied: selectedPhaseLots.filter(l => l.status === 'occupied').length,
     reserved: selectedPhaseLots.filter(l => l.status === 'reserved').length,
+    amenities: selectedPhaseLots.filter(l => l.status === 'amenity').length,
     total: selectedPhaseLots.length,
   }), [selectedPhaseLots]);
 
@@ -132,6 +133,7 @@ const PublicLotMapScreen = ({ navigation }) => {
     vacant: { color: '#22c55e', bg: '#dcfce7', label: 'Vacant', icon: 'checkmark-circle' },
     occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', icon: 'close-circle' },
     reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', icon: 'time' },
+    amenity: { color: '#14b8a6', bg: '#ccfbf1', label: 'Community Amenity', icon: 'business' },
   };
 
   const getStatusConfig = (status) => statusConfig[status] || statusConfig.reserved;
@@ -516,7 +518,7 @@ const PublicLotMapScreen = ({ navigation }) => {
                   </View>
                 </View>
 
-                {selectedLot.price && (
+                {selectedLot.status !== 'amenity' && selectedLot.price && (
                   <View style={styles.priceContainer}>
                     <Text style={styles.priceLabel}>Price</Text>
                     <Text style={styles.priceValue}>₱{(selectedLot.price / 1000000).toFixed(2)}M</Text>
@@ -568,6 +570,12 @@ const PublicLotMapScreen = ({ navigation }) => {
                 {selectedLot.status === 'reserved' && (
                   <View style={styles.qrContainer}>
                     <Text style={styles.qrLabel}>Reserved - Contact Admin</Text>
+                  </View>
+                )}
+
+                {selectedLot.status === 'amenity' && (
+                  <View style={styles.qrContainer}>
+                    <Text style={styles.qrLabel}>Community Amenity - Not available for registration or virtual tour</Text>
                   </View>
                 )}
               </ScrollView>

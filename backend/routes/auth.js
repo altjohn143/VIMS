@@ -365,7 +365,7 @@ router.post('/check-availability', async (req, res) => {
           return res.json({
             success: true,
             available: false,
-            error: `${foundLot.lotId} is a ${AMENITY_LOTS[foundLot.lotId]} and cannot be selected as a residence`
+            error: `${foundLot.lotId} is a Community Amenity (${AMENITY_LOTS[foundLot.lotId]}) and cannot be selected as a residence`
           });
         }
         return res.json({
@@ -536,7 +536,7 @@ router.post('/register', registerUpload.fields([
         const fallbackLots = await getFallbackLots();
         return res.status(400).json({
           success: false,
-          error: `${lot.lotId} is a ${AMENITY_LOTS[lot.lotId]} and cannot be selected as a residence.`,
+          error: `${lot.lotId} is a Community Amenity (${AMENITY_LOTS[lot.lotId]}) and cannot be selected as a residence.`,
           fallbackLots
         });
       }

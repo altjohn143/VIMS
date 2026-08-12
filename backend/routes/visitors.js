@@ -92,10 +92,10 @@ const getVisitorQrStatus = (visitor) => {
   if (visitor.status === 'pending') return 'Pending';
   if (visitor.status === 'approved') return 'Approved';
   if (visitor.status === 'active') {
-    if (progress.exitScanCount >= progress.groupSize) return 'Exited';
-    if (progress.residentDepartureConfirmCount >= progress.groupSize) return 'Departed';
-    if (progress.residentArrivalConfirmCount >= progress.groupSize) return 'Arrived';
-    if (progress.entryScanCount >= progress.groupSize) return 'Entered';
+    if (progress.exitScanCount > 0) return 'Exited';
+    if (progress.residentDepartureConfirmCount > 0) return 'Departed';
+    if (progress.residentArrivalConfirmCount > 0) return 'Arrived';
+    if (progress.entryScanCount > 0) return 'Entered';
     return 'Active';
   }
   if (visitor.status === 'completed') return 'Exited';
@@ -108,8 +108,27 @@ const getVisitorQrStatus = (visitor) => {
 
 const attachQrStatus = (visitor) => {
   if (!visitor) return visitor;
+  normalizeVisitorScanCounters(visitor);
   visitor.qrStatus = getVisitorQrStatus(visitor);
   visitor.scanProgress = getVisitorProgress(visitor);
+  return visitor;
+};
+
+const normalizeVisitorScanCounters = (visitor) => {
+  if (!visitor) return visitor;
+  const groupSize = getVisitorGroupSize(visitor);
+  if (visitor.actualEntry && Number(visitor.entryScanCount || 0) <= 0) {
+    visitor.entryScanCount = groupSize;
+  }
+  if (visitor.residentEntryConfirmedAt && Number(visitor.residentArrivalConfirmCount || 0) <= 0) {
+    visitor.residentArrivalConfirmCount = groupSize;
+  }
+  if (visitor.residentDepartureConfirmedAt && Number(visitor.residentDepartureConfirmCount || 0) <= 0) {
+    visitor.residentDepartureConfirmCount = groupSize;
+  }
+  if (visitor.actualExit && Number(visitor.exitScanCount || 0) <= 0) {
+    visitor.exitScanCount = groupSize;
+  }
   return visitor;
 };
 
@@ -764,32 +783,35 @@ router.put('/:id/entry', protect, authorize('security'), async (req, res) => {
       });
     }
     
-    if (visitor.status !== 'approved') {
+    if (!['approved', 'active'].includes(visitor.status)) {
       return res.status(400).json({
         success: false,
         error: `Visitor must be approved before entry can be logged (current: ${visitor.status})`
       });
     }
-    if (visitor.actualEntry) {
-      return res.status(400).json({ success: false, error: 'Visitor entry was already logged' });
+    const progress = getVisitorProgress(visitor);
+    if (progress.entryScanCount >= progress.groupSize) {
+      return res.status(400).json({ success: false, error: 'All visitors on this pass have already been scanned for gate entry.' });
     }
     
-    visitor.actualEntry = new Date();
+    visitor.entryScanCount = progress.entryScanCount + 1;
+    if (!visitor.actualEntry) visitor.actualEntry = new Date();
     visitor.status = 'active';
     if (securityNotes) visitor.securityNotes = securityNotes;
     
     await visitor.save();
+    attachQrStatus(visitor);
     await createInAppNotification({
       userId: visitor.residentId,
       type: 'visitor',
       title: 'Visitor at the gate',
-      body: `Your visitor ${visitor.visitorName} is approved and heading to your place.`,
+      body: `Your visitor ${visitor.visitorName} is approved and heading to your place. Entry ${visitor.scanProgress.entryScanCount}/${visitor.scanProgress.groupSize}.`,
       metadata: { visitorId: visitor._id, event: 'entry_logged' }
     });
     
     res.json({
       success: true,
-      message: 'Visitor entry logged successfully',
+      message: `Visitor entry logged (${visitor.scanProgress.entryScanCount}/${visitor.scanProgress.groupSize}).`,
       data: visitor
     });
     
@@ -853,22 +875,39 @@ router.put('/:id/exit', protect, authorize('security'), async (req, res) => {
       });
     }
 
-    visitor.actualExit = new Date();
-    visitor.status = 'completed';
+    const progress = getVisitorProgress(visitor);
+    if (progress.exitScanCount >= progress.groupSize) {
+      return res.status(400).json({ success: false, error: 'All visitors on this pass have already been scanned for gate exit.' });
+    }
+    if (progress.exitScanCount >= progress.residentDepartureConfirmCount) {
+      return res.status(400).json({
+        success: false,
+        error: 'Resident must confirm another visitor departure before this gate exit scan.'
+      });
+    }
+
+    visitor.exitScanCount = progress.exitScanCount + 1;
+    if (visitor.exitScanCount >= progress.groupSize) {
+      visitor.actualExit = new Date();
+      visitor.status = 'completed';
+    }
     if (securityNotes) visitor.securityNotes += (visitor.securityNotes ? '\n' : '') + securityNotes;
     
     await visitor.save();
+    attachQrStatus(visitor);
     await createInAppNotification({
       userId: visitor.residentId,
       type: 'visitor',
-      title: 'Visitor pass completed',
-      body: `${visitor.visitorName} has exited. Visitor pass is now completed and no longer valid.`,
+      title: visitor.status === 'completed' ? 'Visitor pass completed' : 'Visitor gate exit logged',
+      body: visitor.status === 'completed'
+        ? `${visitor.visitorName} and all companions have exited. Visitor pass is now completed and no longer valid.`
+        : `${visitor.visitorName} gate exit logged (${visitor.scanProgress.exitScanCount}/${visitor.scanProgress.groupSize}).`,
       metadata: { visitorId: visitor._id, event: 'exit_logged' }
     });
     
     res.json({
       success: true,
-      message: 'Visitor exit logged successfully',
+      message: `Visitor exit logged (${visitor.scanProgress.exitScanCount}/${visitor.scanProgress.groupSize}).`,
       data: visitor
     });
     

@@ -275,11 +275,11 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     };
     const chip = config[displayStatus] || config.pending;
     const countByStatus = {
-      entered: progress.entryScanCount,
-      arrived: progress.residentArrivalConfirmCount,
-      departed: progress.residentDepartureConfirmCount,
-      exited: progress.exitScanCount,
-      completed: progress.exitScanCount,
+      entered: progress.entryScanCount ?? (visitor?.actualEntry ? total : 0),
+      arrived: progress.residentArrivalConfirmCount ?? (visitor?.residentEntryConfirmedAt ? total : 0),
+      departed: progress.residentDepartureConfirmCount ?? (visitor?.residentDepartureConfirmedAt ? total : 0),
+      exited: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
+      completed: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
     };
     const count = Number(countByStatus[displayStatus] || 0);
     const shouldShowCount = ['entered', 'arrived', 'departed', 'exited', 'completed'].includes(displayStatus);
@@ -481,9 +481,9 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
                 <Text style={styles.detailName}>{selectedVisitor.visitorName}</Text>
                 <Text style={styles.detailPhone}>{selectedVisitor.visitorPhone}</Text>
 
-                <View style={[styles.statusBadge, { backgroundColor: getStatusChip(selectedVisitor.status).bg, alignSelf: 'flex-start' }]}>
-                  <Text style={[styles.statusText, { color: getStatusChip(selectedVisitor.status).color }]}>
-                    {getStatusChip(selectedVisitor.status).label.toUpperCase()}
+                <View style={[styles.statusBadge, { backgroundColor: getStatusChip(selectedVisitor.status, selectedVisitor).bg, alignSelf: 'flex-start' }]}>
+                  <Text style={[styles.statusText, { color: getStatusChip(selectedVisitor.status, selectedVisitor).color }]}>
+                    {getStatusChip(selectedVisitor.status, selectedVisitor).label.toUpperCase()}
                   </Text>
                 </View>
 

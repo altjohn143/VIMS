@@ -163,7 +163,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       });
 
       if (response.data.success) {
-        Alert.alert('Success', 'Entry logged successfully');
+        Alert.alert('Success', response.data.message || 'Entry logged successfully');
         setShowEntryModal(false);
         setSecurityNotes('');
         fetchVisitors();
@@ -185,7 +185,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       });
 
       if (response.data.success) {
-        Alert.alert('Success', 'Exit logged successfully');
+        Alert.alert('Success', response.data.message || 'Exit logged successfully');
         setShowExitModal(false);
         setSecurityNotes('');
         fetchVisitors();
@@ -264,11 +264,11 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     };
     const chip = config[displayStatus] || config.pending;
     const countByStatus = {
-      entered: progress.entryScanCount,
-      arrived: progress.residentArrivalConfirmCount,
-      departed: progress.residentDepartureConfirmCount,
-      exited: progress.exitScanCount,
-      completed: progress.exitScanCount,
+      entered: progress.entryScanCount ?? (visitor?.actualEntry ? total : 0),
+      arrived: progress.residentArrivalConfirmCount ?? (visitor?.residentEntryConfirmedAt ? total : 0),
+      departed: progress.residentDepartureConfirmCount ?? (visitor?.residentDepartureConfirmedAt ? total : 0),
+      exited: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
+      completed: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
     };
     const count = Number(countByStatus[displayStatus] || 0);
     const shouldShowCount = ['entered', 'arrived', 'departed', 'exited', 'completed'].includes(displayStatus);
@@ -567,8 +567,10 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 
   const renderVisitorCard = ({ item }) => {
     const status = getStatusChip(item.status, item);
-    const canLogEntry = item.status === 'approved' && !item.actualEntry;
-    const canLogExit = item.status === 'active' && !item.actualExit;
+    const progress = item.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || item.numberOfCompanions || 0));
+    const canLogEntry = ['approved', 'active'].includes(item.status) && Number(progress.entryScanCount || 0) < total;
+    const canLogExit = item.status === 'active' && Number(progress.exitScanCount || 0) < total;
 
     return (
       <TouchableOpacity

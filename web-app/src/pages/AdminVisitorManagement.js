@@ -335,11 +335,11 @@ const AdminVisitorManagement = () => {
     const progress = visitor?.scanProgress || {};
     const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
     const countByStatus = {
-      entered: progress.entryScanCount,
-      arrived: progress.residentArrivalConfirmCount,
-      departed: progress.residentDepartureConfirmCount,
-      exited: progress.exitScanCount,
-      completed: progress.exitScanCount,
+      entered: progress.entryScanCount ?? (visitor?.actualEntry ? total : 0),
+      arrived: progress.residentArrivalConfirmCount ?? (visitor?.residentEntryConfirmedAt ? total : 0),
+      departed: progress.residentDepartureConfirmCount ?? (visitor?.residentDepartureConfirmedAt ? total : 0),
+      exited: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
+      completed: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
     };
     const shouldShowCount = ['entered', 'arrived', 'departed', 'exited', 'completed'].includes(normalizedStatus);
     const count = Number(countByStatus[normalizedStatus] || 0);

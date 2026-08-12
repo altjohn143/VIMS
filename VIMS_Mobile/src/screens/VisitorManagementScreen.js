@@ -366,10 +366,10 @@ const VisitorManagementScreen = ({ navigation }) => {
     const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
     const status = String(baseLabel || '').toLowerCase();
     const countByStatus = {
-      entered: progress.entryScanCount,
-      arrived: progress.residentArrivalConfirmCount,
-      departed: progress.residentDepartureConfirmCount,
-      exited: progress.exitScanCount,
+      entered: progress.entryScanCount ?? (visitor?.actualEntry ? total : 0),
+      arrived: progress.residentArrivalConfirmCount ?? (visitor?.residentEntryConfirmedAt ? total : 0),
+      departed: progress.residentDepartureConfirmCount ?? (visitor?.residentDepartureConfirmedAt ? total : 0),
+      exited: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
     };
     const count = Number(countByStatus[status] || 0);
     return count > 0 || ['entered', 'arrived', 'departed', 'exited'].includes(status)

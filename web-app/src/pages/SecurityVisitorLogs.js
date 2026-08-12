@@ -380,11 +380,11 @@ const SecurityVisitorLogs = () => {
     const progress = visitor?.scanProgress || {};
     const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
     const countByStatus = {
-      entered: progress.entryScanCount,
-      arrived: progress.residentArrivalConfirmCount,
-      departed: progress.residentDepartureConfirmCount,
-      exited: progress.exitScanCount,
-      completed: progress.exitScanCount,
+      entered: progress.entryScanCount ?? (visitor?.actualEntry ? total : 0),
+      arrived: progress.residentArrivalConfirmCount ?? (visitor?.residentEntryConfirmedAt ? total : 0),
+      departed: progress.residentDepartureConfirmCount ?? (visitor?.residentDepartureConfirmedAt ? total : 0),
+      exited: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
+      completed: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
     };
     const formatProgressLabel = (label, status = qrStatus) => {
       const normalizedStatus = String(status || '').toLowerCase();
@@ -1658,7 +1658,8 @@ const SecurityVisitorLogs = () => {
                           <ViewIcon />
                         </IconButton>
 
-                        {visitor.status === 'approved' && !visitor.actualEntry && (
+                        {['approved', 'active'].includes(visitor.status) &&
+                          Number(visitor.scanProgress?.entryScanCount || 0) < Math.max(1, Number(visitor.scanProgress?.groupSize || visitor.numberOfCompanions || 0)) && (
                           <IconButton
                             size="small"
                             color="primary"
@@ -1677,7 +1678,8 @@ const SecurityVisitorLogs = () => {
                           </IconButton>
                         )}
 
-                        {visitor.status === 'active' && (
+                        {visitor.status === 'active' &&
+                          Number(visitor.scanProgress?.exitScanCount || 0) < Math.max(1, Number(visitor.scanProgress?.groupSize || visitor.numberOfCompanions || 0)) && (
                           <IconButton
                             size="small"
                             color="success"

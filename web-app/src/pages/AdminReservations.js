@@ -23,8 +23,6 @@ import {
   Select,
   MenuItem,
   Grid,
-  IconButton,
-  Tooltip,
   Alert,
   Snackbar,
   CircularProgress,
@@ -36,7 +34,6 @@ import {
   InputAdornment
 } from '@mui/material';
 import {
-  Delete as DeleteIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Schedule as ScheduleIcon,
@@ -59,6 +56,9 @@ const AdminReservations = () => {
   const [resourceTypeFilter, setResourceTypeFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [denyDialogOpen, setDenyDialogOpen] = useState(false);
+  const [reservationToDeny, setReservationToDeny] = useState(null);
+  const [denialReason, setDenialReason] = useState('');
 
   const [resourceFormData, setResourceFormData] = useState({
     type: 'venue',
@@ -134,33 +134,44 @@ const AdminReservations = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this reservation?')) return;
-
+  const handleUpdateStatus = async (reservationId, status, extraData = {}) => {
     try {
       const token = sessionStorage.getItem('token');
-      await axios.delete(`/api/reservations/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSnackbar({ open: true, message: 'Reservation deleted successfully', severity: 'success' });
-      fetchReservations();
-    } catch (error) {
-      console.error('Error deleting reservation:', error);
-      setSnackbar({ open: true, message: 'Failed to delete reservation', severity: 'error' });
-    }
-  };
-
-  const handleUpdateStatus = async (reservationId, status) => {
-    try {
-      const token = sessionStorage.getItem('token');
-      await axios.put(`/api/reservations/${reservationId}`, { status }, {
+      await axios.put(`/api/reservations/${reservationId}`, { status, ...extraData }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSnackbar({ open: true, message: `Reservation ${status === 'confirmed' ? 'approved' : 'denied'} successfully`, severity: 'success' });
       fetchReservations();
+      return true;
     } catch (error) {
       console.error('Error updating reservation status:', error);
-      setSnackbar({ open: true, message: 'Failed to update reservation status', severity: 'error' });
+      setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to update reservation status', severity: 'error' });
+      return false;
+    }
+  };
+
+  const openDenyDialog = (reservation) => {
+    setReservationToDeny(reservation);
+    setDenialReason('');
+    setDenyDialogOpen(true);
+  };
+
+  const closeDenyDialog = () => {
+    setDenyDialogOpen(false);
+    setReservationToDeny(null);
+    setDenialReason('');
+  };
+
+  const handleDenyReservation = async () => {
+    const reason = denialReason.trim();
+    if (!reservationToDeny || !reason) {
+      setSnackbar({ open: true, message: 'A denial reason is required', severity: 'error' });
+      return;
+    }
+
+    const didUpdate = await handleUpdateStatus(reservationToDeny._id, 'cancelled', { cancelledReason: reason });
+    if (didUpdate) {
+      closeDenyDialog();
     }
   };
 
@@ -529,7 +540,7 @@ const AdminReservations = () => {
                             <Button
                               size="small"
                               color="error"
-                              onClick={() => handleUpdateStatus(reservation._id, 'cancelled')}
+                              onClick={() => openDenyDialog(reservation)}
                               startIcon={<CancelIcon />}
                               sx={{ textTransform: 'none' }}
                             >
@@ -548,11 +559,6 @@ const AdminReservations = () => {
                             Confirm Receipt
                           </Button>
                         )}
-                        <Tooltip title="Delete">
-                          <IconButton onClick={() => handleDelete(reservation._id)} size="small" color="error">
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   );
@@ -621,6 +627,36 @@ const AdminReservations = () => {
               disabled={!resourceFormData.name.trim()}
             >
               Add Resource
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog open={denyDialogOpen} onClose={closeDenyDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>Deny Reservation</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Add a reason so the resident knows why this reservation was denied.
+            </Typography>
+            <TextField
+              autoFocus
+              fullWidth
+              required
+              multiline
+              minRows={3}
+              label="Denial reason"
+              value={denialReason}
+              onChange={(event) => setDenialReason(event.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeDenyDialog}>Cancel</Button>
+            <Button
+              color="error"
+              variant="contained"
+              onClick={handleDenyReservation}
+              disabled={!denialReason.trim()}
+            >
+              Deny Reservation
             </Button>
           </DialogActions>
         </Dialog>

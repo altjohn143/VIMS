@@ -264,7 +264,7 @@ const getFallbackLots = async () => {
     'mapPosition.isPositioned': true
   })
     .select('lotId block lotNumber type sqm price status')
-    .sort({ block: 1, lotNumber: 1 })
+    .sort({ phase: 1, block: 1, lotNumber: 1 })
     .limit(10);
   return lots;
 };

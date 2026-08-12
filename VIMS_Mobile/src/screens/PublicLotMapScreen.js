@@ -27,6 +27,12 @@ const MAX_MAP_ZOOM = 2.25;
 const MAP_ZOOM_STEP = 0.25;
 const LOT_MAP_IMAGE = require('../../assets/lotbettermap.jpg');
 
+const sortLotsNumerically = (lotList) => [...lotList].sort((a, b) => (
+  (Number(a.phase) || 0) - (Number(b.phase) || 0) ||
+  (Number(a.block) || 0) - (Number(b.block) || 0) ||
+  (Number(a.lotNumber) || 0) - (Number(b.lotNumber) || 0)
+));
+
 const PublicLotMapScreen = ({ navigation }) => {
   const [selectedLot, setSelectedLot] = useState(null);
   const [showLotModal, setShowLotModal] = useState(false);
@@ -91,7 +97,7 @@ const PublicLotMapScreen = ({ navigation }) => {
   }), [selectedPhaseLots]);
 
   const filteredLots = useMemo(() => {
-    return mappedLots.filter((lot) => {
+    return sortLotsNumerically(mappedLots.filter((lot) => {
       const matchesStatus = filterStatus === 'all' || lot.status === filterStatus;
       const query = searchQuery.trim().toLowerCase();
       const matchesSearch = query === '' ||
@@ -100,7 +106,7 @@ const PublicLotMapScreen = ({ navigation }) => {
         String(lot.block || '').toLowerCase().includes(query) ||
         String(lot.lotNumber || '').toLowerCase().includes(query);
       return matchesStatus && matchesSearch;
-    });
+    }));
   }, [mappedLots, filterStatus, searchQuery]);
 
   const phases = useMemo(() => {
@@ -119,9 +125,10 @@ const PublicLotMapScreen = ({ navigation }) => {
   }, [phases, selectedPhase]);
 
   const phaseFilteredLots = useMemo(() => {
-    return selectedPhase === 'all'
+    const lotsForPhase = selectedPhase === 'all'
       ? filteredLots
       : filteredLots.filter(lot => Number(lot.phase || 1) === Number(selectedPhase));
+    return sortLotsNumerically(lotsForPhase);
   }, [filteredLots, selectedPhase]);
 
   const onRefresh = () => {

@@ -20,6 +20,12 @@ const STATUS_OPTIONS = ['all', 'vacant', 'occupied', 'reserved', 'amenity'];
 
 const isPlacedLot = (lot) => Boolean(lot?.mapPosition?.isPositioned);
 
+const sortLotsNumerically = (lotList) => [...lotList].sort((a, b) => (
+  (Number(a.phase) || 0) - (Number(b.phase) || 0) ||
+  (Number(a.block) || 0) - (Number(b.block) || 0) ||
+  (Number(a.lotNumber) || 0) - (Number(b.lotNumber) || 0)
+));
+
 const getStatusStyle = (status) => {
   switch (status) {
     case 'vacant':
@@ -53,7 +59,7 @@ const AdminLotManagementScreen = ({ navigation }) => {
         throw new Error(response.data?.error || 'Failed to load lots.');
       }
       const lotsData = Array.isArray(response.data.data) ? response.data.data : [];
-      setLots(lotsData.filter(isPlacedLot));
+      setLots(sortLotsNumerically(lotsData.filter(isPlacedLot)));
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || error.message || 'Failed to load lots.');
     } finally {
@@ -81,7 +87,7 @@ const AdminLotManagementScreen = ({ navigation }) => {
 
   const filteredLots = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return lots.filter((lot) => {
+    return sortLotsNumerically(lots.filter((lot) => {
       const residentName = `${lot.occupiedBy?.firstName || ''} ${lot.occupiedBy?.lastName || ''}`.trim().toLowerCase();
       const matchesSearch = !q ||
         String(lot.lotId || '').toLowerCase().includes(q) ||
@@ -90,7 +96,7 @@ const AdminLotManagementScreen = ({ navigation }) => {
       const matchesStatus = statusFilter === 'all' || lot.status === statusFilter;
       const matchesPhase = phaseFilter === 'all' || String(lot.phase) === String(phaseFilter);
       return matchesSearch && matchesStatus && matchesPhase;
-    });
+    }));
   }, [lots, search, statusFilter, phaseFilter]);
 
   const renderStat = (label, value, color, icon) => (

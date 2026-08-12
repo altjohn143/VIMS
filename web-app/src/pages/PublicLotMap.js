@@ -98,6 +98,11 @@ const getSavedMapPosition = (lot) => {
 
 const getLotMapPosition = (lot) => getSavedMapPosition(lot);
 const isLotPlacedOnMap = (lot) => Boolean(getLotMapPosition(lot));
+const sortLotsNumerically = (lotList) => [...lotList].sort((a, b) => (
+  (Number(a.phase) || 0) - (Number(b.phase) || 0) ||
+  (Number(a.phaseBlock ?? a.block) || 0) - (Number(b.phaseBlock ?? b.block) || 0) ||
+  (Number(a.lotNumber) || 0) - (Number(b.lotNumber) || 0)
+));
 
 const generateLotsFromAPI = (apiLots) => {
   if (!apiLots || apiLots.length === 0) return [];
@@ -679,7 +684,7 @@ const PublicLotMap = () => {
         setError(null);
         const response = await axios.get('/api/lots');
         if (response.data.success) {
-          const lots = generateLotsFromAPI(response.data.data).filter(isLotPlacedOnMap);
+          const lots = sortLotsNumerically(generateLotsFromAPI(response.data.data).filter(isLotPlacedOnMap));
           setAllLots(lots);
         } else {
           setError('Failed to load lots data');
@@ -706,7 +711,7 @@ const PublicLotMap = () => {
   const phaseFilteredLots = useMemo(() => {
     const s = search.toLowerCase();
 
-    return allLots.filter((lot) => {
+    return sortLotsNumerically(allLots.filter((lot) => {
       const matchesPhase = selectedPhase === 'all' || Number(lot.phase) === Number(selectedPhase);
       const matchesStatus = filterStatus === 'all' || lot.status === filterStatus;
       const matchesSearch =
@@ -718,7 +723,7 @@ const PublicLotMap = () => {
         String(lot.lotNumber).toLowerCase().includes(s);
 
       return matchesPhase && matchesStatus && matchesSearch;
-    });
+    }));
   }, [allLots, filterStatus, search, selectedPhase]);
 
   const selectedPhaseLots = useMemo(

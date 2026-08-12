@@ -56,6 +56,12 @@ const themeColors = {
 
 const isPlacedLot = (lot) => Boolean(lot?.mapPosition?.isPositioned);
 
+const sortLotsNumerically = (lotList) => [...lotList].sort((a, b) => (
+  (Number(a.phase) || 0) - (Number(b.phase) || 0) ||
+  (Number(a.block) || 0) - (Number(b.block) || 0) ||
+  (Number(a.lotNumber) || 0) - (Number(b.lotNumber) || 0)
+));
+
 const AdminLotManagement = () => {
   const navigate = useNavigate();
   const [lots, setLots] = useState([]);
@@ -84,8 +90,9 @@ const AdminLotManagement = () => {
       const lotsData = Array.isArray(response.data?.data) ? response.data.data : [];
       const placedLots = lotsData.filter(isPlacedLot);
 
-      setLots(placedLots);
-      setFilteredLots(placedLots);
+      const sortedLots = sortLotsNumerically(placedLots);
+      setLots(sortedLots);
+      setFilteredLots(sortedLots);
 
       // Calculate stats
       const total = placedLots.length;
@@ -136,7 +143,7 @@ const AdminLotManagement = () => {
       filtered = filtered.filter(lot => lot.type === typeFilter);
     }
 
-    setFilteredLots(filtered);
+    setFilteredLots(sortLotsNumerically(filtered));
   }, [lots, searchQuery, phaseFilter, blockFilter, statusFilter, typeFilter]);
 
   useEffect(() => {

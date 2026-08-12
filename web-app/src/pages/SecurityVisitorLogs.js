@@ -1654,7 +1654,7 @@ const SecurityVisitorLogs = () => {
                               }
                             }}
                           >
-                            Check In {securityProgress.entered + 1}/{securityProgress.total}
+                            Check In {securityProgress.entered}/{securityProgress.total}
                           </Button>
                         )}
 
@@ -1676,7 +1676,7 @@ const SecurityVisitorLogs = () => {
                               }
                             }}
                           >
-                            Check Out {securityProgress.exited + 1}/{securityProgress.total}
+                            Check Out {securityProgress.exited}/{securityProgress.total}
                           </Button>
                         )}
 

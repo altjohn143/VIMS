@@ -61,7 +61,7 @@ const STATUS_CONFIG = {
   vacant:   { color: '#22c55e', bg: '#dcfce7', label: 'Vacant',   border: '#16a34a' },
   occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', border: '#dc2626' },
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
-  amenity:  { color: '#14b8a6', bg: '#ccfbf1', label: 'Community Amenity', border: '#0f766e' },
+  amenity:  { color: '#64748b', bg: '#e2e8f0', label: 'Community Amenity', border: '#94a3b8' },
 };
 
 const MAP_FIT_ZOOM = 14;
@@ -1162,6 +1162,7 @@ const PublicLotMap = () => {
                 const cfg = STATUS_CONFIG[lot.status] || STATUS_CONFIG.vacant;
                 const override = getLotMapPosition(lot);
                 if (!override) return null;
+                const isAmenity = lot.status === 'amenity';
 
                 const centerLeft = (override.mapLeft || 0) + ((override.mapWidth || 0) / 2);
                 const centerTop = (override.mapTop || 0) + ((override.mapHeight || 0) / 2);
@@ -1176,6 +1177,7 @@ const PublicLotMap = () => {
                     data-lot-overlay="true"
                     onClick={(event) => {
                       event.stopPropagation();
+                      if (isAmenity) return;
                       setSelectedLot(lot);
                       setHighlightedLotId(lot.id);
                     }}
@@ -1191,10 +1193,10 @@ const PublicLotMap = () => {
                       height: `${override.mapHeight}%`,
                       transform: `translate(-50%, -50%) rotate(${override.rotate || 0}deg)`,
                       transformOrigin: 'center center',
-                      cursor: 'pointer',
+                      cursor: isAmenity ? 'not-allowed' : 'pointer',
                       borderRadius: '3px',
                       border: `${isFocused ? 2 : 1}px solid ${isFocused ? '#fff' : cfg.border}`,
-                      backgroundColor: `${cfg.color}18`,
+                      backgroundColor: isAmenity ? 'rgba(100,116,139,0.24)' : `${cfg.color}18`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1206,7 +1208,7 @@ const PublicLotMap = () => {
                       },
                       '&:hover': {
                         boxShadow: `0 0 0 2px ${cfg.color}44`,
-                        backgroundColor: `${cfg.color}11`,
+                        backgroundColor: isAmenity ? 'rgba(100,116,139,0.32)' : `${cfg.color}11`,
                       },
                     }}
                   />

@@ -133,7 +133,7 @@ const PublicLotMapScreen = ({ navigation }) => {
     vacant: { color: '#22c55e', bg: '#dcfce7', label: 'Vacant', icon: 'checkmark-circle' },
     occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', icon: 'close-circle' },
     reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', icon: 'time' },
-    amenity: { color: '#14b8a6', bg: '#ccfbf1', label: 'Community Amenity', icon: 'business' },
+    amenity: { color: '#64748b', bg: '#e2e8f0', label: 'Community Amenity', icon: 'business' },
   };
 
   const getStatusConfig = (status) => statusConfig[status] || statusConfig.reserved;
@@ -208,6 +208,7 @@ const PublicLotMapScreen = ({ navigation }) => {
   };
 
   const handleStartTour = (lot) => {
+    if (lot?.status === 'amenity') return;
     setSelectedLot(lot);
     setShowLotModal(false);
     setShowTourModal(true);
@@ -237,6 +238,7 @@ const PublicLotMapScreen = ({ navigation }) => {
   }, [isAutoPlaying, showTourModal, activeTourTab]);
 
   const handleLotPress = (lot) => {
+    if (lot?.status === 'amenity') return;
     setSelectedLot(lot);
     setShowLotModal(true);
   };
@@ -423,13 +425,14 @@ const PublicLotMapScreen = ({ navigation }) => {
               {phaseFilteredLots.map((lot) => {
                 const cfg = getStatusConfig(lot.status);
                 const position = lot.mapPosition;
+                const isAmenity = lot.status === 'amenity';
                 const isSelected = selectedLot?.lotId === lot.lotId;
 
                 return (
                   <TouchableOpacity
                     key={lot.lotId || lot._id}
                     accessibilityLabel={`Phase ${lot.phase}, Block ${lot.block}, Lot ${lot.lotNumber}, ${cfg.label}`}
-                    activeOpacity={0.7}
+                    activeOpacity={isAmenity ? 1 : 0.7}
                     onPress={() => handleLotPress(lot)}
                     style={[
                       styles.mapLotSquare,
@@ -438,18 +441,19 @@ const PublicLotMapScreen = ({ navigation }) => {
                         top: `${Number(position.top)}%`,
                         width: `${Number(position.width)}%`,
                         height: `${Number(position.height)}%`,
-                        borderColor: isSelected ? '#ffffff' : cfg.color,
-                        backgroundColor: `${cfg.color}38`,
+                        borderColor: isSelected && !isAmenity ? '#ffffff' : cfg.color,
+                        backgroundColor: isAmenity ? 'rgba(100,116,139,0.28)' : `${cfg.color}38`,
                         transform: [{ rotate: `${Number(position.rotate) || 0}deg` }],
+                        opacity: isAmenity ? 0.72 : 1,
                       },
-                      isSelected && styles.activeMapLotSquare,
+                      isSelected && !isAmenity && styles.activeMapLotSquare,
                     ]}
                   >
                     <Text
                       style={[
                         styles.mapLotLabel,
                         {
-                          color: isSelected ? '#ffffff' : cfg.color,
+                          color: isSelected && !isAmenity ? '#ffffff' : cfg.color,
                           fontSize: Math.max(7, Math.min(13, 9 * mapZoom)),
                         },
                       ]}

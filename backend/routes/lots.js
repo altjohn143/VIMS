@@ -5,9 +5,17 @@ const OccupancyHistory = require('../models/OccupancyHistory');
 const { protect, authorize } = require('../middleware/auth');
 
 const AMENITY_LOTS = {
-  'P4-B18-L6': 'Covered Court',
-  'P2-B10-L13': 'Covered Court',
-  'P4-B17-L7': 'Swimming Pool'
+  'P4-B3-L6': 'Covered Court',
+  'P2-B5-L13': 'Covered Court',
+  'P4-B2-L7': 'Swimming Pool'
+};
+
+const OLD_AMENITY_LOTS = ['P4-B18-L6', 'P2-B10-L13', 'P4-B17-L7'];
+
+const POSITIONED_BLOCK_RENUMBERING = {
+  2: { 6: 1, 7: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 7, 13: 8 },
+  3: { 11: 1, 12: 2, 13: 3, 14: 4, 15: 5 },
+  4: { 16: 1, 17: 2, 18: 3 }
 };
 
 const isAmenityLot = (lotId) => Boolean(AMENITY_LOTS[String(lotId || '').toUpperCase()]);
@@ -45,7 +53,73 @@ const normalizeUnassignedOccupiedLot = async (lot, persist = false) => {
   return lot;
 };
 
+const emptyMapPosition = () => ({
+  isPositioned: false,
+  left: null,
+  top: null,
+  width: null,
+  height: null,
+  rotate: 0,
+  shape: 'rectangle',
+  updatedAt: new Date()
+});
+
+const copyMapPosition = (mapPosition) => ({
+  isPositioned: true,
+  left: mapPosition.left,
+  top: mapPosition.top,
+  width: mapPosition.width,
+  height: mapPosition.height,
+  rotate: mapPosition.rotate || 0,
+  shape: mapPosition.shape || 'rectangle',
+  updatedBy: mapPosition.updatedBy || null,
+  updatedAt: new Date()
+});
+
+const correctPositionedLotLabels = async () => {
+  for (const [phaseText, blockMap] of Object.entries(POSITIONED_BLOCK_RENUMBERING)) {
+    const phase = Number(phaseText);
+
+    for (const [fromBlockText, toBlock] of Object.entries(blockMap)) {
+      const fromBlock = Number(fromBlockText);
+      const positionedLots = await Lot.find({
+        phase,
+        block: fromBlock,
+        'mapPosition.isPositioned': true
+      });
+
+      for (const sourceLot of positionedLots) {
+        const targetLotId = `P${phase}-B${toBlock}-L${sourceLot.lotNumber}`;
+        const targetLot = await Lot.findOne({ lotId: targetLotId });
+        if (!targetLot) continue;
+
+        targetLot.mapPosition = copyMapPosition(sourceLot.mapPosition);
+        sourceLot.mapPosition = emptyMapPosition();
+
+        await targetLot.save();
+        await sourceLot.save();
+      }
+    }
+  }
+};
+
 const cleanupUnassignedOccupiedLots = async () => {
+  await correctPositionedLotLabels();
+
+  await Lot.updateMany(
+    { lotId: { $in: OLD_AMENITY_LOTS }, status: 'amenity' },
+    {
+      $set: {
+        status: 'vacant',
+        type: 'Single Family',
+        price: null,
+        occupiedBy: null,
+        occupiedAt: null,
+        features: ['Standard Lot', 'Ready for Occupancy']
+      }
+    }
+  );
+
   for (const [lotId, amenityType] of Object.entries(AMENITY_LOTS)) {
     await Lot.updateOne(
       { lotId },

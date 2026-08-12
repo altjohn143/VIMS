@@ -270,9 +270,9 @@ const getFallbackLots = async () => {
 };
 
 const AMENITY_LOTS = {
-  'P4-B18-L6': 'Covered Court',
-  'P2-B10-L13': 'Covered Court',
-  'P4-B17-L7': 'Swimming Pool'
+  'P4-B3-L6': 'Covered Court',
+  'P2-B5-L13': 'Covered Court',
+  'P4-B2-L7': 'Swimming Pool'
 };
 
 const isAmenityLot = (lotId) => Boolean(AMENITY_LOTS[String(lotId || '').toUpperCase()]);

@@ -348,9 +348,9 @@ const VisitorManagement = () => {
 
     const config = statusConfig[qrStatus.toLowerCase()] || { label: qrStatus, color: 'default' };
     const countByStatus = {
-      entered: progress.entryScanCount ?? (visitor?.actualEntry ? total : 0),
-      arrived: progress.residentArrivalConfirmCount ?? (visitor?.residentEntryConfirmedAt ? total : 0),
-      departed: progress.residentDepartureConfirmCount ?? (visitor?.residentDepartureConfirmedAt ? total : 0),
+      entered: progress.entryScanCount ?? 0,
+      arrived: progress.residentArrivalConfirmCount ?? 0,
+      departed: progress.residentDepartureConfirmCount ?? 0,
       exited: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
       completed: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
     };
@@ -365,9 +365,9 @@ const VisitorManagement = () => {
     const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
     return {
       total,
-      entered: Number(progress.entryScanCount ?? (visitor?.actualEntry ? total : 0)),
-      arrived: Number(progress.residentArrivalConfirmCount ?? (visitor?.residentEntryConfirmedAt ? total : 0)),
-      departed: Number(progress.residentDepartureConfirmCount ?? (visitor?.residentDepartureConfirmedAt ? total : 0))
+      entered: Number(progress.entryScanCount ?? 0),
+      arrived: Number(progress.residentArrivalConfirmCount ?? 0),
+      departed: Number(progress.residentDepartureConfirmCount ?? 0)
     };
   };
 

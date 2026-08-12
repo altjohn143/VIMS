@@ -6,7 +6,7 @@ const Setting = require('../models/Setting');
 const { protect, authorize } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 const { createInAppNotification } = require('../services/inAppNotificationService');
-const { sendPaymentReminderEmail } = require('../services/notificationService');
+const { sendPaymentReminderEmail, sendPaymentConfirmationEmail } = require('../services/notificationService');
 const { analyzeReceiptFraud } = require('../services/openaiReceiptFraudService');
 const { uploadImageBuffer } = require('../services/cloudinaryService');
 
@@ -53,6 +53,16 @@ async function createMonthlyDuesForResident(resident, targetMonth, targetYear) {
     notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
     inclusions: defaultInclusions
   });
+}
+
+function hasSubmittedPaymentForReview(payment) {
+  return Boolean(
+    payment.receiptImage ||
+    payment.referenceNumber ||
+    payment.transactionId ||
+    payment.paymongoSessionId ||
+    payment.paymongoSourceId
+  );
 }
 
 // ========== PAYMENT ROUTES ==========
@@ -610,7 +620,20 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
       body: `Your payment ${payment.invoiceNumber} has been confirmed.`,
       metadata: { paymentId: payment._id }
     });
-    res.json({ success: true, message: 'Payment confirmed' });
+
+    let emailResult = { sent: false, reason: 'not_attempted' };
+    try {
+      const resident = await User.findById(payment.residentId).select('email firstName lastName');
+      emailResult = await sendPaymentConfirmationEmail(payment, resident);
+      if (!emailResult.sent) {
+        console.warn(`Payment confirmation email skipped for ${resident?.email || payment.residentId}: ${emailResult.reason}`);
+      }
+    } catch (emailError) {
+      emailResult = { sent: false, reason: emailError.message };
+      console.error(`Failed to send payment confirmation email for ${payment.invoiceNumber}:`, emailError.message);
+    }
+
+    res.json({ success: true, message: 'Payment confirmed', data: { email: emailResult } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to confirm payment' });
   }
@@ -619,13 +642,19 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
 // Admin: Send reminders
 router.post('/send-reminders', protect, authorize('admin'), async (req, res) => {
   try {
-    const overduePayments = await Payment.find({ status: 'pending', dueDate: { $lt: new Date() } })
+    const unpaidPayments = await Payment.find({ status: 'pending' })
       .populate('residentId', 'email firstName lastName');
     let emailSent = 0;
     let failed = 0;
+    let awaitingReview = 0;
     const remindersByResident = new Map();
 
-    for (const payment of overduePayments) {
+    for (const payment of unpaidPayments) {
+      if (hasSubmittedPaymentForReview(payment)) {
+        awaitingReview++;
+        continue;
+      }
+
       const resident = payment.residentId;
       if (!resident?._id || !resident.email) {
         failed++;
@@ -657,9 +686,11 @@ router.post('/send-reminders', protect, authorize('admin'), async (req, res) => 
     res.json({
       success: true,
       message: emailSent > 0
-        ? `Sent email reminders to ${emailSent} resident${emailSent === 1 ? '' : 's'}${failed ? ` (${failed} failed/skipped)` : ''}`
-        : 'No eligible resident emails found for overdue reminders',
-      data: { sent: emailSent, emailSent, failed }
+        ? `Sent email reminders to ${emailSent} resident${emailSent === 1 ? '' : 's'}${awaitingReview ? `; skipped ${awaitingReview} payment${awaitingReview === 1 ? '' : 's'} awaiting admin review` : ''}${failed ? ` (${failed} failed/skipped)` : ''}`
+        : awaitingReview > 0
+          ? `No reminders sent. ${awaitingReview} pending payment${awaitingReview === 1 ? ' is' : 's are'} awaiting admin review.`
+          : 'No eligible resident emails found for unpaid payment reminders',
+      data: { sent: emailSent, emailSent, failed, awaitingReview }
     });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to send reminders' });

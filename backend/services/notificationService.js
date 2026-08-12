@@ -121,7 +121,7 @@ async function sendPaymentReminderEmail(payments, resident) {
 
   const paymentList = Array.isArray(payments) ? payments : [payments];
   if (paymentList.length === 0) {
-    return { sent: false, reason: 'no_overdue_payments' };
+    return { sent: false, reason: 'no_unpaid_payments' };
   }
 
   const formatAmount = (amount) => Number(amount || 0).toLocaleString('en-PH', {
@@ -155,11 +155,11 @@ async function sendPaymentReminderEmail(payments, resident) {
   const result = await resend.emails.send({
     from: RESEND_FROM_EMAIL,
     to: resident.email,
-    subject: `VIMS Payment Reminder: ${invoiceCount} overdue invoice${invoiceCount === 1 ? '' : 's'}`,
+    subject: `VIMS Payment Reminder: ${invoiceCount} unpaid invoice${invoiceCount === 1 ? '' : 's'}`,
     html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1e293b">
       <h2 style="color:#2e6b2e">Payment Reminder</h2>
       <p>Hello ${safeFirstName},</p>
-      <p>This is a reminder that you have ${invoiceCount} overdue invoice${invoiceCount === 1 ? '' : 's'}.</p>
+      <p>This is a reminder that you have ${invoiceCount} unpaid invoice${invoiceCount === 1 ? '' : 's'}.</p>
       <table style="width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin:16px 0">
         <thead>
           <tr>
@@ -173,7 +173,66 @@ async function sendPaymentReminderEmail(payments, resident) {
       <p>Please settle this payment through the VIMS resident portal or coordinate with the admin office.</p>
       <p>If you have already paid, you may disregard this reminder.</p>
     </div>`,
-    text: `Hello ${firstName},\n\nThis is a reminder that you have ${invoiceCount} overdue invoice${invoiceCount === 1 ? '' : 's'}:\n${textInvoiceRows}\n\nPlease settle this payment through the VIMS resident portal or coordinate with the admin office.\n\nIf you have already paid, you may disregard this reminder.`
+    text: `Hello ${firstName},\n\nThis is a reminder that you have ${invoiceCount} unpaid invoice${invoiceCount === 1 ? '' : 's'}:\n${textInvoiceRows}\n\nPlease settle this payment through the VIMS resident portal or coordinate with the admin office.\n\nIf you have already paid, you may disregard this reminder.`
+  });
+
+  if (result?.error) {
+    throw new Error(result.error.message || 'Resend rejected the email');
+  }
+
+  return { sent: true, id: result?.data?.id };
+}
+
+async function sendPaymentConfirmationEmail(payment, resident) {
+  if (!resident?.email) {
+    return { sent: false, reason: 'missing_email' };
+  }
+  if (!process.env.RESEND_API_KEY) {
+    return { sent: false, reason: 'resend_not_configured' };
+  }
+
+  const formatAmount = (amount) => Number(amount || 0).toLocaleString('en-PH', {
+    style: 'currency',
+    currency: 'PHP'
+  });
+  const formatDate = (date) => date
+    ? new Date(date).toLocaleDateString('en-PH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+    : 'N/A';
+
+  const firstName = resident.firstName || 'Resident';
+  const safeFirstName = escapeHtml(firstName);
+  const amount = formatAmount(payment.amount);
+  const paymentDate = formatDate(payment.paymentDate || new Date());
+  const dueDate = formatDate(payment.dueDate);
+  const invoiceNumber = payment.invoiceNumber || 'Invoice';
+  const receiptNumber = payment.receiptNumber || 'N/A';
+  const paymentMethod = payment.paymentMethod ? String(payment.paymentMethod).toUpperCase() : 'N/A';
+
+  const result = await resend.emails.send({
+    from: RESEND_FROM_EMAIL,
+    to: resident.email,
+    subject: 'VIMS Payment Confirmed - Monthly Dues',
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1e293b">
+      <h2 style="color:#2e6b2e">Payment Confirmed</h2>
+      <p>Hello ${safeFirstName},</p>
+      <p>Your payment to <strong>WESTVILLE CASIMIRO Bacoor City, Cavite, Philippines</strong> for your <strong>Monthly Dues</strong> has been approved by the admin.</p>
+      <table style="width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin:16px 0">
+        <tbody>
+          <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Invoice</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(invoiceNumber)}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Payment</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(amount)}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Due date</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(dueDate)}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Paid date</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(paymentDate)}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Method</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(paymentMethod)}</td></tr>
+          <tr><td style="padding:10px;font-weight:bold">Receipt</td><td style="padding:10px">${escapeHtml(receiptNumber)}</td></tr>
+        </tbody>
+      </table>
+      <p>Thank you for keeping your dues updated.</p>
+    </div>`,
+    text: `Hello ${firstName},\n\nYour payment to WESTVILLE CASIMIRO Bacoor City, Cavite, Philippines for your Monthly Dues has been approved by the admin.\n\nInvoice: ${invoiceNumber}\nPayment: ${amount}\nDue date: ${dueDate}\nPaid date: ${paymentDate}\nMethod: ${paymentMethod}\nReceipt: ${receiptNumber}\n\nThank you for keeping your dues updated.`
   });
 
   if (result?.error) {
@@ -188,5 +247,6 @@ module.exports = {
   sendVisitorReminderNotification,
   sendServiceRequestStatusNotification,
   sendReservationStatusNotification,
-  sendPaymentReminderEmail
+  sendPaymentReminderEmail,
+  sendPaymentConfirmationEmail
 };

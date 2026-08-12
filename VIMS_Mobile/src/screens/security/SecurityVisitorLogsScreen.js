@@ -646,7 +646,8 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         title="Visitor Logs"
         subtitle="Track visits, scanner activity, and gate records."
         actions={[
-          { label: 'Scan', icon: 'qr-code', onPress: () => navigation.navigate('ScannerTab'), primary: true },
+          { label: 'Entry Scan', icon: 'log-in-outline', onPress: () => navigation.navigate('ScannerTab', { mode: 'entry' }), primary: true },
+          { label: 'Exit Scan', icon: 'log-out-outline', onPress: () => navigation.navigate('ScannerTab', { mode: 'exit' }) },
           { label: 'Export', icon: 'download', onPress: handleExport },
           { label: 'Manual', icon: 'car-outline', onPress: () => { setManualEntryOpen(true); setManualEntryErrors({}); } },
         ]}

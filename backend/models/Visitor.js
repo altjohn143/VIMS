@@ -74,6 +74,30 @@ const visitorSchema = new mongoose.Schema({
     type: Date
   },
 
+  entryScanCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+
+  residentArrivalConfirmCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+
+  residentDepartureConfirmCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+
+  exitScanCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+
   overstayNotifiedAt: {
     type: Date
   },

@@ -64,15 +64,38 @@ const findVisitorByScanValue = async (scanValue) => {
   return visitor;
 };
 
+const getVisitorGroupSize = (visitor) => Math.max(1, Number(visitor?.numberOfCompanions) || 0);
+
+const getVisitorProgress = (visitor) => {
+  const groupSize = getVisitorGroupSize(visitor);
+  const entryScanCount = Number(visitor?.entryScanCount || 0);
+  const residentArrivalConfirmCount = Number(visitor?.residentArrivalConfirmCount || 0);
+  const residentDepartureConfirmCount = Number(visitor?.residentDepartureConfirmCount || 0);
+  const exitScanCount = Number(visitor?.exitScanCount || 0);
+
+  return {
+    groupSize,
+    entryScanCount,
+    residentArrivalConfirmCount,
+    residentDepartureConfirmCount,
+    exitScanCount,
+    remainingEntryScans: Math.max(0, groupSize - entryScanCount),
+    remainingArrivalConfirmations: Math.max(0, groupSize - residentArrivalConfirmCount),
+    remainingDepartureConfirmations: Math.max(0, groupSize - residentDepartureConfirmCount),
+    remainingExitScans: Math.max(0, groupSize - exitScanCount)
+  };
+};
+
 const getVisitorQrStatus = (visitor) => {
   if (!visitor) return 'Unknown';
+  const progress = getVisitorProgress(visitor);
   if (visitor.status === 'pending') return 'Pending';
   if (visitor.status === 'approved') return 'Approved';
   if (visitor.status === 'active') {
-    if (visitor.actualExit) return 'Exited';
-    if (visitor.residentDepartureConfirmedAt) return 'Departed';
-    if (visitor.residentEntryConfirmedAt) return 'Arrived';
-    if (visitor.actualEntry) return 'Entered';
+    if (progress.exitScanCount >= progress.groupSize) return 'Exited';
+    if (progress.residentDepartureConfirmCount >= progress.groupSize) return 'Departed';
+    if (progress.residentArrivalConfirmCount >= progress.groupSize) return 'Arrived';
+    if (progress.entryScanCount >= progress.groupSize) return 'Entered';
     return 'Active';
   }
   if (visitor.status === 'completed') return 'Exited';
@@ -86,17 +109,19 @@ const getVisitorQrStatus = (visitor) => {
 const attachQrStatus = (visitor) => {
   if (!visitor) return visitor;
   visitor.qrStatus = getVisitorQrStatus(visitor);
+  visitor.scanProgress = getVisitorProgress(visitor);
   return visitor;
 };
 
 const getExitPrerequisiteMessage = (visitor) => {
-  if (!visitor.actualEntry) {
+  const progress = getVisitorProgress(visitor);
+  if (progress.entryScanCount <= 0) {
     return 'Scan visitor entry at the gate first before exiting.';
   }
-  if (!visitor.residentEntryConfirmedAt) {
+  if (progress.residentArrivalConfirmCount <= 0) {
     return 'Resident must scan to confirm the visitor arrived at the house before exit.';
   }
-  if (!visitor.residentDepartureConfirmedAt) {
+  if (progress.residentDepartureConfirmCount <= 0) {
     return 'Resident must scan for departure first before exiting.';
   }
   return '';
@@ -1020,6 +1045,7 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
 router.post('/scan-action', protect, authorize('security'), async (req, res) => {
   try {
     const scanValue = req.body?.scanValue || req.body?.qrCode || '';
+    const requestedAction = String(req.body?.action || '').toLowerCase();
     const securityNotes = req.body?.securityNotes || '';
     const visitor = await findVisitorByScanValue(scanValue);
 
@@ -1027,28 +1053,56 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
       return res.status(404).json({ success: false, error: 'Invalid QR code' });
     }
 
-    if (visitor.status === 'approved') {
-      visitor.actualEntry = new Date();
+    const progress = getVisitorProgress(visitor);
+    const action = requestedAction || (visitor.status === 'approved' || progress.entryScanCount < progress.groupSize ? 'entry' : 'exit');
+
+    if (!['entry', 'exit'].includes(action)) {
+      return res.status(400).json({ success: false, error: 'Scan action must be entry or exit.' });
+    }
+
+    if (action === 'entry') {
+      if (!['approved', 'active'].includes(visitor.status)) {
+        return res.status(400).json({
+          success: false,
+          error: `Visitor pass is currently ${visitor.status} and cannot be scanned for gate entry.`
+        });
+      }
+      if (progress.entryScanCount >= progress.groupSize) {
+        return res.status(400).json({
+          success: false,
+          error: 'All visitors on this pass have already been scanned for gate entry.'
+        });
+      }
+
+      visitor.entryScanCount = progress.entryScanCount + 1;
+      if (!visitor.actualEntry) visitor.actualEntry = new Date();
       visitor.status = 'active';
       if (securityNotes) visitor.securityNotes = securityNotes;
       await visitor.save();
       attachQrStatus(visitor);
+      const updatedProgress = getVisitorProgress(visitor);
       await createInAppNotification({
         userId: visitor.residentId,
         type: 'visitor',
         title: 'Visitor at the gate',
-        body: `Your visitor ${visitor.visitorName} is approved and heading to your place.`,
+        body: `Your visitor ${visitor.visitorName} is approved and heading to your place. Entry ${updatedProgress.entryScanCount}/${updatedProgress.groupSize}.`,
         metadata: { visitorId: visitor._id, event: 'entry_scan' }
       });
 
       return res.json({
         success: true,
-        message: 'Visitor entry logged via QR scan',
-        data: { visitor, action: 'entry_logged', nextAction: 'resident_confirmation' }
+        message: `Visitor entry logged (${updatedProgress.entryScanCount}/${updatedProgress.groupSize}).`,
+        data: { visitor, action: 'entry_logged', nextAction: 'resident_confirmation', progress: updatedProgress }
       });
     }
 
-    if (visitor.status === 'active') {
+    if (action === 'exit') {
+      if (visitor.status !== 'active') {
+        return res.status(400).json({
+          success: false,
+          error: `Visitor pass is currently ${visitor.status} and cannot be scanned for gate exit.`
+        });
+      }
       const exitPrerequisiteMessage = getExitPrerequisiteMessage(visitor);
       if (exitPrerequisiteMessage) {
         return res.status(400).json({
@@ -1056,26 +1110,49 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
           error: exitPrerequisiteMessage
         });
       }
+      if (progress.exitScanCount >= progress.groupSize) {
+        return res.status(400).json({
+          success: false,
+          error: 'All visitors on this pass have already been scanned for gate exit.'
+        });
+      }
+      if (progress.exitScanCount >= progress.residentDepartureConfirmCount) {
+        return res.status(400).json({
+          success: false,
+          error: 'Resident must confirm another visitor departure before this gate exit scan.'
+        });
+      }
 
-      visitor.actualExit = new Date();
-      visitor.status = 'completed';
+      visitor.exitScanCount = progress.exitScanCount + 1;
+      if (visitor.exitScanCount >= progress.groupSize) {
+        visitor.actualExit = new Date();
+        visitor.status = 'completed';
+      }
       if (securityNotes) {
         visitor.securityNotes += (visitor.securityNotes ? '\n' : '') + securityNotes;
       }
       await visitor.save();
       attachQrStatus(visitor);
+      const updatedProgress = getVisitorProgress(visitor);
       await createInAppNotification({
         userId: visitor.residentId,
         type: 'visitor',
-        title: 'Visitor pass completed',
-        body: `${visitor.visitorName} has exited. Visitor pass is now completed and no longer valid.`,
+        title: visitor.status === 'completed' ? 'Visitor pass completed' : 'Visitor gate exit logged',
+        body: visitor.status === 'completed'
+          ? `${visitor.visitorName} and all companions have exited. Visitor pass is now completed and no longer valid.`
+          : `${visitor.visitorName} gate exit logged (${updatedProgress.exitScanCount}/${updatedProgress.groupSize}).`,
         metadata: { visitorId: visitor._id, event: 'exit_scan' }
       });
 
       return res.json({
         success: true,
-        message: 'Visitor exit logged via QR scan',
-        data: { visitor, action: 'exit_logged', nextAction: 'completed' }
+        message: `Visitor exit logged (${updatedProgress.exitScanCount}/${updatedProgress.groupSize}).`,
+        data: {
+          visitor,
+          action: 'exit_logged',
+          nextAction: visitor.status === 'completed' ? 'completed' : 'next_exit_scan',
+          progress: updatedProgress
+        }
       });
     }
 
@@ -1099,6 +1176,7 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
 router.post('/confirm-arrival', protect, authorize('resident'), async (req, res) => {
   try {
     const scanValue = req.body?.scanValue || req.body?.qrCode || '';
+    const requestedAction = String(req.body?.action || '').toLowerCase();
     const visitor = await findVisitorByScanValue(scanValue);
 
     if (!visitor) {
@@ -1109,9 +1187,6 @@ router.post('/confirm-arrival', protect, authorize('resident'), async (req, res)
       return res.status(403).json({ success: false, error: 'This pass does not belong to your account.' });
     }
 
-    const canConfirmArrival = visitor.status === 'active' && !visitor.residentEntryConfirmedAt;
-    const canConfirmDeparture = visitor.status === 'active' && visitor.residentEntryConfirmedAt && !visitor.residentDepartureConfirmedAt;
-
     if (visitor.status !== 'active') {
       return res.status(400).json({
         success: false,
@@ -1119,45 +1194,74 @@ router.post('/confirm-arrival', protect, authorize('resident'), async (req, res)
       });
     }
 
-    let message = 'Visitor already confirmed.';
-    let confirmedType = 'alreadyConfirmed';
-
-    if (canConfirmArrival) {
-      visitor.residentEntryConfirmedAt = new Date();
-      confirmedType = 'arrival';
-      message = 'Visitor arrival confirmed successfully.';
-    } else if (canConfirmDeparture) {
-      visitor.residentDepartureConfirmedAt = new Date();
-      confirmedType = 'departure';
-      message = 'Visitor departure confirmed successfully.';
+    const progress = getVisitorProgress(visitor);
+    const action = requestedAction || (progress.residentArrivalConfirmCount < progress.groupSize ? 'arrival' : 'departure');
+    if (!['arrival', 'departure'].includes(action)) {
+      return res.status(400).json({ success: false, error: 'Confirmation action must be arrival or departure.' });
     }
 
-    if (confirmedType !== 'alreadyConfirmed') {
-      await visitor.save();
-      attachQrStatus(visitor);
+    let message = '';
+    let confirmedType = action;
 
-      await createInAppNotification({
-        userId: visitor.residentId,
-        type: 'visitor',
-        title: confirmedType === 'arrival' ? 'Visitor confirmed' : 'Visitor departure confirmed',
-        body:
-          confirmedType === 'arrival'
-            ? `${visitor.visitorName} has been confirmed at your residence.`
-            : `${visitor.visitorName} is leaving and has been confirmed for departure.`,
-        metadata: { visitorId: visitor._id, event: confirmedType === 'arrival' ? 'resident_confirmed' : 'resident_departure_confirmed' }
-      });
-
-      if (confirmedType === 'departure') {
-        await notifyJurisdictionSecurityOfDeparture(visitor);
+    if (action === 'arrival') {
+      if (progress.entryScanCount <= progress.residentArrivalConfirmCount) {
+        return res.status(400).json({
+          success: false,
+          error: 'Security must scan another visitor for gate entry before resident arrival confirmation.'
+        });
       }
-    } else {
-      attachQrStatus(visitor);
+      if (progress.residentArrivalConfirmCount >= progress.groupSize) {
+        return res.status(400).json({
+          success: false,
+          error: 'All visitors on this pass have already been confirmed at the residence.'
+        });
+      }
+      visitor.residentArrivalConfirmCount = progress.residentArrivalConfirmCount + 1;
+      if (!visitor.residentEntryConfirmedAt) visitor.residentEntryConfirmedAt = new Date();
+      confirmedType = 'arrival';
+      message = `Visitor arrival confirmed (${visitor.residentArrivalConfirmCount}/${progress.groupSize}).`;
+    } else if (action === 'departure') {
+      if (progress.residentArrivalConfirmCount <= progress.residentDepartureConfirmCount) {
+        return res.status(400).json({
+          success: false,
+          error: 'Confirm another visitor arrival before confirming departure.'
+        });
+      }
+      if (progress.residentDepartureConfirmCount >= progress.groupSize) {
+        return res.status(400).json({
+          success: false,
+          error: 'All visitors on this pass have already been confirmed for departure.'
+        });
+      }
+      visitor.residentDepartureConfirmCount = progress.residentDepartureConfirmCount + 1;
+      if (!visitor.residentDepartureConfirmedAt) visitor.residentDepartureConfirmedAt = new Date();
+      confirmedType = 'departure';
+      message = `Visitor departure confirmed (${visitor.residentDepartureConfirmCount}/${progress.groupSize}).`;
+    }
+
+    await visitor.save();
+    attachQrStatus(visitor);
+    const updatedProgress = getVisitorProgress(visitor);
+
+    await createInAppNotification({
+      userId: visitor.residentId,
+      type: 'visitor',
+      title: confirmedType === 'arrival' ? 'Visitor confirmed' : 'Visitor departure confirmed',
+      body:
+        confirmedType === 'arrival'
+          ? `${visitor.visitorName} has been confirmed at your residence (${updatedProgress.residentArrivalConfirmCount}/${updatedProgress.groupSize}).`
+          : `${visitor.visitorName} is leaving and has been confirmed for departure (${updatedProgress.residentDepartureConfirmCount}/${updatedProgress.groupSize}).`,
+      metadata: { visitorId: visitor._id, event: confirmedType === 'arrival' ? 'resident_confirmed' : 'resident_departure_confirmed' }
+    });
+
+    if (confirmedType === 'departure') {
+      await notifyJurisdictionSecurityOfDeparture(visitor);
     }
 
     return res.json({
       success: true,
       message,
-      data: { visitor, confirmedType }
+      data: { visitor, confirmedType, progress: updatedProgress }
     });
   } catch (error) {
     console.error('Resident confirm arrival error:', error);

@@ -44,6 +44,7 @@ const VisitorManagementScreen = ({ navigation }) => {
   const [showConfirmScanner, setShowConfirmScanner] = useState(false);
   const [isConfirmingScan, setIsConfirmingScan] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const [residentScanMode, setResidentScanMode] = useState('arrival');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [cancellingVisitorId, setCancellingVisitorId] = useState(null);
@@ -302,15 +303,16 @@ const VisitorManagementScreen = ({ navigation }) => {
     return { granted: false };
   };
 
-  const openResidentScanner = async () => {
+  const openResidentScanner = async (mode) => {
     if (!hasCameraPermission) {
       const result = await requestCameraPermission();
       if (!result.granted) {
-        Alert.alert('Camera Required', 'Please allow camera access to confirm visitor arrival.');
+        Alert.alert('Camera Required', 'Please allow camera access to confirm visitor passes.');
         return;
       }
       setHasCameraPermission(true);
     }
+    setResidentScanMode(mode);
     setShowConfirmScanner(true);
   };
 
@@ -318,7 +320,7 @@ const VisitorManagementScreen = ({ navigation }) => {
     if (isConfirmingScan || !data) return;
     setIsConfirmingScan(true);
     try {
-      const response = await api.post('/visitors/confirm-arrival', { scanValue: data });
+      const response = await api.post('/visitors/confirm-arrival', { scanValue: data, action: residentScanMode });
       if (response.data?.success) {
         const confirmedType = response.data?.data?.confirmedType;
         const title = confirmedType === 'departure' ? 'Visitor Departure Confirmed' : 'Visitor Confirmed';
@@ -336,18 +338,10 @@ const VisitorManagementScreen = ({ navigation }) => {
     }
   };
 
-  const activeVisitors = visitors.filter((visitor) => visitor.status === 'active');
-  const hasArrivalPending = activeVisitors.some((visitor) => !visitor.residentEntryConfirmedAt);
-  const hasDeparturePending = !hasArrivalPending && activeVisitors.some(
-    (visitor) => visitor.residentEntryConfirmedAt && !visitor.residentDepartureConfirmedAt
-  );
-  const confirmScannerTitle = hasDeparturePending ? 'Confirm Visitor Departure' : 'Confirm Visitor Arrival';
-  const confirmScannerHint = hasDeparturePending
+  const confirmScannerTitle = residentScanMode === 'departure' ? 'Confirm Visitor Departure' : 'Confirm Visitor Arrival';
+  const confirmScannerHint = residentScanMode === 'departure'
     ? 'Scan the visitor pass when the visitor is leaving, before security logs the exit.'
     : 'Scan the visitor pass when the visitor arrives at your home.';
-  const confirmButtonText = hasDeparturePending
-    ? 'Confirm Visitor Departure via QR Scan'
-    : 'Confirm Visitor via QR Scan';
 
   const getVisitorQrStatus = (visitor) => {
     if (!visitor) return 'Unknown';
@@ -506,9 +500,13 @@ const VisitorManagementScreen = ({ navigation }) => {
 
       {!historyMode && (
         <View style={styles.confirmBar}>
-          <TouchableOpacity style={styles.confirmScanButton} onPress={openResidentScanner}>
+          <TouchableOpacity style={styles.confirmScanButton} onPress={() => openResidentScanner('arrival')}>
             <Ionicons name="scan" size={18} color="white" />
-            <Text style={styles.confirmScanText}>{confirmButtonText}</Text>
+            <Text style={styles.confirmScanText}>Confirm Visitor QR Scanner</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.confirmScanButton, styles.departureScanButton]} onPress={() => openResidentScanner('departure')}>
+            <Ionicons name="log-out-outline" size={18} color="white" />
+            <Text style={styles.confirmScanText}>Confirm Departure QR Scanner</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -1096,6 +1094,8 @@ const styles = StyleSheet.create({
     ...shadows.small,
   },
   confirmBar: {
+    flexDirection: 'row',
+    gap: 10,
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 6,
@@ -1104,6 +1104,8 @@ const styles = StyleSheet.create({
     borderBottomColor: themeColors.border,
   },
   confirmScanButton: {
+    flex: 1,
+    minHeight: 48,
     backgroundColor: themeColors.success,
     borderRadius: 10,
     paddingVertical: 10,
@@ -1113,10 +1115,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  departureScanButton: {
+    backgroundColor: themeColors.warning,
+  },
   confirmScanText: {
     color: 'white',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 12,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   tab: {
     flexDirection: 'row',

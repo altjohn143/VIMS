@@ -1432,11 +1432,11 @@ const AdminPayments = () => {
         {/* Send Reminders Dialog */}
         <Dialog open={reminderDialogOpen} onClose={() => setReminderDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
-            Send Overdue Reminders
+            Send Payment Reminders
           </DialogTitle>
           <DialogContent>
             <Alert severity="info" sx={{ borderRadius: 2 }}>
-              This will send email reminders to all residents with overdue payments.
+              This will send email reminders for unpaid pending payments. Payments already submitted and awaiting admin review are skipped.
             </Alert>
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>

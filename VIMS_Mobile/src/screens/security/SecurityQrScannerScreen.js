@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
 import api from '../../utils/api';
 import { themeColors, roleLayouts } from '../../utils/theme';
 
-const SecurityQrScannerScreen = () => {
+const SecurityQrScannerScreen = ({ route }) => {
   const [hasPermission, setHasPermission] = useState(false);
   const [isHandlingScan, setIsHandlingScan] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [scanMode, setScanMode] = useState('entry');
+
+  useEffect(() => {
+    if (route?.params?.mode === 'entry' || route?.params?.mode === 'exit') {
+      setScanMode(route.params.mode);
+    }
+  }, [route?.params?.mode]);
 
   const requestCameraPermission = async () => {
     if (typeof Camera?.requestCameraPermissionsAsync === 'function') {
@@ -33,11 +40,12 @@ const SecurityQrScannerScreen = () => {
 
     setIsHandlingScan(true);
     try {
-      const response = await api.post('/visitors/scan-action', { scanValue: data });
+      const response = await api.post('/visitors/scan-action', { scanValue: data, action: scanMode });
       if (response.data?.success) {
         const action = response.data?.data?.action;
         const nextAction = response.data?.data?.nextAction;
         const visitor = response.data?.data?.visitor;
+        const progress = response.data?.data?.progress || visitor?.scanProgress;
         setLastResult({
           action,
           nextAction,
@@ -47,13 +55,14 @@ const SecurityQrScannerScreen = () => {
             : 'Resident',
           houseNumber: visitor?.residentId?.houseNumber || 'N/A',
           status: visitor?.qrStatus || visitor?.status || 'Processed',
+          progress,
           at: new Date().toISOString(),
         });
         Alert.alert(
           'Scan Success',
-          action === 'entry_logged'
+          response.data.message || (action === 'entry_logged'
             ? 'Visitor entry logged and resident notified.'
-            : 'Visitor exit logged. Pass is now completed.'
+            : 'Visitor exit logged.')
         );
       }
     } catch (error) {
@@ -71,6 +80,7 @@ const SecurityQrScannerScreen = () => {
 
   const formatNextAction = (nextAction) => {
     if (nextAction === 'resident_confirmation') return 'Ask resident to confirm arrival/departure in the app.';
+    if (nextAction === 'next_exit_scan') return 'Continue scanning exits until all visitors in the group are out.';
     if (nextAction === 'completed') return 'Pass completed. No further gate action needed.';
     return 'Ready for next scan.';
   };
@@ -80,6 +90,23 @@ const SecurityQrScannerScreen = () => {
       <View style={styles.header}>
         <Ionicons name="qr-code" size={22} color="white" />
         <Text style={styles.headerTitle}>Security QR Scanner</Text>
+      </View>
+
+      <View style={styles.modeBar}>
+        <TouchableOpacity
+          style={[styles.modeButton, scanMode === 'entry' && styles.modeButtonActive]}
+          onPress={() => setScanMode('entry')}
+        >
+          <Ionicons name="log-in-outline" size={18} color={scanMode === 'entry' ? '#052e16' : '#bbf7d0'} />
+          <Text style={[styles.modeButtonText, scanMode === 'entry' && styles.modeButtonTextActive]}>Entry QR Scanner</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modeButton, scanMode === 'exit' && styles.modeButtonActive]}
+          onPress={() => setScanMode('exit')}
+        >
+          <Ionicons name="log-out-outline" size={18} color={scanMode === 'exit' ? '#052e16' : '#bbf7d0'} />
+          <Text style={[styles.modeButtonText, scanMode === 'exit' && styles.modeButtonTextActive]}>Exit QR Scanner</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.cameraWrap}>
@@ -114,9 +141,9 @@ const SecurityQrScannerScreen = () => {
 
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>How it works</Text>
-        <Text style={styles.infoText}>- First scan logs gate entry and notifies resident.</Text>
-        <Text style={styles.infoText}>- Resident confirms by scanning the same visitor pass.</Text>
-        <Text style={styles.infoText}>- Final scan logs exit and completes the pass.</Text>
+        <Text style={styles.infoText}>- Use Entry QR Scanner when each visitor enters the gate.</Text>
+        <Text style={styles.infoText}>- Resident confirms arrival and departure in their app.</Text>
+        <Text style={styles.infoText}>- Use Exit QR Scanner when each visitor leaves the gate.</Text>
       </View>
 
       {lastResult ? (
@@ -135,6 +162,11 @@ const SecurityQrScannerScreen = () => {
           <View style={styles.statusPill}>
             <Text style={styles.statusPillText}>{formatAction(lastResult.action)} • {lastResult.status}</Text>
           </View>
+          {lastResult.progress ? (
+            <Text style={styles.progressText}>
+              Entry {lastResult.progress.entryScanCount}/{lastResult.progress.groupSize} | Arrival {lastResult.progress.residentArrivalConfirmCount}/{lastResult.progress.groupSize} | Departure {lastResult.progress.residentDepartureConfirmCount}/{lastResult.progress.groupSize} | Exit {lastResult.progress.exitScanCount}/{lastResult.progress.groupSize}
+            </Text>
+          ) : null}
           <Text style={styles.nextActionText}>{formatNextAction(lastResult.nextAction)}</Text>
         </View>
       ) : null}
@@ -158,8 +190,40 @@ const styles = StyleSheet.create({
     fontSize: 23,
     fontWeight: '900',
   },
+  modeBar: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+  },
+  modeButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#166534',
+    backgroundColor: '#052e16',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 8,
+  },
+  modeButtonActive: {
+    backgroundColor: '#bbf7d0',
+  },
+  modeButtonText: {
+    color: '#bbf7d0',
+    fontWeight: '900',
+    fontSize: 12,
+  },
+  modeButtonTextActive: {
+    color: '#052e16',
+  },
   cameraWrap: {
-    margin: 20,
+    marginHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 20,
     borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 1,
@@ -273,6 +337,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 10,
     lineHeight: 18,
+  },
+  progressText: {
+    color: '#dcfce7',
+    fontSize: 11,
+    marginTop: 8,
+    lineHeight: 16,
   },
 });
 

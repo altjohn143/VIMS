@@ -853,9 +853,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.reminderModal}>
             <Ionicons name="mail" size={48} color={themeColors.warning} />
-            <Text style={styles.reminderTitle}>Send Overdue Reminders</Text>
+            <Text style={styles.reminderTitle}>Send Payment Reminders</Text>
             <Text style={styles.reminderMessage}>
-              This will send email reminders to all residents with overdue payments.
+              This will send email reminders for unpaid pending payments. Payments already submitted and awaiting admin review are skipped.
             </Text>
             <View style={styles.reminderActions}>
               <TouchableOpacity style={styles.cancelReminderButton} onPress={() => setShowReminderDialog(false)} disabled={processing}>

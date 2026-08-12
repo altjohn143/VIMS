@@ -62,7 +62,8 @@ import {
   Print as PrintIcon,
   Error as ErrorIcon,
   Settings as SettingsIcon,
-  QrCodeScanner as QrCodeScannerIcon
+  QrCodeScanner as QrCodeScannerIcon,
+  ExitToApp as ExitToAppIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -1613,42 +1614,48 @@ const SecurityVisitorLogs = () => {
 
                         {['approved', 'active'].includes(visitor.status) &&
                           Number(visitor.scanProgress?.entryScanCount || 0) < Math.max(1, Number(visitor.scanProgress?.groupSize || visitor.numberOfCompanions || 0)) && (
-                          <IconButton
+                          <Button
                             size="small"
+                            variant="outlined"
                             color="primary"
+                            startIcon={<CheckCircleIcon />}
                             onClick={() => handleLogEntry(visitor)}
                             title="Check In Visitor"
                             disabled={scanInProgress}
                             sx={{
-                              color: themeColors.textSecondary,
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: 700,
                               '&:hover': {
-                                color: themeColors.primary,
                                 bgcolor: themeColors.primary + '10'
                               }
                             }}
                           >
-                            <QrCodeScannerIcon />
-                          </IconButton>
+                            Check In
+                          </Button>
                         )}
 
                         {visitor.status === 'active' &&
                           Number(visitor.scanProgress?.exitScanCount || 0) < Math.max(1, Number(visitor.scanProgress?.groupSize || visitor.numberOfCompanions || 0)) && (
-                          <IconButton
+                          <Button
                             size="small"
+                            variant="outlined"
                             color="success"
+                            startIcon={<ExitToAppIcon />}
                             onClick={() => handleLogExit(visitor)}
                             title="Check Out Visitor"
                             disabled={scanInProgress}
                             sx={{
-                              color: themeColors.textSecondary,
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: 700,
                               '&:hover': {
-                                color: themeColors.success,
                                 bgcolor: themeColors.success + '10'
                               }
                             }}
                           >
-                            <CarIcon />
-                          </IconButton>
+                            Check Out
+                          </Button>
                         )}
 
                         {visitor.qrCode && ['approved', 'active', 'completed'].includes(visitor.status) && (

@@ -41,10 +41,8 @@ import {
   PersonAdd as PersonAddIcon,
   Cancel as CancelIcon,
   History as HistoryIcon,
-  Print as PrintIcon,
   ArrowBack as ArrowBackIcon,
   Logout as LogoutIcon,
-  Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
   Schedule as ScheduleIcon,
   ExitToApp as ExitToAppIcon,
@@ -367,9 +365,9 @@ const VisitorManagement = () => {
     const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
     return {
       total,
-      entered: Number(progress.entryScanCount || 0),
-      arrived: Number(progress.residentArrivalConfirmCount || 0),
-      departed: Number(progress.residentDepartureConfirmCount || 0)
+      entered: Number(progress.entryScanCount ?? (visitor?.actualEntry ? total : 0)),
+      arrived: Number(progress.residentArrivalConfirmCount ?? (visitor?.residentEntryConfirmedAt ? total : 0)),
+      departed: Number(progress.residentDepartureConfirmCount ?? (visitor?.residentDepartureConfirmedAt ? total : 0))
     };
   };
 
@@ -1313,7 +1311,7 @@ const VisitorManagement = () => {
                         )}
                         
                         <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                             {/* QR Code Button - Show for all approved/active/completed */}
                             {qrValid && (
                               <IconButton
@@ -1331,80 +1329,50 @@ const VisitorManagement = () => {
                               </IconButton>
                             )}
                             
-                            {/* View Details Button */}
-                            <IconButton
-                              size="small"
-                              color="info"
-                              onClick={() => handleViewQRCode(visitor._id)}
-                              title="View Details"
-                              sx={{
-                                '&:hover': {
-                                  backgroundColor: themeColors.info + '20'
-                                }
-                              }}
-                            >
-                              <VisibilityIcon />
-                            </IconButton>
-
                             {canConfirmArrival && (
-                              <IconButton
+                              <Button
                                 size="small"
+                                variant="outlined"
                                 color="success"
+                                startIcon={isConfirmingArrival ? <CircularProgress size={16} sx={{ color: themeColors.success }} /> : <CheckCircleIcon />}
                                 onClick={() => handleResidentConfirmation(visitor, 'arrival')}
                                 title={isConfirmingArrival ? 'Confirming arrival...' : 'Confirm Visitor Arrival'}
                                 disabled={Boolean(confirmingAction)}
                                 sx={{
+                                  borderRadius: 2,
+                                  textTransform: 'none',
+                                  fontWeight: 700,
                                   '&:hover': {
                                     backgroundColor: themeColors.success + '20'
                                   }
                                 }}
                               >
-                                {isConfirmingArrival ? (
-                                  <CircularProgress size={18} sx={{ color: themeColors.success }} />
-                                ) : (
-                                  <CheckCircleIcon />
-                                )}
-                              </IconButton>
+                                Confirm Household
+                              </Button>
                             )}
 
                             {canConfirmDeparture && (
-                              <IconButton
+                              <Button
                                 size="small"
+                                variant="outlined"
                                 color="warning"
+                                startIcon={isConfirmingDeparture ? <CircularProgress size={16} sx={{ color: themeColors.warning }} /> : <ExitToAppIcon />}
                                 onClick={() => handleResidentConfirmation(visitor, 'departure')}
                                 title={isConfirmingDeparture ? 'Confirming departure...' : 'Confirm Visitor Departure'}
                                 disabled={Boolean(confirmingAction)}
                                 sx={{
+                                  borderRadius: 2,
+                                  textTransform: 'none',
+                                  fontWeight: 700,
                                   '&:hover': {
                                     backgroundColor: themeColors.warning + '20'
                                   }
                                 }}
                               >
-                                {isConfirmingDeparture ? (
-                                  <CircularProgress size={18} sx={{ color: themeColors.warning }} />
-                                ) : (
-                                  <ExitToAppIcon />
-                                )}
-                              </IconButton>
+                                Confirm Departure
+                              </Button>
                             )}
 
-                            {/* Print Button - Only for valid QR codes */}
-                            {qrValid && !expired && !left && (
-                              <IconButton 
-                                size="small" 
-                                color="primary" 
-                                title="Print"
-                                onClick={() => handleViewQRCode(visitor._id)}
-                                sx={{
-                                  '&:hover': {
-                                    backgroundColor: themeColors.primary + '20'
-                                  }
-                                }}
-                              >
-                                <PrintIcon />
-                              </IconButton>
-                            )}
-                            
                             {/* Cancel Button - Only for pending */}
                             {visitor.status === 'pending' && (
                               <IconButton 

@@ -501,6 +501,37 @@ const normalizeBackupLot = (lot, userId = null) => {
   };
 };
 
+const getCorrectedBlockForPositionedLot = (phase, block) => (
+  POSITIONED_BLOCK_RENUMBERING[phase]?.[block] || block
+);
+
+const applyPositionedLotLabelCorrections = (backupLots) => {
+  const lots = backupLots.map((lot) => ({ ...lot, mapPosition: { ...(lot.mapPosition || {}) } }));
+  const byLotId = new Map(lots.map((lot) => [String(lot.lotId), lot]));
+  let corrected = 0;
+
+  for (const sourceLot of lots) {
+    if (!sourceLot.mapPosition?.isPositioned) continue;
+
+    const phase = Number(sourceLot.phase);
+    const block = Number(sourceLot.block);
+    const lotNumber = Number(sourceLot.lotNumber);
+    const correctedBlock = getCorrectedBlockForPositionedLot(phase, block);
+
+    if (correctedBlock === block) continue;
+
+    const correctedLotId = `P${phase}-B${correctedBlock}-L${lotNumber}`;
+    const targetLot = byLotId.get(correctedLotId);
+    if (!targetLot) continue;
+
+    targetLot.mapPosition = { ...sourceLot.mapPosition };
+    sourceLot.mapPosition = emptyMapPosition();
+    corrected++;
+  }
+
+  return { lots, corrected };
+};
+
 // Admin: Export restorable public lot map data as JSON
 router.get('/map-data/export', protect, authorize('admin'), async (req, res) => {
   try {
@@ -558,7 +589,9 @@ router.post('/map-data/import', protect, authorize('admin'), async (req, res) =>
     let updated = 0;
     let positioned = 0;
 
-    for (const rawLot of backupLots) {
+    const correctedBackup = applyPositionedLotLabelCorrections(backupLots);
+
+    for (const rawLot of correctedBackup.lots) {
       const lotData = normalizeBackupLot(rawLot, req.user._id);
       if (lotData.mapPosition.isPositioned) positioned++;
 
@@ -584,7 +617,8 @@ router.post('/map-data/import', protect, authorize('admin'), async (req, res) =>
         total: backupLots.length,
         created,
         updated,
-        positioned
+        positioned,
+        correctedPositionLabels: correctedBackup.corrected
       }
     });
   } catch (error) {

@@ -4,8 +4,35 @@ const Lot = require('../models/Lot');
 const OccupancyHistory = require('../models/OccupancyHistory');
 const { protect, authorize } = require('../middleware/auth');
 
+const AMENITY_LOTS = {
+  'P4-B18-L6': 'Covered Court',
+  'P2-B10-L13': 'Covered Court',
+  'P4-B17-L7': 'Swimming Pool'
+};
+
+const isAmenityLot = (lotId) => Boolean(AMENITY_LOTS[String(lotId || '').toUpperCase()]);
+
+const normalizeAmenityLot = async (lot, persist = false) => {
+  if (!lot) return lot;
+  const amenityType = AMENITY_LOTS[String(lot.lotId || '').toUpperCase()];
+  if (!amenityType) return lot;
+
+  lot.status = 'reserved';
+  lot.type = amenityType;
+  lot.occupiedBy = null;
+  lot.occupiedAt = null;
+  lot.features = [amenityType, 'Community Amenity'];
+  if (persist && typeof lot.save === 'function') {
+    await lot.save();
+  }
+  return lot;
+};
+
 const normalizeUnassignedOccupiedLot = async (lot, persist = false) => {
   if (!lot) return lot;
+  if (isAmenityLot(lot.lotId)) {
+    return normalizeAmenityLot(lot, persist);
+  }
   if (lot.status === 'occupied' && !lot.occupiedBy) {
     lot.status = 'vacant';
     lot.occupiedBy = null;
@@ -18,6 +45,21 @@ const normalizeUnassignedOccupiedLot = async (lot, persist = false) => {
 };
 
 const cleanupUnassignedOccupiedLots = async () => {
+  for (const [lotId, amenityType] of Object.entries(AMENITY_LOTS)) {
+    await Lot.updateOne(
+      { lotId },
+      {
+        $set: {
+          status: 'reserved',
+          type: amenityType,
+          occupiedBy: null,
+          occupiedAt: null,
+          features: [amenityType, 'Community Amenity']
+        }
+      }
+    );
+  }
+
   await Lot.updateMany(
     { status: 'occupied', $or: [{ occupiedBy: null }, { occupiedBy: { $exists: false } }] },
     { $set: { status: 'vacant', occupiedBy: null, occupiedAt: null } }
@@ -82,6 +124,7 @@ router.get('/available', async (req, res) => {
     await cleanupUnassignedOccupiedLots();
     const lots = await Lot.find({
       status: 'vacant',
+      lotId: { $nin: Object.keys(AMENITY_LOTS) },
       'mapPosition.isPositioned': true
     })
       .sort({ phase: 1, block: 1, lotNumber: 1 })
@@ -134,6 +177,14 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
     
     if (!lot) {
       return res.status(404).json({ success: false, error: 'Lot not found' });
+    }
+
+    if (isAmenityLot(lot.lotId) && status === 'occupied') {
+      await normalizeAmenityLot(lot, true);
+      return res.status(400).json({
+        success: false,
+        error: `${lot.lotId} is a ${AMENITY_LOTS[lot.lotId]} and cannot be occupied`
+      });
     }
     
     const nextStatus = status === 'occupied' && !occupiedBy ? 'vacant' : status;
@@ -476,10 +527,12 @@ router.get('/check/:block/:lot', async (req, res) => {
     if (!existingLot) {
       return res.json({ success: true, available: false, error: 'Invalid lot number' });
     }
+
+    await normalizeAmenityLot(existingLot, true);
     
     res.json({
       success: true,
-      available: existingLot.status === 'vacant',
+      available: existingLot.status === 'vacant' && !isAmenityLot(existingLot.lotId),
       lot: {
         lotId: existingLot.lotId,
         status: existingLot.status,

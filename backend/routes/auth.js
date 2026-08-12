@@ -260,6 +260,7 @@ const parseBooleanField = (value) => {
 const getFallbackLots = async () => {
   const lots = await Lot.find({
     status: 'vacant',
+    lotId: { $nin: Object.keys(AMENITY_LOTS) },
     'mapPosition.isPositioned': true
   })
     .select('lotId block lotNumber type sqm price status')
@@ -267,6 +268,14 @@ const getFallbackLots = async () => {
     .limit(10);
   return lots;
 };
+
+const AMENITY_LOTS = {
+  'P4-B18-L6': 'Covered Court',
+  'P2-B10-L13': 'Covered Court',
+  'P4-B17-L7': 'Swimming Pool'
+};
+
+const isAmenityLot = (lotId) => Boolean(AMENITY_LOTS[String(lotId || '').toUpperCase()]);
 
 router.post('/registration-otp/request', otpLimiter, async (req, res) => {
   try {
@@ -351,6 +360,13 @@ router.post('/check-availability', async (req, res) => {
         const foundLot = await Lot.findOne({ lotId: value });
         if (!foundLot) {
           return res.json({ success: true, available: false, error: 'Invalid lot number' });
+        }
+        if (isAmenityLot(foundLot.lotId)) {
+          return res.json({
+            success: true,
+            available: false,
+            error: `${foundLot.lotId} is a ${AMENITY_LOTS[foundLot.lotId]} and cannot be selected as a residence`
+          });
         }
         return res.json({
           success: true,
@@ -512,6 +528,15 @@ router.post('/register', registerUpload.fields([
         return res.status(400).json({
           success: false,
           error: 'Invalid lot selected',
+          fallbackLots
+        });
+      }
+
+      if (isAmenityLot(lot.lotId)) {
+        const fallbackLots = await getFallbackLots();
+        return res.status(400).json({
+          success: false,
+          error: `${lot.lotId} is a ${AMENITY_LOTS[lot.lotId]} and cannot be selected as a residence.`,
           fallbackLots
         });
       }

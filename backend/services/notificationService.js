@@ -111,7 +111,7 @@ async function sendReservationStatusNotification(reservation, resident, options 
   return { emailResult, smsResult };
 }
 
-async function sendPaymentReminderEmail(payment, resident) {
+async function sendPaymentReminderEmail(payments, resident) {
   if (!resident?.email) {
     return { sent: false, reason: 'missing_email' };
   }
@@ -119,38 +119,61 @@ async function sendPaymentReminderEmail(payment, resident) {
     return { sent: false, reason: 'resend_not_configured' };
   }
 
-  const amountText = Number(payment.amount || 0).toLocaleString('en-PH', {
+  const paymentList = Array.isArray(payments) ? payments : [payments];
+  if (paymentList.length === 0) {
+    return { sent: false, reason: 'no_overdue_payments' };
+  }
+
+  const formatAmount = (amount) => Number(amount || 0).toLocaleString('en-PH', {
     style: 'currency',
     currency: 'PHP'
   });
-  const dueDateText = payment.dueDate
-    ? new Date(payment.dueDate).toLocaleDateString('en-PH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
+  const formatDate = (date) => date
+    ? new Date(date).toLocaleDateString('en-PH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
     : 'the due date';
+
   const firstName = resident.firstName || 'Resident';
-  const invoiceNumber = payment.invoiceNumber || 'your invoice';
   const safeFirstName = escapeHtml(firstName);
-  const safeInvoiceNumber = escapeHtml(invoiceNumber);
+  const invoiceRows = paymentList.map((payment) => {
+    const invoiceNumber = payment.invoiceNumber || 'Invoice';
+    return `<tr>
+      <td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(invoiceNumber)}</td>
+      <td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(formatAmount(payment.amount))}</td>
+      <td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(formatDate(payment.dueDate))}</td>
+    </tr>`;
+  }).join('');
+  const textInvoiceRows = paymentList.map((payment) => {
+    const invoiceNumber = payment.invoiceNumber || 'Invoice';
+    return `- ${invoiceNumber}: ${formatAmount(payment.amount)} due ${formatDate(payment.dueDate)}`;
+  }).join('\n');
+  const invoiceCount = paymentList.length;
 
   const result = await resend.emails.send({
     from: RESEND_FROM_EMAIL,
     to: resident.email,
-    subject: `VIMS Payment Reminder: ${invoiceNumber}`,
+    subject: `VIMS Payment Reminder: ${invoiceCount} overdue invoice${invoiceCount === 1 ? '' : 's'}`,
     html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1e293b">
       <h2 style="color:#2e6b2e">Payment Reminder</h2>
       <p>Hello ${safeFirstName},</p>
-      <p>This is a reminder that <strong>${safeInvoiceNumber}</strong> is overdue.</p>
-      <div style="padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:16px 0">
-        <p style="margin:0 0 8px"><strong>Amount:</strong> ${amountText}</p>
-        <p style="margin:0"><strong>Due date:</strong> ${dueDateText}</p>
-      </div>
+      <p>This is a reminder that you have ${invoiceCount} overdue invoice${invoiceCount === 1 ? '' : 's'}.</p>
+      <table style="width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin:16px 0">
+        <thead>
+          <tr>
+            <th align="left" style="padding:10px;border-bottom:1px solid #cbd5e1">Invoice</th>
+            <th align="left" style="padding:10px;border-bottom:1px solid #cbd5e1">Amount</th>
+            <th align="left" style="padding:10px;border-bottom:1px solid #cbd5e1">Due date</th>
+          </tr>
+        </thead>
+        <tbody>${invoiceRows}</tbody>
+      </table>
       <p>Please settle this payment through the VIMS resident portal or coordinate with the admin office.</p>
       <p>If you have already paid, you may disregard this reminder.</p>
     </div>`,
-    text: `Hello ${firstName},\n\nThis is a reminder that ${invoiceNumber} is overdue.\nAmount: ${amountText}\nDue date: ${dueDateText}\n\nPlease settle this payment through the VIMS resident portal or coordinate with the admin office.\n\nIf you have already paid, you may disregard this reminder.`
+    text: `Hello ${firstName},\n\nThis is a reminder that you have ${invoiceCount} overdue invoice${invoiceCount === 1 ? '' : 's'}:\n${textInvoiceRows}\n\nPlease settle this payment through the VIMS resident portal or coordinate with the admin office.\n\nIf you have already paid, you may disregard this reminder.`
   });
 
   if (result?.error) {

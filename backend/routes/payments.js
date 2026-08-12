@@ -622,51 +622,44 @@ router.post('/send-reminders', protect, authorize('admin'), async (req, res) => 
     const overduePayments = await Payment.find({ status: 'pending', dueDate: { $lt: new Date() } })
       .populate('residentId', 'email firstName lastName');
     let emailSent = 0;
-    let inAppSent = 0;
     let failed = 0;
+    const remindersByResident = new Map();
 
     for (const payment of overduePayments) {
       const resident = payment.residentId;
-      if (!resident?._id) {
+      if (!resident?._id || !resident.email) {
         failed++;
         continue;
       }
 
-      try {
-        await createInAppNotification({
-          userId: resident._id,
-          type: 'payment',
-          title: 'Payment reminder',
-          body: `Your invoice ${payment.invoiceNumber} is overdue.`,
-          metadata: { paymentId: payment._id }
-        });
-        inAppSent++;
-      } catch (error) {
-        failed++;
-        console.error(`Failed to create in-app payment reminder for ${payment._id}:`, error.message);
+      const residentKey = resident.email.toLowerCase();
+      if (!remindersByResident.has(residentKey)) {
+        remindersByResident.set(residentKey, { resident, payments: [] });
       }
+      remindersByResident.get(residentKey).payments.push(payment);
+    }
 
+    for (const { resident, payments } of remindersByResident.values()) {
       try {
-        const emailResult = await sendPaymentReminderEmail(payment, resident);
+        const emailResult = await sendPaymentReminderEmail(payments, resident);
         if (emailResult.sent) {
           emailSent++;
         } else {
           failed++;
-          console.warn(`Payment reminder email skipped for ${payment._id}: ${emailResult.reason}`);
+          console.warn(`Payment reminder email skipped for ${resident.email}: ${emailResult.reason}`);
         }
       } catch (error) {
         failed++;
-        console.error(`Failed to send payment reminder email for ${payment._id}:`, error.message);
+        console.error(`Failed to send payment reminder email for ${resident.email}:`, error.message);
       }
     }
 
-    const remindersSent = Math.max(emailSent, inAppSent);
     res.json({
       success: true,
-      message: remindersSent > 0
-        ? `Sent ${remindersSent} overdue reminders (${emailSent} email, ${inAppSent} in-app${failed ? `, ${failed} failed/skipped` : ''})`
-        : 'No eligible unpaid accounts found for reminders',
-      data: { sent: remindersSent, emailSent, inAppSent, failed }
+      message: emailSent > 0
+        ? `Sent email reminders to ${emailSent} resident${emailSent === 1 ? '' : 's'}${failed ? ` (${failed} failed/skipped)` : ''}`
+        : 'No eligible resident emails found for overdue reminders',
+      data: { sent: emailSent, emailSent, failed }
     });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to send reminders' });

@@ -1,4 +1,18 @@
 const axios = require('axios');
+const { Resend } = require('resend');
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL ||
+  'VIMS System <noreply@casimiro-westville-homes-vims.online>';
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 async function postWebhook(url, payload) {
   if (!url) return { sent: false, reason: 'webhook_not_configured' };
@@ -97,9 +111,59 @@ async function sendReservationStatusNotification(reservation, resident, options 
   return { emailResult, smsResult };
 }
 
+async function sendPaymentReminderEmail(payment, resident) {
+  if (!resident?.email) {
+    return { sent: false, reason: 'missing_email' };
+  }
+  if (!process.env.RESEND_API_KEY) {
+    return { sent: false, reason: 'resend_not_configured' };
+  }
+
+  const amountText = Number(payment.amount || 0).toLocaleString('en-PH', {
+    style: 'currency',
+    currency: 'PHP'
+  });
+  const dueDateText = payment.dueDate
+    ? new Date(payment.dueDate).toLocaleDateString('en-PH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    : 'the due date';
+  const firstName = resident.firstName || 'Resident';
+  const invoiceNumber = payment.invoiceNumber || 'your invoice';
+  const safeFirstName = escapeHtml(firstName);
+  const safeInvoiceNumber = escapeHtml(invoiceNumber);
+
+  const result = await resend.emails.send({
+    from: RESEND_FROM_EMAIL,
+    to: resident.email,
+    subject: `VIMS Payment Reminder: ${invoiceNumber}`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1e293b">
+      <h2 style="color:#2e6b2e">Payment Reminder</h2>
+      <p>Hello ${safeFirstName},</p>
+      <p>This is a reminder that <strong>${safeInvoiceNumber}</strong> is overdue.</p>
+      <div style="padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:16px 0">
+        <p style="margin:0 0 8px"><strong>Amount:</strong> ${amountText}</p>
+        <p style="margin:0"><strong>Due date:</strong> ${dueDateText}</p>
+      </div>
+      <p>Please settle this payment through the VIMS resident portal or coordinate with the admin office.</p>
+      <p>If you have already paid, you may disregard this reminder.</p>
+    </div>`,
+    text: `Hello ${firstName},\n\nThis is a reminder that ${invoiceNumber} is overdue.\nAmount: ${amountText}\nDue date: ${dueDateText}\n\nPlease settle this payment through the VIMS resident portal or coordinate with the admin office.\n\nIf you have already paid, you may disregard this reminder.`
+  });
+
+  if (result?.error) {
+    throw new Error(result.error.message || 'Resend rejected the email');
+  }
+
+  return { sent: true, id: result?.data?.id };
+}
+
 module.exports = {
   sendOnboardingNotification,
   sendVisitorReminderNotification,
   sendServiceRequestStatusNotification,
-  sendReservationStatusNotification
+  sendReservationStatusNotification,
+  sendPaymentReminderEmail
 };

@@ -1436,7 +1436,7 @@ const AdminPayments = () => {
           </DialogTitle>
           <DialogContent>
             <Alert severity="info" sx={{ borderRadius: 2 }}>
-              This will send SMS/Email reminders to all residents with overdue payments.
+              This will send email and in-app reminders to all residents with overdue payments.
             </Alert>
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>

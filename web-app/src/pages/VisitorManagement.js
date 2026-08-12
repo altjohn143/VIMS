@@ -333,6 +333,8 @@ const VisitorManagement = () => {
 
   const getStatusChip = (status, visitor) => {
     const qrStatus = visitor?.qrStatus || getVisitorQrStatus(visitor || { status });
+    const progress = visitor?.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
     const statusConfig = {
       pending: { label: 'Pending', color: 'warning' },
       approved: { label: 'Approved', color: 'success' },
@@ -347,7 +349,17 @@ const VisitorManagement = () => {
     };
 
     const config = statusConfig[qrStatus.toLowerCase()] || { label: qrStatus, color: 'default' };
-    return <Chip label={config.label} color={config.color} size="small" />;
+    const countByStatus = {
+      entered: progress.entryScanCount,
+      arrived: progress.residentArrivalConfirmCount,
+      departed: progress.residentDepartureConfirmCount,
+      exited: progress.exitScanCount,
+      completed: progress.exitScanCount,
+    };
+    const normalizedStatus = qrStatus.toLowerCase();
+    const shouldShowCount = ['entered', 'arrived', 'departed', 'exited', 'completed'].includes(normalizedStatus);
+    const count = Number(countByStatus[normalizedStatus] || 0);
+    return <Chip label={shouldShowCount ? `${config.label} ${count}/${total}` : config.label} color={config.color} size="small" />;
   };
 
   const formatDate = (dateString) => {

@@ -377,6 +377,20 @@ const SecurityVisitorLogs = () => {
   // Get status chip
   const getStatusChip = (visitor) => {
     const qrStatus = String(visitor?.qrStatus || '').toLowerCase();
+    const progress = visitor?.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
+    const countByStatus = {
+      entered: progress.entryScanCount,
+      arrived: progress.residentArrivalConfirmCount,
+      departed: progress.residentDepartureConfirmCount,
+      exited: progress.exitScanCount,
+      completed: progress.exitScanCount,
+    };
+    const formatProgressLabel = (label, status = qrStatus) => {
+      const normalizedStatus = String(status || '').toLowerCase();
+      if (!['entered', 'arrived', 'departed', 'exited', 'completed'].includes(normalizedStatus)) return label;
+      return `${label} ${Number(countByStatus[normalizedStatus] || 0)}/${total}`;
+    };
     const qrStatusConfig = {
       entered: { label: 'ENTERED', color: themeColors.info, icon: <ActiveIcon /> },
       arrived: { label: 'ARRIVED', color: themeColors.success, icon: <CheckCircleIcon /> },
@@ -388,7 +402,7 @@ const SecurityVisitorLogs = () => {
       const config = qrStatusConfig[qrStatus];
       return (
         <Chip
-          label={config.label}
+          label={formatProgressLabel(config.label)}
           sx={{
             bgcolor: `${config.color}20`,
             color: config.color,

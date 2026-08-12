@@ -329,6 +329,23 @@ const AdminVisitorManagement = () => {
     }
   };
 
+  const getVisitorStatusLabel = (visitor) => {
+    const label = visitor?.qrStatus || visitor?.status || 'pending';
+    const normalizedStatus = String(label).toLowerCase();
+    const progress = visitor?.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
+    const countByStatus = {
+      entered: progress.entryScanCount,
+      arrived: progress.residentArrivalConfirmCount,
+      departed: progress.residentDepartureConfirmCount,
+      exited: progress.exitScanCount,
+      completed: progress.exitScanCount,
+    };
+    const shouldShowCount = ['entered', 'arrived', 'departed', 'exited', 'completed'].includes(normalizedStatus);
+    const count = Number(countByStatus[normalizedStatus] || 0);
+    return shouldShowCount ? `${label} ${count}/${total}` : label;
+  };
+
   if (loading && !visitors.length) {
     return (
       <Box
@@ -869,7 +886,7 @@ const AdminVisitorManagement = () => {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={visitor.qrStatus || visitor.status}
+                        label={getVisitorStatusLabel(visitor)}
                         size="small"
                         color={getStatusColor(visitor.status)}
                       />

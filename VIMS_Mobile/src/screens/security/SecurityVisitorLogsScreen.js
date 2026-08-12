@@ -249,6 +249,8 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 
   const getStatusChip = (status, visitor = null) => {
     const displayStatus = String(visitor?.qrStatus || status || 'pending').toLowerCase();
+    const progress = visitor?.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
     const config = {
       pending: { label: 'Pending', color: themeColors.warning, icon: 'time', bg: themeColors.warning + '20' },
       approved: { label: 'Approved', color: themeColors.success, icon: 'checkmark-circle', bg: themeColors.success + '20' },
@@ -260,7 +262,17 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       completed: { label: 'Exited', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
       rejected: { label: 'Rejected', color: themeColors.error, icon: 'close-circle', bg: themeColors.error + '20' },
     };
-    return config[displayStatus] || config.pending;
+    const chip = config[displayStatus] || config.pending;
+    const countByStatus = {
+      entered: progress.entryScanCount,
+      arrived: progress.residentArrivalConfirmCount,
+      departed: progress.residentDepartureConfirmCount,
+      exited: progress.exitScanCount,
+      completed: progress.exitScanCount,
+    };
+    const count = Number(countByStatus[displayStatus] || 0);
+    const shouldShowCount = ['entered', 'arrived', 'departed', 'exited', 'completed'].includes(displayStatus);
+    return { ...chip, label: shouldShowCount ? `${chip.label} ${count}/${total}` : chip.label };
   };
 
   const formatDate = (dateString) => {

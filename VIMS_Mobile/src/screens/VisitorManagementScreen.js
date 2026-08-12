@@ -361,6 +361,22 @@ const VisitorManagementScreen = ({ navigation }) => {
     return visitor.status ? visitor.status.charAt(0).toUpperCase() + visitor.status.slice(1) : 'Unknown';
   };
 
+  const getVisitorProgressLabel = (visitor, baseLabel) => {
+    const progress = visitor?.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
+    const status = String(baseLabel || '').toLowerCase();
+    const countByStatus = {
+      entered: progress.entryScanCount,
+      arrived: progress.residentArrivalConfirmCount,
+      departed: progress.residentDepartureConfirmCount,
+      exited: progress.exitScanCount,
+    };
+    const count = Number(countByStatus[status] || 0);
+    return count > 0 || ['entered', 'arrived', 'departed', 'exited'].includes(status)
+      ? `${baseLabel} ${count}/${total}`
+      : baseLabel;
+  };
+
   const getStatusChip = (visitor) => {
     const status = getVisitorQrStatus(visitor);
     const config = {
@@ -377,7 +393,8 @@ const VisitorManagementScreen = ({ navigation }) => {
       Unknown: { label: 'Unknown', color: themeColors.textSecondary, icon: 'help-circle', bg: themeColors.textSecondary + '20' }
     };
 
-    return config[status] || config.Unknown;
+    const chip = config[status] || config.Unknown;
+    return { ...chip, label: getVisitorProgressLabel(visitor, chip.label) };
   };
 
   const formatDate = (dateString) => {

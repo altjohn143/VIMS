@@ -28,6 +28,10 @@ import { getAuthToken } from '../../utils/secureSession';
 const PROTECTED_MAIN_ACCOUNT_EMAILS = ['admin@vims.com', 'security@vims.com'];
 const isProtectedMainAccount = (user) =>
   PROTECTED_MAIN_ACCOUNT_EMAILS.includes(String(user?.email || '').toLowerCase());
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/;
+const normalizePhilippinePhone = (value) => String(value || '').replace(/\D/g, '').replace(/^63/, '').slice(0, 10);
+const formatPhilippinePhone = (phone) => `+63${normalizePhilippinePhone(phone)}`;
 const DOCUMENT_TABS = [
   ['front', 'ID Front'],
   ['back', 'ID Back'],
@@ -73,6 +77,8 @@ const AdminUserManagementScreen = ({ navigation }) => {
   const [exporting, setExporting] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createProcessing, setCreateProcessing] = useState(false);
+  const [createErrors, setCreateErrors] = useState({});
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [newUserData, setNewUserData] = useState({
     firstName: '',
     lastName: '',
@@ -107,6 +113,45 @@ const AdminUserManagementScreen = ({ navigation }) => {
   useEffect(() => {
     filterUsers();
   }, [users, searchQuery, roleFilter, statusFilter, approvalFilter, viewFilter]);
+
+  const resetCreateForm = () => {
+    setNewUserData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      password: '',
+      role: 'security',
+      securityLevel: 'personnel',
+      headOfficerId: '',
+      assignedPhases: '',
+      assignedAreas: '',
+      patrolSchedule: ''
+    });
+    setCreateErrors({});
+    setShowCreatePassword(false);
+  };
+
+  const validateCreateForm = () => {
+    const { firstName, lastName, email, phone, password, role } = newUserData;
+    const errors = {};
+    const localPhone = normalizePhilippinePhone(phone);
+
+    if (!firstName.trim()) errors.firstName = 'First name is required';
+    if (!lastName.trim()) errors.lastName = 'Last name is required';
+    if (!email.trim()) errors.email = 'Email is required';
+    else if (!EMAIL_REGEX.test(email.trim())) errors.email = 'Enter a valid email address with @ and a domain';
+    if (!localPhone) errors.phone = 'Contact number is required';
+    else if (!/^9\d{9}$/.test(localPhone)) errors.phone = 'Enter 10 digits starting with 9 after +63';
+    if (!password) errors.password = 'Password is required';
+    else if (!PASSWORD_REGEX.test(password)) {
+      errors.password = 'Use 8+ characters with uppercase, lowercase, number, and special character';
+    }
+    if (!role) errors.role = 'Role is required';
+
+    setCreateErrors(errors);
+    return errors;
+  };
 
   const loadSecurityAssignments = async () => {
     try {
@@ -886,54 +931,98 @@ const AdminUserManagementScreen = ({ navigation }) => {
           <View style={styles.createModalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Create Staff User</Text>
-              <TouchableOpacity onPress={() => !createProcessing && setCreateOpen(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (!createProcessing) {
+                    setCreateOpen(false);
+                    resetCreateForm();
+                  }
+                }}
+              >
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
             </View>
             <ScrollView>
               <View style={styles.formRow}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, createErrors.firstName && styles.inputError]}
                   placeholder="First Name"
                   value={newUserData.firstName}
-                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, firstName: text }))}
+                  onChangeText={(text) => {
+                    setCreateErrors((prev) => ({ ...prev, firstName: '' }));
+                    setNewUserData((prev) => ({ ...prev, firstName: text }));
+                  }}
                 />
+                {createErrors.firstName ? <Text style={styles.errorText}>{createErrors.firstName}</Text> : null}
               </View>
               <View style={styles.formRow}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, createErrors.lastName && styles.inputError]}
                   placeholder="Last Name"
                   value={newUserData.lastName}
-                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, lastName: text }))}
+                  onChangeText={(text) => {
+                    setCreateErrors((prev) => ({ ...prev, lastName: '' }));
+                    setNewUserData((prev) => ({ ...prev, lastName: text }));
+                  }}
                 />
+                {createErrors.lastName ? <Text style={styles.errorText}>{createErrors.lastName}</Text> : null}
               </View>
               <View style={styles.formRow}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, createErrors.email && styles.inputError]}
                   placeholder="Email"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={newUserData.email}
-                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, email: text }))}
+                  onChangeText={(text) => {
+                    setCreateErrors((prev) => ({ ...prev, email: '' }));
+                    setNewUserData((prev) => ({ ...prev, email: text }));
+                  }}
                 />
+                {createErrors.email ? <Text style={styles.errorText}>{createErrors.email}</Text> : <Text style={styles.helperText}>Must include @ and a valid domain</Text>}
               </View>
               <View style={styles.formRow}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Phone"
-                  keyboardType="phone-pad"
-                  value={newUserData.phone}
-                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, phone: text }))}
-                />
+                <View style={[styles.phoneInputWrap, createErrors.phone && styles.inputError]}>
+                  <Text style={styles.phonePrefix}>+63</Text>
+                  <TextInput
+                    style={styles.phoneInput}
+                    placeholder="9123456789"
+                    keyboardType="number-pad"
+                    value={newUserData.phone}
+                    maxLength={10}
+                    onChangeText={(text) => {
+                      setCreateErrors((prev) => ({ ...prev, phone: '' }));
+                      setNewUserData((prev) => ({ ...prev, phone: normalizePhilippinePhone(text) }));
+                    }}
+                  />
+                </View>
+                {createErrors.phone ? <Text style={styles.errorText}>{createErrors.phone}</Text> : <Text style={styles.helperText}>Enter 10 digits after +63, starting with 9</Text>}
               </View>
               <View style={styles.formRow}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  secureTextEntry
-                  value={newUserData.password}
-                  onChangeText={(text) => setNewUserData((prev) => ({ ...prev, password: text }))}
-                />
+                <View style={[styles.passwordInputWrap, createErrors.password && styles.inputError]}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Password"
+                    secureTextEntry={!showCreatePassword}
+                    value={newUserData.password}
+                    onChangeText={(text) => {
+                      setCreateErrors((prev) => ({ ...prev, password: '' }));
+                      setNewUserData((prev) => ({ ...prev, password: text }));
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.passwordToggle}
+                    onPress={() => setShowCreatePassword((value) => !value)}
+                    accessibilityLabel={showCreatePassword ? 'Hide password' : 'Show password'}
+                  >
+                    <Ionicons
+                      name={showCreatePassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={themeColors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+                {createErrors.password ? <Text style={styles.errorText}>{createErrors.password}</Text> : <Text style={styles.helperText}>Use 8+ characters with uppercase, lowercase, number, and special character</Text>}
               </View>
               <View style={styles.formRow}>
                 <View style={styles.pickerContainer}>
@@ -1037,19 +1126,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
                   onPress={() => {
                     if (!createProcessing) {
                       setCreateOpen(false);
-                      setNewUserData({
-                        firstName: '',
-                        lastName: '',
-                        email: '',
-                        phone: '',
-                        password: '',
-                        role: 'security',
-                        securityLevel: 'personnel',
-                        headOfficerId: '',
-                        assignedPhases: '',
-                        assignedAreas: '',
-                        patrolSchedule: ''
-                      });
+                      resetCreateForm();
                     }
                   }}
                 >
@@ -1060,16 +1137,17 @@ const AdminUserManagementScreen = ({ navigation }) => {
                   onPress={async () => {
                     if (createProcessing) return;
                     const { firstName, lastName, email, phone, password, role } = newUserData;
-                    if (!firstName || !lastName || !email || !phone || !password || !role) {
-                      return Alert.alert('Validation', 'Please complete all required fields');
+                    const validationErrors = validateCreateForm();
+                    if (Object.keys(validationErrors).length > 0) {
+                      return Alert.alert('Validation', Object.values(validationErrors)[0]);
                     }
                     setCreateProcessing(true);
                     try {
                       const response = await api.post('/users', {
                         firstName: firstName.trim(),
                         lastName: lastName.trim(),
-                        email: email.trim(),
-                        phone: phone.trim(),
+                        email: email.trim().toLowerCase(),
+                        phone: formatPhilippinePhone(phone),
                         password,
                         role,
                         securityLevel: role === 'security' ? newUserData.securityLevel : undefined,
@@ -1085,19 +1163,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
                       if (response.data.success) {
                         Alert.alert('Success', 'Staff account created successfully');
                         setCreateOpen(false);
-                        setNewUserData({
-                          firstName: '',
-                          lastName: '',
-                          email: '',
-                          phone: '',
-                          password: '',
-                          role: 'security',
-                          securityLevel: 'personnel',
-                          headOfficerId: '',
-                          assignedPhases: '',
-                          assignedAreas: '',
-                          patrolSchedule: ''
-                        });
+                        resetCreateForm();
                         fetchUsers();
                         loadSecurityAssignments();
                       } else {
@@ -1951,6 +2017,61 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
     color: themeColors.textPrimary,
+  },
+  inputError: {
+    borderColor: themeColors.error,
+  },
+  helperText: {
+    color: themeColors.textSecondary,
+    fontSize: 12,
+    marginTop: 5,
+  },
+  errorText: {
+    color: themeColors.error,
+    fontSize: 12,
+    marginTop: 5,
+  },
+  phoneInputWrap: {
+    backgroundColor: themeColors.primaryWash,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  phonePrefix: {
+    color: themeColors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+    paddingLeft: 12,
+    paddingRight: 8,
+  },
+  phoneInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingRight: 12,
+    fontSize: 14,
+    color: themeColors.textPrimary,
+  },
+  passwordInputWrap: {
+    backgroundColor: themeColors.primaryWash,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 8,
+    fontSize: 14,
+    color: themeColors.textPrimary,
+  },
+  passwordToggle: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   formRow: {
     marginBottom: 12,

@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Keyboard,
   Alert,
   ActivityIndicator,
   Modal,
@@ -44,6 +45,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
   const [exportFormat, setExportFormat] = useState('pdf');
   const [exporting, setExporting] = useState(false);
   const [exportDatePicker, setExportDatePicker] = useState(null);
+  const [decisionKeyboardHeight, setDecisionKeyboardHeight] = useState(0);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -60,6 +62,27 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
   useEffect(() => {
     filterVisitors();
   }, [visitors, searchQuery, statusFilter, dateFilter]);
+
+  useEffect(() => {
+    if (!showOverrideModal) {
+      setDecisionKeyboardHeight(0);
+      return undefined;
+    }
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setDecisionKeyboardHeight(event.endCoordinates?.height || 0);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setDecisionKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [showOverrideModal]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -605,8 +628,8 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setShowOverrideModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { paddingBottom: decisionKeyboardHeight }]}>
+          <View style={[styles.modalContent, styles.decisionModalContent]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {overrideAction === 'approve' ? 'Approve Visitor' : 'Reject Visitor'}
@@ -616,7 +639,11 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.overrideContent}>
+            <ScrollView
+              contentContainerStyle={styles.overrideContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               {selectedVisitor && (
                 <View style={styles.visitorPreview}>
                   <Text style={styles.previewName}>{selectedVisitor.visitorName}</Text>
@@ -665,7 +692,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1025,6 +1052,10 @@ const styles = StyleSheet.create({
     maxHeight: '92%',
     paddingBottom: 28,
   },
+  decisionModalContent: {
+    maxHeight: '70%',
+    paddingBottom: Platform.OS === 'ios' ? 18 : 28,
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1132,7 +1163,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   overrideContent: {
-    paddingVertical: 10,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   visitorPreview: {
     backgroundColor: '#f8fafc',

@@ -15,6 +15,13 @@ const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryServic
 const PROTECTED_MAIN_ACCOUNT_EMAILS = new Set(['admin@vims.com', 'security@vims.com']);
 const PRIMARY_SECURITY_HEAD_EMAIL = 'security@vims.com';
 const isProtectedMainAccount = (user) => PROTECTED_MAIN_ACCOUNT_EMAILS.has(String(user?.email || '').toLowerCase());
+const STAFF_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const STAFF_PASSWORD_REGEX = /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/;
+const normalizePhilippineStaffPhone = (value) => {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits.startsWith('63') ? digits.slice(2) : digits;
+};
+const formatPhilippineStaffPhone = (value) => `+63${normalizePhilippineStaffPhone(value)}`;
 
 const getPrimarySecurityHeadOfficer = async () => User.findOne({
   email: PRIMARY_SECURITY_HEAD_EMAIL,
@@ -1005,6 +1012,24 @@ router.post('/', protect, authorize('admin', 'security'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'All required fields must be provided' });
     }
 
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const localPhone = normalizePhilippineStaffPhone(phone);
+
+    if (!STAFF_EMAIL_REGEX.test(normalizedEmail)) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address' });
+    }
+
+    if (!/^9\d{9}$/.test(localPhone)) {
+      return res.status(400).json({ success: false, error: 'Contact number must be +63 followed by 10 digits starting with 9' });
+    }
+
+    if (!STAFF_PASSWORD_REGEX.test(password)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must be 8-128 characters and contain uppercase, lowercase, number, and special character'
+      });
+    }
+
     const requesterIsHeadOfficer =
       req.user.role === 'security' && (
         req.user.securityLevel === 'head-officer' ||
@@ -1028,7 +1053,7 @@ router.post('/', protect, authorize('admin', 'security'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'securityLevel must be head-officer or personnel' });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ success: false, error: 'A user with this email already exists' });
     }
@@ -1052,8 +1077,8 @@ router.post('/', protect, authorize('admin', 'security'), async (req, res) => {
     const userData = {
       firstName: String(firstName).trim(),
       lastName: String(lastName).trim(),
-      email: String(email).toLowerCase().trim(),
-      phone: String(phone).trim(),
+      email: normalizedEmail,
+      phone: formatPhilippineStaffPhone(phone),
       password,
       role,
       securityLevel: role === 'security' ? securityLevel : null,

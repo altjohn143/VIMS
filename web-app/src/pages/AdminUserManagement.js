@@ -55,7 +55,8 @@ import {
   Lock as LockIcon,
   LockOpen as LockOpenIcon,
   Refresh as RefreshIcon,
-  Image as ImageIcon
+  Image as ImageIcon,
+  VisibilityOff as VisibilityOffIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -67,6 +68,10 @@ import { getBackendApiUrl } from '../utils/api';
 const PROTECTED_MAIN_ACCOUNT_EMAILS = ['admin@vims.com', 'security@vims.com'];
 const isProtectedMainAccount = (user) =>
   PROTECTED_MAIN_ACCOUNT_EMAILS.includes(String(user?.email || '').toLowerCase());
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/;
+const normalizePhilippinePhone = (value) => String(value || '').replace(/\D/g, '').replace(/^63/, '').slice(0, 10);
+const formatPhilippinePhone = (phone) => `+63${normalizePhilippinePhone(phone)}`;
 
 const AdminUserManagement = () => {
   const themeColors = {
@@ -116,6 +121,8 @@ const AdminUserManagement = () => {
   const [moveOutNotes, setMoveOutNotes] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createProcessing, setCreateProcessing] = useState(false);
+  const [createFormErrors, setCreateFormErrors] = useState({});
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageModalTitle, setImageModalTitle] = useState('');
@@ -509,12 +516,36 @@ const AdminUserManagement = () => {
       headOfficerId: '',
       patrolSchedule: ''
     });
+    setCreateFormErrors({});
+    setShowCreatePassword(false);
+  };
+
+  const validateCreateUserForm = () => {
+    const { firstName, lastName, email, phone, password, role } = newUserForm;
+    const errors = {};
+    const localPhone = normalizePhilippinePhone(phone);
+
+    if (!firstName.trim()) errors.firstName = 'First name is required';
+    if (!lastName.trim()) errors.lastName = 'Last name is required';
+    if (!email.trim()) errors.email = 'Email is required';
+    else if (!EMAIL_REGEX.test(email.trim())) errors.email = 'Enter a valid email address with @ and a domain';
+    if (!localPhone) errors.phone = 'Contact number is required';
+    else if (!/^9\d{9}$/.test(localPhone)) errors.phone = 'Enter 10 digits starting with 9 after +63';
+    if (!password) errors.password = 'Password is required';
+    else if (!PASSWORD_REGEX.test(password)) {
+      errors.password = 'Use 8+ characters with uppercase, lowercase, number, and special character';
+    }
+    if (!role) errors.role = 'Role is required';
+
+    setCreateFormErrors(errors);
+    return errors;
   };
 
   const handleCreateUser = async () => {
     const { firstName, lastName, email, phone, password, role, securityLevel, headOfficerId, assignedPhases, assignedAreas, patrolSchedule } = newUserForm;
-    if (!firstName || !lastName || !email || !phone || !password || !role) {
-      toast.error('Please complete all required fields');
+    const validationErrors = validateCreateUserForm();
+    if (Object.keys(validationErrors).length > 0) {
+      toast.error(Object.values(validationErrors)[0]);
       return;
     }
 
@@ -524,10 +555,10 @@ const AdminUserManagement = () => {
       const response = await axios.post(
         '/api/users',
         {
-          firstName,
-          lastName,
-          email,
-          phone,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim().toLowerCase(),
+          phone: formatPhilippinePhone(phone),
           password,
           role,
           securityLevel: role === 'security' ? securityLevel : undefined,
@@ -1777,7 +1808,12 @@ const AdminUserManagement = () => {
 
         <Dialog
         open={createDialogOpen}
-        onClose={() => !createProcessing && setCreateDialogOpen(false)}
+        onClose={() => {
+          if (!createProcessing) {
+            setCreateDialogOpen(false);
+            resetNewUserForm();
+          }
+        }}
         maxWidth="sm"
         fullWidth
         PaperProps={{ sx: { borderRadius: '18px' } }}
@@ -1794,7 +1830,12 @@ const AdminUserManagement = () => {
                 fullWidth
                 label="First Name"
                 value={newUserForm.firstName}
-                onChange={(e) => setNewUserForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                onChange={(e) => {
+                  setCreateFormErrors((prev) => ({ ...prev, firstName: '' }));
+                  setNewUserForm((prev) => ({ ...prev, firstName: e.target.value }));
+                }}
+                error={Boolean(createFormErrors.firstName)}
+                helperText={createFormErrors.firstName}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1802,7 +1843,12 @@ const AdminUserManagement = () => {
                 fullWidth
                 label="Last Name"
                 value={newUserForm.lastName}
-                onChange={(e) => setNewUserForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                onChange={(e) => {
+                  setCreateFormErrors((prev) => ({ ...prev, lastName: '' }));
+                  setNewUserForm((prev) => ({ ...prev, lastName: e.target.value }));
+                }}
+                error={Boolean(createFormErrors.lastName)}
+                helperText={createFormErrors.lastName}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1810,25 +1856,56 @@ const AdminUserManagement = () => {
                 fullWidth
                 label="Email"
                 value={newUserForm.email}
-                onChange={(e) => setNewUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => {
+                  setCreateFormErrors((prev) => ({ ...prev, email: '' }));
+                  setNewUserForm((prev) => ({ ...prev, email: e.target.value }));
+                }}
+                error={Boolean(createFormErrors.email)}
+                helperText={createFormErrors.email || 'Must include @ and a valid domain'}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Phone"
+                label="Contact Number"
                 value={newUserForm.phone}
-                onChange={(e) => setNewUserForm((prev) => ({ ...prev, phone: e.target.value }))}
+                onChange={(e) => {
+                  setCreateFormErrors((prev) => ({ ...prev, phone: '' }));
+                  setNewUserForm((prev) => ({ ...prev, phone: normalizePhilippinePhone(e.target.value) }));
+                }}
+                inputProps={{ inputMode: 'numeric', maxLength: 10 }}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">+63</InputAdornment>
+                }}
+                error={Boolean(createFormErrors.phone)}
+                helperText={createFormErrors.phone || 'Enter 10 digits after +63, starting with 9'}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Password"
-                type="password"
+                type={showCreatePassword ? 'text' : 'password'}
                 value={newUserForm.password}
-                onChange={(e) => setNewUserForm((prev) => ({ ...prev, password: e.target.value }))}
-                helperText="Must be at least 8 chars with uppercase, lowercase, number, and symbol"
+                onChange={(e) => {
+                  setCreateFormErrors((prev) => ({ ...prev, password: '' }));
+                  setNewUserForm((prev) => ({ ...prev, password: e.target.value }));
+                }}
+                error={Boolean(createFormErrors.password)}
+                helperText={createFormErrors.password || 'Use 8+ characters with uppercase, lowercase, number, and special character'}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={showCreatePassword ? 'Hide password' : 'Show password'}
+                        edge="end"
+                        onClick={() => setShowCreatePassword((value) => !value)}
+                      >
+                        {showCreatePassword ? <VisibilityOffIcon /> : <ViewIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>

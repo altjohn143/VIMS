@@ -7,14 +7,11 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  ActivityIndicator,
   Modal,
   RefreshControl,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
@@ -31,22 +28,8 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showEntryModal, setShowEntryModal] = useState(false);
-  const [showExitModal, setShowExitModal] = useState(false);
-  const [manualEntryOpen, setManualEntryOpen] = useState(false);
-  const [manualEntry, setManualEntry] = useState({
-    visitorName: '',
-    visitorPhone: '',
-    vehicleNumber: '',
-    purpose: '',
-  });
-  const [manualEntryErrors, setManualEntryErrors] = useState({});
-  const [securityNotes, setSecurityNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('');
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(0);
   const [showAllRecentActivity, setShowAllRecentActivity] = useState(false);
   const rowsPerPage = 10;
@@ -64,11 +47,11 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 
   useEffect(() => {
     filterVisitors();
-  }, [visitors, searchQuery, statusFilter, dateFilter]);
+  }, [visitors, searchQuery, statusFilter]);
 
   useEffect(() => {
     setPage(0);
-  }, [searchQuery, statusFilter, dateFilter]);
+  }, [searchQuery, statusFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filteredVisitors.length / rowsPerPage));
   const paginatedVisitors = useMemo(
@@ -107,26 +90,6 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     fetchVisitors();
   };
 
-  const updateManualEntry = (field, value) => {
-    setManualEntry((previous) => ({ ...previous, [field]: value }));
-    setManualEntryErrors((previous) => ({ ...previous, [field]: '' }));
-  };
-
-  const submitManualEntry = () => {
-    const nextErrors = {};
-    if (!manualEntry.visitorName.trim()) nextErrors.visitorName = 'Visitor name is required';
-    if (!manualEntry.visitorPhone.trim()) nextErrors.visitorPhone = 'Visitor phone is required';
-    if (!manualEntry.vehicleNumber.trim()) nextErrors.vehicleNumber = 'Vehicle plate number is required';
-    if (!manualEntry.purpose.trim()) nextErrors.purpose = 'Purpose of visit is required';
-
-    if (Object.keys(nextErrors).length > 0) {
-      setManualEntryErrors(nextErrors);
-      return;
-    }
-
-    Alert.alert('Use Approved Record', 'Use an approved visitor record to log entry or exit.');
-  };
-
   const filterVisitors = () => {
     let filtered = [...visitors];
 
@@ -144,57 +107,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       filtered = filtered.filter(v => v.status === statusFilter);
     }
 
-    if (dateFilter) {
-      filtered = filtered.filter(v => 
-        format(new Date(v.createdAt), 'yyyy-MM-dd') === dateFilter
-      );
-    }
-
     setFilteredVisitors(filtered);
-  };
-
-  const handleEntry = async () => {
-    if (!selectedVisitor) return;
-
-    setProcessing(true);
-    try {
-      const response = await api.put(`/visitors/${selectedVisitor._id}/entry`, {
-        securityNotes,
-      });
-
-      if (response.data.success) {
-        Alert.alert('Success', response.data.message || 'Entry logged successfully');
-        setShowEntryModal(false);
-        setSecurityNotes('');
-        fetchVisitors();
-      }
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to log entry');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleExit = async () => {
-    if (!selectedVisitor) return;
-
-    setProcessing(true);
-    try {
-      const response = await api.put(`/visitors/${selectedVisitor._id}/exit`, {
-        securityNotes,
-      });
-
-      if (response.data.success) {
-        Alert.alert('Success', response.data.message || 'Exit logged successfully');
-        setShowExitModal(false);
-        setSecurityNotes('');
-        fetchVisitors();
-      }
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to log exit');
-    } finally {
-      setProcessing(false);
-    }
   };
 
   const handleExportFile = async (fileFormat = 'pdf') => {
@@ -205,7 +118,6 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         timezoneOffset: String(new Date().getTimezoneOffset())
       });
       if (statusFilter !== 'all') params.set('status', statusFilter);
-      if (dateFilter) params.set('date', dateFilter);
       if (searchQuery.trim()) params.set('search', searchQuery.trim());
 
       const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
@@ -230,12 +142,6 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert('Export Failed', error.message || `Failed to export ${fileFormat.toUpperCase()}`);
     }
-  };
-
-  const handleDatePicked = (event, value) => {
-    if (Platform.OS === 'android') setDatePickerOpen(false);
-    if (event?.type === 'dismissed') return;
-    if (value) setDateFilter(format(value, 'yyyy-MM-dd'));
   };
 
   const handleExport = () => {
@@ -281,39 +187,6 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       return format(new Date(dateString), 'MMM dd, yyyy hh:mm a');
     } catch {
       return 'Invalid Date';
-    }
-  };
-
-  const handleSharePass = async (visitor) => {
-    if (['rejected', 'cancelled'].includes(visitor?.status)) {
-      Alert.alert('Pass Unavailable', 'Rejected or cancelled visitor passes cannot be shared.');
-      return;
-    }
-
-    try {
-      const pass = [
-        'CASIMIRO WESTVILLE HOMES',
-        'SECURITY VISITOR PASS',
-        '',
-        `Visitor: ${visitor.visitorName || 'N/A'}`,
-        `Phone: ${visitor.visitorPhone || 'N/A'}`,
-        `Resident: ${visitor.residentId?.firstName || ''} ${visitor.residentId?.lastName || ''}`,
-        `House: ${visitor.residentId?.houseNumber || 'N/A'}`,
-        `Purpose: ${visitor.purpose || 'N/A'}`,
-        `Expected arrival: ${formatDate(visitor.expectedArrival)}`,
-        `Expected departure: ${formatDate(visitor.expectedDeparture)}`,
-        `Status: ${visitor.status || 'pending'}`,
-        `Pass ID: ${visitor._id}`,
-      ].join('\n');
-      const fileUri = `${FileSystem.documentDirectory}visitor_pass_${visitor._id}.txt`;
-      await FileSystem.writeAsStringAsync(fileUri, pass, { encoding: FileSystem.EncodingType.UTF8 });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, { mimeType: 'text/plain', dialogTitle: 'Print or share visitor pass' });
-      } else {
-        Alert.alert('Visitor Pass', pass);
-      }
-    } catch {
-      Alert.alert('Error', 'Failed to prepare visitor pass');
     }
   };
 
@@ -415,6 +288,48 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     [recentActivities, showAllRecentActivity]
   );
 
+  const renderRecentActivity = () => (
+    <View style={[styles.activityCard, shadows.small]}>
+      <View style={styles.activityHeader}>
+        <Ionicons name="time-outline" size={20} color={themeColors.primary} />
+        <Text style={styles.activityTitle}>Recent Activity</Text>
+      </View>
+      {visibleRecentActivities.length > 0 ? (
+        visibleRecentActivities.map((activity, index) => (
+          <View key={`${activity.type}-${activity.occurredAt}-${index}`} style={styles.activityItem}>
+            <View style={styles.activityIcon}>
+              <Ionicons name={activity.icon} size={16} color="white" />
+            </View>
+            <View style={styles.activityBody}>
+              <Text style={styles.activityMessage}>{activity.message}</Text>
+              <Text style={styles.activityMeta}>{formatActivityDate(activity.occurredAt)} | {activity.source}</Text>
+            </View>
+            <View style={styles.activityBadge}>
+              <Text style={styles.activityBadgeText}>{activity.type}</Text>
+            </View>
+          </View>
+        ))
+      ) : (
+        <Text style={styles.activityEmpty}>No recent visitor activity</Text>
+      )}
+      {recentActivities.length > 3 && (
+        <TouchableOpacity
+          style={styles.activityToggle}
+          onPress={() => setShowAllRecentActivity((value) => !value)}
+        >
+          <Text style={styles.activityToggleText}>
+            {showAllRecentActivity ? 'See less' : `See more (${Math.min(recentActivities.length, 12) - 3})`}
+          </Text>
+          <Ionicons
+            name={showAllRecentActivity ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={themeColors.primary}
+          />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   const renderListHeader = () => (
     <>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
@@ -462,12 +377,6 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
             <Text style={[styles.filterText, statusFilter === 'all' && styles.activeFilterText]}>All</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterChip, statusFilter === 'active' && styles.activeFilter]}
-            onPress={() => setStatusFilter('active')}
-          >
-            <Text style={[styles.filterText, statusFilter === 'active' && styles.activeFilterText]}>Active</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             style={[styles.filterChip, statusFilter === 'approved' && styles.activeFilter]}
             onPress={() => setStatusFilter('approved')}
           >
@@ -485,77 +394,13 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
           >
             <Text style={[styles.filterText, statusFilter === 'completed' && styles.activeFilterText]}>Completed</Text>
           </TouchableOpacity>
-        </ScrollView>
-
-        <View style={styles.dateFilterRow}>
-          <TouchableOpacity style={styles.datePickerButton} onPress={() => setDatePickerOpen(true)}>
-            <Ionicons name="calendar-outline" size={18} color={themeColors.primary} />
-            <Text style={styles.datePickerText}>{dateFilter || 'Select calendar date'}</Text>
-          </TouchableOpacity>
-          {!!dateFilter && (
-            <TouchableOpacity style={styles.clearDateButton} onPress={() => setDateFilter('')}>
-              <Ionicons name="close" size={18} color={themeColors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-{datePickerOpen ? (
-          <View style={Platform.OS === 'ios' ? styles.inlineDatePickerWrapper : undefined}>
-            {Platform.OS === 'ios' && (
-              <View style={styles.inlineDatePickerHeader}>
-                <Text style={styles.inlineDatePickerTitle}>Select date</Text>
-                <TouchableOpacity style={styles.inlineDatePickerDone} onPress={() => setDatePickerOpen(false)}>
-                  <Text style={styles.inlineDatePickerDoneText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            <DateTimePicker
-              value={dateFilter ? new Date(`${dateFilter}T12:00:00`) : new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
-              onChange={handleDatePicked}
-            />
-          </View>
-        ) : null}
-      </View>
-
-      <View style={[styles.activityCard, shadows.small]}>
-        <View style={styles.activityHeader}>
-          <Ionicons name="time-outline" size={20} color={themeColors.primary} />
-          <Text style={styles.activityTitle}>Recent Activity</Text>
-        </View>
-        {visibleRecentActivities.length > 0 ? (
-          visibleRecentActivities.map((activity, index) => (
-            <View key={`${activity.type}-${activity.occurredAt}-${index}`} style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Ionicons name={activity.icon} size={16} color="white" />
-              </View>
-              <View style={styles.activityBody}>
-                <Text style={styles.activityMessage}>{activity.message}</Text>
-                <Text style={styles.activityMeta}>{formatActivityDate(activity.occurredAt)} | {activity.source}</Text>
-              </View>
-              <View style={styles.activityBadge}>
-                <Text style={styles.activityBadgeText}>{activity.type}</Text>
-              </View>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.activityEmpty}>No recent visitor activity</Text>
-        )}
-        {recentActivities.length > 3 && (
           <TouchableOpacity
-            style={styles.activityToggle}
-            onPress={() => setShowAllRecentActivity((value) => !value)}
+            style={[styles.filterChip, statusFilter === 'rejected' && styles.activeFilter]}
+            onPress={() => setStatusFilter('rejected')}
           >
-            <Text style={styles.activityToggleText}>
-              {showAllRecentActivity ? 'See less' : `See more (${Math.min(recentActivities.length, 12) - 3})`}
-            </Text>
-            <Ionicons
-              name={showAllRecentActivity ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={themeColors.primary}
-            />
+            <Text style={[styles.filterText, statusFilter === 'rejected' && styles.activeFilterText]}>Rejected</Text>
           </TouchableOpacity>
-        )}
+        </ScrollView>
       </View>
 
       <View style={styles.recordsHeader}>
@@ -575,9 +420,6 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       departure: Number(progress.residentDepartureConfirmCount ?? item.residentDepartureConfirmCount ?? 0),
       exit: Number(progress.exitScanCount ?? item.exitScanCount ?? 0),
     };
-    const canLogEntry = ['approved', 'active'].includes(item.status) && counters.entry < total;
-    const canLogExit = item.status === 'active' && counters.exit < total;
-
     return (
       <TouchableOpacity
         style={[styles.visitorCard, shadows.small]}
@@ -632,35 +474,6 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
             </View>
           )}
         </View>
-
-        {(canLogEntry || canLogExit) && (
-          <View style={styles.actionButtons}>
-            {canLogEntry && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.entryButton]}
-                onPress={() => {
-                  setSelectedVisitor(item);
-                  setShowEntryModal(true);
-                }}
-              >
-                <Ionicons name="log-in" size={18} color="white" />
-                <Text style={styles.actionButtonText}>Log Entry {counters.entry}/{total}</Text>
-              </TouchableOpacity>
-            )}
-            {canLogExit && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.exitButton]}
-                onPress={() => {
-                  setSelectedVisitor(item);
-                  setShowExitModal(true);
-                }}
-              >
-                <Ionicons name="log-out" size={18} color="white" />
-                <Text style={styles.actionButtonText}>Log Exit {counters.exit}/{total}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
@@ -675,7 +488,6 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
           { label: 'Entry Scan', icon: 'log-in-outline', onPress: () => navigation.navigate('ScannerTab', { mode: 'entry' }), primary: true },
           { label: 'Exit Scan', icon: 'log-out-outline', onPress: () => navigation.navigate('ScannerTab', { mode: 'exit' }) },
           { label: 'Export', icon: 'download', onPress: handleExport },
-          { label: 'Manual', icon: 'car-outline', onPress: () => { setManualEntryOpen(true); setManualEntryErrors({}); } },
         ]}
       />
 
@@ -695,17 +507,22 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
             <Text style={styles.emptyText}>Try adjusting your filters</Text>
           </View>
         }
-        ListFooterComponent={filteredVisitors.length > rowsPerPage ? (
-          <View style={styles.paginationRow}>
-            <TouchableOpacity style={[styles.pageButton, page === 0 && styles.pageButtonDisabled]} disabled={page === 0} onPress={() => setPage((value) => Math.max(0, value - 1))}>
-              <Text style={styles.pageButtonText}>Previous</Text>
-            </TouchableOpacity>
-            <Text style={styles.pageInfo}>Page {page + 1} of {pageCount}</Text>
-            <TouchableOpacity style={[styles.pageButton, page >= pageCount - 1 && styles.pageButtonDisabled]} disabled={page >= pageCount - 1} onPress={() => setPage((value) => Math.min(pageCount - 1, value + 1))}>
-              <Text style={styles.pageButtonText}>Next</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+        ListFooterComponent={(
+          <>
+            {filteredVisitors.length > rowsPerPage ? (
+              <View style={styles.paginationRow}>
+                <TouchableOpacity style={[styles.pageButton, page === 0 && styles.pageButtonDisabled]} disabled={page === 0} onPress={() => setPage((value) => Math.max(0, value - 1))}>
+                  <Text style={styles.pageButtonText}>Previous</Text>
+                </TouchableOpacity>
+                <Text style={styles.pageInfo}>Page {page + 1} of {pageCount}</Text>
+                <TouchableOpacity style={[styles.pageButton, page >= pageCount - 1 && styles.pageButtonDisabled]} disabled={page >= pageCount - 1} onPress={() => setPage((value) => Math.min(pageCount - 1, value + 1))}>
+                  <Text style={styles.pageButtonText}>Next</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            {renderRecentActivity()}
+          </>
+        )}
       />
 
       {/* Details Modal */}
@@ -793,193 +610,10 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
                     <Text style={styles.detailText}>{selectedVisitor.securityNotes}</Text>
                   </View>
                 )}
-                {!['rejected', 'cancelled'].includes(selectedVisitor.status) && (
-                  <TouchableOpacity style={styles.sharePassButton} onPress={() => handleSharePass(selectedVisitor)}>
-                    <Ionicons name="print-outline" size={19} color="white" />
-                    <Text style={styles.sharePassText}>Print or Share Pass</Text>
-                  </TouchableOpacity>
-                )}
               </ScrollView>
             )}
           </View>
         </View>
-      </Modal>
-
-      <Modal
-        visible={manualEntryOpen}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setManualEntryOpen(false)}
-      >
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Manual Visitor / Vehicle Entry</Text>
-              <TouchableOpacity onPress={() => setManualEntryOpen(false)}>
-                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.manualHelpText}>
-              Validate required visitor and vehicle entry details before logging an approved visitor record.
-            </Text>
-            <TextInput
-              style={[styles.modalInput, manualEntryErrors.visitorName && styles.inputError]}
-              placeholder="Visitor Name"
-              value={manualEntry.visitorName}
-              onChangeText={(value) => updateManualEntry('visitorName', value)}
-            />
-            {!!manualEntryErrors.visitorName && <Text style={styles.errorText}>{manualEntryErrors.visitorName}</Text>}
-            <TextInput
-              style={[styles.modalInput, manualEntryErrors.visitorPhone && styles.inputError]}
-              placeholder="Visitor Phone"
-              value={manualEntry.visitorPhone}
-              onChangeText={(value) => updateManualEntry('visitorPhone', value)}
-              keyboardType="phone-pad"
-            />
-            {!!manualEntryErrors.visitorPhone && <Text style={styles.errorText}>{manualEntryErrors.visitorPhone}</Text>}
-            <TextInput
-              style={[styles.modalInput, manualEntryErrors.vehicleNumber && styles.inputError]}
-              placeholder="Vehicle Plate Number"
-              value={manualEntry.vehicleNumber}
-              onChangeText={(value) => updateManualEntry('vehicleNumber', value.toUpperCase())}
-              autoCapitalize="characters"
-            />
-            {!!manualEntryErrors.vehicleNumber && <Text style={styles.errorText}>{manualEntryErrors.vehicleNumber}</Text>}
-            <TextInput
-              style={[styles.modalInput, styles.textAreaInput, manualEntryErrors.purpose && styles.inputError]}
-              placeholder="Purpose of Visit"
-              value={manualEntry.purpose}
-              onChangeText={(value) => updateManualEntry('purpose', value)}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-            {!!manualEntryErrors.purpose && <Text style={styles.errorText}>{manualEntryErrors.purpose}</Text>}
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setManualEntryOpen(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.entryButton]} onPress={submitManualEntry}>
-                <Ionicons name="car-outline" size={16} color="white" />
-                <Text style={styles.modalButtonText}>Validate</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Entry Modal */}
-      <Modal
-        visible={showEntryModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowEntryModal(false)}
-      >
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Log Visitor Entry</Text>
-              <TouchableOpacity onPress={() => setShowEntryModal(false)}>
-                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            {selectedVisitor && (
-              <View>
-                <View style={styles.modalVisitorInfo}>
-                  <Text style={styles.modalVisitorName}>{selectedVisitor.visitorName}</Text>
-                  <Text style={styles.modalVisitorDetails}>
-                    Visiting: {selectedVisitor.residentId?.firstName} {selectedVisitor.residentId?.lastName}
-                  </Text>
-                </View>
-
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Security Notes (Optional)"
-                  value={securityNotes}
-                  onChangeText={setSecurityNotes}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setShowEntryModal(false)}
-                    disabled={processing}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.entryButton]}
-                    onPress={handleEntry}
-                    disabled={processing}
-                  >
-                    {processing ? <ActivityIndicator color="white" /> : <Text style={styles.modalButtonText}>Log Entry</Text>}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Exit Modal */}
-      <Modal
-        visible={showExitModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowExitModal(false)}
-      >
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Log Visitor Exit</Text>
-              <TouchableOpacity onPress={() => setShowExitModal(false)}>
-                <Ionicons name="close" size={24} color={themeColors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            {selectedVisitor && (
-              <View>
-                <View style={styles.modalVisitorInfo}>
-                  <Text style={styles.modalVisitorName}>{selectedVisitor.visitorName}</Text>
-                  <Text style={styles.modalVisitorDetails}>
-                    Visiting: {selectedVisitor.residentId?.firstName} {selectedVisitor.residentId?.lastName}
-                  </Text>
-                </View>
-
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Security Notes (Optional)"
-                  value={securityNotes}
-                  onChangeText={setSecurityNotes}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setShowExitModal(false)}
-                    disabled={processing}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.exitButton]}
-                    onPress={handleExit}
-                    disabled={processing}
-                  >
-                    {processing ? <ActivityIndicator color="white" /> : <Text style={styles.modalButtonText}>Log Exit</Text>}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </View>
-        </KeyboardAvoidingView>
       </Modal>
 
     </View>
@@ -1070,60 +704,6 @@ const styles = StyleSheet.create({
   activeFilterText: {
     color: 'white',
   },
-  dateInput: {
-    borderWidth: 1,
-    borderColor: themeColors.border,
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
-    backgroundColor: '#f8fafc',
-  },
-  dateFilterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  datePickerButton: {
-    flex: 1,
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: themeColors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    backgroundColor: '#f8fafc',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  datePickerText: {
-    color: themeColors.textPrimary,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  clearDateButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: themeColors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8fafc',
-  },
-doneDateButton: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  doneDateText: {
-    color: themeColors.primary,
-    fontWeight: '900',
-  },
-  inlineDatePickerWrapper: { marginBottom: 10, borderWidth: 1, borderColor: themeColors.border, borderRadius: 14, overflow: 'hidden', backgroundColor: themeColors.cardBackground },
-  inlineDatePickerHeader: { minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: themeColors.border },
-  inlineDatePickerTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800' },
-  inlineDatePickerDone: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, backgroundColor: themeColors.primarySoft },
-  inlineDatePickerDoneText: { color: themeColors.primaryDeep, fontSize: 12, fontWeight: '900' },
   listContainer: {
     paddingBottom: 24,
   },
@@ -1200,33 +780,6 @@ doneDateButton: {
     fontSize: 12,
     color: themeColors.textSecondary,
     marginLeft: 6,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: themeColors.border,
-    paddingTop: 12,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginLeft: 8,
-  },
-  entryButton: {
-    backgroundColor: themeColors.success,
-  },
-  exitButton: {
-    backgroundColor: themeColors.info,
-  },
-  actionButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
   },
   activityCard: {
     backgroundColor: 'white',
@@ -1369,57 +922,6 @@ doneDateButton: {
     fontWeight: '600',
     color: themeColors.textPrimary,
   },
-  modalVisitorInfo: {
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  modalVisitorName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: themeColors.textPrimary,
-  },
-  modalVisitorDetails: {
-    fontSize: 14,
-    color: themeColors.textSecondary,
-    marginTop: 4,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: themeColors.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 100,
-    marginBottom: 16,
-    backgroundColor: '#f8fafc',
-    textAlignVertical: 'top',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  cancelButton: {
-    backgroundColor: '#f1f5f9',
-  },
-  cancelButtonText: {
-    color: themeColors.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   detailName: {
     fontSize: 22,
     fontWeight: '600',
@@ -1459,17 +961,11 @@ doneDateButton: {
     color: themeColors.textPrimary,
     marginLeft: 8,
   },
-  textAreaInput: { minHeight: 88 },
-  inputError: { borderColor: themeColors.error },
-  errorText: { color: themeColors.error, fontSize: 12, fontWeight: '700', marginTop: 4 },
-  manualHelpText: { color: themeColors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: 10 },
   paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginHorizontal: 16 },
   pageButton: { backgroundColor: themeColors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
   pageButtonDisabled: { opacity: 0.45 },
   pageButtonText: { color: 'white', fontWeight: '900' },
   pageInfo: { color: themeColors.textSecondary, fontWeight: '800' },
-  sharePassButton: { marginTop: 18, marginBottom: 8, borderRadius: 12, backgroundColor: themeColors.primary, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  sharePassText: { color: 'white', fontWeight: '900' },
 });
 
 export default SecurityVisitorLogsScreen;

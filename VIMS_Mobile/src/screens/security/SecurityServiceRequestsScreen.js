@@ -19,8 +19,10 @@ import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
+import { useAuth } from '../../context/AuthContext';
 
 const SecurityServiceRequestsScreen = ({ navigation }) => {
+  const { logout } = useAuth();
   const [user, setUser] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,22 +54,46 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     }
   }, []);
 
+  const isAuthFailure = (responseOrError) => {
+    const status = responseOrError?.status || responseOrError?.response?.status;
+    const message = String(
+      responseOrError?.data?.error ||
+      responseOrError?.response?.data?.error ||
+      responseOrError?.message ||
+      ''
+    ).toLowerCase();
+    return status === 401 || message.includes('token failed') || message.includes('no token');
+  };
+
+  const handleAuthFailure = useCallback(async () => {
+    await logout();
+    Alert.alert('Session Expired', 'Please login again.');
+  }, [logout]);
+
   const load = useCallback(async () => {
     if (!userLoaded) return;
     try {
       const res = await api.get('/service-requests');
+      if (isAuthFailure(res)) {
+        await handleAuthFailure();
+        return;
+      }
       if (res.data?.success) {
         setRows(Array.isArray(res.data.data) ? res.data.data : []);
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to load service requests');
       }
     } catch (e) {
+      if (isAuthFailure(e)) {
+        await handleAuthFailure();
+        return;
+      }
       Alert.alert('Error', e?.response?.data?.error || 'Failed to load service requests');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userLoaded]);
+  }, [handleAuthFailure, userLoaded]);
 
   const loadStaff = useCallback(async () => {
     if (!isHeadOfficer) {
@@ -76,13 +102,21 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     }
     try {
       const res = await api.get('/service-requests/admin/staff');
+      if (isAuthFailure(res)) {
+        await handleAuthFailure();
+        return;
+      }
       if (res.data?.success) {
         setStaffMembers((res.data.data || []).filter((staff) => staff.role === 'security'));
       }
     } catch (e) {
+      if (isAuthFailure(e)) {
+        await handleAuthFailure();
+        return;
+      }
       Alert.alert('Error', e?.response?.data?.error || 'Failed to load security staff');
     }
-  }, [isHeadOfficer]);
+  }, [handleAuthFailure, isHeadOfficer]);
 
   useEffect(() => {
     loadUser();
@@ -123,6 +157,37 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       .map((attachment) => ({ ...attachment, uri: getAttachmentUri(attachment) }))
       .filter((attachment) => attachment.uri);
 
+  const getSearchText = (request) => {
+    const resident = request?.residentId || {};
+    const assignedTo = request?.assignedTo || {};
+    return [
+      request?._id,
+      request?.title,
+      request?.description,
+      request?.category,
+      request?.status,
+      request?.priority,
+      request?.location,
+      request?.issueType,
+      request?.requestType,
+      request?.serviceType,
+      request?.type,
+      resident?.firstName,
+      resident?.lastName,
+      resident?.email,
+      resident?.phone,
+      resident?.phoneNumber,
+      resident?.houseNumber,
+      assignedTo?.firstName,
+      assignedTo?.lastName,
+      assignedTo?.name,
+      assignedTo?.email,
+    ]
+      .filter((value) => value !== undefined && value !== null)
+      .map((value) => String(value).toLowerCase())
+      .join(' ');
+  };
+
   const filtered = useMemo(() => {
     let nextRows = rows;
 
@@ -140,16 +205,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
 
     if (!query.trim()) return nextRows;
     const q = query.trim().toLowerCase();
-    return nextRows.filter((r) => {
-      const residentName = `${r?.residentId?.firstName || ''} ${r?.residentId?.lastName || ''}`.toLowerCase();
-      return (
-        String(r?.title || '').toLowerCase().includes(q) ||
-        String(r?.description || '').toLowerCase().includes(q) ||
-        String(r?.category || '').toLowerCase().includes(q) ||
-        residentName.includes(q) ||
-        String(r?.residentId?.houseNumber || '').toLowerCase().includes(q)
-      );
-    });
+    return nextRows.filter((r) => getSearchText(r).includes(q));
   }, [rows, query, status, priority, category]);
 
   useEffect(() => {

@@ -105,6 +105,7 @@ const AdminTabs = () => {
       <Tab.Screen name="ReservationsTab" component={AdminReservationsScreen} options={{ title: 'Reservations' }} />
       <Tab.Screen name="AdminAnnouncements" component={AdminAnnouncementsScreen} options={{ title: 'Posts' }} />
       <Tab.Screen name="AdminLotManagement" component={AdminLotManagementScreen} options={{ title: 'Lots' }} />
+      <Tab.Screen name="ProfileTab" component={ProfileScreen} options={hiddenTabOptions} />
       <Tab.Screen name="AdminApprovals" component={AdminApprovalsScreen} options={hiddenTabOptions} />
       <Tab.Screen name="AdminVisitorReports" component={AdminVisitorReportsScreen} options={hiddenTabOptions} />
       <Tab.Screen name="AdminVerificationQueue" component={AdminVerificationQueueScreen} options={hiddenTabOptions} />
@@ -143,7 +144,7 @@ const SecurityTabs = () => {
       {isHeadOfficer && (
         <Tab.Screen name="TeamPerformanceTab" component={HeadOfficerTeamScreen} options={{ title: 'Team' }} />
       )}
-      <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <Tab.Screen name="ProfileTab" component={ProfileScreen} options={hiddenTabOptions} />
       <Tab.Screen name="PersonnelTab" component={HeadOfficerTeamScreen} options={hiddenTabOptions} />
       <Tab.Screen name="AnalyticsTab" component={HeadOfficerTeamScreen} options={hiddenTabOptions} />
       <Tab.Screen name="Announcements" component={AnnouncementsScreen} options={hiddenTabOptions} />

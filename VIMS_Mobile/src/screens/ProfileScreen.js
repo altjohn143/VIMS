@@ -63,6 +63,19 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
         maxHeight: Math.max(260, Dimensions.get('window').height - keyboardHeight - 18),
       }
     : null;
+
+  const formatDate = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [documentModalTitle, setDocumentModalTitle] = useState('');
   const [documentModalImage, setDocumentModalImage] = useState(null);
@@ -72,6 +85,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
     lastName: '',
     email: '',
     phone: '',
+    dateOfBirth: '',
     houseNumber: '',
     emergencyContact: { name: '', phone: '' },
     vehicles: [{ plateNumber: '', make: '', model: '', color: '' }],
@@ -86,10 +100,6 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
 
   const validateProfile = () => {
     const requiredFields = [
-      ['firstName', 'First name'],
-      ['lastName', 'Last name'],
-      ['email', 'Email'],
-      ['phone', 'Phone number'],
       ['houseNumber', 'House number'],
     ];
 
@@ -97,15 +107,6 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
       if (!String(formData[field] || '').trim()) {
         return `${label} is required.`;
       }
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      return 'Please enter a valid email address.';
-    }
-
-    const phoneDigits = String(formData.phone || '').replace(/\D/g, '');
-    if (!/^09\d{9}$/.test(phoneDigits) && !/^\d{10}$/.test(phoneDigits)) {
-      return 'Please enter a valid phone number.';
     }
 
     const emergencyPhone = String(formData.emergencyContact?.phone || '').replace(/\D/g, '');
@@ -152,6 +153,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
             lastName: profileData.lastName || '',
             email: profileData.email || '',
             phone: profileData.phone || '',
+            dateOfBirth: profileData.dateOfBirth || '',
             houseNumber: profileData.houseNumber || '',
             emergencyContact: profileData.emergencyContact || { name: '', phone: '' },
             vehicles: profileData.vehicles?.length > 0 ? profileData.vehicles : [{ plateNumber: '', make: '', model: '', color: '' }],
@@ -261,12 +263,10 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
     setSaving(true);
     try {
       const payload = {
-        ...formData,
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        email: formData.email.trim(),
-        phone: String(formData.phone || '').replace(/\D/g, ''),
         houseNumber: formData.houseNumber.trim(),
+        emergencyContact: formData.emergencyContact,
+        vehicles: formData.vehicles,
+        familyMembers: formData.familyMembers,
       };
       const response = await api.put('/users/profile', payload);
       if (response.data.success) {
@@ -550,6 +550,8 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
     );
   }
 
+  const isResidentProfile = user?.role === 'resident';
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -563,7 +565,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <TouchableOpacity onPress={pickProfileImage} activeOpacity={0.8} style={styles.avatarButton}>
+            <TouchableOpacity onPress={isResidentProfile ? pickProfileImage : undefined} activeOpacity={isResidentProfile ? 0.8 : 1} style={styles.avatarButton}>
               {selectedPhotoUri ? (
                 <Image source={{ uri: selectedPhotoUri }} style={styles.avatar} />
               ) : profilePhoto ? (
@@ -578,12 +580,14 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.photoButton} onPress={pickProfileImage} disabled={uploadingPhoto}>
-              <Ionicons name="camera-outline" size={15} color={themeColors.primary} />
-              <Text style={styles.photoButtonText}>{uploadingPhoto ? 'Uploading...' : 'Change Photo'}</Text>
-            </TouchableOpacity>
+            {isResidentProfile && (
+              <TouchableOpacity style={styles.photoButton} onPress={pickProfileImage} disabled={uploadingPhoto}>
+                <Ionicons name="camera-outline" size={15} color={themeColors.primary} />
+                <Text style={styles.photoButtonText}>{uploadingPhoto ? 'Uploading...' : 'Change Photo'}</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          {selectedPhotoUri && (
+          {isResidentProfile && selectedPhotoUri && (
             <View style={styles.previewNotice}>
               <Ionicons name="information-circle" size={16} color={themeColors.secondary} />
               <Text style={styles.previewText}>Photo selected and ready to save</Text>
@@ -602,35 +606,35 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>First Name</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, styles.disabledInputContainer]}>
               <Ionicons name="person" size={20} color={themeColors.textSecondary} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.disabledInput]}
                 value={formData.firstName}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, firstName: text }))}
+                editable={false}
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Last Name</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, styles.disabledInputContainer]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.disabledInput]}
                 value={formData.lastName}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, lastName: text }))}
+                editable={false}
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, styles.disabledInputContainer]}>
               <Ionicons name="mail" size={20} color={themeColors.textSecondary} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.disabledInput]}
                 value={formData.email}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
+                editable={false}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -639,219 +643,231 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Phone Number</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, styles.disabledInputContainer]}>
               <Ionicons name="call" size={20} color={themeColors.textSecondary} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.disabledInput]}
                 value={formData.phone}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
+                editable={false}
                 keyboardType="phone-pad"
               />
             </View>
           </View>
 
-          <TouchableOpacity style={[styles.inlineUpdateButton, saving && styles.saveButtonDisabled]} onPress={handleSaveProfile} disabled={saving}>
-            {saving ? <ActivityIndicator color="white" /> : <><Ionicons name="save-outline" size={18} color="white" /><Text style={styles.inlineUpdateButtonText}>Update Information</Text></>}
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.section, shadows.small]}>
-          <Text style={styles.sectionTitle}>Emergency Contact</Text>
-          <Text style={styles.label}>Contact Name</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color={themeColors.textSecondary} />
-            <TextInput style={styles.input} value={formData.emergencyContact.name} onChangeText={(text) => setFormData(prev => ({ ...prev, emergencyContact: { ...prev.emergencyContact, name: text } }))} placeholder="Full name" />
-          </View>
-          <Text style={[styles.label, { marginTop: 14 }]}>Phone Number</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="call-outline" size={20} color={themeColors.textSecondary} />
-            <TextInput style={styles.input} value={formData.emergencyContact.phone} onChangeText={(text) => setFormData(prev => ({ ...prev, emergencyContact: { ...prev.emergencyContact, phone: text.replace(/\D/g, '').slice(0, 11) } }))} placeholder="09XXXXXXXXX" keyboardType="phone-pad" />
-          </View>
-        </View>
-
-        <View style={[styles.section, shadows.small]}>
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>Vehicles</Text>
-            <TouchableOpacity style={styles.addInlineButton} onPress={addVehicle}><Ionicons name="add" size={18} color="white" /><Text style={styles.addInlineText}>Add</Text></TouchableOpacity>
-          </View>
-          {formData.vehicles.map((vehicle, index) => (
-            <View key={index} style={styles.vehicleEditor}>
-              <View style={styles.vehicleEditorHeader}>
-                <Text style={styles.vehicleEditorTitle}>Vehicle {index + 1}</Text>
-                {formData.vehicles.length > 1 && <TouchableOpacity style={styles.removeInlineButton} onPress={() => removeVehicle(index)}><Ionicons name="trash-outline" size={16} color={themeColors.error} /><Text style={styles.removeInlineText}>Remove</Text></TouchableOpacity>}
-              </View>
-              {[
-                ['Plate number', 'plateNumber'],
-                ['Make', 'make'],
-                ['Model', 'model'],
-                ['Color', 'color'],
-              ].map(([label, key]) => (
-                <View key={key} style={styles.compactField}>
-                  <Text style={styles.label}>{label}</Text>
-                  <TextInput style={styles.compactInput} value={vehicle[key] || ''} onChangeText={(text) => setFormData(prev => ({ ...prev, vehicles: prev.vehicles.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: key === 'plateNumber' ? text.toUpperCase() : text } : item) }))} />
-                </View>
-              ))}
-              {!!vehicle.carImage && <TouchableOpacity onPress={() => openDocumentModal(`Vehicle ${index + 1}`, buildVehicleUrl(vehicle.carImage))}><Text style={styles.documentLink}>View registered vehicle photo</Text></TouchableOpacity>}
-            </View>
-          ))}
-        </View>
-
-        <View style={[styles.section, shadows.small]}>
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>Family Members</Text>
-            <TouchableOpacity style={styles.addInlineButton} onPress={addFamilyMember}><Ionicons name="add" size={18} color="white" /><Text style={styles.addInlineText}>Add</Text></TouchableOpacity>
-          </View>
-          {formData.familyMembers.map((member, index) => (
-            <View key={index} style={styles.vehicleEditor}>
-              <View style={styles.vehicleEditorHeader}>
-                <Text style={styles.vehicleEditorTitle}>Family Member {index + 1}</Text>
-                {formData.familyMembers.length > 1 && <TouchableOpacity style={styles.removeInlineButton} onPress={() => removeFamilyMember(index)}><Ionicons name="trash-outline" size={16} color={themeColors.error} /><Text style={styles.removeInlineText}>Remove</Text></TouchableOpacity>}
-              </View>
-              {[
-                ['Full name', 'name', 'default'],
-                ['Relationship', 'relationship', 'default'],
-                ['Age', 'age', 'number-pad'],
-                ['Phone', 'phone', 'phone-pad'],
-              ].map(([label, key, keyboardType]) => (
-                <View key={key} style={styles.compactField}>
-                  <Text style={styles.label}>{label}</Text>
-                  <TextInput style={styles.compactInput} keyboardType={keyboardType} value={String(member[key] || '')} onChangeText={(text) => setFormData(prev => ({ ...prev, familyMembers: prev.familyMembers.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: key === 'age' || key === 'phone' ? text.replace(/\D/g, '') : text } : item) }))} />
-                </View>
-              ))}
-            </View>
-          ))}
-        </View>
-
-        {/* Uploaded Documents Section */}
-        <View style={[styles.section, shadows.small]}>
-          <Text style={styles.sectionTitle}>Uploaded Documents</Text>
-          {loadingDocuments ? (
-            <View style={styles.loadingDocuments}>
-              <ActivityIndicator size="small" color={themeColors.primary} />
-              <Text style={styles.loadingDocumentsText}>Loading documents...</Text>
-            </View>
-          ) : uploadedDocuments ? (
-            <View style={styles.documentsContainer}>
-              {uploadedDocuments.selfieImage && (
-                <View style={styles.documentItem}>
-                  <Text style={styles.documentLabel}>Profile Picture</Text>
-                  <TouchableOpacity 
-                    style={styles.documentImageContainer}
-                    onPress={() => openDocumentModal('Profile Picture', documentPreviewUrls.selfie || buildDocumentUrl(uploadedDocuments.selfieImage))}
-                  >
-                    <Image 
-                      source={{ uri: documentPreviewUrls.selfie || buildDocumentUrl(uploadedDocuments.selfieImage) }} 
-                      style={styles.documentImage} 
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                  <Text style={styles.documentHint}>Tap to preview</Text>
-                </View>
-              )}
-              
-              <View style={styles.documentRow}>
-                {uploadedDocuments.frontImage && (
-                  <View style={styles.documentItem}>
-                    <Text style={styles.documentLabel}>ID Front</Text>
-                    <TouchableOpacity 
-                      style={styles.documentImageContainer}
-                      onPress={() => openDocumentModal('ID Front', documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage))}
-                    >
-                      <Image 
-                        source={{ uri: documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage) }} 
-                        style={styles.documentImage} 
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                    <Text style={styles.documentHint}>Tap to preview</Text>
-                  </View>
-                )}
-                
-                {uploadedDocuments.backImage && (
-                  <View style={styles.documentItem}>
-                    <Text style={styles.documentLabel}>ID Back</Text>
-                    <TouchableOpacity 
-                      style={styles.documentImageContainer}
-                      onPress={() => openDocumentModal('ID Back', documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage))}
-                    >
-                      <Image 
-                        source={{ uri: documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage) }} 
-                        style={styles.documentImage} 
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                    <Text style={styles.documentHint}>Tap to preview</Text>
-                  </View>
-                )}
-              </View>
-              
-              <View style={styles.verificationStatus}>
-                <Ionicons 
-                  name={uploadedDocuments.documentsVerified ? "checkmark-circle" : "time"} 
-                  size={16} 
-                  color={uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning} 
+          {!!formData.dateOfBirth && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Birthday</Text>
+              <View style={[styles.inputContainer, styles.disabledInputContainer]}>
+                <Ionicons name="calendar" size={20} color={themeColors.textSecondary} />
+                <TextInput
+                  style={[styles.input, styles.disabledInput]}
+                  value={formatDate(formData.dateOfBirth)}
+                  editable={false}
                 />
-                <Text style={[styles.verificationStatusText, { 
-                  color: uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning 
-                }]}>
-                  {uploadedDocuments.documentsVerified ? 'Documents Verified' : 'Verification Pending'}
-                </Text>
               </View>
-            </View>
-          ) : (
-            <View style={styles.noDocuments}>
-              <Ionicons name="document" size={48} color={themeColors.textSecondary} />
-              <Text style={styles.noDocumentsText}>No documents uploaded yet</Text>
-              <Text style={styles.noDocumentsSubtext}>Documents are uploaded during registration</Text>
             </View>
           )}
+
         </View>
 
-        {user?.role === 'resident' && (
-          <View style={[styles.section, shadows.small]}>
-            <Text style={styles.sectionTitle}>Move-out</Text>
-            <Text style={styles.helperText}>
-              Request to vacate your lot. An admin must approve the request to update the lot and deactivate the account.
-            </Text>
-            <View style={styles.moveOutRow}>
-              <View style={styles.moveOutStatusPill}>
-                <Text style={styles.moveOutStatusText}>
-                  Status: {user?.moveOutStatus || 'none'}
-                </Text>
+        {isResidentProfile && (
+          <>
+            <View style={[styles.section, shadows.small]}>
+              <Text style={styles.sectionTitle}>Emergency Contact</Text>
+              <Text style={styles.label}>Contact Name</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="person-outline" size={20} color={themeColors.textSecondary} />
+                <TextInput style={styles.input} value={formData.emergencyContact.name} onChangeText={(text) => setFormData(prev => ({ ...prev, emergencyContact: { ...prev.emergencyContact, name: text } }))} placeholder="Full name" />
               </View>
-              <TouchableOpacity
-                style={[styles.moveOutButton, (moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved') && styles.moveOutButtonDisabled]}
-                onPress={() => setShowMoveOutModal(true)}
-                disabled={moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved'}
-              >
-                {moveOutSubmitting ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <>
-                    <Ionicons name="exit-outline" size={16} color="white" />
-                    <Text style={styles.moveOutButtonText}>Request</Text>
-                  </>
-                )}
+              <Text style={[styles.label, { marginTop: 14 }]}>Phone Number</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="call-outline" size={20} color={themeColors.textSecondary} />
+                <TextInput style={styles.input} value={formData.emergencyContact.phone} onChangeText={(text) => setFormData(prev => ({ ...prev, emergencyContact: { ...prev.emergencyContact, phone: text.replace(/\D/g, '').slice(0, 11) } }))} placeholder="09XXXXXXXXX" keyboardType="phone-pad" />
+              </View>
+            </View>
+
+            <View style={[styles.section, shadows.small]}>
+              <View style={styles.sectionTitleRow}>
+                <Text style={styles.sectionTitle}>Vehicles</Text>
+                <TouchableOpacity style={styles.addInlineButton} onPress={addVehicle}><Ionicons name="add" size={18} color="white" /><Text style={styles.addInlineText}>Add</Text></TouchableOpacity>
+              </View>
+              {formData.vehicles.map((vehicle, index) => (
+                <View key={index} style={styles.vehicleEditor}>
+                  <View style={styles.vehicleEditorHeader}>
+                    <Text style={styles.vehicleEditorTitle}>Vehicle {index + 1}</Text>
+                    {formData.vehicles.length > 1 && <TouchableOpacity style={styles.removeInlineButton} onPress={() => removeVehicle(index)}><Ionicons name="trash-outline" size={16} color={themeColors.error} /><Text style={styles.removeInlineText}>Remove</Text></TouchableOpacity>}
+                  </View>
+                  {[
+                    ['Plate number', 'plateNumber'],
+                    ['Make', 'make'],
+                    ['Model', 'model'],
+                    ['Color', 'color'],
+                  ].map(([label, key]) => (
+                    <View key={key} style={styles.compactField}>
+                      <Text style={styles.label}>{label}</Text>
+                      <TextInput style={styles.compactInput} value={vehicle[key] || ''} onChangeText={(text) => setFormData(prev => ({ ...prev, vehicles: prev.vehicles.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: key === 'plateNumber' ? text.toUpperCase() : text } : item) }))} />
+                    </View>
+                  ))}
+                  {!!vehicle.carImage && <TouchableOpacity onPress={() => openDocumentModal(`Vehicle ${index + 1}`, buildVehicleUrl(vehicle.carImage))}><Text style={styles.documentLink}>View registered vehicle photo</Text></TouchableOpacity>}
+                </View>
+              ))}
+            </View>
+
+            <View style={[styles.section, shadows.small]}>
+              <View style={styles.sectionTitleRow}>
+                <Text style={styles.sectionTitle}>Family Members</Text>
+                <TouchableOpacity style={styles.addInlineButton} onPress={addFamilyMember}><Ionicons name="add" size={18} color="white" /><Text style={styles.addInlineText}>Add</Text></TouchableOpacity>
+              </View>
+              {formData.familyMembers.map((member, index) => (
+                <View key={index} style={styles.vehicleEditor}>
+                  <View style={styles.vehicleEditorHeader}>
+                    <Text style={styles.vehicleEditorTitle}>Family Member {index + 1}</Text>
+                    {formData.familyMembers.length > 1 && <TouchableOpacity style={styles.removeInlineButton} onPress={() => removeFamilyMember(index)}><Ionicons name="trash-outline" size={16} color={themeColors.error} /><Text style={styles.removeInlineText}>Remove</Text></TouchableOpacity>}
+                  </View>
+                  {[
+                    ['Full name', 'name', 'default'],
+                    ['Relationship', 'relationship', 'default'],
+                    ['Age', 'age', 'number-pad'],
+                    ['Phone', 'phone', 'phone-pad'],
+                  ].map(([label, key, keyboardType]) => (
+                    <View key={key} style={styles.compactField}>
+                      <Text style={styles.label}>{label}</Text>
+                      <TextInput style={styles.compactInput} keyboardType={keyboardType} value={String(member[key] || '')} onChangeText={(text) => setFormData(prev => ({ ...prev, familyMembers: prev.familyMembers.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: key === 'age' || key === 'phone' ? text.replace(/\D/g, '') : text } : item) }))} />
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
+
+            {/* Uploaded Documents Section */}
+            <View style={[styles.section, shadows.small]}>
+              <Text style={styles.sectionTitle}>Uploaded Documents</Text>
+              {loadingDocuments ? (
+                <View style={styles.loadingDocuments}>
+                  <ActivityIndicator size="small" color={themeColors.primary} />
+                  <Text style={styles.loadingDocumentsText}>Loading documents...</Text>
+                </View>
+              ) : uploadedDocuments ? (
+                <View style={styles.documentsContainer}>
+                  {uploadedDocuments.selfieImage && (
+                    <View style={styles.documentItem}>
+                      <Text style={styles.documentLabel}>Profile Picture</Text>
+                      <TouchableOpacity 
+                        style={styles.documentImageContainer}
+                        onPress={() => openDocumentModal('Profile Picture', documentPreviewUrls.selfie || buildDocumentUrl(uploadedDocuments.selfieImage))}
+                      >
+                        <Image 
+                          source={{ uri: documentPreviewUrls.selfie || buildDocumentUrl(uploadedDocuments.selfieImage) }} 
+                          style={styles.documentImage} 
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                      <Text style={styles.documentHint}>Tap to preview</Text>
+                    </View>
+                  )}
+                  
+                  <View style={styles.documentRow}>
+                    {uploadedDocuments.frontImage && (
+                      <View style={styles.documentItem}>
+                        <Text style={styles.documentLabel}>ID Front</Text>
+                        <TouchableOpacity 
+                          style={styles.documentImageContainer}
+                          onPress={() => openDocumentModal('ID Front', documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage))}
+                        >
+                          <Image 
+                            source={{ uri: documentPreviewUrls.front || buildDocumentUrl(uploadedDocuments.frontImage) }} 
+                            style={styles.documentImage} 
+                            resizeMode="cover"
+                          />
+                        </TouchableOpacity>
+                        <Text style={styles.documentHint}>Tap to preview</Text>
+                      </View>
+                    )}
+                    {uploadedDocuments.backImage && (
+                      <View style={styles.documentItem}>
+                        <Text style={styles.documentLabel}>ID Back</Text>
+                        <TouchableOpacity 
+                          style={styles.documentImageContainer}
+                          onPress={() => openDocumentModal('ID Back', documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage))}
+                        >
+                          <Image 
+                            source={{ uri: documentPreviewUrls.back || buildDocumentUrl(uploadedDocuments.backImage) }} 
+                            style={styles.documentImage} 
+                            resizeMode="cover"
+                          />
+                        </TouchableOpacity>
+                        <Text style={styles.documentHint}>Tap to preview</Text>
+                      </View>
+                    )}
+                  </View>
+               
+                  <View style={styles.verificationStatus}>
+                    <Ionicons 
+                      name={uploadedDocuments.documentsVerified ? "checkmark-circle" : "time"} 
+                      size={16} 
+                      color={uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning} 
+                    />
+                    <Text style={[styles.verificationStatusText, { 
+                      color: uploadedDocuments.documentsVerified ? themeColors.success : themeColors.warning 
+                    }]}>
+                      {uploadedDocuments.documentsVerified ? 'Documents Verified' : 'Verification Pending'}
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.noDocuments}>
+                  <Ionicons name="document" size={48} color={themeColors.textSecondary} />
+                  <Text style={styles.noDocumentsText}>No documents uploaded yet</Text>
+                  <Text style={styles.noDocumentsSubtext}>Documents are uploaded during registration</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={[styles.section, shadows.small]}>
+              <Text style={styles.sectionTitle}>Move-out</Text>
+              <Text style={styles.helperText}>
+                Request to vacate your lot. An admin must approve the request to update the lot and deactivate the account.
+              </Text>
+              <View style={styles.moveOutRow}>
+                <View style={styles.moveOutStatusPill}>
+                  <Text style={styles.moveOutStatusText}>
+                    Status: {user?.moveOutStatus || 'none'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.moveOutButton, (moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved') && styles.moveOutButtonDisabled]}
+                  onPress={() => setShowMoveOutModal(true)}
+                  disabled={moveOutSubmitting || user?.moveOutStatus === 'pending' || user?.moveOutStatus === 'approved'}
+                >
+                  {moveOutSubmitting ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Ionicons name="exit-outline" size={16} color="white" />
+                      <Text style={styles.moveOutButtonText}>Request</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={[styles.section, shadows.small]}>
+              <Text style={styles.sectionTitle}>Security</Text>
+              <TouchableOpacity style={styles.securityButton} onPress={() => setShowPasswordModal(true)}>
+                <Ionicons name="lock-closed" size={20} color={themeColors.primary} />
+                <Text style={styles.securityButtonText}>Change Password</Text>
+                <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
               </TouchableOpacity>
             </View>
-          </View>
+
+            <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSaveProfile} disabled={saving}>
+              {saving ? <ActivityIndicator color="white" /> : <><Ionicons name="save-outline" size={18} color="white" /><Text style={styles.saveButtonText}>Save Profile Changes</Text></>}
+            </TouchableOpacity>
+          </>
         )}
-
-        <View style={[styles.section, shadows.small]}>
-          <Text style={styles.sectionTitle}>Security</Text>
-          <TouchableOpacity style={styles.securityButton} onPress={() => setShowPasswordModal(true)}>
-            <Ionicons name="lock-closed" size={20} color={themeColors.primary} />
-            <Text style={styles.securityButtonText}>Change Password</Text>
-            <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSaveProfile} disabled={saving}>
-          {saving ? <ActivityIndicator color="white" /> : <><Ionicons name="save-outline" size={18} color="white" /><Text style={styles.saveButtonText}>Save Profile Changes</Text></>}
-        </TouchableOpacity>
       </ScrollView>
 
-      <Modal visible={showPasswordModal} animationType="slide" transparent onRequestClose={() => setShowPasswordModal(false)}>
+      <Modal visible={isResidentProfile && showPasswordModal} animationType="slide" transparent onRequestClose={() => setShowPasswordModal(false)}>
         <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -1071,6 +1087,8 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, color: themeColors.textSecondary, marginBottom: 8 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: themeColors.borderStrong, borderRadius: 17, paddingHorizontal: 14, backgroundColor: themeColors.surfaceMuted, minHeight: 56 },
   input: { flex: 1, paddingVertical: 12, fontSize: 16, color: themeColors.textPrimary, marginLeft: 8 },
+  disabledInputContainer: { opacity: 0.72 },
+  disabledInput: { color: themeColors.textSecondary },
   securityButton: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: themeColors.surfaceTint, borderRadius: 17, borderWidth: 1, borderColor: themeColors.border },
   securityButtonText: { flex: 1, fontSize: 16, color: themeColors.textPrimary, marginLeft: 12 },
   saveButton: { backgroundColor: themeColors.primaryDeep, padding: 17, borderRadius: 18, marginTop: 8, marginBottom: 32, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, ...shadows.medium },

@@ -671,7 +671,7 @@ router.post('/profile-photo', protect, photoUpload.single('photo'), async (req, 
 router.put('/profile', protect, async (req, res) => {
   try {
     const updates = req.body;
-    const allowedUpdates = ['phone', 'emergencyContact', 'vehicles', 'familyMembers'];
+    const allowedUpdates = ['emergencyContact', 'vehicles', 'familyMembers'];
 
     const filteredUpdates = {};
     Object.keys(updates).forEach(key => {
@@ -687,17 +687,6 @@ router.put('/profile', protect, async (req, res) => {
         success: false,
         error: 'User not found'
       });
-    }
-
-    if (Object.prototype.hasOwnProperty.call(filteredUpdates, 'phone')) {
-      const phoneDigits = String(filteredUpdates.phone || '').replace(/\D/g, '');
-      if (!phoneDigits || (!/^09\d{9}$/.test(phoneDigits) && !/^\d{10}$/.test(phoneDigits))) {
-        return res.status(400).json({
-          success: false,
-          error: 'Please enter a valid phone number'
-        });
-      }
-      filteredUpdates.phone = phoneDigits;
     }
 
     if (filteredUpdates.emergencyContact?.phone) {
@@ -1044,20 +1033,19 @@ router.post('/', protect, authorize('admin', 'security'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'A user with this email already exists' });
     }
 
-    // For head officers, don't require assignedPhases/assignedAreas/patrolSchedule
-    const validAssignedPhases = role === 'security' && securityLevel !== 'head-officer'
+    const validAssignedPhases = role === 'security'
       ? Array.isArray(assignedPhases)
         ? assignedPhases.map((phase) => Number(phase)).filter((phase) => Number.isInteger(phase) && phase >= 1 && phase <= 10)
         : []
       : [];
 
-    const validAssignedAreas = role === 'security' && securityLevel !== 'head-officer'
+    const validAssignedAreas = role === 'security'
       ? Array.isArray(assignedAreas)
         ? assignedAreas.map((area) => String(area).trim()).filter(Boolean)
         : []
       : [];
 
-    const validPatrolSchedule = role === 'security' && securityLevel !== 'head-officer'
+    const validPatrolSchedule = role === 'security'
       ? String(patrolSchedule).trim()
       : '';
 

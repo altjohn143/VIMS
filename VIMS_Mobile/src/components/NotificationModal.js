@@ -15,8 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../utils/api';
 import { themeColors, shadows } from '../utils/theme';
+import { useAuth } from '../context/AuthContext';
 
 const NotificationModal = ({ visible, onClose, navigation, onViewAll }) => {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const slideAnim = useRef(new Animated.Value(500)).current;
@@ -96,12 +98,21 @@ const NotificationModal = ({ visible, onClose, navigation, onViewAll }) => {
     const metadata = notification?.metadata || {};
     const type = String(notification?.type || metadata?.type || '').toLowerCase();
     const has = (key) => !!metadata?.[key];
+    const role = user?.role;
 
-    if (has('visitorId') || type.includes('visitor')) return 'VisitorsTab';
-    if (has('paymentId') || type.includes('payment')) return 'PaymentsTab';
-    if (has('serviceRequestId') || type.includes('service')) return 'ServicesTab';
+    if (has('visitorId') || type.includes('visitor')) {
+      return role === 'security' ? 'LogsTab' : 'VisitorsTab';
+    }
+    if (has('paymentId') || type.includes('payment')) {
+      return role === 'security' ? null : 'PaymentsTab';
+    }
+    if (has('serviceRequestId') || type.includes('service')) {
+      return role === 'security' ? 'SecurityServiceRequests' : 'ServicesTab';
+    }
     if (has('announcementId') || type.includes('announcement')) return 'Announcements';
-    if (has('reservationId') || type.includes('reservation')) return 'ReservationsTab';
+    if (has('reservationId') || type.includes('reservation')) {
+      return role === 'security' ? null : 'ReservationsTab';
+    }
     return null;
   };
 

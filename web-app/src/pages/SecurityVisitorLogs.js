@@ -59,7 +59,6 @@ import {
   AccessTime as ActiveIcon,
   TimerOff as ExpiredIcon,
   Visibility as ViewIcon,
-  Print as PrintIcon,
   Error as ErrorIcon,
   Settings as SettingsIcon,
   QrCodeScanner as QrCodeScannerIcon,
@@ -596,166 +595,6 @@ const SecurityVisitorLogs = () => {
     setViewDialogOpen(true);
   };
 
-  // Handle print visitor pass
-  const handlePrintPass = (visitor) => {
-    if (!visitor.qrCode) {
-      toast.error('QR code not available for printing');
-      return;
-    }
-
-    try {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast.error('Popup blocked. Please allow popups to print the visitor pass.');
-        return;
-      }
-      const now = new Date();
-      const departureDate = new Date(visitor.expectedDeparture);
-      const isExpired = now > departureDate;
-      
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Visitor Pass - ${visitor.visitorName}</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 0; 
-              padding: 20px; 
-            }
-            .pass-container { 
-              border: 3px solid ${isExpired ? themeColors.error : themeColors.success}; 
-              padding: 20px; 
-              max-width: 400px; 
-              margin: 0 auto; 
-              text-align: center;
-              border-radius: 10px;
-            }
-            .header { 
-              background: ${isExpired ? themeColors.error : themeColors.success}; 
-              color: white; 
-              padding: 10px; 
-              margin: -20px -20px 20px -20px;
-              border-radius: 7px 7px 0 0;
-            }
-            .qr-code { 
-              max-width: 200px; 
-              margin: 20px auto; 
-              padding: 10px;
-              border: 2px solid #ddd;
-              background: white;
-            }
-            .status-badge {
-              display: inline-block;
-              padding: 5px 10px;
-              border-radius: 20px;
-              background: ${isExpired ? '#ffebee' : '#e8f5e9'};
-              color: ${isExpired ? themeColors.error : themeColors.success};
-              font-weight: bold;
-              margin: 10px 0;
-            }
-            .info-row { 
-              display: flex; 
-              justify-content: space-between; 
-              margin: 5px 0; 
-              padding-bottom: 5px;
-              border-bottom: 1px solid #eee;
-            }
-            .info-label { font-weight: bold; color: #666; }
-            .info-value { color: #2d3748; }
-            .footer { 
-              margin-top: 20px; 
-              font-size: 12px; 
-              color: #777; 
-              border-top: 1px solid #eee;
-              padding-top: 10px;
-            }
-            @media print {
-              body { padding: 0; }
-              .pass-container { border: 2px solid #000; }
-              button { display: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="pass-container">
-            <div class="header">
-              <h2>VISITOR PASS</h2>
-              <div class="status-badge">
-                ${isExpired ? 'EXPIRED' : 'VALID'}
-              </div>
-            </div>
-            
-            <img src="${visitor.qrCode}" alt="QR Code" class="qr-code">
-            
-            <div style="text-align: left; margin-top: 20px;">
-              <div class="info-row">
-                <span class="info-label">Visitor:</span>
-                <span>${visitor.visitorName}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Phone:</span>
-                <span>${visitor.visitorPhone}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Resident:</span>
-                <span>${visitor.residentId?.firstName || ''} ${visitor.residentId?.lastName || ''}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">House:</span>
-                <span>${visitor.residentId?.houseNumber || 'N/A'}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Purpose:</span>
-                <span>${visitor.purpose}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Arrival:</span>
-                <span>${formatDate(visitor.expectedArrival)}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Departure:</span>
-                <span>${formatDate(visitor.expectedDeparture)}</span>
-              </div>
-              ${visitor.actualEntry ? `
-              <div class="info-row">
-                <span class="info-label">Entry Time:</span>
-                <span>${formatDate(visitor.actualEntry)}</span>
-              </div>
-              ` : ''}
-              ${visitor.actualExit ? `
-              <div class="info-row">
-                <span class="info-label">Exit Time:</span>
-                <span>${formatDate(visitor.actualExit)}</span>
-              </div>
-              ` : ''}
-            </div>
-            
-            <div class="footer">
-              Generated by VIMS Security • ${new Date().toLocaleDateString()}
-              <br>
-              Valid only with QR code scan at gate
-            </div>
-          </div>
-          
-          <div style="text-align: center; margin-top: 20px;">
-            <button onclick="window.print()" style="padding: 10px 20px; background: ${themeColors.primary}; color: white; border: none; border-radius: 5px; cursor: pointer;">
-              Print Pass
-            </button>
-            <button onclick="window.close()" style="padding: 10px 20px; background: ${themeColors.error}; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-              Close
-            </button>
-          </div>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
-    } catch (error) {
-      console.error('Print error:', error);
-      toast.error('Failed to open print window');
-    }
-  };
 
   // Get title based on selected tab - UPDATED FOR 3 TABS
   const getTitle = () => {
@@ -1680,22 +1519,6 @@ const SecurityVisitorLogs = () => {
                           </Button>
                         )}
 
-                        {visitor.qrCode && ['approved', 'active', 'completed'].includes(visitor.status) && (
-                          <IconButton
-                            size="small"
-                            onClick={() => handlePrintPass(visitor)}
-                            title="Print Pass"
-                            sx={{
-                              color: themeColors.textSecondary,
-                              '&:hover': {
-                                color: themeColors.primary,
-                                bgcolor: themeColors.primary + '10'
-                              }
-                            }}
-                          >
-                            <PrintIcon />
-                          </IconButton>
-                        )}
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -1853,40 +1676,6 @@ const SecurityVisitorLogs = () => {
                   </Typography>
                   {getStatusChip(selectedVisitor)}
                 </Grid>
-                {selectedVisitor.qrCode && ['approved', 'active', 'completed'].includes(selectedVisitor.status) && (
-                  <Grid item xs={12}>
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="subtitle2" sx={{ color: themeColors.textSecondary }} gutterBottom>
-                      QR Code
-                    </Typography>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <img
-                        src={selectedVisitor.qrCode}
-                        alt="Visitor QR Code"
-                        style={{ maxWidth: '200px', border: `1px solid ${themeColors.border}`, padding: '10px' }}
-                      />
-                      <Button
-                        variant="outlined"
-                        startIcon={<PrintIcon />}
-                        onClick={() => handlePrintPass(selectedVisitor)}
-                        sx={{ 
-                          mt: 2,
-                          borderRadius: 2.5,
-                          textTransform: 'none',
-                          fontWeight: 700,
-                          borderColor: themeColors.border,
-                          color: themeColors.textPrimary,
-                          '&:hover': {
-                            borderColor: themeColors.primary,
-                            bgcolor: themeColors.primary + '08'
-                          }
-                        }}
-                      >
-                        Print Visitor Pass
-                      </Button>
-                    </Box>
-                  </Grid>
-                )}
               </Grid>
             )}
           </DialogContent>

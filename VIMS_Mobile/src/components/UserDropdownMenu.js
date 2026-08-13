@@ -51,12 +51,15 @@ const UserDropdownMenu = ({ navigation }) => {
 
   const roleMenuItems = user?.role === 'admin'
     ? [
+        { label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#16a34a', bg: '#f0fdf4' },
         { label: 'Services', screen: 'ServicesTab', icon: 'construct-outline', color: '#2563eb', bg: '#eff6ff' },
         { label: 'Payments', screen: 'PaymentsTab', icon: 'card-outline', color: '#7c3aed', bg: '#f5f3ff' },
         { label: 'Users', screen: 'UsersTab', icon: 'people-outline', color: '#0f766e', bg: '#ecfdf5' },
       ]
     : user?.role === 'resident'
       ? [{ label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#16a34a', bg: '#f0fdf4' }]
+      : user?.role === 'security'
+        ? [{ label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#16a34a', bg: '#f0fdf4' }]
       : [];
 
   return (

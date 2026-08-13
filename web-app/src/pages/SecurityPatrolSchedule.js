@@ -23,11 +23,15 @@ import {
   IconButton
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Shield as ShieldIcon } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-const initialForm = { phase: '', area: '', checkpoint: '', notes: '', status: 'completed' };
+const createInitialForm = () => ({ phase: '', area: '', checkpoint: '', notes: '', status: 'completed', loggedAt: new Date() });
 
 const SecurityPatrolSchedule = () => {
   const themeColors = {
@@ -44,7 +48,7 @@ const SecurityPatrolSchedule = () => {
   const [rows, setRows] = useState([]);
   const [lots, setLots] = useState([]);
   const [assignment, setAssignment] = useState(null);
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(createInitialForm());
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const navigate = useNavigate();
@@ -115,10 +119,11 @@ const SecurityPatrolSchedule = () => {
     try {
       await axios.post('/api/patrols/log', {
         ...form,
-        phase: Number(form.phase)
+        phase: Number(form.phase),
+        loggedAt: (form.loggedAt || new Date()).toISOString()
       });
       toast.success('Patrol log submitted');
-      setForm(initialForm);
+      setForm(createInitialForm());
       setPage(0);
       load();
     } catch (error) {
@@ -127,6 +132,7 @@ const SecurityPatrolSchedule = () => {
   };
 
   return (
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
     <Box
       sx={{
         minHeight: '100vh',
@@ -256,6 +262,34 @@ const SecurityPatrolSchedule = () => {
                     <MenuItem key={lot.lotId} value={lot.lotId}>{`Block ${lot.block} - Lot ${lot.lotNumber}`}</MenuItem>
                   ))}
                 </TextField>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <DatePicker
+                      label="Patrol date"
+                      value={form.loggedAt || new Date()}
+                      onChange={(date) => {
+                        if (!date) return;
+                        const next = new Date(form.loggedAt || new Date());
+                        next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                        setForm((p) => ({ ...p, loggedAt: next }));
+                      }}
+                      slotProps={{ textField: { fullWidth: true } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TimePicker
+                      label="Patrol time"
+                      value={form.loggedAt || new Date()}
+                      onChange={(time) => {
+                        if (!time) return;
+                        const next = new Date(form.loggedAt || new Date());
+                        next.setHours(time.getHours(), time.getMinutes(), 0, 0);
+                        setForm((p) => ({ ...p, loggedAt: next }));
+                      }}
+                      slotProps={{ textField: { fullWidth: true } }}
+                    />
+                  </Grid>
+                </Grid>
                 <TextField label="Notes" value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} multiline minRows={3} />
                 <TextField select label="Status" value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
                   <MenuItem value="completed">Completed</MenuItem>
@@ -330,6 +364,7 @@ const SecurityPatrolSchedule = () => {
         </Grid>
       </Container>
     </Box>
+    </LocalizationProvider>
   );
 };
 

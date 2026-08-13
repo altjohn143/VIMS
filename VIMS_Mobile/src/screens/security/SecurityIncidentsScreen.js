@@ -172,8 +172,8 @@ const SecurityIncidentsScreen = ({ navigation }) => {
     const sev = severityColor(item?.severity);
     const st = String(item?.status || 'open');
     const sc = statusColor(item?.status);
-    const isResolved = item?.status === 'resolved';
-    const isInvestigating = item?.status === 'investigating';
+    const canInvestigate = !processing && st === 'open';
+    const canResolve = !processing && st === 'investigating';
     return (
       <View style={[styles.card, shadows.small]}>
         <View style={styles.cardTop}>
@@ -196,16 +196,16 @@ const SecurityIncidentsScreen = ({ navigation }) => {
         </Text>
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.investigateBtn, (processing || isResolved || isInvestigating) && styles.disabled]}
-            disabled={processing || isResolved || isInvestigating}
+            style={[styles.actionBtn, styles.investigateBtn, !canInvestigate && styles.disabled]}
+            disabled={!canInvestigate}
             onPress={() => setStatus(item._id, 'investigating')}
           >
             <Ionicons name="search-outline" size={16} color="white" />
             <Text style={styles.actionText}>Investigate</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.resolveBtn, (processing || isResolved) && styles.disabled]}
-            disabled={processing || isResolved}
+            style={[styles.actionBtn, styles.resolveBtn, !canResolve && styles.disabled]}
+            disabled={!canResolve}
             onPress={() => setStatus(item._id, 'resolved')}
           >
             <Ionicons name="checkmark-circle-outline" size={16} color="white" />

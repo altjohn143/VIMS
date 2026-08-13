@@ -128,6 +128,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
   const assignmentPhases = Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => Number(a) - Number(b));
   const assignmentCheckpoints = lots.filter((lot) => String(lot.phase) === String(assignmentForm.assignedPhases));
+  const newUserCheckpoints = lots.filter((lot) => String(lot.phase) === String(newUserData.assignedPhases));
   const scheduleOptions = ['Morning shift', 'Afternoon shift', 'Night shift', 'Weekday patrol', 'Weekend patrol', 'Rotating patrol'];
 
   const setAssignmentPhase = (phase) => {
@@ -141,6 +142,22 @@ const AdminUserManagementScreen = ({ navigation }) => {
   const setAssignmentCheckpoint = (lotId) => {
     const lot = lots.find((item) => String(item.lotId) === String(lotId));
     setAssignmentForm((previous) => ({
+      ...previous,
+      assignedAreas: lot ? `Phase ${lot.phase} - Block ${lot.block} - Lot ${lot.lotNumber}` : '',
+    }));
+  };
+
+  const setNewUserPhase = (phase) => {
+    setNewUserData((previous) => ({
+      ...previous,
+      assignedPhases: phase,
+      assignedAreas: '',
+    }));
+  };
+
+  const setNewUserCheckpoint = (lotId) => {
+    const lot = lots.find((item) => String(item.lotId) === String(lotId));
+    setNewUserData((previous) => ({
       ...previous,
       assignedAreas: lot ? `Phase ${lot.phase} - Block ${lot.block} - Lot ${lot.lotNumber}` : '',
     }));
@@ -966,28 +983,51 @@ const AdminUserManagementScreen = ({ navigation }) => {
                     </View>
                   )}
                   <View style={styles.formRow}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Assigned Phases (1,2)"
-                      value={newUserData.assignedPhases}
-                      onChangeText={(text) => setNewUserData((prev) => ({ ...prev, assignedPhases: text }))}
-                    />
+                    <Text style={styles.fieldLabel}>Assigned phase</Text>
+                    <View style={styles.pickerContainer}>
+                      <Picker
+                        selectedValue={newUserData.assignedPhases}
+                        onValueChange={setNewUserPhase}
+                      >
+                        <Picker.Item label="Select phase" value="" />
+                        {assignmentPhases.map((phase) => (
+                          <Picker.Item key={phase} label={`Phase ${phase}`} value={String(phase)} />
+                        ))}
+                      </Picker>
+                    </View>
                   </View>
                   <View style={styles.formRow}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Assigned Areas (Phase 1, Phase 2)"
-                      value={newUserData.assignedAreas}
-                      onChangeText={(text) => setNewUserData((prev) => ({ ...prev, assignedAreas: text }))}
-                    />
+                    <Text style={styles.fieldLabel}>Assigned area</Text>
+                    <View style={[styles.pickerContainer, !newUserData.assignedPhases && styles.pickerDisabled]}>
+                      <Picker
+                        selectedValue={newUserCheckpoints.find((lot) => newUserData.assignedAreas === `Phase ${lot.phase} - Block ${lot.block} - Lot ${lot.lotNumber}`)?.lotId || ''}
+                        enabled={!!newUserData.assignedPhases}
+                        onValueChange={setNewUserCheckpoint}
+                      >
+                        <Picker.Item label={newUserData.assignedPhases ? 'Select checkpoint' : 'Select phase first'} value="" />
+                        {newUserCheckpoints.map((lot) => (
+                          <Picker.Item
+                            key={lot.lotId}
+                            label={`Block ${lot.block} - Lot ${lot.lotNumber}`}
+                            value={lot.lotId}
+                          />
+                        ))}
+                      </Picker>
+                    </View>
                   </View>
                   <View style={styles.formRow}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Patrol Schedule"
-                      value={newUserData.patrolSchedule}
-                      onChangeText={(text) => setNewUserData((prev) => ({ ...prev, patrolSchedule: text }))}
-                    />
+                    <Text style={styles.fieldLabel}>Patrol schedule</Text>
+                    <View style={styles.pickerContainer}>
+                      <Picker
+                        selectedValue={newUserData.patrolSchedule}
+                        onValueChange={(value) => setNewUserData((prev) => ({ ...prev, patrolSchedule: value }))}
+                      >
+                        <Picker.Item label="Select schedule" value="" />
+                        {scheduleOptions.map((option) => (
+                          <Picker.Item key={option} label={option} value={option} />
+                        ))}
+                      </Picker>
+                    </View>
                   </View>
                 </>
               )}
@@ -1037,13 +1077,9 @@ const AdminUserManagementScreen = ({ navigation }) => {
                           ? newUserData.headOfficerId || null
                           : null,
                         assignedPhases: newUserData.assignedPhases
-                          .split(',')
-                          .map((item) => Number(item.trim()))
-                          .filter((item) => Number.isInteger(item) && item > 0),
-                        assignedAreas: newUserData.assignedAreas
-                          .split(',')
-                          .map((item) => item.trim())
-                          .filter(Boolean),
+                          ? [Number(newUserData.assignedPhases)].filter((item) => Number.isInteger(item) && item > 0)
+                          : [],
+                        assignedAreas: newUserData.assignedAreas ? [newUserData.assignedAreas] : [],
                         patrolSchedule: newUserData.patrolSchedule.trim()
                       });
                       if (response.data.success) {

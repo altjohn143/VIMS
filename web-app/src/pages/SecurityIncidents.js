@@ -265,7 +265,11 @@ const SecurityIncidents = () => {
                           <Typography color="text.secondary">No incident reports yet.</Typography>
                         </TableCell>
                       </TableRow>
-                    ) : paginatedRows.map((item) => (
+                    ) : paginatedRows.map((item) => {
+                      const status = String(item.status || 'open').toLowerCase();
+                      const canInvestigate = status === 'open';
+                      const canResolve = status === 'investigating';
+                      return (
                       <TableRow key={item._id} hover>
                         <TableCell sx={{ minWidth: 220 }}>
                           <Typography sx={{ fontWeight: 700, color: themeColors.textPrimary }}>{item.title}</Typography>
@@ -287,23 +291,26 @@ const SecurityIncidents = () => {
                         <TableCell align="right">
                           <Button
                             size="small"
-                            disabled={item.status === 'resolved' || item.status === 'investigating'}
+                            disabled={!canInvestigate}
                             onClick={() => setStatus(item._id, 'investigating')}
+                            title={status === 'resolved' ? 'Case closed' : status === 'investigating' ? 'Already under investigation' : 'Start investigation'}
                             sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                           >
                             Investigate
                           </Button>
                           <Button
                             size="small"
-                            disabled={item.status === 'resolved'}
+                            disabled={!canResolve}
                             onClick={() => setStatus(item._id, 'resolved')}
+                            title={status === 'resolved' ? 'Case closed' : status === 'open' ? 'Investigate before resolving' : 'Resolve incident'}
                             sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                           >
                             Resolve
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>

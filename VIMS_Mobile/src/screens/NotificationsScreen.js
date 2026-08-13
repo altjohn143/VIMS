@@ -16,8 +16,10 @@ import { format } from 'date-fns';
 import api from '../utils/api';
 import { themeColors, shadows, roleLayouts } from '../utils/theme';
 import SecurityUtilityHeader from '../components/SecurityUtilityHeader';
+import { useAuth } from '../context/AuthContext';
 
 const NotificationsScreen = ({ navigation }) => {
+  const { user } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -114,24 +116,33 @@ const NotificationsScreen = ({ navigation }) => {
     const metadata = notification?.metadata || {};
     const type = String(notification?.type || metadata?.type || '').toLowerCase();
     const has = (key) => !!metadata?.[key];
+    const role = user?.role;
 
     if (has('visitorId') || type.includes('visitor')) {
-      return { screen: 'VisitorsTab', label: 'View visitor request' };
+      return {
+        screen: role === 'security' ? 'LogsTab' : 'VisitorsTab',
+        label: role === 'security' ? 'View visitor log' : 'View visitor request',
+      };
     }
     if (has('paymentId') || type.includes('payment')) {
+      if (role === 'security') return null;
       return { screen: 'PaymentsTab', label: 'View payment' };
     }
     if (has('serviceRequestId') || type.includes('service')) {
-      return { screen: 'ServicesTab', label: 'View service request' };
+      return {
+        screen: role === 'security' ? 'SecurityServiceRequests' : 'ServicesTab',
+        label: 'View service request',
+      };
     }
     if (has('announcementId') || type.includes('announcement')) {
       return { screen: 'Announcements', label: 'View announcement' };
     }
     if (has('reservationId') || type.includes('reservation')) {
+      if (role === 'security') return null;
       return { screen: 'ReservationsTab', label: 'View reservation' };
     }
     return null;
-  }, []);
+  }, [user?.role]);
 
   const openRelatedRecord = useCallback((notification) => {
     const destination = getRelatedDestination(notification);

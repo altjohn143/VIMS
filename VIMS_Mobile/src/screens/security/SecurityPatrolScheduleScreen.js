@@ -11,15 +11,17 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 
-const initialForm = { phase: '', area: '', checkpoint: '', notes: '', status: 'completed' };
+const createInitialForm = () => ({ phase: '', area: '', checkpoint: '', notes: '', status: 'completed', loggedAt: new Date() });
 
 const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const [rows, setRows] = useState([]);
@@ -28,7 +30,8 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(createInitialForm());
+  const [patrolPickerMode, setPatrolPickerMode] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(0);
   const rowsPerPage = 5;
@@ -127,12 +130,14 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
     try {
       const res = await api.post('/patrols/log', {
         ...form,
-        phase: Number(form.phase)
+        phase: Number(form.phase),
+        loggedAt: (form.loggedAt || new Date()).toISOString()
       });
       if (res.data?.success) {
         Alert.alert('Success', 'Patrol log submitted');
         setCreateOpen(false);
-        setForm(initialForm);
+        setForm(createInitialForm());
+        setPatrolPickerMode(null);
         setPage(0);
         load();
       } else {
@@ -143,6 +148,22 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const updatePatrolDateTime = (event, value) => {
+    if (event?.type === 'dismissed') {
+      setPatrolPickerMode(null);
+      return;
+    }
+    if (!value) return;
+    const current = form.loggedAt || new Date();
+    const next = new Date(current);
+    if (patrolPickerMode === 'date') {
+      next.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
+    } else {
+      next.setHours(value.getHours(), value.getMinutes(), 0, 0);
+    }
+    setForm((previous) => ({ ...previous, loggedAt: next }));
   };
 
   const renderItem = ({ item }) => (
@@ -240,6 +261,27 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
                 ))}
               </Picker>
             </View>
+            <Text style={styles.label}>Patrol date and time</Text>
+            <View style={styles.dateTimeRow}>
+              <TouchableOpacity style={styles.dateTimeButton} onPress={() => setPatrolPickerMode('date')}>
+                <Ionicons name="calendar-outline" size={16} color={themeColors.primary} />
+                <Text style={styles.dateTimeText}>{format(form.loggedAt || new Date(), 'MMM dd, yyyy')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dateTimeButton} onPress={() => setPatrolPickerMode('time')}>
+                <Ionicons name="time-outline" size={16} color={themeColors.primary} />
+                <Text style={styles.dateTimeText}>{format(form.loggedAt || new Date(), 'hh:mm a')}</Text>
+              </TouchableOpacity>
+            </View>
+            {patrolPickerMode ? (
+              <View style={styles.inlinePickerWrap}>
+                <DateTimePicker
+                  value={form.loggedAt || new Date()}
+                  mode={patrolPickerMode}
+                  display={patrolPickerMode === 'date' ? (Platform.OS === 'ios' ? 'inline' : 'calendar') : 'spinner'}
+                  onChange={updatePatrolDateTime}
+                />
+              </View>
+            ) : null}
             <Text style={styles.label}>Notes</Text>
             <TextInput style={[styles.input, styles.textArea]} value={form.notes} onChangeText={(v) => setForm((p) => ({ ...p, notes: v }))} placeholder="Observations" multiline numberOfLines={4} textAlignVertical="top" />
             <Text style={styles.label}>Status</Text>
@@ -327,9 +369,30 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
                         label={`Block ${lot.block} - Lot ${lot.lotNumber}`}
                         value={lot.lotId}
                       />
-                    ))}
+                  ))}
                 </Picker>
               </View>
+              <Text style={styles.label}>Patrol date and time</Text>
+              <View style={styles.dateTimeRow}>
+                <TouchableOpacity style={styles.dateTimeButton} onPress={() => setPatrolPickerMode('date')}>
+                  <Ionicons name="calendar-outline" size={16} color={themeColors.primary} />
+                  <Text style={styles.dateTimeText}>{format(form.loggedAt || new Date(), 'MMM dd, yyyy')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.dateTimeButton} onPress={() => setPatrolPickerMode('time')}>
+                  <Ionicons name="time-outline" size={16} color={themeColors.primary} />
+                  <Text style={styles.dateTimeText}>{format(form.loggedAt || new Date(), 'hh:mm a')}</Text>
+                </TouchableOpacity>
+              </View>
+              {patrolPickerMode ? (
+                <View style={styles.inlinePickerWrap}>
+                  <DateTimePicker
+                    value={form.loggedAt || new Date()}
+                    mode={patrolPickerMode}
+                    display={patrolPickerMode === 'date' ? (Platform.OS === 'ios' ? 'inline' : 'calendar') : 'spinner'}
+                    onChange={updatePatrolDateTime}
+                  />
+                </View>
+              ) : null}
               <Text style={styles.label}>Notes (optional)</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
@@ -396,6 +459,10 @@ const styles = StyleSheet.create({
   label: { marginTop: 10, fontSize: 12, color: themeColors.textSecondary, fontWeight: '800' },
   pickerContainer: { marginTop: 8, borderWidth: 1, borderColor: themeColors.border, borderRadius: 10, backgroundColor: '#f8fafc' },
   pickerDisabled: { opacity: 0.6 },
+  dateTimeRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  dateTimeButton: { flex: 1, minHeight: 46, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc', paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  dateTimeText: { color: themeColors.textPrimary, fontSize: 12, fontWeight: '800' },
+  inlinePickerWrap: { marginTop: 8, borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, backgroundColor: 'white', overflow: 'hidden' },
   input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginTop: 8, backgroundColor: '#f8fafc' },
   textArea: { minHeight: 110 },
   actionsRow: { flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 10 },

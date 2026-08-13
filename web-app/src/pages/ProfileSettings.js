@@ -162,6 +162,7 @@ const ProfileSettings = () => {
     lastName: '',
     email: '',
     phone: '',
+    dateOfBirth: '',
     houseNumber: '',
     emergencyContact: {
       name: '',
@@ -258,6 +259,7 @@ const ProfileSettings = () => {
             lastName: userData.lastName || '',
             email: userData.email || '',
             phone: userData.phone || '',
+            dateOfBirth: userData.dateOfBirth || '',
             houseNumber: userData.houseNumber || '',
             emergencyContact: userData.emergencyContact || { name: '', phone: '' },
             vehicles: userData.vehicles?.length > 0 ? userData.vehicles : [{ plateNumber: '', make: '', model: '', color: '' }],
@@ -543,23 +545,6 @@ const ProfileSettings = () => {
   const validateProfileForm = () => {
     const newErrors = {};
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Phone number must be 10 digits';
-    }
-
     return newErrors;
   };
 
@@ -575,7 +560,12 @@ const ProfileSettings = () => {
 
     setSaving(true);
     try {
-      const response = await axios.put('/api/users/profile', formData);
+      const response = await axios.put('/api/users/profile', {
+        houseNumber: formData.houseNumber,
+        emergencyContact: formData.emergencyContact,
+        vehicles: formData.vehicles,
+        familyMembers: formData.familyMembers
+      });
       
       if (response.data.success) {
         toast.success('Profile updated successfully!');
@@ -773,6 +763,8 @@ const ProfileSettings = () => {
     );
   }
 
+  const isResidentProfile = user?.role === 'resident';
+
   return (
     <Box
       sx={{
@@ -899,60 +891,64 @@ const ProfileSettings = () => {
                     {user?.firstName?.charAt(0)}
                     {user?.lastName?.charAt(0)}
                   </Avatar>
-                  <IconButton
+                  {isResidentProfile && (
+                    <IconButton
+                      component="label"
+                      disabled={uploadingPhoto}
+                      sx={{
+                        position: 'absolute',
+                        bottom: -8,
+                        right: -8,
+                        bgcolor: themeColors.primary,
+                        color: 'white',
+                        '&:hover': { bgcolor: themeColors.primaryDark },
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                        width: 40,
+                        height: 40,
+                        opacity: uploadingPhoto ? 0.6 : 1
+                      }}
+                    >
+                      {uploadingPhoto ? (
+                        <CircularProgress size={20} sx={{ color: 'white' }} />
+                      ) : (
+                        <CameraIcon sx={{ fontSize: 20 }} />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={handleProfilePhotoUpload}
+                      />
+                    </IconButton>
+                  )}
+                </Box>
+                {isResidentProfile && (
+                  <Button
                     component="label"
+                    variant="outlined"
+                    size="small"
                     disabled={uploadingPhoto}
                     sx={{
-                      position: 'absolute',
-                      bottom: -8,
-                      right: -8,
-                      bgcolor: themeColors.primary,
-                      color: 'white',
-                      '&:hover': { bgcolor: themeColors.primaryDark },
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-                      width: 40,
-                      height: 40,
-                      opacity: uploadingPhoto ? 0.6 : 1
+                      borderColor: themeColors.primary,
+                      color: themeColors.primary,
+                      mb: 2,
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      '&:hover': {
+                        backgroundColor: 'rgba(22, 101, 52, 0.04)',
+                        borderColor: themeColors.primaryDark
+                      }
                     }}
                   >
-                    {uploadingPhoto ? (
-                      <CircularProgress size={20} sx={{ color: 'white' }} />
-                    ) : (
-                      <CameraIcon sx={{ fontSize: 20 }} />
-                    )}
+                    {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
                     <input
                       type="file"
                       accept="image/*"
                       hidden
                       onChange={handleProfilePhotoUpload}
                     />
-                  </IconButton>
-                </Box>
-                <Button
-                  component="label"
-                  variant="outlined"
-                  size="small"
-                  disabled={uploadingPhoto}
-                  sx={{
-                    borderColor: themeColors.primary,
-                    color: themeColors.primary,
-                    mb: 2,
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    '&:hover': {
-                      backgroundColor: 'rgba(22, 101, 52, 0.04)',
-                      borderColor: themeColors.primaryDark
-                    }
-                  }}
-                >
-                  {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={handleProfilePhotoUpload}
-                  />
-                </Button>
+                  </Button>
+                )}
                 <Typography variant="h6" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
                   {user?.firstName} {user?.lastName}
                 </Typography>
@@ -992,10 +988,11 @@ const ProfileSettings = () => {
                 </Typography>
               </Box>
 
-              <Divider sx={{ my: 3, borderColor: themeColors.border }} />
+              {isResidentProfile && (
+                <>
+                  <Divider sx={{ my: 3, borderColor: themeColors.border }} />
 
-              {/* Move-out (Residents) */}
-              {user?.role === 'resident' && (
+                  {/* Move-out (Residents) */}
                 <Box>
                   <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
                     <HomeIcon />
@@ -1033,12 +1030,11 @@ const ProfileSettings = () => {
                     </Button>
                   </Box>
                 </Box>
-              )}
 
-              <Divider sx={{ my: 3, borderColor: themeColors.border }} />
+                  <Divider sx={{ my: 3, borderColor: themeColors.border }} />
 
-              {/* Uploaded Documents Section */}
-              <Box>
+                  {/* Uploaded Documents Section */}
+                  <Box>
                 <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
                   <PersonIcon />
                   Uploaded Documents
@@ -1165,89 +1161,91 @@ const ProfileSettings = () => {
                     </Typography>
                   </Box>
                 )}
-              </Box>
+                  </Box>
 
-              <Dialog
-                open={previewOpen}
-                onClose={closePreview}
-                maxWidth="md"
-                fullWidth
-                PaperProps={{
-                  sx: {
-                    borderRadius: 3,
-                    backgroundColor: themeColors.cardBackground,
-                    overflow: 'hidden'
-                  }
-                }}
-              >
-                <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                  {previewTitle}
-                  <Button onClick={closePreview} variant="text" sx={{ textTransform: 'none' }}>
-                    Close
-                  </Button>
-                </DialogTitle>
-                <DialogContent sx={{ p: 0, backgroundColor: themeColors.background }}>
-                  {previewImage && (
-                    <DocumentPreviewImage
-                      src={previewImage}
-                      alt={previewTitle}
-                      placeholder={previewTitle}
-                      sx={{
-                        width: '100%',
-                        height: 'auto',
-                        minHeight: 260,
-                        maxHeight: '75vh',
-                        objectFit: 'contain',
-                        backgroundColor: themeColors.paperBackground
-                      }}
-                    />
-                  )}
-                </DialogContent>
-                <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => handleDownload(previewImage, previewTitle.replace(/\s+/g, '_'))}
-                    sx={{ textTransform: 'none' }}
+                  <Dialog
+                    open={previewOpen}
+                    onClose={closePreview}
+                    maxWidth="md"
+                    fullWidth
+                    PaperProps={{
+                      sx: {
+                        borderRadius: 3,
+                        backgroundColor: themeColors.cardBackground,
+                        overflow: 'hidden'
+                      }
+                    }}
                   >
-                    Download
-                  </Button>
-                  <Button onClick={closePreview} variant="contained" sx={{ textTransform: 'none' }}>
-                    Close
-                  </Button>
-                </DialogActions>
-              </Dialog>
+                    <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                      {previewTitle}
+                      <Button onClick={closePreview} variant="text" sx={{ textTransform: 'none' }}>
+                        Close
+                      </Button>
+                    </DialogTitle>
+                    <DialogContent sx={{ p: 0, backgroundColor: themeColors.background }}>
+                      {previewImage && (
+                        <DocumentPreviewImage
+                          src={previewImage}
+                          alt={previewTitle}
+                          placeholder={previewTitle}
+                          sx={{
+                            width: '100%',
+                            height: 'auto',
+                            minHeight: 260,
+                            maxHeight: '75vh',
+                            objectFit: 'contain',
+                            backgroundColor: themeColors.paperBackground
+                          }}
+                        />
+                      )}
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => handleDownload(previewImage, previewTitle.replace(/\s+/g, '_'))}
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Download
+                      </Button>
+                      <Button onClick={closePreview} variant="contained" sx={{ textTransform: 'none' }}>
+                        Close
+                      </Button>
+                    </DialogActions>
+                  </Dialog>
 
-              {/* Security Section */}
-              <Box>
-                <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
-                  <SecurityIcon />
-                  Security
-                </Typography>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<LockResetIcon />}
-                  onClick={handleOpenPasswordDialog}
-                  sx={{ 
-                    mt: 1,
-                    borderRadius: 2.5,
-                    borderColor: themeColors.primary,
-                    color: themeColors.primary,
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    '&:hover': {
-                      borderColor: themeColors.primaryDark,
-                      backgroundColor: themeColors.primary + '08'
-                    }
-                  }}
-                >
-                  Change Password
-                </Button>
-              </Box>
+                  {/* Security Section */}
+                  <Box>
+                    <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
+                      <SecurityIcon />
+                      Security
+                    </Typography>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<LockResetIcon />}
+                      onClick={handleOpenPasswordDialog}
+                      sx={{ 
+                        mt: 1,
+                        borderRadius: 2.5,
+                        borderColor: themeColors.primary,
+                        color: themeColors.primary,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        '&:hover': {
+                          borderColor: themeColors.primaryDark,
+                          backgroundColor: themeColors.primary + '08'
+                        }
+                      }}
+                    >
+                      Change Password
+                    </Button>
+                  </Box>
+                </>
+              )}
             </Paper>
 
             {/* Move-out Request Dialog */}
-            <Dialog open={moveOutDialogOpen} onClose={() => !moveOutSubmitting && setMoveOutDialogOpen(false)} fullWidth maxWidth="sm">
+            <Dialog open={isResidentProfile && moveOutDialogOpen} onClose={() => !moveOutSubmitting && setMoveOutDialogOpen(false)} fullWidth maxWidth="sm">
               <DialogTitle sx={{ fontWeight: 800 }}>Request move-out</DialogTitle>
               <DialogContent>
                 <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 2 }}>
@@ -1277,45 +1275,46 @@ const ProfileSettings = () => {
               </DialogActions>
             </Dialog>
 
-            {/* Quick Stats */}
-            <Paper sx={{ 
-              p: 3, 
-              borderRadius: '20px',
-              boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
-              border: `1px solid ${themeColors.border}`,
-              backgroundColor: themeColors.cardBackground
-            }}>
-              <Typography variant="subtitle1" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
-                Profile Completion
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2" sx={{ color: themeColors.textPrimary }}>Basic Info</Typography>
-                  <Typography variant="body2" sx={{ color: themeColors.success, fontWeight: 600 }}>100%</Typography>
+            {isResidentProfile && (
+              <Paper sx={{ 
+                p: 3, 
+                borderRadius: '20px',
+                boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
+                border: `1px solid ${themeColors.border}`,
+                backgroundColor: themeColors.cardBackground
+              }}>
+                <Typography variant="subtitle1" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
+                  Profile Completion
+                </Typography>
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ color: themeColors.textPrimary }}>Basic Info</Typography>
+                    <Typography variant="body2" sx={{ color: themeColors.success, fontWeight: 600 }}>100%</Typography>
+                  </Box>
+                  <Box sx={{ width: '100%', height: 6, bgcolor: themeColors.border, borderRadius: 3 }}>
+                    <Box sx={{ width: '100%', height: '100%', bgcolor: themeColors.success, borderRadius: 3 }} />
+                  </Box>
                 </Box>
-                <Box sx={{ width: '100%', height: 6, bgcolor: themeColors.border, borderRadius: 3 }}>
-                  <Box sx={{ width: '100%', height: '100%', bgcolor: themeColors.success, borderRadius: 3 }} />
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ color: themeColors.textPrimary }}>Contact Details</Typography>
+                    <Typography variant="body2" sx={{ color: formData.emergencyContact.name ? themeColors.success : themeColors.warning, fontWeight: 600 }}>
+                      {formData.emergencyContact.name ? '100%' : '50%'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ width: '100%', height: 6, bgcolor: themeColors.border, borderRadius: 3 }}>
+                    <Box 
+                      sx={{ 
+                        width: formData.emergencyContact.name ? '100%' : '50%', 
+                        height: '100%', 
+                        bgcolor: formData.emergencyContact.name ? themeColors.success : themeColors.warning, 
+                        borderRadius: 3 
+                      }} 
+                    />
+                  </Box>
                 </Box>
-              </Box>
-              <Box sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2" sx={{ color: themeColors.textPrimary }}>Contact Details</Typography>
-                  <Typography variant="body2" sx={{ color: formData.emergencyContact.name ? themeColors.success : themeColors.warning, fontWeight: 600 }}>
-                    {formData.emergencyContact.name ? '100%' : '50%'}
-                  </Typography>
-                </Box>
-                <Box sx={{ width: '100%', height: 6, bgcolor: themeColors.border, borderRadius: 3 }}>
-                  <Box 
-                    sx={{ 
-                      width: formData.emergencyContact.name ? '100%' : '50%', 
-                      height: '100%', 
-                      bgcolor: formData.emergencyContact.name ? themeColors.success : themeColors.warning, 
-                      borderRadius: 3 
-                    }} 
-                  />
-                </Box>
-              </Box>
-            </Paper>
+              </Paper>
+            )}
           </Grid>
 
           {/* Right Column - Form */}
@@ -1340,10 +1339,9 @@ const ProfileSettings = () => {
                       label="First Name"
                       name="firstName"
                       value={formData.firstName}
-                      onChange={(e) => handleInputChange(e, 'main')}
+                      disabled
                       error={!!errors.firstName}
-                      helperText={errors.firstName}
-                      required
+                      helperText={errors.firstName || 'Managed from your registration record'}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -1375,10 +1373,9 @@ const ProfileSettings = () => {
                       label="Last Name"
                       name="lastName"
                       value={formData.lastName}
-                      onChange={(e) => handleInputChange(e, 'main')}
+                      disabled
                       error={!!errors.lastName}
-                      helperText={errors.lastName}
-                      required
+                      helperText={errors.lastName || 'Managed from your registration record'}
                       InputProps={{
                         sx: {
                           borderRadius: 2,
@@ -1406,10 +1403,9 @@ const ProfileSettings = () => {
                       name="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => handleInputChange(e, 'main')}
+                      disabled
                       error={!!errors.email}
-                      helperText={errors.email}
-                      required
+                      helperText={errors.email || 'Managed from your registration record'}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -1441,10 +1437,9 @@ const ProfileSettings = () => {
                       label="Phone Number"
                       name="phone"
                       value={formData.phone}
-                      onChange={(e) => handleInputChange(e, 'main')}
+                      disabled
                       error={!!errors.phone}
-                      helperText={errors.phone}
-                      required
+                      helperText={errors.phone || 'Managed from your registration record'}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -1470,6 +1465,28 @@ const ProfileSettings = () => {
                       }}
                     />
                   </Grid>
+                  {!!formData.dateOfBirth && (
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Birthday"
+                        name="dateOfBirth"
+                        value={new Date(formData.dateOfBirth).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                        disabled
+                        helperText="Managed from your registration record"
+                        InputProps={{
+                          sx: {
+                            borderRadius: 2,
+                            backgroundColor: '#f8fafc'
+                          }
+                        }}
+                      />
+                    </Grid>
+                  )}
                   {user?.role === 'resident' && (
                     <Grid item xs={12}>
                       <TextField
@@ -1501,21 +1518,23 @@ const ProfileSettings = () => {
                   )}
                 </Grid>
 
-                <Divider sx={{ my: 3, borderColor: themeColors.border }} />
+                {isResidentProfile && (
+                  <>
+                    <Divider sx={{ my: 3, borderColor: themeColors.border }} />
 
-                {/* Emergency Contact */}
-                <Typography variant="h6" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
-                  Emergency Contact
-                </Typography>
-                <Alert severity="info" sx={{ 
-                  mb: 2,
-                  borderRadius: 2,
-                  backgroundColor: themeColors.info + '15',
-                  border: `1px solid ${themeColors.info}30`
-                }}>
-                  Please provide an emergency contact person. This information is crucial for emergencies.
-                </Alert>
-                <Grid container spacing={2} sx={{ mb: 3 }}>
+                    {/* Emergency Contact */}
+                    <Typography variant="h6" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
+                      Emergency Contact
+                    </Typography>
+                    <Alert severity="info" sx={{ 
+                      mb: 2,
+                      borderRadius: 2,
+                      backgroundColor: themeColors.info + '15',
+                      border: `1px solid ${themeColors.info}30`
+                    }}>
+                      Please provide an emergency contact person. This information is crucial for emergencies.
+                    </Alert>
+                    <Grid container spacing={2} sx={{ mb: 3 }}>
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
@@ -1572,16 +1591,16 @@ const ProfileSettings = () => {
                       }}
                     />
                   </Grid>
-                </Grid>
+                    </Grid>
 
-                <Divider sx={{ my: 3, borderColor: themeColors.border }} />
+                    <Divider sx={{ my: 3, borderColor: themeColors.border }} />
 
-                {/* Vehicles */}
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
-                  <CarIcon />
-                  Registered Vehicles
-                </Typography>
-                {formData.vehicles.map((vehicle, index) => (
+                    {/* Vehicles */}
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
+                      <CarIcon />
+                      Registered Vehicles
+                    </Typography>
+                    {formData.vehicles.map((vehicle, index) => (
                   <Card key={index} variant="outlined" sx={{ 
                     mb: 2, 
                     p: 2,
@@ -1696,34 +1715,34 @@ const ProfileSettings = () => {
                       </Grid>
                     </CardContent>
                   </Card>
-                ))}
-                <Button
-                  variant="outlined"
-                  onClick={handleAddVehicle}
-                  sx={{ 
-                    mb: 3,
-                    borderRadius: 2.5,
-                    borderColor: themeColors.primary,
-                    color: themeColors.primary,
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    '&:hover': {
-                      borderColor: themeColors.primaryDark,
-                      backgroundColor: themeColors.primary + '08'
-                    }
-                  }}
-                >
-                  Add Another Vehicle
-                </Button>
+                    ))}
+                    <Button
+                      variant="outlined"
+                      onClick={handleAddVehicle}
+                      sx={{ 
+                        mb: 3,
+                        borderRadius: 2.5,
+                        borderColor: themeColors.primary,
+                        color: themeColors.primary,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        '&:hover': {
+                          borderColor: themeColors.primaryDark,
+                          backgroundColor: themeColors.primary + '08'
+                        }
+                      }}
+                    >
+                      Add Another Vehicle
+                    </Button>
 
-                <Divider sx={{ my: 3, borderColor: themeColors.border }} />
+                    <Divider sx={{ my: 3, borderColor: themeColors.border }} />
 
-                {/* Family Members */}
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
-                  <FamilyIcon />
-                  Family Members
-                </Typography>
-                {formData.familyMembers.map((member, index) => (
+                    {/* Family Members */}
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
+                      <FamilyIcon />
+                      Family Members
+                    </Typography>
+                    {formData.familyMembers.map((member, index) => (
                   <Card key={index} variant="outlined" sx={{ 
                     mb: 2, 
                     p: 2,
@@ -1839,47 +1858,49 @@ const ProfileSettings = () => {
                       </Grid>
                     </CardContent>
                   </Card>
-                ))}
-                <Button
-                  variant="outlined"
-                  onClick={handleAddFamilyMember}
-                  sx={{ 
-                    mb: 3,
-                    borderRadius: 2.5,
-                    borderColor: themeColors.primary,
-                    color: themeColors.primary,
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    '&:hover': {
-                      borderColor: themeColors.primaryDark,
-                      backgroundColor: themeColors.primary + '08'
-                    }
-                  }}
-                >
-                  Add Another Family Member
-                </Button>
+                    ))}
+                    <Button
+                      variant="outlined"
+                      onClick={handleAddFamilyMember}
+                      sx={{ 
+                        mb: 3,
+                        borderRadius: 2.5,
+                        borderColor: themeColors.primary,
+                        color: themeColors.primary,
+                        textTransform: 'none',
+                        fontWeight: 700,
+                        '&:hover': {
+                          borderColor: themeColors.primaryDark,
+                          backgroundColor: themeColors.primary + '08'
+                        }
+                      }}
+                    >
+                      Add Another Family Member
+                    </Button>
 
-                {/* Submit Button */}
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-                  <Button
-                    variant="contained"
-                    type="submit"
-                    disabled={saving}
-                    startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
-                    sx={{ 
-                      px: 4,
-                      borderRadius: 2.5,
-                      textTransform: 'none',
-                      bgcolor: themeColors.primary,
-                      '&:hover': {
-                        bgcolor: themeColors.primaryDark
-                      },
-                      fontWeight: 600
-                    }}
-                  >
-                    {saving ? 'Saving...' : 'Save Profile Changes'}
-                  </Button>
-                </Box>
+                    {/* Submit Button */}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
+                      <Button
+                        variant="contained"
+                        type="submit"
+                        disabled={saving}
+                        startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+                        sx={{ 
+                          px: 4,
+                          borderRadius: 2.5,
+                          textTransform: 'none',
+                          bgcolor: themeColors.primary,
+                          '&:hover': {
+                            bgcolor: themeColors.primaryDark
+                          },
+                          fontWeight: 600
+                        }}
+                      >
+                        {saving ? 'Saving...' : 'Save Profile Changes'}
+                      </Button>
+                    </Box>
+                  </>
+                )}
               </form>
             </Paper>
           </Grid>
@@ -1887,7 +1908,7 @@ const ProfileSettings = () => {
 
         {/* Change Password Dialog */}
         <Dialog
-          open={changePasswordOpen}
+          open={isResidentProfile && changePasswordOpen}
           onClose={handleClosePasswordDialog}
           maxWidth="sm"
           fullWidth

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Container,
   Box,
@@ -85,6 +85,7 @@ const AdminUserManagement = () => {
   };
 
   const [users, setUsers] = useState([]);
+  const [lots, setLots] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -151,6 +152,16 @@ const AdminUserManagement = () => {
   const headOfficerOptions = users.filter(
     (user) => user.role === 'security' && user.securityLevel === 'head-officer' && !user.isArchived
   );
+  const assignmentPhases = useMemo(
+    () => Array.from(new Set(lots.map((lot) => lot.phase))).sort((a, b) => Number(a) - Number(b)),
+    [lots]
+  );
+  const getCheckpointsForPhase = useCallback(
+    (phase) => lots.filter((lot) => String(lot.phase) === String(phase)),
+    [lots]
+  );
+  const getAreaValueForLot = (lot) => lot ? `Phase ${lot.phase} - Block ${lot.block} - Lot ${lot.lotNumber}` : '';
+  const scheduleOptions = ['Morning shift', 'Afternoon shift', 'Night shift', 'Weekday patrol', 'Weekend patrol', 'Rotating patrol'];
 
   const getProfilePhotoUrl = (user) => {
     if (!user) return null;
@@ -312,13 +323,29 @@ const AdminUserManagement = () => {
     }
   }, []);
 
+  const loadLots = useCallback(async () => {
+    try {
+      const token = sessionStorage.getItem('token');
+      const response = await axios.get('/api/lots', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (response.data.success) {
+        setLots(Array.isArray(response.data.data) ? response.data.data : []);
+      }
+    } catch (error) {
+      console.error('Error loading lot assignment dropdowns:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedUser?.role === 'security') {
       setAssignmentForm({
         securityLevel: selectedUser.securityLevel || 'personnel',
         headOfficerId: selectedUser.headOfficerId?._id || selectedUser.headOfficerId || '',
-        assignedPhases: (selectedUser.assignedPhases || []).join(', '),
-        assignedAreas: (selectedUser.assignedAreas || []).join(', '),
+        assignedPhases: String((selectedUser.assignedPhases || [])[0] || ''),
+        assignedAreas: (selectedUser.assignedAreas || [])[0] || '',
         patrolSchedule: selectedUser.patrolSchedule || ''
       });
     } else {
@@ -353,7 +380,8 @@ const AdminUserManagement = () => {
     }
     fetchUsers();
     loadSecurityAssignments();
-  }, [getCurrentUser, navigate, fetchUsers, loadSecurityAssignments]); // Added fetchUsers dependency
+    loadLots();
+  }, [getCurrentUser, navigate, fetchUsers, loadSecurityAssignments, loadLots]); // Added fetchUsers dependency
 
   const handleArchiveUser = async () => {
     if (!selectedUser) return;
@@ -505,13 +533,9 @@ const AdminUserManagement = () => {
           securityLevel: role === 'security' ? securityLevel : undefined,
           headOfficerId: role === 'security' && securityLevel === 'personnel' ? headOfficerId || null : null,
           assignedPhases: assignedPhases
-            .split(',')
-            .map((value) => Number(value.trim()))
-            .filter((value) => Number.isInteger(value) && value > 0),
-          assignedAreas: assignedAreas
-            .split(',')
-            .map((value) => value.trim())
-            .filter(Boolean),
+            ? [Number(assignedPhases)].filter((value) => Number.isInteger(value) && value > 0)
+            : [],
+          assignedAreas: assignedAreas ? [assignedAreas] : [],
           patrolSchedule
         },
         {
@@ -545,8 +569,8 @@ const AdminUserManagement = () => {
       setAssignmentForm({
         securityLevel: selectedUser.securityLevel || 'personnel',
         headOfficerId: selectedUser.headOfficerId?._id || selectedUser.headOfficerId || '',
-        assignedPhases: (selectedUser.assignedPhases || []).join(', '),
-        assignedAreas: (selectedUser.assignedAreas || []).join(', '),
+        assignedPhases: String((selectedUser.assignedPhases || [])[0] || ''),
+        assignedAreas: (selectedUser.assignedAreas || [])[0] || '',
         patrolSchedule: selectedUser.patrolSchedule || ''
       });
     } else {
@@ -568,13 +592,9 @@ const AdminUserManagement = () => {
         securityLevel: assignmentForm.securityLevel,
         headOfficerId: assignmentForm.securityLevel === 'personnel' ? assignmentForm.headOfficerId || null : null,
         assignedPhases: assignmentForm.assignedPhases
-          .split(',')
-          .map((value) => Number(value.trim()))
-          .filter((value) => Number.isInteger(value) && value > 0),
-        assignedAreas: assignmentForm.assignedAreas
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean),
+          ? [Number(assignmentForm.assignedPhases)].filter((value) => Number.isInteger(value) && value > 0)
+          : [],
+        assignedAreas: assignmentForm.assignedAreas ? [assignmentForm.assignedAreas] : [],
         patrolSchedule: assignmentForm.patrolSchedule
       };
 
@@ -1505,27 +1525,50 @@ const AdminUserManagement = () => {
                                     </Select>
                                   </FormControl>
                                 )}
-                                <TextField
-                                  fullWidth
-                                  label="Assigned Phases"
-                                  value={assignmentForm.assignedPhases}
-                                  onChange={(e) => setAssignmentForm((prev) => ({ ...prev, assignedPhases: e.target.value }))}
-                                  helperText="Comma-separated phase numbers, e.g. 1,2"
-                                />
-                                <TextField
-                                  fullWidth
-                                  label="Assigned Areas"
-                                  value={assignmentForm.assignedAreas}
-                                  onChange={(e) => setAssignmentForm((prev) => ({ ...prev, assignedAreas: e.target.value }))}
-                                  helperText="Comma-separated area names, e.g. Phase 1,Phase 2"
-                                />
-                                <TextField
-                                  fullWidth
-                                  label="Patrol Schedule"
-                                  value={assignmentForm.patrolSchedule}
-                                  onChange={(e) => setAssignmentForm((prev) => ({ ...prev, patrolSchedule: e.target.value }))}
-                                  helperText="Example: Mon/Wed/Fri 6am-10am"
-                                />
+                                <FormControl fullWidth>
+                                  <InputLabel>Assigned Phase</InputLabel>
+                                  <Select
+                                    value={assignmentForm.assignedPhases}
+                                    label="Assigned Phase"
+                                    onChange={(e) => setAssignmentForm((prev) => ({ ...prev, assignedPhases: e.target.value, assignedAreas: '' }))}
+                                  >
+                                    <MenuItem value="">Select phase</MenuItem>
+                                    {assignmentPhases.map((phase) => (
+                                      <MenuItem key={phase} value={String(phase)}>{`Phase ${phase}`}</MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
+                                <FormControl fullWidth disabled={!assignmentForm.assignedPhases}>
+                                  <InputLabel>Assigned Area</InputLabel>
+                                  <Select
+                                    value={getCheckpointsForPhase(assignmentForm.assignedPhases).find((lot) => assignmentForm.assignedAreas === getAreaValueForLot(lot))?.lotId || ''}
+                                    label="Assigned Area"
+                                    onChange={(e) => {
+                                      const lot = lots.find((item) => String(item.lotId) === String(e.target.value));
+                                      setAssignmentForm((prev) => ({ ...prev, assignedAreas: getAreaValueForLot(lot) }));
+                                    }}
+                                  >
+                                    <MenuItem value="">{assignmentForm.assignedPhases ? 'Select checkpoint' : 'Select phase first'}</MenuItem>
+                                    {getCheckpointsForPhase(assignmentForm.assignedPhases).map((lot) => (
+                                      <MenuItem key={lot.lotId} value={lot.lotId}>
+                                        {`Block ${lot.block} - Lot ${lot.lotNumber}`}
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
+                                <FormControl fullWidth>
+                                  <InputLabel>Patrol Schedule</InputLabel>
+                                  <Select
+                                    value={assignmentForm.patrolSchedule}
+                                    label="Patrol Schedule"
+                                    onChange={(e) => setAssignmentForm((prev) => ({ ...prev, patrolSchedule: e.target.value }))}
+                                  >
+                                    <MenuItem value="">Select schedule</MenuItem>
+                                    {scheduleOptions.map((option) => (
+                                      <MenuItem key={option} value={option}>{option}</MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
                                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                                   <Button
                                     onClick={handleCancelAssignmentEdit}
@@ -1841,31 +1884,54 @@ const AdminUserManagement = () => {
                   </Grid>
                 )}
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Assigned Phases"
-                    value={newUserForm.assignedPhases}
-                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, assignedPhases: e.target.value }))}
-                    helperText="Comma-separated phase numbers, e.g. 1,2"
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel>Assigned Phase</InputLabel>
+                    <Select
+                      value={newUserForm.assignedPhases}
+                      label="Assigned Phase"
+                      onChange={(e) => setNewUserForm((prev) => ({ ...prev, assignedPhases: e.target.value, assignedAreas: '' }))}
+                    >
+                      <MenuItem value="">Select phase</MenuItem>
+                      {assignmentPhases.map((phase) => (
+                        <MenuItem key={phase} value={String(phase)}>{`Phase ${phase}`}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Assigned Areas"
-                    value={newUserForm.assignedAreas}
-                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, assignedAreas: e.target.value }))}
-                    helperText="Comma-separated area names, e.g. Phase 1,Phase 2"
-                  />
+                  <FormControl fullWidth disabled={!newUserForm.assignedPhases}>
+                    <InputLabel>Assigned Area</InputLabel>
+                    <Select
+                      value={getCheckpointsForPhase(newUserForm.assignedPhases).find((lot) => newUserForm.assignedAreas === getAreaValueForLot(lot))?.lotId || ''}
+                      label="Assigned Area"
+                      onChange={(e) => {
+                        const lot = lots.find((item) => String(item.lotId) === String(e.target.value));
+                        setNewUserForm((prev) => ({ ...prev, assignedAreas: getAreaValueForLot(lot) }));
+                      }}
+                    >
+                      <MenuItem value="">{newUserForm.assignedPhases ? 'Select checkpoint' : 'Select phase first'}</MenuItem>
+                      {getCheckpointsForPhase(newUserForm.assignedPhases).map((lot) => (
+                        <MenuItem key={lot.lotId} value={lot.lotId}>
+                          {`Block ${lot.block} - Lot ${lot.lotNumber}`}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Patrol Schedule"
-                    value={newUserForm.patrolSchedule}
-                    onChange={(e) => setNewUserForm((prev) => ({ ...prev, patrolSchedule: e.target.value }))}
-                    helperText="Example: Mon/Wed/Fri 6am-10am"
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel>Patrol Schedule</InputLabel>
+                    <Select
+                      value={newUserForm.patrolSchedule}
+                      label="Patrol Schedule"
+                      onChange={(e) => setNewUserForm((prev) => ({ ...prev, patrolSchedule: e.target.value }))}
+                    >
+                      <MenuItem value="">Select schedule</MenuItem>
+                      {scheduleOptions.map((option) => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
               </>
             )}

@@ -534,6 +534,14 @@ const VisitorManagementScreen = ({ navigation }) => {
     const status = getStatusChip(item);
     const isQRValid = ['approved', 'active', 'completed'].includes(item.status);
     const isPending = item.status === 'pending';
+    const progress = item.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || item.numberOfCompanions || 0));
+    const counters = {
+      entry: Number(progress.entryScanCount ?? item.entryScanCount ?? 0),
+      household: Number(progress.residentArrivalConfirmCount ?? item.residentArrivalConfirmCount ?? 0),
+      departure: Number(progress.residentDepartureConfirmCount ?? item.residentDepartureConfirmCount ?? 0),
+      exit: Number(progress.exitScanCount ?? item.exitScanCount ?? 0),
+    };
 
     return (
       <View style={[styles.visitorCard, shadows.small]}>
@@ -553,6 +561,14 @@ const VisitorManagementScreen = ({ navigation }) => {
             <Ionicons name="people" size={16} color={themeColors.textSecondary} />
             <Text style={styles.detailText}>Companions: {item.numberOfCompanions || 0}</Text>
           </View>
+          {isQRValid ? (
+            <View style={styles.scanCounterRow}>
+              <Text style={styles.scanCounterText}>Entry {counters.entry}/{total}</Text>
+              <Text style={styles.scanCounterText}>Household {counters.household}/{total}</Text>
+              <Text style={styles.scanCounterText}>Departure {counters.departure}/{total}</Text>
+              <Text style={styles.scanCounterText}>Exit {counters.exit}/{total}</Text>
+            </View>
+          ) : null}
           <View style={styles.detailRow}>
             <Ionicons name="document-text" size={16} color={themeColors.textSecondary} />
             <Text style={styles.detailText} numberOfLines={2}>{item.purpose}</Text>
@@ -1222,6 +1238,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: themeColors.textPrimary,
     flex: 1,
+  },
+  scanCounterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  scanCounterText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: themeColors.primary,
+    backgroundColor: themeColors.primary + '12',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   specialNotes: {
     backgroundColor: themeColors.warning + '10',

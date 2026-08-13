@@ -569,8 +569,14 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     const status = getStatusChip(item.status, item);
     const progress = item.scanProgress || {};
     const total = Math.max(1, Number(progress.groupSize || item.numberOfCompanions || 0));
-    const canLogEntry = ['approved', 'active'].includes(item.status) && Number(progress.entryScanCount || 0) < total;
-    const canLogExit = item.status === 'active' && Number(progress.exitScanCount || 0) < total;
+    const counters = {
+      entry: Number(progress.entryScanCount ?? item.entryScanCount ?? 0),
+      household: Number(progress.residentArrivalConfirmCount ?? item.residentArrivalConfirmCount ?? 0),
+      departure: Number(progress.residentDepartureConfirmCount ?? item.residentDepartureConfirmCount ?? 0),
+      exit: Number(progress.exitScanCount ?? item.exitScanCount ?? 0),
+    };
+    const canLogEntry = ['approved', 'active'].includes(item.status) && counters.entry < total;
+    const canLogExit = item.status === 'active' && counters.exit < total;
 
     return (
       <TouchableOpacity
@@ -599,6 +605,12 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.timeline}>
+          <View style={styles.scanCounterRow}>
+            <Text style={styles.scanCounterText}>Entry {counters.entry}/{total}</Text>
+            <Text style={styles.scanCounterText}>Household {counters.household}/{total}</Text>
+            <Text style={styles.scanCounterText}>Departure {counters.departure}/{total}</Text>
+            <Text style={styles.scanCounterText}>Exit {counters.exit}/{total}</Text>
+          </View>
           <View style={styles.timelineItem}>
             <Ionicons name="calendar" size={14} color={themeColors.textSecondary} />
             <Text style={styles.timelineText}>Expected: {formatDate(item.expectedArrival)}</Text>
@@ -632,7 +644,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
                 }}
               >
                 <Ionicons name="log-in" size={18} color="white" />
-                <Text style={styles.actionButtonText}>Log Entry</Text>
+                <Text style={styles.actionButtonText}>Log Entry {counters.entry}/{total}</Text>
               </TouchableOpacity>
             )}
             {canLogExit && (
@@ -644,7 +656,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
                 }}
               >
                 <Ionicons name="log-out" size={18} color="white" />
-                <Text style={styles.actionButtonText}>Log Exit</Text>
+                <Text style={styles.actionButtonText}>Log Exit {counters.exit}/{total}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1163,6 +1175,21 @@ doneDateButton: {
   },
   timeline: {
     marginBottom: 12,
+  },
+  scanCounterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  scanCounterText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: themeColors.primary,
+    backgroundColor: themeColors.primary + '12',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   timelineItem: {
     flexDirection: 'row',

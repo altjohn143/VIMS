@@ -99,16 +99,6 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
 
   const validateProfile = () => {
-    const requiredFields = [
-      ['houseNumber', 'House number'],
-    ];
-
-    for (const [field, label] of requiredFields) {
-      if (!String(formData[field] || '').trim()) {
-        return `${label} is required.`;
-      }
-    }
-
     const emergencyPhone = String(formData.emergencyContact?.phone || '').replace(/\D/g, '');
     if (formData.emergencyContact?.phone && emergencyPhone.length < 10) {
       return 'Please enter a valid emergency contact phone number.';
@@ -263,7 +253,6 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
     setSaving(true);
     try {
       const payload = {
-        houseNumber: formData.houseNumber.trim(),
         emergencyContact: formData.emergencyContact,
         vehicles: formData.vehicles,
         familyMembers: formData.familyMembers,
@@ -662,6 +651,20 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
                 <TextInput
                   style={[styles.input, styles.disabledInput]}
                   value={formatDate(formData.dateOfBirth)}
+                  editable={false}
+                />
+              </View>
+            </View>
+          )}
+
+          {isResidentProfile && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>House Number</Text>
+              <View style={[styles.inputContainer, styles.disabledInputContainer]}>
+                <Ionicons name="home" size={20} color={themeColors.textSecondary} />
+                <TextInput
+                  style={[styles.input, styles.disabledInput]}
+                  value={formData.houseNumber}
                   editable={false}
                 />
               </View>

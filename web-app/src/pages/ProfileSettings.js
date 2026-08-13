@@ -561,7 +561,6 @@ const ProfileSettings = () => {
     setSaving(true);
     try {
       const response = await axios.put('/api/users/profile', {
-        houseNumber: formData.houseNumber,
         emergencyContact: formData.emergencyContact,
         vehicles: formData.vehicles,
         familyMembers: formData.familyMembers
@@ -1494,7 +1493,7 @@ const ProfileSettings = () => {
                         label="House Number"
                         name="houseNumber"
                         value={formData.houseNumber}
-                        onChange={(e) => handleInputChange(e, 'main')}
+                        disabled
                         InputProps={{
                           startAdornment: (
                             <InputAdornment position="start">
@@ -1503,8 +1502,7 @@ const ProfileSettings = () => {
                           ),
                           sx: {
                             borderRadius: 2,
-                            backgroundColor: '#f8fafc',
-                            readOnly: true
+                            backgroundColor: '#f8fafc'
                           }
                         }}
                         InputLabelProps={{

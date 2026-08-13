@@ -369,7 +369,7 @@ const VisitorManagementScreen = ({ navigation }) => {
       entered: progress.entryScanCount ?? 0,
       arrived: progress.residentArrivalConfirmCount ?? 0,
       departed: progress.residentDepartureConfirmCount ?? 0,
-      exited: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
+      exited: progress.exitScanCount ?? visitor?.exitScanCount ?? 0,
     };
     const count = Number(countByStatus[status] || 0);
     return count > 0 || ['entered', 'arrived', 'departed', 'exited'].includes(status)

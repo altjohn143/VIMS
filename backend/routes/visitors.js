@@ -123,19 +123,10 @@ const attachQrStatus = (visitor) => {
 
 const normalizeVisitorScanCounters = (visitor) => {
   if (!visitor) return visitor;
-  const groupSize = getVisitorGroupSize(visitor);
-  if (visitor.actualEntry && Number(visitor.entryScanCount || 0) <= 0) {
-    visitor.entryScanCount = groupSize;
-  }
-  if (visitor.residentEntryConfirmedAt && Number(visitor.residentArrivalConfirmCount || 0) <= 0) {
-    visitor.residentArrivalConfirmCount = groupSize;
-  }
-  if (visitor.residentDepartureConfirmedAt && Number(visitor.residentDepartureConfirmCount || 0) <= 0) {
-    visitor.residentDepartureConfirmCount = groupSize;
-  }
-  if (visitor.actualExit && Number(visitor.exitScanCount || 0) <= 0) {
-    visitor.exitScanCount = groupSize;
-  }
+  visitor.entryScanCount = Math.max(0, Number(visitor.entryScanCount || 0));
+  visitor.residentArrivalConfirmCount = Math.max(0, Number(visitor.residentArrivalConfirmCount || 0));
+  visitor.residentDepartureConfirmCount = Math.max(0, Number(visitor.residentDepartureConfirmCount || 0));
+  visitor.exitScanCount = Math.max(0, Number(visitor.exitScanCount || 0));
   return visitor;
 };
 

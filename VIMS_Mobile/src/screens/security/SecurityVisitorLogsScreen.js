@@ -264,11 +264,11 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     };
     const chip = config[displayStatus] || config.pending;
     const countByStatus = {
-      entered: progress.entryScanCount ?? (visitor?.actualEntry ? total : 0),
-      arrived: progress.residentArrivalConfirmCount ?? (visitor?.residentEntryConfirmedAt ? total : 0),
-      departed: progress.residentDepartureConfirmCount ?? (visitor?.residentDepartureConfirmedAt ? total : 0),
-      exited: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
-      completed: visitor?.status === 'completed' ? (progress.exitScanCount || total) : progress.exitScanCount,
+      entered: progress.entryScanCount ?? visitor?.entryScanCount ?? 0,
+      arrived: progress.residentArrivalConfirmCount ?? visitor?.residentArrivalConfirmCount ?? 0,
+      departed: progress.residentDepartureConfirmCount ?? visitor?.residentDepartureConfirmCount ?? 0,
+      exited: progress.exitScanCount ?? visitor?.exitScanCount ?? 0,
+      completed: progress.exitScanCount ?? visitor?.exitScanCount ?? 0,
     };
     const count = Number(countByStatus[displayStatus] || 0);
     const shouldShowCount = ['entered', 'arrived', 'departed', 'exited', 'completed'].includes(displayStatus);

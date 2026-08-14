@@ -5,6 +5,11 @@ const paymentSchema = new mongoose.Schema({
   residentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   invoiceNumber: { type: String, unique: true, sparse: true },
   amount: { type: Number, required: true, min: 0 },
+  originalAmount: { type: Number, min: 0, default: null },
+  paidAmount: { type: Number, min: 0, default: 0 },
+  submittedAmount: { type: Number, min: 0, default: null },
+  penaltyAmount: { type: Number, min: 0, default: 0 },
+  lastPenaltyCalculatedAt: { type: Date, default: null },
   paymentType: { type: String, enum: ['monthly_dues', 'special_assessment', 'service_fee', 'penalty', 'other'], default: 'monthly_dues' },
   paymentMethod: { type: String, enum: ['gcash', 'paymaya', 'qrph', 'cash', 'bank_transfer', 'check'], default: null },
   status: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
@@ -30,11 +35,23 @@ const paymentSchema = new mongoose.Schema({
     analyzedAt: { type: Date, default: null },
     model: { type: String, default: '' }
   },
+  paymentHistory: [{
+    amount: { type: Number, min: 0, required: true },
+    paymentMethod: { type: String },
+    referenceNumber: { type: String },
+    receiptNumber: { type: String },
+    receiptImage: { type: String },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    verifiedAt: { type: Date, default: Date.now },
+    notes: { type: String, default: '' }
+  }],
   description: { type: String },
   notes: { type: String },
   inclusions: { type: [String], default: [] }, // What's included in this payment (e.g., Maintenance, Security, Garbage, etc.)
   processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   processedAt: { type: Date },
+  dueReminderSent: { type: Boolean, default: false },
+  dueReminderSentAt: { type: Date, default: null },
   overdueReminderSent: { type: Boolean, default: false },
   // PayMongo integration fields
   paymongoSessionId: { type: String, sparse: true },
@@ -46,6 +63,9 @@ paymentSchema.index({ status: 1, dueDate: 1 });
 paymentSchema.index({ 'billingPeriod.year': 1, 'billingPeriod.month': 1, status: 1 });
 
 paymentSchema.pre('save', async function(next) {
+  if (this.originalAmount == null) {
+    this.originalAmount = this.amount;
+  }
   if (!this.invoiceNumber) {
     const date = new Date();
     const year = date.getFullYear();

@@ -108,6 +108,11 @@ const fieldSx = {
   }
 };
 
+const parseReservationQuantity = (value) => {
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+};
+
 const Reservations = () => {
   const navigate = useNavigate();
   const [reservations, setReservations] = useState([]);
@@ -283,7 +288,15 @@ const Reservations = () => {
 
     setFormData({
       ...formData,
-      items: [...formData.items, { ...currentItem }],
+      items: [
+        ...formData.items,
+        {
+          ...currentItem,
+          quantity: currentItem.resourceType === 'equipment'
+            ? parseReservationQuantity(currentItem.quantity)
+            : 1
+        }
+      ],
     });
 
     setCurrentItem({
@@ -301,8 +314,9 @@ const Reservations = () => {
   };
 
   const handleUpdateItemQuantity = (index, newQuantity) => {
+    const nextQuantity = String(newQuantity).replace(/\D/g, '');
     const updatedItems = [...formData.items];
-    updatedItems[index].quantity = parseInt(newQuantity) || 1;
+    updatedItems[index].quantity = nextQuantity === '' ? '' : parseReservationQuantity(nextQuantity);
     setFormData({
       ...formData,
       items: updatedItems,
@@ -341,6 +355,10 @@ const Reservations = () => {
 
       const data = {
         ...formData,
+        items: formData.items.map((item) => ({
+          ...item,
+          quantity: item.resourceType === 'equipment' ? parseReservationQuantity(item.quantity) : 1
+        })),
         startDate: formData.startDate.toISOString(),
         endDate: formData.endDate.toISOString(),
       };
@@ -1275,7 +1293,14 @@ const Reservations = () => {
                     type="number"
                     label="Quantity"
                     value={currentItem.quantity}
-                    onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value) || 1 })}
+                    onChange={(e) => {
+                      const quantity = e.target.value.replace(/\D/g, '');
+                      setCurrentItem({ ...currentItem, quantity });
+                    }}
+                    onBlur={() => setCurrentItem({
+                      ...currentItem,
+                      quantity: parseReservationQuantity(currentItem.quantity)
+                    })}
                     inputProps={{ min: 1 }}
                     sx={fieldSx}
                   />
@@ -1317,11 +1342,13 @@ const Reservations = () => {
                         bgcolor: '#f0fdf4',
                         border: `1px solid ${themeColors.border}`,
                         display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
                         justifyContent: 'space-between',
-                        alignItems: 'center'
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        gap: 1.5
                       }}
                     >
-                      <Box>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
                         <Typography sx={{ fontWeight: 700, color: themeColors.primary }}>
                           {item.resourceName}
                         </Typography>
@@ -1331,15 +1358,20 @@ const Reservations = () => {
                       </Box>
                       {/* Show quantity only for equipment */}
                       {item.resourceType === 'equipment' && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', justifyContent: { xs: 'space-between', sm: 'flex-end' } }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography sx={{ fontWeight: 600 }}>Qty:</Typography>
                             <TextField
                               type="number"
                               value={item.quantity}
                               onChange={(e) => handleUpdateItemQuantity(index, e.target.value)}
-                              inputProps={{ min: 1, style: { width: '60px', textAlign: 'center' } }}
-                              sx={{ '& input': { p: 0.5 } }}
+                              onBlur={() => {
+                                const updatedItems = [...formData.items];
+                                updatedItems[index].quantity = parseReservationQuantity(item.quantity);
+                                setFormData({ ...formData, items: updatedItems });
+                              }}
+                              inputProps={{ min: 1, inputMode: 'numeric', pattern: '[0-9]*', style: { width: '64px', textAlign: 'center' } }}
+                              sx={{ '& input': { p: 0.75 } }}
                             />
                           </Box>
                           <Button

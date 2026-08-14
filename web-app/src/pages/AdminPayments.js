@@ -786,7 +786,8 @@ const AdminPayments = () => {
                   <TableCell sx={{ fontWeight: 600 }}>Resident</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>House</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600 }}>Amount</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>Balance</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600 }}>Paid</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Payment Method</TableCell>
@@ -866,6 +867,16 @@ const AdminPayments = () => {
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           {formatCurrency(payment.amount)}
+                        </Typography>
+                        {!!payment.penaltyAmount && (
+                          <Typography variant="caption" color="error">
+                            +{formatCurrency(payment.penaltyAmount)} penalty
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" color="textSecondary">
+                          {formatCurrency(payment.paidAmount)}
                         </Typography>
                       </TableCell>
                       <TableCell>{formatDate(payment.dueDate)}</TableCell>
@@ -1006,7 +1017,9 @@ const AdminPayments = () => {
                     <strong>Resident:</strong> {selectedDescriptionPayment.residentId?.firstName} {selectedDescriptionPayment.residentId?.lastName}
                   </Typography>
                   <Typography><strong>House:</strong> {selectedDescriptionPayment.residentId?.houseNumber || 'N/A'}</Typography>
-                  <Typography><strong>Amount:</strong> {formatCurrency(selectedDescriptionPayment.amount)}</Typography>
+                  <Typography><strong>Balance:</strong> {formatCurrency(selectedDescriptionPayment.amount)}</Typography>
+                  <Typography><strong>Paid so far:</strong> {formatCurrency(selectedDescriptionPayment.paidAmount)}</Typography>
+                  <Typography><strong>Penalty:</strong> {formatCurrency(selectedDescriptionPayment.penaltyAmount)}</Typography>
                 </Paper>
 
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75 }}>
@@ -1105,7 +1118,8 @@ const AdminPayments = () => {
                   <Typography><strong>Invoice:</strong> {selectedPayment.invoiceNumber}</Typography>
                   <Typography><strong>Resident:</strong> {selectedPayment.residentId?.firstName} {selectedPayment.residentId?.lastName}</Typography>
                   <Typography><strong>House:</strong> {selectedPayment.residentId?.houseNumber || 'N/A'}</Typography>
-                  <Typography><strong>Amount:</strong> {formatCurrency(selectedPayment.amount)}</Typography>
+                  <Typography><strong>Balance:</strong> {formatCurrency(selectedPayment.amount)}</Typography>
+                  <Typography><strong>Paid so far:</strong> {formatCurrency(selectedPayment.paidAmount)}</Typography>
                 </Paper>
               </Box>
             )}
@@ -1170,13 +1184,31 @@ const AdminPayments = () => {
                       </Typography>
                     </Grid>
                     <Grid item xs={4}>
-                      <Typography variant="caption" color="textSecondary">Amount:</Typography>
+                      <Typography variant="caption" color="textSecondary">Balance:</Typography>
                     </Grid>
                     <Grid item xs={8}>
                       <Typography variant="body2" sx={{ fontWeight: 700, color: themeColors.success }}>
                         {formatCurrency(selectedQRPhPayment.amount)}
                       </Typography>
                     </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="textSecondary">AI scanned:</Typography>
+                    </Grid>
+                    <Grid item xs={8}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: themeColors.info }}>
+                        {selectedQRPhPayment.submittedAmount ? formatCurrency(selectedQRPhPayment.submittedAmount) : selectedQRPhPayment.receiptAi?.extracted?.amount || 'Needs admin check'}
+                      </Typography>
+                    </Grid>
+                    {!!selectedQRPhPayment.paidAmount && (
+                      <>
+                        <Grid item xs={4}>
+                          <Typography variant="caption" color="textSecondary">Paid so far:</Typography>
+                        </Grid>
+                        <Grid item xs={8}>
+                          <Typography variant="body2">{formatCurrency(selectedQRPhPayment.paidAmount)}</Typography>
+                        </Grid>
+                      </>
+                    )}
                     <Grid item xs={4}>
                       <Typography variant="caption" color="textSecondary">Reference #:</Typography>
                     </Grid>
@@ -1279,7 +1311,7 @@ const AdminPayments = () => {
               startIcon={processing ? <CircularProgress size={20} /> : <VerifyIcon />}
               sx={{ bgcolor: themeColors.success, '&:hover': { bgcolor: '#0da271' }, borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
             >
-              {processing ? 'Verifying...' : 'Verify & Confirm Payment'}
+              {processing ? 'Verifying...' : 'Verify & Apply Payment'}
             </Button>
           </DialogActions>
         </Dialog>
@@ -1340,7 +1372,7 @@ const AdminPayments = () => {
                       </Typography>
                     </Grid>
                     <Grid item xs={4}>
-                      <Typography variant="caption" color="textSecondary">Amount:</Typography>
+                      <Typography variant="caption" color="textSecondary">Balance:</Typography>
                     </Grid>
                     <Grid item xs={8}>
                       <Typography variant="body2" fontWeight={700} color={themeColors.success}>

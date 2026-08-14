@@ -448,8 +448,13 @@ const AdminPaymentsScreen = ({ navigation }) => {
         
         <View style={styles.paymentDetails}>
           <View>
-            <Text style={styles.detailLabel}>Amount</Text>
+            <Text style={styles.detailLabel}>Balance</Text>
             <Text style={styles.detailValue}>{formatCurrency(payment.amount)}</Text>
+            {!!payment.penaltyAmount && <Text style={[styles.referenceText, { color: themeColors.error }]}>+{formatCurrency(payment.penaltyAmount)} penalty</Text>}
+          </View>
+          <View>
+            <Text style={styles.detailLabel}>Paid</Text>
+            <Text style={styles.detailValue}>{formatCurrency(payment.paidAmount)}</Text>
           </View>
           <View>
             <Text style={styles.detailLabel}>Due Date</Text>
@@ -702,7 +707,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
                 {[
                   ['Resident', `${selectedPayment.residentId?.firstName || ''} ${selectedPayment.residentId?.lastName || ''}`.trim() || 'N/A'],
                   ['House', selectedPayment.residentId?.houseNumber || 'N/A'],
-                  ['Amount', formatCurrency(selectedPayment.amount)],
+                  ['Balance', formatCurrency(selectedPayment.amount)],
+                  ['Paid so far', formatCurrency(selectedPayment.paidAmount)],
+                  ['Penalty', formatCurrency(selectedPayment.penaltyAmount)],
                   ['Type', (selectedPayment.paymentType || 'N/A').replace(/_/g, ' ')],
                   ['Status', getStatusChip(selectedPayment.status, selectedPayment.dueDate).label],
                   ['Method', getPaymentMethodConfig(selectedPayment.paymentMethod).label],
@@ -741,7 +748,8 @@ const AdminPaymentsScreen = ({ navigation }) => {
                 <View style={styles.confirmDetails}>
                   <Text style={styles.confirmLabel}>Invoice: <Text style={styles.confirmValue}>{selectedPayment.invoiceNumber}</Text></Text>
                   <Text style={styles.confirmLabel}>Resident: <Text style={styles.confirmValue}>{selectedPayment.residentId?.firstName} {selectedPayment.residentId?.lastName}</Text></Text>
-                  <Text style={styles.confirmLabel}>Amount: <Text style={styles.confirmValue}>{formatCurrency(selectedPayment.amount)}</Text></Text>
+                  <Text style={styles.confirmLabel}>Balance: <Text style={styles.confirmValue}>{formatCurrency(selectedPayment.amount)}</Text></Text>
+                  <Text style={styles.confirmLabel}>Paid so far: <Text style={styles.confirmValue}>{formatCurrency(selectedPayment.paidAmount)}</Text></Text>
                 </View>
                 <Text style={styles.confirmMessage}>Confirm that you have received cash payment for this invoice?</Text>
               </>
@@ -751,7 +759,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
                 <Text style={styles.cancelConfirmText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.confirmButtonLarge} onPress={handleConfirmCashPayment} disabled={processing}>
-                {processing ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.confirmButtonText}>Confirm Payment</Text>}
+                {processing ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.confirmButtonText}>Apply Payment</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -786,11 +794,23 @@ const AdminPaymentsScreen = ({ navigation }) => {
                     <Text style={styles.verifyValue}>{selectedPayment.residentId?.firstName} {selectedPayment.residentId?.lastName}</Text>
                   </View>
                   <View style={styles.verifyRow}>
-                    <Text style={styles.verifyLabel}>Amount:</Text>
+                    <Text style={styles.verifyLabel}>Balance:</Text>
                     <Text style={[styles.verifyValue, { color: themeColors.success, fontWeight: '700' }]}>
                       {formatCurrency(selectedPayment.amount)}
                     </Text>
                   </View>
+                  <View style={styles.verifyRow}>
+                    <Text style={styles.verifyLabel}>AI scanned:</Text>
+                    <Text style={[styles.verifyValue, { color: themeColors.info }]}>
+                      {selectedPayment.submittedAmount ? formatCurrency(selectedPayment.submittedAmount) : selectedPayment.receiptAi?.extracted?.amount || 'Needs admin check'}
+                    </Text>
+                  </View>
+                  {!!selectedPayment.paidAmount && (
+                    <View style={styles.verifyRow}>
+                      <Text style={styles.verifyLabel}>Paid so far:</Text>
+                      <Text style={styles.verifyValue}>{formatCurrency(selectedPayment.paidAmount)}</Text>
+                    </View>
+                  )}
                   <View style={styles.verifyRow}>
                     <Text style={styles.verifyLabel}>Reference:</Text>
                     <Text style={styles.verifyValue}>{selectedPayment.referenceNumber || 'N/A'}</Text>
@@ -835,7 +855,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
                   onPress={handleVerifyQRPhPayment}
                   disabled={processing}
                 >
-                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.verifySubmitText}>Verify & Confirm Payment</Text>}
+                  {processing ? <ActivityIndicator color="white" /> : <Text style={styles.verifySubmitText}>Verify & Apply Payment</Text>}
                 </TouchableOpacity>
               </ScrollView>
             )}
@@ -902,7 +922,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
           {selectedImagePayment && (
             <View style={styles.imageInfo}>
               <Text style={styles.imageInfoText}>Invoice: {selectedImagePayment.invoiceNumber}</Text>
-              <Text style={styles.imageInfoText}>Amount: {formatCurrency(selectedImagePayment.amount)}</Text>
+              <Text style={styles.imageInfoText}>Balance: {formatCurrency(selectedImagePayment.amount)}</Text>
               <TouchableOpacity style={styles.shareReceiptButton} onPress={handleShareReceiptImage} disabled={!selectedImageUri}>
                 <Ionicons name="share-outline" size={18} color="white" />
                 <Text style={styles.shareReceiptText}>Save or share receipt</Text>

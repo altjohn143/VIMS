@@ -333,6 +333,12 @@ const PaymentsScreen = ({ navigation }) => {
                 <Text style={styles.currentDuesTitle}>Current Month Dues</Text>
                 <Text style={styles.currentDuesDesc}>{currentDues.description}</Text>
                 <Text style={styles.currentDuesAmount}>{formatCurrency(currentDues.amount)}</Text>
+                {!!currentDues.paidAmount && (
+                  <Text style={styles.currentDuesDue}>Paid so far: {formatCurrency(currentDues.paidAmount)}</Text>
+                )}
+                {!!currentDues.penaltyAmount && (
+                  <Text style={[styles.currentDuesDue, { color: themeColors.error }]}>Penalty: {formatCurrency(currentDues.penaltyAmount)}</Text>
+                )}
                 <Text style={styles.currentDuesDue}>Due: {formatDate(currentDues.dueDate)}</Text>
                 {currentDues.inclusions?.length > 0 && (
                   <View style={styles.inclusionsList}>
@@ -417,8 +423,13 @@ const PaymentsScreen = ({ navigation }) => {
                 
                 <View style={styles.paymentDetails}>
                   <View>
-                    <Text style={styles.detailLabel}>Amount</Text>
+                    <Text style={styles.detailLabel}>Balance</Text>
                     <Text style={styles.detailValue}>{formatCurrency(payment.amount)}</Text>
+                    {!!payment.penaltyAmount && <Text style={[styles.detailLabel, { color: themeColors.error }]}>+{formatCurrency(payment.penaltyAmount)} penalty</Text>}
+                  </View>
+                  <View>
+                    <Text style={styles.detailLabel}>Paid</Text>
+                    <Text style={styles.detailValue}>{formatCurrency(payment.paidAmount)}</Text>
                   </View>
                   <View>
                     <Text style={styles.detailLabel}>Due Date</Text>
@@ -432,7 +443,7 @@ const PaymentsScreen = ({ navigation }) => {
                   )}
                 </View>
                 
-                {payment.status === 'pending' ? (
+                {payment.status === 'pending' && (
                   <TouchableOpacity
                     style={styles.payButton}
                     onPress={() => handlePayClick(payment)}
@@ -440,17 +451,20 @@ const PaymentsScreen = ({ navigation }) => {
                     <Ionicons name="qr-code" size={18} color="white" />
                     <Text style={styles.payButtonText}>Pay Now</Text>
                   </TouchableOpacity>
-                ) : payment.receiptNumber && (
+                )}
+                {payment.receiptNumber && (
                   <TouchableOpacity
-                    style={styles.receiptButton}
+                    style={[styles.receiptButton, payment.status === 'pending' && { marginTop: 8 }]}
                     onPress={() => {
+                      const latestReceipt = payment.paymentHistory?.[payment.paymentHistory.length - 1];
                       setReceiptData({
-                        receiptNumber: payment.receiptNumber,
-                        amount: payment.amount,
+                        receiptNumber: latestReceipt?.receiptNumber || payment.receiptNumber,
+                        amount: latestReceipt?.amount || payment.paidAmount || payment.amount,
                         paymentDate: payment.paymentDate,
-                        paymentMethod: payment.paymentMethod,
+                        paymentMethod: latestReceipt?.paymentMethod || payment.paymentMethod,
                         invoiceNumber: payment.invoiceNumber,
-                        description: payment.description
+                        description: payment.description,
+                        remainingBalance: payment.status === 'pending' ? payment.amount : 0
                       });
                       setShowReceiptDialog(true);
                     }}
@@ -489,7 +503,7 @@ const PaymentsScreen = ({ navigation }) => {
             </View>
             
             <Text style={styles.modalAmount}>
-              Amount to pay: {formatCurrency(selectedPayment?.amount)}
+              Balance due: {formatCurrency(selectedPayment?.amount)}
             </Text>
             
             <TouchableOpacity style={styles.qrphOption} onPress={handleQRPhPayment}>
@@ -541,6 +555,9 @@ const PaymentsScreen = ({ navigation }) => {
               </View>
               
               <Text style={styles.qrAmount}>{formatCurrency(selectedPayment?.amount)}</Text>
+              <Text style={[styles.instructionsText, { textAlign: 'center', marginBottom: 12 }]}>
+                You may pay the full balance or a partial amount. Admin verification will deduct the confirmed receipt amount.
+              </Text>
               
               <View style={styles.instructionsCard}>
                 <Text style={styles.instructionsTitle}>How to pay:</Text>
@@ -548,7 +565,7 @@ const PaymentsScreen = ({ navigation }) => {
                   1. Open GCash, PayMaya, or any banking app{'\n'}
                   2. Tap "Scan to Pay" or "QR Payment"{'\n'}
                   3. Scan the QR code above{'\n'}
-                  4. Enter amount: {formatCurrency(selectedPayment?.amount)}{'\n'}
+                  4. Enter the amount you are paying, up to {formatCurrency(selectedPayment?.amount)}{'\n'}
                   5. Complete the payment and save the reference number
                 </Text>
               </View>
@@ -661,6 +678,12 @@ const PaymentsScreen = ({ navigation }) => {
                     <Text style={styles.receiptTotalLabel}>Amount Paid:</Text>
                     <Text style={styles.receiptTotalValue}>{formatCurrency(receiptData.amount)}</Text>
                   </View>
+                  {!!receiptData.remainingBalance && (
+                    <View style={styles.receiptTotalRow}>
+                      <Text style={styles.receiptTotalLabel}>Remaining Balance:</Text>
+                      <Text style={[styles.receiptTotalValue, { color: themeColors.warning }]}>{formatCurrency(receiptData.remainingBalance)}</Text>
+                    </View>
+                  )}
                   
                   <Text style={styles.receiptFooter}>
                     This is a system-generated receipt. Thank you for your payment!

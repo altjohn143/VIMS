@@ -11,6 +11,61 @@ const { analyzeReceiptFraud } = require('../services/openaiReceiptFraudService')
 const { uploadImageBuffer } = require('../services/cloudinaryService');
 
 const MONTHLY_DUES_AMOUNT_KEY = 'monthly_dues_amount';
+const DAILY_OVERDUE_PENALTY = 10;
+
+function startOfDay(date) {
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+}
+
+function parsePesoAmount(value) {
+  const normalized = String(value || '').replace(/[^\d.]/g, '');
+  const amount = Number(normalized);
+  return Number.isFinite(amount) && amount > 0 ? amount : null;
+}
+
+function getOutstandingAmount(payment) {
+  const baseAmount = Number(payment.originalAmount ?? payment.amount ?? 0);
+  const paidAmount = Number(payment.paidAmount || 0);
+  const penaltyAmount = Number(payment.penaltyAmount || 0);
+  return Math.max(0, baseAmount + penaltyAmount - paidAmount);
+}
+
+function syncPaymentAmounts(payment) {
+  if (payment.originalAmount == null) payment.originalAmount = Number(payment.amount || 0);
+  payment.amount = getOutstandingAmount(payment);
+}
+
+async function applyDailyPenalty(payment) {
+  if (!payment || payment.status !== 'pending' || !payment.dueDate || payment.paymentType !== 'monthly_dues') {
+    return payment;
+  }
+
+  const today = startOfDay(new Date());
+  const dueDate = startOfDay(payment.dueDate);
+  if (today <= dueDate) {
+    syncPaymentAmounts(payment);
+    return payment;
+  }
+
+  const lastCalculated = payment.lastPenaltyCalculatedAt
+    ? startOfDay(payment.lastPenaltyCalculatedAt)
+    : dueDate;
+  const daysToCharge = Math.floor((today - lastCalculated) / (24 * 60 * 60 * 1000));
+  if (daysToCharge > 0) {
+    payment.penaltyAmount = Number(payment.penaltyAmount || 0) + (daysToCharge * DAILY_OVERDUE_PENALTY);
+    payment.lastPenaltyCalculatedAt = today;
+  }
+  syncPaymentAmounts(payment);
+  if (payment.isModified()) await payment.save();
+  return payment;
+}
+
+async function applyDailyPenalties(payments) {
+  await Promise.all(payments.map(payment => applyDailyPenalty(payment)));
+  return payments;
+}
 
 async function getMonthlyDuesAmount() {
   const setting = await Setting.findOne({ key: MONTHLY_DUES_AMOUNT_KEY });
@@ -45,6 +100,7 @@ async function createMonthlyDuesForResident(resident, targetMonth, targetYear) {
   return await Payment.create({
     residentId: resident._id,
     amount: monthlyDuesAmount,
+    originalAmount: monthlyDuesAmount,
     paymentType: 'monthly_dues',
     status: 'pending',
     dueDate: new Date(targetYear, targetMonth - 1, dueDay),
@@ -76,7 +132,8 @@ router.get('/test', (req, res) => {
 router.get('/my', protect, authorize('resident'), async (req, res) => {
   try {
     const payments = await Payment.find({ residentId: req.user.id }).sort({ createdAt: -1 });
-    const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
+    await applyDailyPenalties(payments);
+    const totalPaid = payments.reduce((sum, p) => sum + Number(p.paidAmount || (p.status === 'paid' ? p.amount : 0)), 0);
     const pendingPayments = payments.filter(p => p.status === 'pending');
     const overduePayments = payments.filter(p => p.status === 'pending' && new Date() > p.dueDate);
     
@@ -85,10 +142,10 @@ router.get('/my', protect, authorize('resident'), async (req, res) => {
       data: payments,
       summary: {
         totalPaid,
-        totalPending: pendingPayments.reduce((sum, p) => sum + p.amount, 0),
+        totalPending: pendingPayments.reduce((sum, p) => sum + getOutstandingAmount(p), 0),
         pendingCount: pendingPayments.length,
         overdueCount: overduePayments.length,
-        overdueAmount: overduePayments.reduce((sum, p) => sum + p.amount, 0)
+        overdueAmount: overduePayments.reduce((sum, p) => sum + getOutstandingAmount(p), 0)
       }
     });
   } catch (error) {
@@ -128,7 +185,7 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
       }
     }
 
-    const dues = await createMonthlyDuesForResident(user, targetMonth, targetYear);
+    const dues = await applyDailyPenalty(await createMonthlyDuesForResident(user, targetMonth, targetYear));
 
     res.json({ success: true, data: dues });
   } catch (error) {
@@ -145,6 +202,7 @@ router.get('/:id', protect, async (req, res) => {
     if (req.user.role !== 'admin' && payment.residentId._id.toString() !== req.user.id) {
       return res.status(403).json({ success: false, error: 'Not authorized' });
     }
+    await applyDailyPenalty(payment);
     res.json({ success: true, data: payment });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to get payment' });
@@ -172,8 +230,9 @@ router.post('/:id/pay', protect, authorize('resident'), async (req, res) => {
     if (payment.status === 'paid') {
       return res.status(400).json({ success: false, error: 'Already paid' });
     }
+    await applyDailyPenalty(payment);
 
-    if (payment.status === 'pending' && (payment.paymentMethod || payment.referenceNumber || payment.receiptImage)) {
+    if (payment.status === 'pending' && hasSubmittedPaymentForReview(payment)) {
       return res.status(409).json({
         success: false,
         error: 'A payment is already pending for this invoice'
@@ -238,7 +297,7 @@ const upload = multer({
 
 router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.single('receipt'), async (req, res) => {
   try {
-    const { referenceNumber, paymentId, amount } = req.body;
+    const { referenceNumber, paymentId } = req.body;
     const receiptFile = req.file;
     
     console.log('=== DEBUG UPLOAD ===');
@@ -267,7 +326,9 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
       return res.status(400).json({ success: false, error: 'This invoice is already paid' });
     }
 
-    if (payment.status === 'pending' && (payment.paymentMethod || payment.referenceNumber || payment.receiptImage)) {
+    await applyDailyPenalty(payment);
+
+    if (payment.status === 'pending' && hasSubmittedPaymentForReview(payment)) {
       return res.status(409).json({
         success: false,
         error: 'A payment is already pending for this invoice'
@@ -317,6 +378,7 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
           analyzedAt: new Date(),
           model: analysis.model
         };
+        payment.submittedAmount = parsePesoAmount(analysis.extracted?.amount);
       } catch (aiError) {
         payment.receiptAi = {
           fraudScore: null,
@@ -327,10 +389,14 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
           analyzedAt: new Date(),
           model: ''
         };
+        payment.submittedAmount = null;
       }
       finally {
         if (tempReceiptPath) fs.promises.unlink(tempReceiptPath).catch(() => {});
       }
+    }
+    if (!payment.submittedAmount) {
+      payment.submittedAmount = parsePesoAmount(req.body.amount);
     }
     await payment.save();
     
@@ -446,6 +512,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     let payments = await Payment.find(filter)
       .populate('residentId', 'firstName lastName houseNumber')
       .sort({ createdAt: -1 });
+    await applyDailyPenalties(payments);
 
     const searchText = String(search || '').trim().toLowerCase();
     if (searchText) {
@@ -468,6 +535,8 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
       Resident: payment.residentId ? `${payment.residentId.firstName || ''} ${payment.residentId.lastName || ''}`.trim() : 'Unknown',
       House: payment.residentId?.houseNumber || 'N/A',
       Amount: payment.amount,
+      Paid: payment.paidAmount || 0,
+      Penalty: payment.penaltyAmount || 0,
       Type: payment.paymentType,
       Method: payment.paymentMethod || 'N/A',
       Status: payment.status,
@@ -479,6 +548,8 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
       { key: 'Resident', label: 'Resident', width: 20 },
       { key: 'House', label: 'House', width: 10 },
       { key: 'Amount', label: 'Amount', width: 12 },
+      { key: 'Paid', label: 'Paid', width: 12 },
+      { key: 'Penalty', label: 'Penalty', width: 12 },
       { key: 'Type', label: 'Type', width: 14 },
       { key: 'Method', label: 'Method', width: 14 },
       { key: 'Status', label: 'Status', width: 12 },
@@ -521,15 +592,15 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     const paginatedPayments = payments.slice(skip, skip + parseInt(limit));
     const total = payments.length;
 
-    const summary = await Payment.aggregate([
-      { $match: filter },
-      { $group: { _id: null, totalPaid: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, '$amount', 0] } } } }
-    ]);
+    const summary = payments.reduce((acc, payment) => {
+      acc.totalPaid += Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0));
+      return acc;
+    }, { totalPaid: 0 });
 
     res.json({
       success: true,
       data: paginatedPayments,
-      summary: { totalCollected: summary[0]?.totalPaid || 0 },
+      summary: { totalCollected: summary.totalPaid || 0 },
       pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) }
     });
   } catch (error) {
@@ -601,23 +672,58 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     if (payment.status === 'paid') {
       return res.status(400).json({ success: false, error: 'Payment is already confirmed' });
     }
-    
-    payment.status = 'paid';
+
+    await applyDailyPenalty(payment);
+    const outstandingBeforePayment = getOutstandingAmount(payment);
+    const verifiedAmount = parsePesoAmount(req.body.verifiedAmount)
+      || Number(payment.submittedAmount || 0)
+      || outstandingBeforePayment;
+    if (!Number.isFinite(verifiedAmount) || verifiedAmount <= 0) {
+      return res.status(400).json({ success: false, error: 'Verified payment amount must be greater than zero' });
+    }
+
+    const appliedAmount = Math.min(verifiedAmount, outstandingBeforePayment);
+    const receiptNumber = `RC-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+    payment.paidAmount = Number(payment.paidAmount || 0) + appliedAmount;
     payment.paymentDate = new Date();
     payment.processedBy = req.user.id;
-    payment.receiptNumber = `RC-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    payment.receiptNumber = receiptNumber;
+    payment.paymentHistory.push({
+      amount: appliedAmount,
+      paymentMethod: payment.paymentMethod || req.body.paymentMethod || 'cash',
+      referenceNumber: payment.referenceNumber || '',
+      receiptNumber,
+      receiptImage: payment.receiptImage || '',
+      verifiedBy: req.user.id,
+      notes: req.body.verificationNotes || ''
+    });
     
     // Add verification notes if provided
     if (req.body.verificationNotes) {
       payment.notes = (payment.notes || '') + `\n[Admin Verification: ${req.body.verificationNotes}]`;
     }
+
+    payment.paymentMethod = null;
+    payment.referenceNumber = null;
+    payment.transactionId = null;
+    payment.receiptImage = null;
+    payment.receiptImagePublicId = null;
+    payment.submittedAmount = null;
+    payment.receiptAi = undefined;
+
+    syncPaymentAmounts(payment);
+    const remainingBalance = getOutstandingAmount(payment);
+    payment.status = remainingBalance <= 0 ? 'paid' : 'pending';
     
     await payment.save();
     await createInAppNotification({
       userId: payment.residentId,
       type: 'payment',
-      title: 'Payment confirmed',
-      body: `Your payment ${payment.invoiceNumber} has been confirmed.`,
+      title: payment.status === 'paid' ? 'Payment confirmed' : 'Partial payment confirmed',
+      body: payment.status === 'paid'
+        ? `Your payment ${payment.invoiceNumber} has been confirmed.`
+        : `Your partial payment of PHP ${appliedAmount.toFixed(2)} was confirmed. Remaining balance: PHP ${remainingBalance.toFixed(2)}.`,
       metadata: { paymentId: payment._id }
     });
 
@@ -633,7 +739,11 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
       console.error(`Failed to send payment confirmation email for ${payment.invoiceNumber}:`, emailError.message);
     }
 
-    res.json({ success: true, message: 'Payment confirmed', data: { email: emailResult } });
+    res.json({
+      success: true,
+      message: payment.status === 'paid' ? 'Payment confirmed' : 'Partial payment confirmed',
+      data: { email: emailResult, appliedAmount, remainingBalance, paymentStatus: payment.status }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to confirm payment' });
   }
@@ -713,22 +823,27 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
       endDate = new Date();
     }
 
-    const [totalCollected, monthlyCollected, paymentCount, pendingSummary, totalInvoices, paidInvoices] = await Promise.all([
-      Payment.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
-      Payment.aggregate([{ $match: { status: 'paid', createdAt: { $gte: startDate, $lte: endDate } } }, { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }]),
-      Payment.countDocuments({ status: 'paid', createdAt: { $gte: startDate, $lte: endDate } }),
-      Payment.aggregate([{ $match: { status: 'pending' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+    const [allPayments, totalInvoices, paidInvoices] = await Promise.all([
+      Payment.find({}),
       Payment.countDocuments({}),
       Payment.countDocuments({ status: 'paid' })
     ]);
+    await applyDailyPenalties(allPayments);
+    const totalCollected = allPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
+    const monthlyPayments = allPayments.filter(payment => payment.createdAt >= startDate && payment.createdAt <= endDate);
+    const monthlyCollected = monthlyPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
+    const paymentCount = monthlyPayments.filter(payment => Number(payment.paidAmount || 0) > 0 || payment.status === 'paid').length;
+    const pendingTotal = allPayments
+      .filter(payment => payment.status === 'pending')
+      .reduce((sum, payment) => sum + getOutstandingAmount(payment), 0);
 
     res.json({
       success: true,
       data: {
-        totalCollected: totalCollected[0]?.total || 0,
-        monthlyCollected: monthlyCollected[0]?.total || 0,
-        paymentCount: monthlyCollected[0]?.count || paymentCount || 0,
-        pendingTotal: pendingSummary[0]?.total || 0,
+        totalCollected,
+        monthlyCollected,
+        paymentCount,
+        pendingTotal,
         collectionRate: totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 1000) / 10 : 0
       }
     });
@@ -749,8 +864,8 @@ router.get('/admin/methods', protect, authorize('admin'), async (req, res) => {
     }
 
     const methods = await Payment.aggregate([
-      { $match: { ...match, status: 'paid' } },
-      { $group: { _id: '$paymentMethod', count: { $sum: 1 }, total: { $sum: '$amount' } } },
+      { $match: { ...match, $or: [{ status: 'paid' }, { paidAmount: { $gt: 0 } }] } },
+      { $group: { _id: '$paymentMethod', count: { $sum: 1 }, total: { $sum: { $cond: [{ $gt: ['$paidAmount', 0] }, '$paidAmount', '$amount'] } } } },
       { $sort: { count: -1 } }
     ]);
 
@@ -779,8 +894,8 @@ router.get('/public/monthly-collection', async (req, res) => {
     const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
 
     const result = await Payment.aggregate([
-      { $match: { status: 'paid', createdAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+      { $match: { createdAt: { $gte: startDate, $lte: endDate }, $or: [{ status: 'paid' }, { paidAmount: { $gt: 0 } }] } },
+      { $group: { _id: null, total: { $sum: { $cond: [{ $gt: ['$paidAmount', 0] }, '$paidAmount', '$amount'] } }, count: { $sum: 1 } } }
     ]);
 
     res.json({

@@ -315,6 +315,7 @@ async function autoSeedDatabase() {
 console.log('\n🔗 Registering routes...');
 const { startReportScheduler } = require('./services/reportScheduler');
 const announcementScheduler = require('./services/announcementScheduler');
+const paymentReminderScheduler = require('./services/paymentReminderScheduler');
 
 // Import routes
 try {
@@ -394,6 +395,8 @@ try {
   console.log('Report scheduler started');
   announcementScheduler.start();
   console.log('Announcement scheduler started');
+  paymentReminderScheduler.start();
+  console.log('Payment reminder scheduler started');
   
 } catch (error) {
   console.error('Error importing routes:', error.message);

@@ -552,6 +552,16 @@ const Payments = () => {
                 <Typography variant="h5" sx={{ fontWeight: 700, mt: 1 }}>
                   {formatCurrency(currentDues.amount)}
                 </Typography>
+                {!!currentDues.paidAmount && (
+                  <Typography variant="caption" color="textSecondary" display="block">
+                    Paid so far: {formatCurrency(currentDues.paidAmount)}
+                  </Typography>
+                )}
+                {!!currentDues.penaltyAmount && (
+                  <Typography variant="caption" color="error" display="block">
+                    Overdue penalty: {formatCurrency(currentDues.penaltyAmount)}
+                  </Typography>
+                )}
                 <Typography variant="caption" color="textSecondary">
                   Due Date: {formatDate(currentDues.dueDate)}
                 </Typography>
@@ -626,7 +636,8 @@ const Payments = () => {
                   <TableRow sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
                     <TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>Amount</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Balance</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Paid</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Payment Date</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
@@ -686,38 +697,53 @@ const Payments = () => {
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           {formatCurrency(payment.amount)}
                         </Typography>
+                        {!!payment.penaltyAmount && (
+                          <Typography variant="caption" color="error">
+                            +{formatCurrency(payment.penaltyAmount)} penalty
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" color="textSecondary">
+                          {formatCurrency(payment.paidAmount)}
+                        </Typography>
                       </TableCell>
                       <TableCell>{formatDate(payment.dueDate)}</TableCell>
                       <TableCell>{payment.paymentDate ? formatDate(payment.paymentDate) : '-'}</TableCell>
                       <TableCell>{getStatusChip(payment.status, payment.dueDate)}</TableCell>
                       <TableCell align="center">
-                        {payment.status === 'pending' ? (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={() => handlePayClick(payment)}
-                            sx={{ bgcolor: themeColors.primary, fontSize: '0.7rem', borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
-                          >
-                            Pay
-                          </Button>
-                        ) : payment.receiptNumber && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          {payment.status === 'pending' && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={() => handlePayClick(payment)}
+                              sx={{ bgcolor: themeColors.primary, fontSize: '0.7rem', borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+                            >
+                              Pay
+                            </Button>
+                          )}
+                          {payment.receiptNumber && (
                           <IconButton
                             size="small"
                             onClick={() => {
+                              const latestReceipt = payment.paymentHistory?.[payment.paymentHistory.length - 1];
                               setReceiptData({
-                                receiptNumber: payment.receiptNumber,
-                                amount: payment.amount,
+                                receiptNumber: latestReceipt?.receiptNumber || payment.receiptNumber,
+                                amount: latestReceipt?.amount || payment.paidAmount || payment.amount,
                                 paymentDate: payment.paymentDate,
-                                paymentMethod: payment.paymentMethod,
+                                paymentMethod: latestReceipt?.paymentMethod || payment.paymentMethod,
                                 invoiceNumber: payment.invoiceNumber,
-                                description: payment.description
+                                description: payment.description,
+                                remainingBalance: payment.status === 'pending' ? payment.amount : 0
                               });
                               setReceiptDialogOpen(true);
                             }}
                           >
                             <ReceiptIcon />
                           </IconButton>
-                        )}
+                          )}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -756,7 +782,9 @@ const Payments = () => {
               <Box>
                 <Paper sx={{ p: 2, bgcolor: themeColors.background, borderRadius: 2, mb: 2 }}>
                   <Typography><strong>Invoice:</strong> {selectedDescriptionPayment.invoiceNumber}</Typography>
-                  <Typography><strong>Amount:</strong> {formatCurrency(selectedDescriptionPayment.amount)}</Typography>
+                  <Typography><strong>Balance:</strong> {formatCurrency(selectedDescriptionPayment.amount)}</Typography>
+                  <Typography><strong>Paid so far:</strong> {formatCurrency(selectedDescriptionPayment.paidAmount)}</Typography>
+                  <Typography><strong>Penalty:</strong> {formatCurrency(selectedDescriptionPayment.penaltyAmount)}</Typography>
                   <Typography><strong>Due Date:</strong> {formatDate(selectedDescriptionPayment.dueDate)}</Typography>
                   <Typography><strong>Status:</strong> {selectedDescriptionPayment.status}</Typography>
                 </Paper>
@@ -808,7 +836,7 @@ const Payments = () => {
           </DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Amount to pay: <strong>{formatCurrency(selectedPayment?.amount)}</strong>
+              Balance due: <strong>{formatCurrency(selectedPayment?.amount)}</strong>
             </Typography>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12}>
@@ -894,6 +922,9 @@ const Payments = () => {
               <Typography variant="h6" sx={{ fontWeight: 700, color: themeColors.textPrimary, mb: 1 }}>
                 {formatCurrency(selectedPayment?.amount)}
               </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                You may pay the full balance or a partial amount. The admin will verify the receipt amount before it is deducted.
+              </Typography>
               
               <Alert severity="info" sx={{ mb: 3, borderRadius: 2, textAlign: 'left' }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>How to pay:</Typography>
@@ -901,7 +932,7 @@ const Payments = () => {
                   1. Open GCash, PayMaya, or any banking app<br/>
                   2. Tap "Scan to Pay" or "QR Payment"<br/>
                   3. Scan the QR code above<br/>
-                  4. Enter amount: {formatCurrency(selectedPayment?.amount)}<br/>
+                  4. Enter the amount you are paying, up to {formatCurrency(selectedPayment?.amount)}<br/>
                   5. Complete the payment and save the reference number
                 </Typography>
               </Alert>
@@ -1035,6 +1066,18 @@ const Payments = () => {
                         {formatCurrency(receiptData.amount)}
                       </Typography>
                     </Grid>
+                    {!!receiptData.remainingBalance && (
+                      <>
+                        <Grid item xs={6}>
+                          <Typography variant="caption" color="textSecondary">Remaining Balance:</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: themeColors.warning }}>
+                            {formatCurrency(receiptData.remainingBalance)}
+                          </Typography>
+                        </Grid>
+                      </>
+                    )}
                     <Grid item xs={12}>
                       <Typography variant="caption" color="textSecondary" sx={{ mt: 2, display: 'block' }}>
                         Description: {receiptData.description}

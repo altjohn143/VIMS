@@ -19,6 +19,11 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../utils/api';
 import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
+const parseReservationQuantity = (value) => {
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+};
+
 const ReservationsScreen = ({ navigation }) => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -250,7 +255,15 @@ const ReservationsScreen = ({ navigation }) => {
 
     setFormData({
       ...formData,
-      items: [...formData.items, { ...currentItem }],
+      items: [
+        ...formData.items,
+        {
+          ...currentItem,
+          quantity: currentItem.resourceType === 'equipment'
+            ? parseReservationQuantity(currentItem.quantity)
+            : 1
+        }
+      ],
     });
 
     setCurrentItem({
@@ -268,8 +281,9 @@ const ReservationsScreen = ({ navigation }) => {
   };
 
   const handleUpdateItemQuantity = (index, newQuantity) => {
+    const nextQuantity = String(newQuantity).replace(/\D/g, '');
     const updatedItems = [...formData.items];
-    updatedItems[index].quantity = parseInt(newQuantity) || 1;
+    updatedItems[index].quantity = nextQuantity === '' ? '' : parseReservationQuantity(nextQuantity);
     setFormData({
       ...formData,
       items: updatedItems,
@@ -308,6 +322,10 @@ const ReservationsScreen = ({ navigation }) => {
 
       const data = {
         ...formData,
+        items: formData.items.map((item) => ({
+          ...item,
+          quantity: item.resourceType === 'equipment' ? parseReservationQuantity(item.quantity) : 1
+        })),
         startDate: formData.startDate.toISOString(),
         endDate: formData.endDate.toISOString(),
       };
@@ -857,8 +875,15 @@ const ReservationsScreen = ({ navigation }) => {
                   <TextInput
                     style={styles.numberInput}
                     placeholder="1"
-                    value={currentItem.quantity.toString()}
-                    onChangeText={(text) => setCurrentItem({ ...currentItem, quantity: parseInt(text) || 1 })}
+                    value={String(currentItem.quantity)}
+                    onChangeText={(text) => {
+                      const quantity = text.replace(/\D/g, '');
+                      setCurrentItem({ ...currentItem, quantity });
+                    }}
+                    onBlur={() => setCurrentItem({
+                      ...currentItem,
+                      quantity: parseReservationQuantity(currentItem.quantity)
+                    })}
                     keyboardType="number-pad"
                   />
                 </>
@@ -890,8 +915,13 @@ const ReservationsScreen = ({ navigation }) => {
                             <Text style={styles.label}>Qty:</Text>
                             <TextInput
                               style={styles.quantityInput}
-                              value={item.quantity.toString()}
+                              value={String(item.quantity)}
                               onChangeText={(text) => handleUpdateItemQuantity(index, text)}
+                              onBlur={() => {
+                                const updatedItems = [...formData.items];
+                                updatedItems[index].quantity = parseReservationQuantity(item.quantity);
+                                setFormData({ ...formData, items: updatedItems });
+                              }}
                               keyboardType="number-pad"
                             />
                           </View>
@@ -1609,9 +1639,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 10,
+    gap: 10,
   },
   itemInfo: {
     flex: 1,
+    minWidth: 0,
   },
   itemName: {
     fontSize: 15,
@@ -1627,9 +1659,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 0,
   },
   quantityInput: {
-    width: 50,
+    width: 58,
+    minHeight: 38,
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 6,

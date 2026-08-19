@@ -182,7 +182,8 @@ router.get('/my', protect, authorize('resident'), async (req, res) => {
     const requests = await ServiceRequest.find(filter)
       .populate('assignedTo', 'firstName lastName role')
       .populate('cancelledBy', 'firstName lastName role')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     
     res.json({
       success: true,
@@ -209,7 +210,8 @@ router.get('/my/archived', protect, authorize('resident'), async (req, res) => {
     const requests = await ServiceRequest.find(filter)
       .populate('assignedTo', 'firstName lastName role')
       .populate('cancelledBy', 'firstName lastName role')
-      .sort({ archivedAt: -1, updatedAt: -1 });
+      .sort({ archivedAt: -1, updatedAt: -1 })
+      .lean();
 
     res.json({
       success: true,
@@ -259,7 +261,8 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
       .populate('reviewedBy', 'firstName lastName')
       .populate('completedBy', 'firstName lastName')
       .populate('cancelledBy', 'firstName lastName role')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     
     res.json({
       success: true,
@@ -648,7 +651,8 @@ router.get('/my', protect, async (req, res) => {
     const requests = await ServiceRequest.find(query)
       .populate('residentId', 'firstName lastName email phone houseNumber')
       .populate('assignedTo', 'firstName lastName role')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     
     res.json({
       success: true,
@@ -672,7 +676,8 @@ router.get('/admin/pending', protect, authorize('admin'), async (req, res) => {
       isArchived: false
     })
       .populate('residentId', 'firstName lastName houseNumber phone email')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     
     res.json({
       success: true,
@@ -1117,7 +1122,8 @@ router.get('/archived', protect, authorize('admin'), async (req, res) => {
       .populate('residentId', 'firstName lastName email houseNumber')
       .populate('assignedTo', 'firstName lastName email')
       .populate('archivedBy', 'firstName lastName email')
-      .sort({ archivedAt: -1 });
+      .sort({ archivedAt: -1 })
+      .lean();
     
     res.json({
       success: true,
@@ -1159,7 +1165,8 @@ router.get('/export', protect, authorize('admin', 'security'), async (req, res) 
     const serviceRequests = await ServiceRequest.find(filter)
       .populate('residentId', 'firstName lastName email')
       .populate('assignedTo', 'firstName lastName')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (!serviceRequests.length) {
       return res.status(404).json({

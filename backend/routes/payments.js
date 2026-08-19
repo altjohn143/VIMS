@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { getCached } = require('../utils/cache');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
 const Setting = require('../models/Setting');
@@ -509,9 +510,11 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     if (startDate) filter.createdAt = { ...filter.createdAt, $gte: new Date(startDate) };
     if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate + 'T23:59:59.999') };
 
-    let payments = await Payment.find(filter)
+let payments = await Payment.find(filter)
+      .select('residentId amount paidAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber description')
       .populate('residentId', 'firstName lastName houseNumber')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     await applyDailyPenalties(payments);
 
     const searchText = String(search || '').trim().toLowerCase();
@@ -811,42 +814,51 @@ router.post('/send-reminders', protect, authorize('admin'), async (req, res) => 
 router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
   try {
     const { year, month } = req.query;
-    let startDate, endDate;
-
-    if (year && month) {
-      // Specific month
-      startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
-    } else {
-      // Current month by default
-      startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-      endDate = new Date();
-    }
-
-    const [allPayments, totalInvoices, paidInvoices] = await Promise.all([
-      Payment.find({}),
-      Payment.countDocuments({}),
-      Payment.countDocuments({ status: 'paid' })
-    ]);
-    await applyDailyPenalties(allPayments);
-    const totalCollected = allPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
-    const monthlyPayments = allPayments.filter(payment => payment.createdAt >= startDate && payment.createdAt <= endDate);
-    const monthlyCollected = monthlyPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
-    const paymentCount = monthlyPayments.filter(payment => Number(payment.paidAmount || 0) > 0 || payment.status === 'paid').length;
-    const pendingTotal = allPayments
-      .filter(payment => payment.status === 'pending')
-      .reduce((sum, payment) => sum + getOutstandingAmount(payment), 0);
-
-    res.json({
-      success: true,
-      data: {
+    
+    const cacheKey = `payment-stats:${year || 'current'}:${month || 'current'}`;
+    const ttlMs = 60 * 1000; // 1 minute TTL
+    
+    const data = await getCached(cacheKey, ttlMs, async () => {
+      let startDate, endDate;
+  
+      if (year && month) {
+        // Specific month
+        startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
+      } else {
+        // Current month by default
+        startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        endDate = new Date();
+      }
+  
+      const [allPayments, totalInvoices, paidInvoices] = await Promise.all([
+        Payment.find({}).lean(),
+        Payment.countDocuments({}),
+        Payment.countDocuments({ status: 'paid' })
+      ]);
+      await applyDailyPenalties(allPayments);
+      const totalCollected = allPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
+      const monthlyPayments = allPayments.filter(payment => payment.createdAt >= startDate && payment.createdAt <= endDate);
+      const monthlyCollected = monthlyPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
+      const paymentCount = monthlyPayments.filter(payment => Number(payment.paidAmount || 0) > 0 || payment.status === 'paid').length;
+      const pendingTotal = allPayments
+        .filter(payment => payment.status === 'pending')
+        .reduce((sum, payment) => sum + getOutstandingAmount(payment), 0);
+  
+      return {
         totalCollected,
         monthlyCollected,
         paymentCount,
         pendingTotal,
         collectionRate: totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 1000) / 10 : 0
-      }
+      };
     });
+    
+    res.json({
+      success: true,
+      data
+    });
+    
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to get stats' });
   }

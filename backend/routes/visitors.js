@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { getCached } = require('../utils/cache');
 const Visitor = require('../models/Visitor');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
@@ -1519,7 +1520,8 @@ router.get('/admin/logs', protect, authorize('admin'), async (req, res) => {
       .populate('approvedBy', 'firstName lastName role')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
 
     visitors.forEach(attachQrStatus);
     
@@ -1653,13 +1655,19 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
         error: 'Start date must be before or equal to end date'
       });
     }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const filter = {};
+    // Cache key includes filter params so different filters get separate cache entries
+    const cacheKey = `visitor-stats:${startDate || 'none'}:${endDate || 'none'}:${status || 'all'}`;
+    const ttlMs = 60 * 1000; // 1 minute TTL for stats
+    
+    const data = await getCached(cacheKey, 60 * 1000, async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const filter = {};
     if (status && status !== 'all') filter.status = status;
     if (startDate || endDate) {
       filter.expectedArrival = {};
@@ -1767,11 +1775,9 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
       {
         $sort: { count: -1 }
       }
-    ]);
-    
-    res.json({
-      success: true,
-      data: {
+]);
+     
+      return {
         totals: {
           totalVisitors,
           todayVisitors,
@@ -1787,7 +1793,12 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
           start: thirtyDaysAgo,
           end: new Date()
         }
-      }
+      };
+    });
+    
+    res.json({
+      success: true,
+      data
     });
     
   } catch (error) {

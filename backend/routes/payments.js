@@ -34,7 +34,9 @@ function getOutstandingAmount(payment) {
 }
 
 function syncPaymentAmounts(payment) {
-  if (payment.originalAmount == null) payment.originalAmount = Number(payment.amount || 0);
+  if (payment.originalAmount == null && typeof payment.isModified === 'function') {
+    payment.originalAmount = Number(payment.amount || 0);
+  }
   payment.amount = getOutstandingAmount(payment);
 }
 
@@ -81,6 +83,30 @@ async function setMonthlyDuesAmount(amount) {
   );
 }
 
+async function applyResidentCreditToPayment(resident, payment) {
+  const creditBalance = Number(resident.paymentCreditBalance || 0);
+  if (creditBalance <= 0) return payment;
+
+  syncPaymentAmounts(payment);
+  const outstanding = getOutstandingAmount(payment);
+  if (outstanding <= 0) return payment;
+
+  const creditApplied = Math.min(creditBalance, outstanding);
+  payment.paidAmount = Number(payment.paidAmount || 0) + creditApplied;
+  payment.paymentHistory.push({
+    amount: creditApplied,
+    paymentMethod: 'credit',
+    referenceNumber: '',
+    receiptNumber: `CR-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    notes: 'Applied resident overpayment credit to this invoice'
+  });
+  syncPaymentAmounts(payment);
+  payment.status = getOutstandingAmount(payment) <= 0 ? 'paid' : 'pending';
+  resident.paymentCreditBalance = creditBalance - creditApplied;
+  await Promise.all([payment.save(), resident.save()]);
+  return payment;
+}
+
 async function createMonthlyDuesForResident(resident, targetMonth, targetYear) {
   const dueDay = 10;
   const defaultInclusions = ['Maintenance', 'Security', 'Garbage', 'Common Area Upkeep', 'Administrative fees'];
@@ -98,7 +124,7 @@ async function createMonthlyDuesForResident(resident, targetMonth, targetYear) {
 
   const monthlyDuesAmount = await getMonthlyDuesAmount();
 
-  return await Payment.create({
+  const payment = await Payment.create({
     residentId: resident._id,
     amount: monthlyDuesAmount,
     originalAmount: monthlyDuesAmount,
@@ -110,6 +136,7 @@ async function createMonthlyDuesForResident(resident, targetMonth, targetYear) {
     notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
     inclusions: defaultInclusions
   });
+  return await applyResidentCreditToPayment(resident, payment);
 }
 
 function hasSubmittedPaymentForReview(payment) {
@@ -133,6 +160,7 @@ router.get('/test', (req, res) => {
 router.get('/my', protect, authorize('resident'), async (req, res) => {
   try {
     const payments = await Payment.find({ residentId: req.user.id }).sort({ createdAt: -1 });
+    const resident = await User.findById(req.user.id).select('paymentCreditBalance');
     await applyDailyPenalties(payments);
     const totalPaid = payments.reduce((sum, p) => sum + Number(p.paidAmount || (p.status === 'paid' ? p.amount : 0)), 0);
     const pendingPayments = payments.filter(p => p.status === 'pending');
@@ -146,7 +174,8 @@ router.get('/my', protect, authorize('resident'), async (req, res) => {
         totalPending: pendingPayments.reduce((sum, p) => sum + getOutstandingAmount(p), 0),
         pendingCount: pendingPayments.length,
         overdueCount: overduePayments.length,
-        overdueAmount: overduePayments.reduce((sum, p) => sum + getOutstandingAmount(p), 0)
+        overdueAmount: overduePayments.reduce((sum, p) => sum + getOutstandingAmount(p), 0),
+        creditBalance: Number(resident?.paymentCreditBalance || 0)
       }
     });
   } catch (error) {
@@ -188,7 +217,11 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
 
     const dues = await applyDailyPenalty(await createMonthlyDuesForResident(user, targetMonth, targetYear));
 
-    res.json({ success: true, data: dues });
+    res.json({
+      success: true,
+      data: dues,
+      summary: { creditBalance: Number(user.paymentCreditBalance || 0) }
+    });
   } catch (error) {
     console.error('Get current dues error:', error);
     res.status(500).json({ success: false, error: error.message || 'Failed to get current dues' });
@@ -511,8 +544,8 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate + 'T23:59:59.999') };
 
 let payments = await Payment.find(filter)
-      .select('residentId amount paidAmount submittedAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber receiptImage receiptAi description')
-      .populate('residentId', 'firstName lastName houseNumber')
+      .select('residentId amount originalAmount paidAmount submittedAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber receiptImage receiptAi description')
+      .populate('residentId', 'firstName lastName houseNumber paymentCreditBalance')
       .sort({ createdAt: -1 })
       .lean();
     await applyDailyPenalties(payments);
@@ -686,6 +719,7 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     }
 
     const appliedAmount = Math.min(verifiedAmount, outstandingBeforePayment);
+    const creditedAmount = Math.max(0, verifiedAmount - outstandingBeforePayment);
     const receiptNumber = `RC-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
     payment.paidAmount = Number(payment.paidAmount || 0) + appliedAmount;
@@ -694,6 +728,7 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     payment.receiptNumber = receiptNumber;
     payment.paymentHistory.push({
       amount: appliedAmount,
+      creditedAmount,
       paymentMethod: payment.paymentMethod || req.body.paymentMethod || 'cash',
       referenceNumber: payment.referenceNumber || '',
       receiptNumber,
@@ -718,6 +753,9 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     syncPaymentAmounts(payment);
     const remainingBalance = getOutstandingAmount(payment);
     payment.status = remainingBalance <= 0 ? 'paid' : 'pending';
+    if (creditedAmount > 0) {
+      await User.findByIdAndUpdate(payment.residentId, { $inc: { paymentCreditBalance: creditedAmount } });
+    }
     
     await payment.save();
     await createInAppNotification({
@@ -725,7 +763,7 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
       type: 'payment',
       title: payment.status === 'paid' ? 'Payment confirmed' : 'Partial payment confirmed',
       body: payment.status === 'paid'
-        ? `Your payment ${payment.invoiceNumber} has been confirmed.`
+        ? `Your payment ${payment.invoiceNumber} has been confirmed.${creditedAmount > 0 ? ` Excess payment of PHP ${creditedAmount.toFixed(2)} was added as credit for future dues.` : ''}`
         : `Your partial payment of PHP ${appliedAmount.toFixed(2)} was confirmed. Remaining balance: PHP ${remainingBalance.toFixed(2)}.`,
       metadata: { paymentId: payment._id }
     });
@@ -745,7 +783,7 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     res.json({
       success: true,
       message: payment.status === 'paid' ? 'Payment confirmed' : 'Partial payment confirmed',
-      data: { email: emailResult, appliedAmount, remainingBalance, paymentStatus: payment.status }
+      data: { email: emailResult, appliedAmount, creditedAmount, remainingBalance, paymentStatus: payment.status }
     });
   } catch (error) {
     console.error('Confirm payment error:', error);

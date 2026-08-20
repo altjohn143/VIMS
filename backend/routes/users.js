@@ -40,6 +40,42 @@ async function getMonthlyDuesAmount() {
   return typeof setting?.value === 'number' ? setting.value : 500;
 }
 
+function getOutstandingAmount(payment) {
+  const baseAmount = Number(payment.originalAmount ?? payment.amount ?? 0);
+  const paidAmount = Number(payment.paidAmount || 0);
+  const penaltyAmount = Number(payment.penaltyAmount || 0);
+  return Math.max(0, baseAmount + penaltyAmount - paidAmount);
+}
+
+function syncPaymentAmounts(payment) {
+  if (payment.originalAmount == null) payment.originalAmount = Number(payment.amount || 0);
+  payment.amount = getOutstandingAmount(payment);
+}
+
+async function applyResidentCreditToPayment(resident, payment) {
+  const creditBalance = Number(resident.paymentCreditBalance || 0);
+  if (creditBalance <= 0) return payment;
+
+  syncPaymentAmounts(payment);
+  const outstanding = getOutstandingAmount(payment);
+  if (outstanding <= 0) return payment;
+
+  const creditApplied = Math.min(creditBalance, outstanding);
+  payment.paidAmount = Number(payment.paidAmount || 0) + creditApplied;
+  payment.paymentHistory.push({
+    amount: creditApplied,
+    paymentMethod: 'credit',
+    referenceNumber: '',
+    receiptNumber: `CR-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    notes: 'Applied resident overpayment credit to this invoice'
+  });
+  syncPaymentAmounts(payment);
+  payment.status = getOutstandingAmount(payment) <= 0 ? 'paid' : 'pending';
+  resident.paymentCreditBalance = creditBalance - creditApplied;
+  await Promise.all([payment.save(), resident.save()]);
+  return payment;
+}
+
 async function createMonthlyDuesForResident(resident) {
   const dueDay = 10;
   const defaultInclusions = ['Maintenance', 'Security', 'Garbage', 'Common Area Upkeep', 'Administrative fees'];
@@ -73,9 +109,10 @@ async function createMonthlyDuesForResident(resident) {
   }
 
   const monthlyDuesAmount = await getMonthlyDuesAmount();
-  return await Payment.create({
+  const payment = await Payment.create({
     residentId: resident._id,
     amount: monthlyDuesAmount,
+    originalAmount: monthlyDuesAmount,
     paymentType: 'monthly_dues',
     status: 'pending',
     dueDate: new Date(targetYear, targetMonth - 1, dueDay),
@@ -84,6 +121,7 @@ async function createMonthlyDuesForResident(resident) {
     notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
     inclusions: defaultInclusions
   });
+  return await applyResidentCreditToPayment(resident, payment);
 }
 
 // ===== TEST ROUTE - REMOVE AFTER DEBUGGING =====

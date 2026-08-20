@@ -218,6 +218,12 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: true
     }
+  },
+
+  paymentCreditBalance: {
+    type: Number,
+    min: 0,
+    default: 0
   }
 
   ,

@@ -81,7 +81,8 @@ const Payments = () => {
     totalPending: 0, 
     pendingCount: 0, 
     overdueCount: 0, 
-    overdueAmount: 0 
+    overdueAmount: 0,
+    creditBalance: 0
   });
   const [currentDues, setCurrentDues] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -478,11 +479,9 @@ const Payments = () => {
               shadow: '0 14px 34px rgba(220,38,38,0.34)'
             },
             {
-              value: summary.totalPaid > 0
-                ? `${((summary.totalPaid / (summary.totalPaid + summary.totalPending)) * 100).toFixed(1)}%`
-                : '0%',
-              label: 'Collection Rate',
-              helper: 'payment health',
+              value: formatCurrency(summary.creditBalance),
+              label: 'Available Credit',
+              helper: 'applies to future dues',
               icon: <HistoryIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 42 }} />,
               gradient: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)',
               shadow: '0 14px 34px rgba(29,78,216,0.34)'

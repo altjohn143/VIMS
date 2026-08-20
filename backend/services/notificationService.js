@@ -215,6 +215,8 @@ async function sendPaymentConfirmationEmail(payment, resident) {
     ? payment.paymentHistory[payment.paymentHistory.length - 1]
     : null;
   const amount = formatAmount(latestReceipt?.amount ?? payment.paidAmount ?? payment.amount);
+  const creditedAmount = Number(latestReceipt?.creditedAmount || 0);
+  const creditText = creditedAmount > 0 ? formatAmount(creditedAmount) : '';
   const remainingBalance = formatAmount(payment.amount);
   const isPartial = payment.status === 'pending' && Number(payment.amount || 0) > 0;
   const paymentDate = formatDate(payment.paymentDate || new Date());
@@ -239,6 +241,7 @@ async function sendPaymentConfirmationEmail(payment, resident) {
         <tbody>
           <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Invoice</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(invoiceNumber)}</td></tr>
           <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Amount paid</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(amount)}</td></tr>
+          ${creditedAmount > 0 ? `<tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Credit added</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(creditText)}</td></tr>` : ''}
           ${isPartial ? `<tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Remaining balance</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(remainingBalance)}</td></tr>` : ''}
           <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Due date</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(dueDate)}</td></tr>
           <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0;font-weight:bold">Paid date</td><td style="padding:10px;border-bottom:1px solid #e2e8f0">${escapeHtml(paymentDate)}</td></tr>
@@ -246,9 +249,9 @@ async function sendPaymentConfirmationEmail(payment, resident) {
           <tr><td style="padding:10px;font-weight:bold">Receipt</td><td style="padding:10px">${escapeHtml(receiptNumber)}</td></tr>
         </tbody>
       </table>
-      <p>${isPartial ? 'Your invoice remains open until the remaining balance is fully paid.' : 'Thank you for keeping your dues updated.'}</p>
+      <p>${creditedAmount > 0 ? `Your excess payment of ${escapeHtml(creditText)} was saved as credit for future dues.` : isPartial ? 'Your invoice remains open until the remaining balance is fully paid.' : 'Thank you for keeping your dues updated.'}</p>
     </div>`,
-    text: `Hello ${firstName},\n\nYour ${isPartial ? 'partial payment' : 'payment'} to WESTVILLE CASIMIRO Bacoor City, Cavite, Philippines for your Monthly Dues has been approved by the admin.\n\nInvoice: ${invoiceNumber}\nAmount paid: ${amount}${isPartial ? `\nRemaining balance: ${remainingBalance}` : ''}\nDue date: ${dueDate}\nPaid date: ${paymentDate}\nMethod: ${paymentMethod}\nReceipt: ${receiptNumber}\n\n${isPartial ? 'Your invoice remains open until the remaining balance is fully paid.' : 'Thank you for keeping your dues updated.'}`
+    text: `Hello ${firstName},\n\nYour ${isPartial ? 'partial payment' : 'payment'} to WESTVILLE CASIMIRO Bacoor City, Cavite, Philippines for your Monthly Dues has been approved by the admin.\n\nInvoice: ${invoiceNumber}\nAmount paid: ${amount}${creditedAmount > 0 ? `\nCredit added: ${creditText}` : ''}${isPartial ? `\nRemaining balance: ${remainingBalance}` : ''}\nDue date: ${dueDate}\nPaid date: ${paymentDate}\nMethod: ${paymentMethod}\nReceipt: ${receiptNumber}\n\n${creditedAmount > 0 ? `Your excess payment of ${creditText} was saved as credit for future dues.` : isPartial ? 'Your invoice remains open until the remaining balance is fully paid.' : 'Thank you for keeping your dues updated.'}`
   });
 
   if (result?.error) {

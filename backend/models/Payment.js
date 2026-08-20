@@ -37,6 +37,7 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentHistory: [{
     amount: { type: Number, min: 0, required: true },
+    creditedAmount: { type: Number, min: 0, default: 0 },
     paymentMethod: { type: String },
     referenceNumber: { type: String },
     receiptNumber: { type: String },

@@ -27,6 +27,24 @@ import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 
+const getQrScanErrorMessage = (error) => {
+  const serverMessage = error?.response?.data?.error;
+  if (!serverMessage) return 'Please scan a valid VIMS visitor pass.';
+
+  const normalized = String(serverMessage).toLowerCase();
+  if (
+    normalized.includes('invalid qr') ||
+    normalized.includes('not found') ||
+    normalized.includes('no longer valid') ||
+    normalized.includes('expired') ||
+    normalized.includes('already been used')
+  ) {
+    return serverMessage;
+  }
+
+  return serverMessage || 'Please scan a valid VIMS visitor pass.';
+};
+
 const VisitorManagementScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
   const [allVisitors, setAllVisitors] = useState([]);
@@ -332,7 +350,7 @@ const VisitorManagementScreen = ({ navigation }) => {
         fetchVisitors();
       }
     } catch (error) {
-      Alert.alert('Unable to Confirm', error?.response?.data?.error || 'Failed to confirm visitor');
+      Alert.alert('Invalid Visitor Pass', getQrScanErrorMessage(error));
     } finally {
       setTimeout(() => setIsConfirmingScan(false), 800);
     }

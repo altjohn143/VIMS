@@ -5,6 +5,24 @@ import { Camera, CameraView } from 'expo-camera';
 import api from '../../utils/api';
 import { themeColors, roleLayouts } from '../../utils/theme';
 
+const getQrScanErrorMessage = (error) => {
+  const serverMessage = error?.response?.data?.error;
+  if (!serverMessage) return 'Please scan a valid VIMS visitor pass.';
+
+  const normalized = String(serverMessage).toLowerCase();
+  if (
+    normalized.includes('invalid qr') ||
+    normalized.includes('not found') ||
+    normalized.includes('no longer valid') ||
+    normalized.includes('expired') ||
+    normalized.includes('already been used')
+  ) {
+    return serverMessage;
+  }
+
+  return serverMessage || 'Please scan a valid VIMS visitor pass.';
+};
+
 const SecurityQrScannerScreen = ({ route }) => {
   const [hasPermission, setHasPermission] = useState(false);
   const [isHandlingScan, setIsHandlingScan] = useState(false);
@@ -66,7 +84,7 @@ const SecurityQrScannerScreen = ({ route }) => {
         );
       }
     } catch (error) {
-      Alert.alert('Scan Failed', error?.response?.data?.error || 'Unable to process visitor pass');
+      Alert.alert('Invalid Visitor Pass', getQrScanErrorMessage(error));
     } finally {
       setTimeout(() => setIsHandlingScan(false), 900);
     }

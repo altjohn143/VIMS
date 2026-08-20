@@ -511,7 +511,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate + 'T23:59:59.999') };
 
 let payments = await Payment.find(filter)
-      .select('residentId amount paidAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber description')
+      .select('residentId amount paidAmount submittedAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber receiptImage receiptAi description')
       .populate('residentId', 'firstName lastName houseNumber')
       .sort({ createdAt: -1 })
       .lean();
@@ -708,8 +708,8 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     }
 
     payment.paymentMethod = null;
-    payment.referenceNumber = null;
-    payment.transactionId = null;
+    payment.referenceNumber = undefined;
+    payment.transactionId = undefined;
     payment.receiptImage = null;
     payment.receiptImagePublicId = null;
     payment.submittedAmount = null;
@@ -748,6 +748,7 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
       data: { email: emailResult, appliedAmount, remainingBalance, paymentStatus: payment.status }
     });
   } catch (error) {
+    console.error('Confirm payment error:', error);
     res.status(500).json({ success: false, error: 'Failed to confirm payment' });
   }
 });

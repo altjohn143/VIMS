@@ -145,6 +145,15 @@ const getExitPrerequisiteMessage = (visitor) => {
   return '';
 };
 
+const INVALID_VISITOR_PASS_MESSAGE = 'Invalid QR code. Please scan a valid VIMS visitor pass.';
+const USED_VISITOR_PASS_MESSAGE = 'This visitor pass has already been used and is no longer valid.';
+const EXPIRED_VISITOR_PASS_MESSAGE = 'This visitor pass has expired. Please use a valid visitor pass.';
+
+const isVisitorPassExpired = (visitor) => {
+  if (!visitor?.expectedDeparture) return false;
+  return new Date(visitor.expectedDeparture).getTime() < Date.now();
+};
+
 const notifyJurisdictionSecurityOfDeparture = async (visitor) => {
   const resident = visitor?.residentId;
   if (!resident) return;
@@ -612,7 +621,7 @@ router.post('/scan', protect, authorize('security'), async (req, res) => {
         .populate('residentId', 'firstName lastName houseNumber phone');
     }
     if (!visitor) {
-      return res.status(404).json({ success: false, error: 'Invalid QR code' });
+      return res.status(404).json({ success: false, error: INVALID_VISITOR_PASS_MESSAGE });
     }
 
     attachQrStatus(visitor);
@@ -1088,7 +1097,7 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
     const visitor = await findVisitorByScanValue(scanValue);
 
     if (!visitor) {
-      return res.status(404).json({ success: false, error: 'Invalid QR code' });
+      return res.status(404).json({ success: false, error: INVALID_VISITOR_PASS_MESSAGE });
     }
 
     const progress = getVisitorProgress(visitor);
@@ -1099,10 +1108,16 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
     }
 
     if (action === 'entry') {
+      if (visitor.status === 'completed') {
+        return res.status(400).json({ success: false, error: USED_VISITOR_PASS_MESSAGE });
+      }
+      if (isVisitorPassExpired(visitor)) {
+        return res.status(400).json({ success: false, error: EXPIRED_VISITOR_PASS_MESSAGE });
+      }
       if (!['approved', 'active'].includes(visitor.status)) {
         return res.status(400).json({
           success: false,
-          error: `Visitor pass is currently ${visitor.status} and cannot be scanned for gate entry.`
+          error: INVALID_VISITOR_PASS_MESSAGE
         });
       }
       if (progress.entryScanCount >= progress.groupSize) {
@@ -1135,10 +1150,13 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
     }
 
     if (action === 'exit') {
+      if (visitor.status === 'completed') {
+        return res.status(400).json({ success: false, error: USED_VISITOR_PASS_MESSAGE });
+      }
       if (visitor.status !== 'active') {
         return res.status(400).json({
           success: false,
-          error: `Visitor pass is currently ${visitor.status} and cannot be scanned for gate exit.`
+          error: INVALID_VISITOR_PASS_MESSAGE
         });
       }
       const exitPrerequisiteMessage = getExitPrerequisiteMessage(visitor);
@@ -1197,13 +1215,13 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
     if (visitor.status === 'completed') {
       return res.status(400).json({
         success: false,
-        error: 'Visitor pass is already completed and no longer valid.'
+        error: USED_VISITOR_PASS_MESSAGE
       });
     }
 
     return res.status(400).json({
       success: false,
-      error: `Visitor pass is currently ${visitor.status} and cannot be scanned for gate action.`
+      error: INVALID_VISITOR_PASS_MESSAGE
     });
   } catch (error) {
     console.error('Security scan action error:', error);
@@ -1218,17 +1236,25 @@ router.post('/confirm-arrival', protect, authorize('resident'), async (req, res)
     const visitor = await findVisitorByScanValue(scanValue);
 
     if (!visitor) {
-      return res.status(404).json({ success: false, error: 'Invalid QR code' });
+      return res.status(404).json({ success: false, error: INVALID_VISITOR_PASS_MESSAGE });
     }
 
     if (String(visitor.residentId?._id || visitor.residentId) !== String(req.user.id)) {
       return res.status(403).json({ success: false, error: 'This pass does not belong to your account.' });
     }
 
+    if (visitor.status === 'completed') {
+      return res.status(400).json({ success: false, error: USED_VISITOR_PASS_MESSAGE });
+    }
+
+    if (visitor.status !== 'active' && isVisitorPassExpired(visitor)) {
+      return res.status(400).json({ success: false, error: EXPIRED_VISITOR_PASS_MESSAGE });
+    }
+
     if (visitor.status !== 'active') {
       return res.status(400).json({
         success: false,
-        error: `Security must scan the visitor for gate entry before resident confirmation (current: ${visitor.status}).`
+        error: INVALID_VISITOR_PASS_MESSAGE
       });
     }
 

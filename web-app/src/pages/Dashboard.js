@@ -2008,8 +2008,8 @@ const Dashboard = () => {
                       ...dashboardStats,
                       ...(user?.role === 'resident'
                         ? [{
-                          label: 'Monthly Collec  ion',
-                          value: collectionLoading ? 'Loadingâ€¦' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '0',
+                          label: 'Monthly Collection',
+                          value: collectionLoading ? 'Loading...' : monthlyCollection != null ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0 }).format(monthlyCollection) : '₱0',
                           helper: collectionLoading ? 'Fetching latest totals' : collectionError ? collectionError : 'Updated automatically for the current month',
                           icon: <VerifiedUserIcon sx={{ fontSize: 56 }} />,
                           style: statCardStyles[1]

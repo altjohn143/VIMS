@@ -8,7 +8,9 @@ const { paginateQuery } = require('../utils/pagination');
 const AMENITY_LOTS = {
   'P4-B3-L6': 'Covered Court',
   'P2-B5-L13': 'Covered Court',
-  'P4-B2-L7': 'Swimming Pool'
+  'P4-B2-L7': 'Swimming Pool',
+  'P3-B5-L9': 'Multi-Purpose Hall',
+  'P3-B15-L9': 'Multi-Purpose Hall'
 };
 
 const OLD_AMENITY_LOTS = ['P4-B18-L6', 'P2-B10-L13', 'P4-B17-L7'];

@@ -631,16 +631,18 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
         borderTop: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', flexDirection: 'column', gap: 1.2,
       }}>
-        {!isAmenity && <Button fullWidth variant="outlined"
-          onClick={() => onTour(lot)}
-          sx={{
-            borderColor: 'rgba(255,255,255,0.18)', color: 'white',
-            borderRadius: 2, textTransform: 'none', fontWeight: 600,
-            py: 1.1, fontSize: '0.88rem',
-            '&:hover': { borderColor: 'rgba(255,255,255,0.45)', backgroundColor: 'rgba(255,255,255,0.04)' },
-          }}>
-          🎥 &nbsp; Start Virtual Tour
-        </Button>}
+        {!isAmenity && (
+          <Button fullWidth variant="outlined"
+            onClick={() => onTour(lot)}
+            sx={{
+              borderColor: 'rgba(255,255,255,0.18)', color: 'white',
+              borderRadius: 2, textTransform: 'none', fontWeight: 600,
+              py: 1.1, fontSize: '0.88rem',
+              '&:hover': { borderColor: 'rgba(255,255,255,0.45)', backgroundColor: 'rgba(255,255,255,0.04)' },
+            }}>
+            🎥 &nbsp; Start Virtual Tour
+          </Button>
+        )}
         {lot.status === 'vacant' && (
           <Button fullWidth variant="contained"
             startIcon={<RegisterIcon />}
@@ -1054,21 +1056,21 @@ const PublicLotMap = () => {
           }}
         >
           Available only
-        </Button>}
+        </Button>
         <Box sx={{ ml: 'auto', display: 'flex', gap: 0.8 }}>
           <IconButton size="small"
             onClick={() => setMapZoom(z => Math.min(19, z + 1))}
-            sx={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1.5 }}>
+            sx={{ color: '#007A18', border: '1px solid rgba(0,122,24,0.18)', borderRadius: 1.5, backgroundColor: '#FFFFFF' }}>
             <ZoomInIcon fontSize="small" />
           </IconButton>
           <IconButton size="small"
             onClick={() => setMapZoom(z => Math.max(14, z - 1))}
-            sx={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1.5 }}>
+            sx={{ color: '#007A18', border: '1px solid rgba(0,122,24,0.18)', borderRadius: 1.5, backgroundColor: '#FFFFFF' }}>
             <ZoomOutIcon fontSize="small" />
           </IconButton>
           <IconButton size="small"
             onClick={resetMapView}
-            sx={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1.5 }}>
+            sx={{ color: '#007A18', border: '1px solid rgba(0,122,24,0.18)', borderRadius: 1.5, backgroundColor: '#FFFFFF' }}>
             <ResetViewIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -1274,8 +1276,8 @@ const PublicLotMap = () => {
           width: { xs: 0, lg: 340 },
           display: { xs: 'none', lg: 'flex' },
           flexDirection: 'column',
-          borderLeft: '1px solid rgba(255,255,255,0.08)',
-          backgroundColor: 'rgba(7,18,32,0.96)',
+          borderLeft: '1px solid rgba(0,122,24,0.14)',
+          backgroundColor: 'rgba(255,255,255,0.94)',
           overflowY: 'auto',
           flexShrink: 0,
         }}>
@@ -1291,8 +1293,8 @@ const PublicLotMap = () => {
               {/* Village summary header */}
               <Box sx={{
                 borderRadius: 2.5, overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.12)',
-                backgroundColor: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(0,122,24,0.14)',
+                backgroundColor: '#FFFFFF',
               }}>
                 <Box sx={{
                   height: 110, position: 'relative',
@@ -1307,21 +1309,21 @@ const PublicLotMap = () => {
                 </Box>
                 <Box sx={{ p: 1.5, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
                   {[
-                    { label: 'Total', value: stats.total, color: 'rgba(255,255,255,0.7)' },
+                    { label: 'Total', value: stats.total, color: '#17221C' },
                     { label: 'Available', value: stats.vacant, color: '#00D084' },
                     { label: 'Reserved', value: stats.reserved, color: '#fbbf24' },
                   ].map(s => (
-                    <Box key={s.label} sx={{ textAlign: 'center', py: 0.8, borderRadius: 1.5, backgroundColor: 'rgba(255,255,255,0.04)' }}>
+                    <Box key={s.label} sx={{ textAlign: 'center', py: 0.8, borderRadius: 1.5, backgroundColor: '#F8FAFC', border: '1px solid rgba(0,122,24,0.08)' }}>
                       <Typography sx={{ color: s.color, fontWeight: 800, fontSize: '1.2rem' }}>{s.value}</Typography>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.58rem' }}>{s.label}</Typography>
+                      <Typography sx={{ color: '#5E6D64', fontSize: '0.58rem', fontWeight: 700 }}>{s.label}</Typography>
                     </Box>
                   ))}
                 </Box>
               </Box>
 
               {/* Availability donut chart visual */}
-              <Box sx={{ borderRadius: 2, p: 1.8, backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', mb: 1.5 }}>
+              <Box sx={{ borderRadius: 2, p: 1.8, backgroundColor: '#FFFFFF', border: '1px solid rgba(0,122,24,0.14)' }}>
+                <Typography sx={{ color: '#5E6D64', fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', mb: 1.5 }}>
                   LOT AVAILABILITY
                 </Typography>
                 {Object.entries(STATUS_CONFIG).map(([key, cfg]) => {
@@ -1329,10 +1331,10 @@ const PublicLotMap = () => {
                   return (
                     <Box key={key} sx={{ mb: 1.2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.68rem' }}>{cfg.label}</Typography>
+                        <Typography sx={{ color: '#17221C', fontSize: '0.68rem', fontWeight: 700 }}>{cfg.label}</Typography>
                         <Typography sx={{ color: cfg.color, fontSize: '0.68rem', fontWeight: 700 }}>{stats[key]} ({pct}%)</Typography>
                       </Box>
-                      <Box sx={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+                      <Box sx={{ height: 6, borderRadius: 3, backgroundColor: 'rgba(0,122,24,0.09)', overflow: 'hidden' }}>
                         <Box sx={{ width: `${pct}%`, height: '100%', borderRadius: 3, backgroundColor: cfg.color, transition: 'width 0.5s ease' }} />
                       </Box>
                     </Box>
@@ -1342,7 +1344,7 @@ const PublicLotMap = () => {
 
               {/* Featured vacant lots */}
               <Box>
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', mb: 1.2 }}>
+                <Typography sx={{ color: '#5E6D64', fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.1em', mb: 1.2 }}>
                   ✨ FEATURED AVAILABLE LOTS
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1357,10 +1359,10 @@ const PublicLotMap = () => {
                         '&:hover': { backgroundColor: 'rgba(0,122,24,0.14)', borderColor: 'rgba(0,122,24,0.32)', transform: 'translateX(3px)' },
                       }}>
                       <Box>
-                        <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
+                        <Typography sx={{ color: '#17221C', fontWeight: 800, fontSize: '0.8rem' }}>
                           Phase {lot.phase} Block {lot.phaseBlock}, Lot {lot.lotNumber}
                         </Typography>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.62rem' }}>
+                        <Typography sx={{ color: '#5E6D64', fontSize: '0.62rem', fontWeight: 700 }}>
                           {lot.type} · {lot.sqm} sqm
                         </Typography>
                       </Box>
@@ -1368,7 +1370,7 @@ const PublicLotMap = () => {
                         <Typography sx={{ color: '#007A18', fontWeight: 700, fontSize: '0.75rem' }}>
                           ₱{(lot.price / 1000000).toFixed(1)}M
                         </Typography>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.58rem' }}>from</Typography>
+                        <Typography sx={{ color: '#89958E', fontSize: '0.58rem' }}>from</Typography>
                       </Box>
                     </Box>
                   ))}
@@ -1383,10 +1385,10 @@ const PublicLotMap = () => {
                 textAlign: 'center',
               }}>
                 <Typography sx={{ fontSize: '1.3rem', mb: 0.5 }}>🏡</Typography>
-                <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', mb: 0.5 }}>
+                <Typography sx={{ color: '#17221C', fontWeight: 800, fontSize: '0.85rem', mb: 0.5 }}>
                   Ready to move in?
                 </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.68rem', mb: 1.5, lineHeight: 1.5 }}>
+                <Typography sx={{ color: '#5E6D64', fontSize: '0.68rem', mb: 1.5, lineHeight: 1.5 }}>
                   Click any green lot on the map to view details and start your registration.
                 </Typography>
                 <Button component={Link} to="/register" fullWidth variant="contained"
@@ -1401,8 +1403,8 @@ const PublicLotMap = () => {
               </Box>
 
               {/* Info note */}
-              <Box sx={{ p: 1.5, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.62rem', lineHeight: 1.7, textAlign: 'center' }}>
+              <Box sx={{ p: 1.5, borderRadius: 2, backgroundColor: '#F8FAFC', border: '1px solid rgba(0,122,24,0.10)' }}>
+                <Typography sx={{ color: '#5E6D64', fontSize: '0.62rem', lineHeight: 1.7, textAlign: 'center' }}>
                   Map is for reference only.<br />
                   Contact admin for exact lot details, pricing & payment terms.
                 </Typography>

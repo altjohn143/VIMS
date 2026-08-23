@@ -40,13 +40,13 @@ import ReportToolbar from '../components/ReportToolbar';
 import { getBackendApiUrl } from '../utils/api';
 
 const themeColors = {
-  primary: '#166534',
-  primaryLight: '#22c55e',
-  primaryDark: '#14532d',
-  success: '#10b981',
+  primary: '#007A18',
+  primaryLight: '#00D084',
+  primaryDark: '#003D07',
+  success: '#00D084',
   warning: '#f59e0b',
   error: '#ef4444',
-  info: '#3b82f6',
+  info: '#007A18',
   background: '#f3f5f7',
   cardBackground: '#ffffff',
   textPrimary: '#0f172a',
@@ -483,7 +483,7 @@ const AdminLotManagement = () => {
         >
           <TableContainer>
             <Table>
-              <TableHead sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
+              <TableHead sx={{ bgcolor: 'rgba(0, 208, 132, 0.08)' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700 }}>Lot ID</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Location</TableCell>

@@ -52,13 +52,13 @@ const SURROUNDINGS_PHOTOS = [
 ];
 
 const VIEW_TABS = [
-  { key: 'outside',      label: 'Outside',      emoji: '🏠', photos: OUTSIDE_PHOTOS,      color: '#4ade80', desc: 'Exterior & garden views' },
+  { key: 'outside',      label: 'Outside',      emoji: '🏠', photos: OUTSIDE_PHOTOS,      color: '#00D084', desc: 'Exterior & garden views' },
   { key: 'inside',       label: 'Inside',       emoji: '🛋️', photos: INSIDE_PHOTOS,       color: '#60a5fa', desc: 'Interior rooms & layout' },
   { key: 'surroundings', label: 'Surroundings', emoji: '🌳', photos: SURROUNDINGS_PHOTOS, color: '#fbbf24', desc: 'Neighborhood & amenities' },
 ];
 
 const STATUS_CONFIG = {
-  vacant:   { color: '#22c55e', bg: '#dcfce7', label: 'Vacant',   border: '#16a34a' },
+  vacant:   { color: '#00D084', bg: '#dcfce7', label: 'Vacant',   border: '#00A85A' },
   occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', border: '#dc2626' },
   reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
   amenity:  { color: '#64748b', bg: '#e2e8f0', label: 'Community Amenity', border: '#94a3b8' },
@@ -237,9 +237,9 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
             <Button variant="contained" size="small" onClick={onRegister}
               startIcon={<RegisterIcon />}
               sx={{
-                backgroundColor: '#3b82f6', color: 'white', fontWeight: 700,
+                backgroundColor: '#007A18', color: 'white', fontWeight: 700,
                 borderRadius: 5, textTransform: 'none', fontSize: '0.75rem',
-                '&:hover': { backgroundColor: '#2563eb' },
+                '&:hover': { backgroundColor: '#003D07' },
                 display: { xs: 'none', sm: 'flex' },
               }}>
               Register for This Lot
@@ -358,9 +358,9 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
             <IconButton onClick={() => setIsPlaying(p => !p)} size="small" sx={{
               backgroundColor: isPlaying ? tabData.color : 'rgba(255,255,255,0.12)',
-              color: isPlaying ? '#052e16' : 'white',
+              color: isPlaying ? '#002F05' : 'white',
               border: `1px solid ${isPlaying ? tabData.color : 'rgba(255,255,255,0.18)'}`,
-              '&:hover': { backgroundColor: tabData.color, color: '#052e16' },
+              '&:hover': { backgroundColor: tabData.color, color: '#002F05' },
               transition: 'all 0.2s',
             }}>
               {isPlaying ? <PauseIcon fontSize="small" /> : <PlayIcon fontSize="small" />}
@@ -461,9 +461,9 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           {lot.status === 'vacant' && (
             <Button variant="contained" onClick={onRegister} size="small"
               sx={{
-                backgroundColor: '#3b82f6', color: 'white', fontWeight: 700,
+                backgroundColor: '#007A18', color: 'white', fontWeight: 700,
                 borderRadius: 5, textTransform: 'none', fontSize: '0.72rem', ml: 1,
-                '&:hover': { backgroundColor: '#2563eb' },
+                '&:hover': { backgroundColor: '#003D07' },
               }}>
               Register
             </Button>
@@ -644,9 +644,9 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
             startIcon={<RegisterIcon />}
             onClick={onRegister}
             sx={{
-              backgroundColor: '#3b82f6', color: 'white', fontWeight: 700,
+              backgroundColor: '#007A18', color: 'white', fontWeight: 700,
               borderRadius: 2, textTransform: 'none', py: 1.2, fontSize: '0.9rem',
-              '&:hover': { backgroundColor: '#2563eb' },
+              '&:hover': { backgroundColor: '#003D07' },
               boxShadow: '0 4px 16px rgba(59,130,246,0.25)',
             }}>
             Register for This Lot
@@ -841,7 +841,7 @@ const PublicLotMap = () => {
   if (loading) {
     return (
       <Box sx={{ minHeight: '100vh', background: 'linear-gradient(160deg, #07101f 0%, #10203a 40%, #1c2f48 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
-        <CircularProgress sx={{ color: '#3b82f6' }} />
+        <CircularProgress sx={{ color: '#007A18' }} />
         <Typography sx={{ color: 'white' }}>Loading village map...</Typography>
       </Box>
     );
@@ -853,7 +853,7 @@ const PublicLotMap = () => {
         <Alert severity="error" sx={{ maxWidth: 500 }}>
           {error}
         </Alert>
-        <Button variant="contained" onClick={() => window.location.reload()} sx={{ backgroundColor: '#2563eb' }}>
+        <Button variant="contained" onClick={() => window.location.reload()} sx={{ backgroundColor: '#003D07' }}>
           Retry
         </Button>
       </Box>
@@ -905,7 +905,7 @@ const PublicLotMap = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
             <Box sx={{
               width: 34, height: 34, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              background: 'linear-gradient(135deg, #007A18, #1d4ed8)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: '2px solid rgba(255,255,255,0.2)',
             }}>
@@ -933,7 +933,7 @@ const PublicLotMap = () => {
                 backgroundColor: 'rgba(255,255,255,0.08)',
                 '& fieldset': { borderColor: 'rgba(255,255,255,0.16)' },
                 '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.28)' },
-                '&.Mui-focused fieldset': { borderColor: '#3b82f6' },
+                '&.Mui-focused fieldset': { borderColor: '#007A18' },
               },
             }}
             inputProps={{ style: { color: 'white', fontSize: '0.76rem' } }}
@@ -941,9 +941,9 @@ const PublicLotMap = () => {
           />
           <Button component={Link} to="/register" variant="contained" size="small"
             sx={{
-              backgroundColor: '#3b82f6', borderRadius: 5, textTransform: 'none',
+              backgroundColor: '#007A18', borderRadius: 5, textTransform: 'none',
               fontWeight: 600, fontSize: '0.75rem', px: 2,
-              '&:hover': { backgroundColor: '#2563eb' },
+              '&:hover': { backgroundColor: '#003D07' },
             }}>
             Register as Resident
           </Button>
@@ -971,8 +971,8 @@ const PublicLotMap = () => {
               textTransform: 'none',
               fontSize: '0.75rem',
               fontWeight: 700,
-              backgroundColor: selectedPhase === 'all' ? '#3b82f6' : 'transparent',
-              borderColor: selectedPhase === 'all' ? '#3b82f6' : 'rgba(255,255,255,0.25)',
+              backgroundColor: selectedPhase === 'all' ? '#007A18' : 'transparent',
+              borderColor: selectedPhase === 'all' ? '#007A18' : 'rgba(255,255,255,0.25)',
               color: selectedPhase === 'all' ? 'white' : 'rgba(255,255,255,0.75)',
             }}
           >
@@ -990,12 +990,12 @@ const PublicLotMap = () => {
                 textTransform: 'none',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                backgroundColor: selectedPhase === phase ? '#3b82f6' : 'transparent',
-                borderColor: selectedPhase === phase ? '#3b82f6' : 'rgba(255,255,255,0.25)',
+                backgroundColor: selectedPhase === phase ? '#007A18' : 'transparent',
+                borderColor: selectedPhase === phase ? '#007A18' : 'rgba(255,255,255,0.25)',
                 color: selectedPhase === phase ? 'white' : 'rgba(255,255,255,0.75)',
                 '&:hover': {
-                  backgroundColor: selectedPhase === phase ? '#2563eb' : 'rgba(255,255,255,0.08)',
-                  borderColor: selectedPhase === phase ? '#2563eb' : 'rgba(255,255,255,0.35)',
+                  backgroundColor: selectedPhase === phase ? '#003D07' : 'rgba(255,255,255,0.08)',
+                  borderColor: selectedPhase === phase ? '#003D07' : 'rgba(255,255,255,0.35)',
                 },
               }}
             >
@@ -1048,7 +1048,7 @@ const PublicLotMap = () => {
             fontWeight: 700,
             color: filterStatus === 'vacant' ? 'white' : '#60a5fa',
             borderColor: 'rgba(96,165,250,0.45)',
-            backgroundColor: filterStatus === 'vacant' ? '#2563eb' : 'rgba(59,130,246,0.08)',
+            backgroundColor: filterStatus === 'vacant' ? '#003D07' : 'rgba(59,130,246,0.08)',
           }}
         >
           Available only
@@ -1389,9 +1389,9 @@ const PublicLotMap = () => {
                 </Typography>
                 <Button component={Link} to="/register" fullWidth variant="contained"
                   sx={{
-                    backgroundColor: '#3b82f6', color: 'white', fontWeight: 700,
+                    backgroundColor: '#007A18', color: 'white', fontWeight: 700,
                     borderRadius: 5, textTransform: 'none', fontSize: '0.8rem',
-                    '&:hover': { backgroundColor: '#2563eb' },
+                    '&:hover': { backgroundColor: '#003D07' },
                     boxShadow: '0 4px 14px rgba(59,130,246,0.25)',
                   }}>
                   Register as Resident

@@ -313,7 +313,7 @@ const AdminReservationsScreen = ({ navigation }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'confirmed': return '#22c55e';
+      case 'confirmed': return '#00D084';
       case 'cancelled': return '#ef4444';
       case 'borrowed': return '#f59e0b';
       case 'returned': return '#0ea5e9';
@@ -459,7 +459,7 @@ const AdminReservationsScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#166534" />
+        <ActivityIndicator size="large" color="#007A18" />
         <Text style={styles.loadingText}>Loading reservations...</Text>
       </View>
     );
@@ -503,9 +503,9 @@ const AdminReservationsScreen = ({ navigation }) => {
       >
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsStrip}>
           {[
-            ['Total', stats.total, '#2563eb'],
+            ['Total', stats.total, '#003D07'],
             ['Pending', stats.pending, '#f59e0b'],
-            ['Confirmed', stats.confirmed, '#16a34a'],
+            ['Confirmed', stats.confirmed, '#00A85A'],
             ['Borrowed', stats.borrowed, '#0ea5e9'],
             ['Returned', stats.returned, '#64748b'],
             ['Checked out', stats.checked_out, '#7c3aed'],
@@ -581,7 +581,7 @@ const AdminReservationsScreen = ({ navigation }) => {
                     <Ionicons
                       name={getResourceIcon(reservation.resourceType || reservation.items?.[0]?.resourceType)}
                       size={20}
-                      color="#166534"
+                      color="#007A18"
                     />
                     <Text style={styles.resourceName}>{getReservationTitle(reservation)}</Text>
                   </View>
@@ -810,7 +810,7 @@ const AdminReservationsScreen = ({ navigation }) => {
                   style={styles.addButton}
                   onPress={handleResourceModalOpen}
                 >
-                  <Ionicons name="add" size={24} color="#166534" />
+                  <Ionicons name="add" size={24} color="#007A18" />
                 </TouchableOpacity>
               </View>
 
@@ -1220,7 +1220,7 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   addButton: {
-    backgroundColor: '#166534',
+    backgroundColor: '#007A18',
     borderRadius: 20,
     padding: 8,
   },
@@ -1276,7 +1276,7 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 14,
     borderLeftWidth: 5,
-    borderLeftColor: '#166534',
+    borderLeftColor: '#007A18',
   },
   reservationHeader: {
     flexDirection: 'row',
@@ -1337,7 +1337,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   approveButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#00D084',
   },
   denyButton: {
     backgroundColor: '#ef4444',
@@ -1542,7 +1542,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#166534',
+    backgroundColor: '#007A18',
   },
   submitButtonDisabled: {
     backgroundColor: '#9ca3af',
@@ -1558,7 +1558,7 @@ const styles = StyleSheet.create({
   iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
   iosPickerTitle: { flex: 1, textAlign: 'center', color: '#1e293b', fontSize: 15, fontWeight: '800' },
   iosPickerCancelText: { color: '#64748b', fontSize: 15, fontWeight: '700' },
-  iosPickerDoneText: { color: '#166534', fontSize: 15, fontWeight: '800' },
+  iosPickerDoneText: { color: '#007A18', fontSize: 15, fontWeight: '800' },
   iosPicker: { backgroundColor: 'white' },
   submitButtonText: {
     fontSize: 16,

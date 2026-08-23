@@ -403,7 +403,7 @@ const ANNOUNCEMENTS = [
   { id: 1, category: 'Security', date: 'March 10, 2026', title: 'Enhanced Gate Security Protocol Starting April 2026', body: 'Effective April 1, 2026, all visitors must present a valid government-issued ID and be registered in our VIMS visitor portal before entry. Homeowners are requested to pre-register expected visitors through the resident portal. QR code stickers will also be distributed for faster vehicle entry.', color: '#b91c1c' },
   { id: 2, category: 'Maintenance', date: 'March 8, 2026', title: 'Scheduled Water Service Interruption – March 15, 2026', body: 'Water service will be temporarily interrupted on March 15, 2026 from 8:00 AM to 5:00 PM due to scheduled maintenance of the main water line on Casimiro Street. All residents are advised to store sufficient water. We apologize for the inconvenience.', color: '#92400e' },
   { id: 3, category: 'Community', date: 'March 5, 2026', title: 'Westville Clean-Up Drive – March 22, 2026', body: 'Join us for our quarterly community clean-up drive on March 22, 2026 at 7:00 AM. Meet at the main clubhouse. Gloves, garbage bags, and refreshments will be provided. All residents and their families are encouraged to participate. Let us keep our community clean and beautiful!', color: T.light },
-  { id: 4, category: 'HOA', date: 'February 28, 2026', title: 'HOA General Assembly – April 5, 2026', body: 'The Homeowners Association General Assembly will be held on April 5, 2026 at 3:00 PM at the Westville Clubhouse. Topics include annual financial report, proposed community improvements, and election of new board members. All homeowners are strongly encouraged to attend.', color: '#3b82f6' },
+  { id: 4, category: 'HOA', date: 'February 28, 2026', title: 'HOA General Assembly – April 5, 2026', body: 'The Homeowners Association General Assembly will be held on April 5, 2026 at 3:00 PM at the Westville Clubhouse. Topics include annual financial report, proposed community improvements, and election of new board members. All homeowners are strongly encouraged to attend.', color: '#007A18' },
   { id: 5, category: 'Event', date: 'February 20, 2026', title: 'Westville Summer Sports Fest – April 12–13, 2026', body: 'Get ready for our annual Summer Sports Fest! Events include basketball, volleyball, badminton, and swimming competitions. Registration is open from March 1–31, 2026. Contact the HOA office or message our official Facebook page to register your team. Prizes await the winners!', color: '#8b5cf6' },
   { id: 6, category: 'Advisory', date: 'February 15, 2026', title: 'Reminder: No Loud Noise After 10:00 PM', body: 'As a reminder to all residents, the community noise ordinance prohibits loud music, parties, and other disruptive activities after 10:00 PM on weekdays and 11:00 PM on weekends. Violations may result in fines as stipulated in the Deed of Restrictions. Thank you for your cooperation.', color: '#64748b' },
 ];
@@ -608,7 +608,7 @@ const ContactPage = ({ onClose, embedded = false }) => {
               {sent ? (
                 <Box sx={{ textAlign: 'center', py: 6 }}>
                   <Box sx={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-                    <StarIcon sx={{ color: '#10b981', fontSize: 36 }} />
+                    <StarIcon sx={{ color: '#00D084', fontSize: 36 }} />
                   </Box>
                   <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: T.primary, mb: 1 }}>Message Sent!</Typography>
                   <Typography sx={{ color: '#666', mb: 3 }}>Thank you for reaching out. Our team will get back to you within 1–2 business days.</Typography>
@@ -1683,8 +1683,8 @@ const Login = () => {
   const hubColors = {
     deep: '#061b10',
     forest: '#0b3d1f',
-    green: '#166534',
-    lime: '#86efac',
+    green: '#007A18',
+    lime: '#D9FBEA',
     softLime: '#dcfce7',
     textDark: '#0f172a',
     textMuted: '#64748b',
@@ -2076,7 +2076,7 @@ const Login = () => {
                       height: 54,
                       borderRadius: '18px',
                       background: 'linear-gradient(135deg, rgba(134,239,172,0.95), rgba(34,197,94,0.86))',
-                      color: '#052e16',
+                      color: '#002F05',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -2236,10 +2236,10 @@ const Login = () => {
                     variant="contained"
                     disabled={loading || isLocked}
                     sx={{
-                      background: 'linear-gradient(135deg, #86efac 0%, #22c55e 52%, #16a34a 100%)',
-                      color: '#052e16',
+                      background: 'linear-gradient(135deg, #D9FBEA 0%, #00D084 52%, #00A85A 100%)',
+                      color: '#002F05',
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #bbf7d0 0%, #4ade80 52%, #22c55e 100%)',
+                        background: 'linear-gradient(135deg, #D9FBEA 0%, #00D084 52%, #00D084 100%)',
                         transform: 'translateY(-2px)',
                         boxShadow: '0 18px 44px rgba(34,197,94,0.28)'
                       },
@@ -2312,7 +2312,7 @@ const Login = () => {
           sx={{
             fontWeight: 950,
             color: 'white',
-            background: 'linear-gradient(135deg, #0f172a 0%, #14532d 100%)',
+            background: 'linear-gradient(135deg, #0f172a 0%, #003D07 100%)',
             p: 2.5
           }}
         >

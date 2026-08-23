@@ -61,13 +61,13 @@ import qrphImage from '../assets/qrph.jpg';
 
 const Payments = () => {
   const themeColors = {
-    primary: '#166534',
-    primaryDark: '#14532d',
-    primaryLight: '#22c55e',
-    success: '#10b981',
+    primary: '#007A18',
+    primaryDark: '#003D07',
+    primaryLight: '#00D084',
+    success: '#00D084',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#3b82f6',
+    info: '#007A18',
     background: '#f3f5f7',
     cardBackground: '#ffffff',
     textPrimary: '#0f172a',
@@ -437,7 +437,7 @@ const Payments = () => {
           borderRadius: '22px', 
           background: `linear-gradient(135deg, ${themeColors.primaryLight}, ${themeColors.primary} 60%, ${themeColors.primaryDark})`, 
           color: 'white',
-          boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+          boxShadow: '0 18px 40px rgba(0, 122, 24, 0.35)',
           animation: 'fadeUpSoft .45s ease-out'
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -459,8 +459,8 @@ const Payments = () => {
               label: 'Total Paid',
               helper: 'settled payments',
               icon: <CheckCircleIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 42 }} />,
-              gradient: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-              shadow: '0 14px 34px rgba(22,163,74,0.34)'
+              gradient: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+              shadow: '0 14px 34px rgba(0,208,132,0.34)'
             },
             {
               value: formatCurrency(summary.totalPending),
@@ -632,7 +632,7 @@ const Payments = () => {
             <TableContainer sx={{ borderRadius: 2.5, border: `1px solid ${themeColors.border}` }}>
               <Table>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
+                  <TableRow sx={{ bgcolor: 'rgba(0, 208, 132, 0.08)' }}>
                     <TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>Balance</TableCell>
@@ -645,7 +645,7 @@ const Payments = () => {
                 </TableHead>
                 <TableBody>
                   {paginatedPayments.map((payment) => (
-                    <TableRow key={payment._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' } }}>
+                    <TableRow key={payment._id} hover sx={{ '&:hover': { backgroundColor: 'rgba(0, 208, 132, 0.04)' } }}>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
                           {payment.invoiceNumber}

@@ -416,6 +416,11 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
     }
 
     setSelectedPhotoUri(asset.uri);
+    if (user?.role !== 'resident') {
+      await uploadProfilePhoto(asset.uri);
+      setSelectedPhotoUri(null);
+      return;
+    }
     Alert.alert('Photo Selected', 'Click "Save Profile Changes" to apply the new photo.');
   };
 
@@ -554,7 +559,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <TouchableOpacity onPress={isResidentProfile ? pickProfileImage : undefined} activeOpacity={isResidentProfile ? 0.8 : 1} style={styles.avatarButton}>
+            <TouchableOpacity onPress={pickProfileImage} activeOpacity={0.8} style={styles.avatarButton}>
               {selectedPhotoUri ? (
                 <Image source={{ uri: selectedPhotoUri }} style={styles.avatar} />
               ) : profilePhoto ? (
@@ -569,14 +574,12 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
                 </View>
               )}
             </TouchableOpacity>
-            {isResidentProfile && (
-              <TouchableOpacity style={styles.photoButton} onPress={pickProfileImage} disabled={uploadingPhoto}>
-                <Ionicons name="camera-outline" size={15} color={themeColors.primary} />
-                <Text style={styles.photoButtonText}>{uploadingPhoto ? 'Uploading...' : 'Change Photo'}</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.photoButton} onPress={pickProfileImage} disabled={uploadingPhoto}>
+              <Ionicons name="camera-outline" size={15} color={themeColors.primary} />
+              <Text style={styles.photoButtonText}>{uploadingPhoto ? 'Uploading...' : 'Change Photo'}</Text>
+            </TouchableOpacity>
           </View>
-          {isResidentProfile && selectedPhotoUri && (
+          {selectedPhotoUri && (
             <View style={styles.previewNotice}>
               <Ionicons name="information-circle" size={16} color={themeColors.secondary} />
               <Text style={styles.previewText}>Photo selected and ready to save</Text>

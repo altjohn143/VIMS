@@ -107,7 +107,7 @@ const DocumentPreviewImage = ({
           borderRadius: 2,
           border: '2px solid rgba(15, 23, 42, 0.08)',
           backgroundColor: '#f0fdf4',
-          color: '#166534',
+          color: '#007A18',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -142,13 +142,13 @@ const DocumentPreviewImage = ({
 const ProfileSettings = () => {
   // Dashboard Theme Colors from Login
   const themeColors = {
-    primary: '#166534',
-    primaryLight: '#22c55e',
-    primaryDark: '#14532d',
-    success: '#10b981',
+    primary: '#007A18',
+    primaryLight: '#00D084',
+    primaryDark: '#003D07',
+    success: '#00D084',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#3b82f6',
+    info: '#007A18',
     background: '#f3f5f7',
   };
 
@@ -836,13 +836,13 @@ const ProfileSettings = () => {
             p: { xs: 2.5, md: 3 },
             borderRadius: '22px',
             color: '#fff',
-            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
-            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+            background: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+            boxShadow: '0 18px 40px rgba(0, 122, 24, 0.35)',
             animation: 'fadeUpSoft .45s ease-out'
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-            <SecurityIcon sx={{ fontSize: 44, color: '#bef264' }} />
+            <SecurityIcon sx={{ fontSize: 44, color: '#00D084' }} />
             <Box>
               <Typography variant="h4" component="h1" sx={{ fontWeight: 800, color: '#fff' }}>
                 Profile Settings
@@ -890,64 +890,60 @@ const ProfileSettings = () => {
                     {user?.firstName?.charAt(0)}
                     {user?.lastName?.charAt(0)}
                   </Avatar>
-                  {isResidentProfile && (
-                    <IconButton
-                      component="label"
-                      disabled={uploadingPhoto}
-                      sx={{
-                        position: 'absolute',
-                        bottom: -8,
-                        right: -8,
-                        bgcolor: themeColors.primary,
-                        color: 'white',
-                        '&:hover': { bgcolor: themeColors.primaryDark },
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-                        width: 40,
-                        height: 40,
-                        opacity: uploadingPhoto ? 0.6 : 1
-                      }}
-                    >
-                      {uploadingPhoto ? (
-                        <CircularProgress size={20} sx={{ color: 'white' }} />
-                      ) : (
-                        <CameraIcon sx={{ fontSize: 20 }} />
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        hidden
-                        onChange={handleProfilePhotoUpload}
-                      />
-                    </IconButton>
-                  )}
-                </Box>
-                {isResidentProfile && (
-                  <Button
+                  <IconButton
                     component="label"
-                    variant="outlined"
-                    size="small"
                     disabled={uploadingPhoto}
                     sx={{
-                      borderColor: themeColors.primary,
-                      color: themeColors.primary,
-                      mb: 2,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      '&:hover': {
-                        backgroundColor: 'rgba(22, 101, 52, 0.04)',
-                        borderColor: themeColors.primaryDark
-                      }
+                      position: 'absolute',
+                      bottom: -8,
+                      right: -8,
+                      bgcolor: themeColors.primary,
+                      color: 'white',
+                      '&:hover': { bgcolor: themeColors.primaryDark },
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                      width: 40,
+                      height: 40,
+                      opacity: uploadingPhoto ? 0.6 : 1
                     }}
                   >
-                    {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                    {uploadingPhoto ? (
+                      <CircularProgress size={20} sx={{ color: 'white' }} />
+                    ) : (
+                      <CameraIcon sx={{ fontSize: 20 }} />
+                    )}
                     <input
                       type="file"
                       accept="image/*"
                       hidden
                       onChange={handleProfilePhotoUpload}
                     />
-                  </Button>
-                )}
+                  </IconButton>
+                </Box>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  size="small"
+                  disabled={uploadingPhoto}
+                  sx={{
+                    borderColor: themeColors.primary,
+                    color: themeColors.primary,
+                    mb: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 122, 24, 0.04)',
+                      borderColor: themeColors.primaryDark
+                    }
+                  }}
+                >
+                  {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={handleProfilePhotoUpload}
+                  />
+                </Button>
                 <Typography variant="h6" gutterBottom sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
                   {user?.firstName} {user?.lastName}
                 </Typography>
@@ -1073,7 +1069,7 @@ const ProfileSettings = () => {
                                     transition: 'all 0.2s ease',
                                     '&:hover': {
                                       transform: 'scale(1.02)',
-                                      boxShadow: `0 4px 16px rgba(22, 163, 74, 0.25)`,
+                                      boxShadow: `0 4px 16px rgba(0, 208, 132, 0.25)`,
                                       borderColor: themeColors.primary
                                     }
                                   }}
@@ -1107,7 +1103,7 @@ const ProfileSettings = () => {
                                     transition: 'all 0.2s ease',
                                     '&:hover': {
                                       transform: 'scale(1.02)',
-                                      boxShadow: `0 4px 16px rgba(22, 163, 74, 0.25)`,
+                                      boxShadow: `0 4px 16px rgba(0, 208, 132, 0.25)`,
                                       borderColor: themeColors.primary
                                     }
                                   }}

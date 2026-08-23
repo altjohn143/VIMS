@@ -45,6 +45,47 @@ const getQrScanErrorMessage = (error) => {
   return serverMessage || 'Please scan a valid VIMS visitor pass.';
 };
 
+const extractVisitorPassToken = (rawValue = '') => {
+  if (!rawValue || typeof rawValue !== 'string') return '';
+
+  let value = rawValue.trim();
+  try {
+    value = decodeURIComponent(value).trim();
+  } catch (error) {
+    // Keep the raw value if it is not URI-encoded text.
+  }
+  if (!value) return '';
+
+  const candidates = [value];
+  if (value.includes('/')) {
+    candidates.push(...value.split('/').filter(Boolean));
+  }
+
+  if (typeof atob === 'function') {
+    try {
+      candidates.push(atob(value));
+    } catch (error) {
+      // Ignore non-base64 QR values.
+    }
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      candidates.push(parsed.qrToken, parsed.qrCode, parsed.token);
+    } catch (error) {
+      // Ignore non-JSON QR values.
+    }
+  }
+
+  const token = candidates.find((candidate) => (
+    typeof candidate === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate.trim())
+  ));
+
+  return token ? token.trim() : '';
+};
+
 const VisitorManagementScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
   const [allVisitors, setAllVisitors] = useState([]);
@@ -334,11 +375,28 @@ const VisitorManagementScreen = ({ navigation }) => {
     setShowConfirmScanner(true);
   };
 
+  const showInvalidPassAlert = (message) => {
+    setTimeout(() => {
+      Alert.alert(
+        'Invalid Visitor Pass',
+        message || 'Invalid QR code. Please scan a valid VIMS visitor pass.',
+        [{ text: 'Scan Again', onPress: () => setIsConfirmingScan(false) }]
+      );
+    }, 80);
+  };
+
   const handleResidentConfirmScan = async ({ data }) => {
     if (isConfirmingScan || !data) return;
     setIsConfirmingScan(true);
+    const visitorPassToken = extractVisitorPassToken(data);
+    if (!visitorPassToken) {
+      showInvalidPassAlert('Invalid QR code. Please scan a valid VIMS visitor pass.');
+      return;
+    }
+
+    let shouldUnlockAutomatically = true;
     try {
-      const response = await api.post('/visitors/confirm-arrival', { scanValue: data, action: residentScanMode });
+      const response = await api.post('/visitors/confirm-arrival', { scanValue: visitorPassToken, action: residentScanMode });
       if (response.data?.success) {
         const confirmedType = response.data?.data?.confirmedType;
         const title = confirmedType === 'departure' ? 'Visitor Departure Confirmed' : 'Visitor Confirmed';
@@ -350,9 +408,12 @@ const VisitorManagementScreen = ({ navigation }) => {
         fetchVisitors();
       }
     } catch (error) {
-      Alert.alert('Invalid Visitor Pass', getQrScanErrorMessage(error));
+      shouldUnlockAutomatically = false;
+      showInvalidPassAlert(getQrScanErrorMessage(error));
     } finally {
-      setTimeout(() => setIsConfirmingScan(false), 800);
+      if (shouldUnlockAutomatically) {
+        setTimeout(() => setIsConfirmingScan(false), 800);
+      }
     }
   };
 
@@ -1031,11 +1092,16 @@ const VisitorManagementScreen = ({ navigation }) => {
               <Ionicons name="close" size={28} color={themeColors.primaryDeep} />
             </TouchableOpacity>
           </View>
-          <CameraView
-            style={styles.cameraView}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            onBarcodeScanned={isConfirmingScan ? undefined : handleResidentConfirmScan}
-          />
+          <View style={styles.residentScannerBody}>
+            <View style={styles.residentCameraWrap}>
+              <CameraView
+                style={styles.cameraView}
+                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                onBarcodeScanned={isConfirmingScan ? undefined : handleResidentConfirmScan}
+              />
+              <View style={styles.residentOverlayFrame} pointerEvents="none" />
+            </View>
+          </View>
           <View style={styles.scannerHintWrap}>
             <Text style={styles.scannerHint}>{confirmScannerHint}</Text>
           </View>
@@ -1631,8 +1697,35 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
+  residentScannerBody: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: '#0b1220',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+  },
+  residentCameraWrap: {
+    height: 390,
+    borderRadius: 32,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#334155',
+    backgroundColor: '#020617',
+    position: 'relative',
+  },
   cameraView: {
     flex: 1,
+  },
+  residentOverlayFrame: {
+    position: 'absolute',
+    left: '20%',
+    top: '23%',
+    width: '60%',
+    height: '54%',
+    borderWidth: 2,
+    borderColor: '#00D084',
+    borderRadius: 28,
+    backgroundColor: 'transparent',
   },
   scannerHintWrap: {
     padding: 16,

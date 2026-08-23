@@ -70,7 +70,7 @@ const ImagePreview = ({
               width: '100%',
               height: '100%',
               bgcolor: '#f0fdf4',
-              color: '#166534',
+              color: '#007A18',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -180,7 +180,7 @@ const ImagePreview = ({
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
           {loadFailed ? (
-            <Box sx={{ minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1, color: '#166534', bgcolor: '#f0fdf4' }}>
+            <Box sx={{ minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1, color: '#007A18', bgcolor: '#f0fdf4' }}>
               <ImageNotSupportedIcon />
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 Preview unavailable

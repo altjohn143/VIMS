@@ -40,17 +40,17 @@ const ArchivedAnnouncements = () => {
   const navigate = useNavigate();
 
   const themeColors = {
-    primary: '#166534',
-    primaryLight: '#22c55e',
-    primaryDark: '#14532d',
+    primary: '#007A18',
+    primaryLight: '#00D084',
+    primaryDark: '#003D07',
     background: '#f3f5f7',
     textPrimary: '#0f172a',
     textSecondary: '#64748b',
     border: 'rgba(15, 23, 42, 0.08)',
-    success: '#10b981',
+    success: '#00D084',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#3b82f6'
+    info: '#007A18'
   };
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);

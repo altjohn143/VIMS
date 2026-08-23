@@ -17,9 +17,9 @@ import toast from 'react-hot-toast';
 import websocketService from '../utils/websocket';
 
 const themeColors = {
-  primary: '#166534',
-  primaryLight: '#22c55e',
-  primaryDark: '#14532d',
+  primary: '#007A18',
+  primaryLight: '#00D084',
+  primaryDark: '#003D07',
   background: '#f3f5f7',
   cardBackground: '#ffffff',
   textPrimary: '#0f172a',
@@ -181,8 +181,8 @@ const NotificationPanel = ({ anchorEl, open, onClose }) => {
                         py: 1.5,
                         px: 2,
                         cursor: !n.readAt ? 'pointer' : 'default',
-                        bgcolor: !n.readAt ? 'rgba(22, 163, 74, 0.04)' : 'transparent',
-                        '&:hover': { bgcolor: !n.readAt ? 'rgba(22, 163, 74, 0.08)' : 'transparent' },
+                        bgcolor: !n.readAt ? 'rgba(0, 208, 132, 0.04)' : 'transparent',
+                        '&:hover': { bgcolor: !n.readAt ? 'rgba(0, 208, 132, 0.08)' : 'transparent' },
                         borderBottom: idx < notifications.length - 1 ? `1px solid ${themeColors.border}` : 'none'
                       }}
                     >
@@ -207,7 +207,7 @@ const NotificationPanel = ({ anchorEl, open, onClose }) => {
                                 sx={{
                                   height: '18px',
                                   fontSize: '0.65rem',
-                                  bgcolor: 'rgba(59, 130, 246, 0.15)',
+                                  bgcolor: 'rgba(0, 122, 24, 0.15)',
                                   color: '#1d4ed8',
                                   fontWeight: 700,
                                   flexShrink: 0
@@ -257,7 +257,7 @@ const NotificationPanel = ({ anchorEl, open, onClose }) => {
                   fontWeight: 600,
                   color: themeColors.primary,
                   fontSize: '0.85rem',
-                  '&:hover': { bgcolor: 'rgba(22, 163, 74, 0.08)' }
+                  '&:hover': { bgcolor: 'rgba(0, 208, 132, 0.08)' }
                 }}
                 onClick={() => {
                   window.location.href = '/notifications';

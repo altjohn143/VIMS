@@ -35,9 +35,9 @@ const createInitialForm = () => ({ phase: '', area: '', checkpoint: '', notes: '
 
 const SecurityPatrolSchedule = () => {
   const themeColors = {
-    primary: '#166534',
-    primaryDark: '#14532d',
-    primaryLight: '#22c55e',
+    primary: '#007A18',
+    primaryDark: '#003D07',
+    primaryLight: '#00D084',
     background: '#f3f5f7',
     cardBackground: '#ffffff',
     textPrimary: '#0f172a',
@@ -180,12 +180,12 @@ const SecurityPatrolSchedule = () => {
             p: { xs: 2.5, md: 3 },
             borderRadius: '22px',
             color: '#fff',
-            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
-            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)'
+            background: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+            boxShadow: '0 18px 40px rgba(0, 122, 24, 0.35)'
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-            <ShieldIcon sx={{ color: '#bef264' }} />
+            <ShieldIcon sx={{ color: '#00D084' }} />
             <Typography variant="h5" sx={{ fontWeight: 800 }}>
               Patrol Logs
             </Typography>
@@ -208,7 +208,7 @@ const SecurityPatrolSchedule = () => {
                 <Chip
                   icon={<ShieldIcon />}
                   label={isHeadOfficer ? 'Head Officer Coverage' : 'Assigned Personnel Route'}
-                  sx={{ bgcolor: 'rgba(22, 101, 52, 0.12)', color: themeColors.primary, fontWeight: 800 }}
+                  sx={{ bgcolor: 'rgba(0, 122, 24, 0.12)', color: themeColors.primary, fontWeight: 800 }}
                 />
               </Stack>
               <Divider sx={{ my: 2 }} />
@@ -310,7 +310,7 @@ const SecurityPatrolSchedule = () => {
               </Box>
               <TableContainer>
                 <Table>
-                  <TableHead sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
+                  <TableHead sx={{ bgcolor: 'rgba(0, 208, 132, 0.08)' }}>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 700 }}>Checkpoint</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Officer</TableCell>

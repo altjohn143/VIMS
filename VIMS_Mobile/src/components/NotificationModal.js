@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(22, 101, 52, 0.1)',
+    backgroundColor: 'rgba(0, 122, 24, 0.1)',
   },
 
   markAllBtnText: {
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   },
 
   notificationItemUnread: {
-    backgroundColor: 'rgba(22, 163, 74, 0.04)',
+    backgroundColor: 'rgba(0, 208, 132, 0.04)',
   },
 
   notificationContent: {
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#007A18',
     marginTop: 4,
     flexShrink: 0,
   },

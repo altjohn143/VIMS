@@ -54,11 +54,11 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const themeColors = {
-  primary: '#166534',
-  primaryDark: '#14532d',
-  primaryLight: '#22c55e',
+  primary: '#007A18',
+  primaryDark: '#003D07',
+  primaryLight: '#00D084',
   primarySoft: '#dcfce7',
-  success: '#22c55e',
+  success: '#00D084',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#0ea5e9',
@@ -97,7 +97,7 @@ const fieldSx = {
       borderColor: 'rgba(15,23,42,0.10)'
     },
     '&:hover fieldset': {
-      borderColor: 'rgba(22,101,52,0.34)'
+      borderColor: 'rgba(0,122,24,0.34)'
     },
     '&.Mui-focused fieldset': {
       borderColor: themeColors.primary
@@ -563,7 +563,7 @@ const Reservations = () => {
       value: reservations.length,
       helper: 'all reservation records',
       icon: <CalendarMonthIcon sx={{ fontSize: 42 }} />,
-      bg: 'linear-gradient(135deg, #166534 0%, #14532d 100%)',
+      bg: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
       accent: '#dcfce7'
     },
     {
@@ -571,7 +571,7 @@ const Reservations = () => {
       value: confirmedCount,
       helper: 'approved reservations',
       icon: <CheckCircleIcon sx={{ fontSize: 42 }} />,
-      bg: 'linear-gradient(135deg, #18a34a 0%, #15803d 100%)',
+      bg: 'linear-gradient(135deg, #00A85A 0%, #007A18 100%)',
       accent: '#dcfce7'
     },
     {
@@ -684,7 +684,7 @@ const Reservations = () => {
                           fontSize: '0.8rem',
                           fontWeight: 800,
                           letterSpacing: '0.08em',
-                          color: '#4ade80',
+                          color: '#00D084',
                           textTransform: 'uppercase',
                           mb: 1.2
                         }}
@@ -722,7 +722,7 @@ const Reservations = () => {
                           onClick={handleOpenDialog}
                           sx={{
                             bgcolor: themeColors.primaryLight,
-                            color: '#052e16',
+                            color: '#002F05',
                             borderRadius: '14px',
                             px: 2.2,
                             py: 1.15,
@@ -730,7 +730,7 @@ const Reservations = () => {
                             textTransform: 'none',
                             boxShadow: '0 12px 26px rgba(34,197,94,0.24)',
                             '&:hover': {
-                              bgcolor: '#4ade80',
+                              bgcolor: '#00D084',
                               transform: 'translateY(-1px)'
                             },
                             '&:active': {
@@ -754,7 +754,7 @@ const Reservations = () => {
                             fontWeight: 900,
                             textTransform: 'none',
                             '&:hover': {
-                              borderColor: '#86efac',
+                              borderColor: '#D9FBEA',
                               bgcolor: 'rgba(255,255,255,0.08)',
                               transform: 'translateY(-1px)'
                             },
@@ -793,7 +793,7 @@ const Reservations = () => {
                             <Typography sx={{ mt: 0.8, fontSize: '0.86rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
                               {stat.label}
                             </Typography>
-                            <Typography sx={{ mt: 1, fontSize: '0.76rem', color: '#86efac', fontWeight: 700 }}>
+                            <Typography sx={{ mt: 1, fontSize: '0.76rem', color: '#D9FBEA', fontWeight: 700 }}>
                               ↗ {stat.helper}
                             </Typography>
                           </Box>
@@ -961,7 +961,7 @@ const Reservations = () => {
                       borderRadius: '16px',
                       bgcolor: '#eff6ff',
                       color: '#1e3a8a',
-                      '& .MuiAlert-icon': { color: '#2563eb' }
+                      '& .MuiAlert-icon': { color: '#003D07' }
                     }}
                   >
                     Submit requests ahead of time so admin can review availability.
@@ -1055,7 +1055,7 @@ const Reservations = () => {
                         textTransform: 'none',
                         fontWeight: 900,
                         bgcolor: themeColors.primary,
-                        boxShadow: '0 12px 22px rgba(22,101,52,0.18)',
+                        boxShadow: '0 12px 22px rgba(0,122,24,0.18)',
                         '&:hover': { bgcolor: themeColors.primaryDark }
                       }}
                     >
@@ -1137,7 +1137,7 @@ const Reservations = () => {
                                 width: 40,
                                 height: 40,
                                 bgcolor: reservation.resourceType === 'venue' ? '#ecfdf5' : '#eff6ff',
-                                color: reservation.resourceType === 'venue' ? themeColors.primary : '#2563eb'
+                                color: reservation.resourceType === 'venue' ? themeColors.primary : '#003D07'
                               }}
                             >
                               {getResourceIcon(reservation.resourceType || (reservation.items?.[0]?.resourceType))}
@@ -1231,11 +1231,11 @@ const Reservations = () => {
                 py: 3,
                 background: `
                   radial-gradient(circle at top left, rgba(34,197,94,0.26), transparent 28%),
-                  linear-gradient(135deg, #0f172a 0%, #14532d 100%)
+                  linear-gradient(135deg, #0f172a 0%, #003D07 100%)
                 `
               }}
             >
-              <Typography sx={{ fontSize: '0.78rem', fontWeight: 900, letterSpacing: '0.10em', color: '#86efac', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: 900, letterSpacing: '0.10em', color: '#D9FBEA', textTransform: 'uppercase' }}>
                 Reservation Request
               </Typography>
               <Typography sx={{ mt: 0.8, fontSize: { xs: '1.45rem', md: '1.75rem' }, fontWeight: 900, lineHeight: 1.1 }}>
@@ -1320,7 +1320,7 @@ const Reservations = () => {
                     py: 1.5,
                     fontWeight: 800,
                     textTransform: 'none',
-                    '&:hover': { bgcolor: '#14532d' }
+                    '&:hover': { bgcolor: '#003D07' }
                   }}
                 >
                   Add Item
@@ -1472,7 +1472,7 @@ const Reservations = () => {
                                 sx={{
                                   minHeight: 42,
                                   borderRadius: '10px',
-                                  border: `1px solid ${selected ? '#86efac' : blocked ? '#fecaca' : themeColors.border}`,
+                                  border: `1px solid ${selected ? '#D9FBEA' : blocked ? '#fecaca' : themeColors.border}`,
                                   bgcolor: selected ? '#dcfce7' : blocked ? '#fef2f2' : '#f8fafc',
                                   color: outsideMonth ? '#94a3b8' : blocked ? '#991b1b' : themeColors.textPrimary,
                                   display: 'flex',
@@ -1664,7 +1664,7 @@ const Reservations = () => {
                 fontWeight: 900,
                 px: 2.4,
                 bgcolor: themeColors.primary,
-                boxShadow: '0 12px 22px rgba(22,101,52,0.18)',
+                boxShadow: '0 12px 22px rgba(0,122,24,0.18)',
                 '&:hover': {
                   bgcolor: themeColors.primaryDark,
                   transform: 'translateY(-1px)'

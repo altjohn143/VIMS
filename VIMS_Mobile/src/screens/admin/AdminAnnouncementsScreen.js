@@ -413,7 +413,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
             <Ionicons name="megaphone-outline" size={64} color={themeColors.textSecondary} />
             <Text style={styles.emptyTitle}>No announcements</Text>
             <Text style={styles.emptyText}>Create an announcement to notify residents.</Text>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => setCreateOpen(true)}>
+            <TouchableOpacity style={[styles.primaryBtn, styles.emptyCreateButton]} onPress={() => setCreateOpen(true)}>
               <Ionicons name="add" size={18} color="white" />
               <Text style={styles.primaryText}>New Announcement</Text>
             </TouchableOpacity>
@@ -620,6 +620,7 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 24 },
   emptyTitle: { marginTop: 14, fontSize: 18, fontWeight: '700', color: themeColors.textPrimary },
   emptyText: { marginTop: 6, fontSize: 13, color: themeColors.textSecondary, textAlign: 'center' },
+  emptyCreateButton: { marginTop: 18, minWidth: 210, minHeight: 46, paddingHorizontal: 18, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: 'white', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, maxHeight: '88%' },

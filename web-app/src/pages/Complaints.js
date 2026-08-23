@@ -34,12 +34,12 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
 const themeColors = {
-  primary: '#166534',
-  primaryDark: '#14532d',
-  success: '#10b981',
+  primary: '#007A18',
+  primaryDark: '#003D07',
+  success: '#00D084',
   warning: '#f59e0b',
   error: '#ef4444',
-  info: '#3b82f6',
+  info: '#007A18',
   cardBackground: '#ffffff',
   textPrimary: '#0f172a',
   textSecondary: '#64748b',

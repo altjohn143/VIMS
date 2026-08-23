@@ -27,10 +27,11 @@ import { useAuth } from '../context/AuthContext';
 import villageLogo from '../assets/village-logo.png';
 
 const themeColors = {
-  primary: '#166534',
-  primaryDark: '#14532d',
-  primaryLight: '#22c55e',
-  primarySoft: '#dcfce7',
+  primary: '#007A18',
+  primaryDark: '#003D07',
+  primaryLight: '#00D084',
+  primarySoft: '#D9FBEA',
+  primaryGradient: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
   background: '#f3f5f7',
   cardBackground: '#ffffff',
   textPrimary: '#0f172a',
@@ -196,23 +197,28 @@ const Chatbot = ({ embedded = false, onClose }) => {
 
       <Divider />
 
-      {embedded && messages.length === 0 && (
-        <Box sx={{ p: 1.5, display: 'flex', gap: 1, overflowX: 'auto', bgcolor: '#ffffff' }}>
-          {suggestedPrompts.slice(0, 4).map((prompt) => (
-            <Chip
-              key={prompt}
-              label={prompt}
-              onClick={() => handleSuggestedPrompt(prompt)}
-              sx={{
-                flexShrink: 0,
-                maxWidth: 230,
-                bgcolor: '#f0fdf4',
-                color: themeColors.primary,
-                fontWeight: 800,
-                borderRadius: '999px'
-              }}
-            />
-          ))}
+      {embedded && (
+        <Box sx={{ px: 1.5, py: 1.25, bgcolor: '#ffffff' }}>
+          <Typography sx={{ mb: 1, fontSize: '0.76rem', color: themeColors.textSecondary, fontWeight: 800 }}>
+            Suggested questions for {roleLabel}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 0.25 }}>
+            {suggestedPrompts.slice(0, 4).map((prompt) => (
+              <Chip
+                key={prompt}
+                label={prompt}
+                onClick={() => handleSuggestedPrompt(prompt)}
+                sx={{
+                  flexShrink: 0,
+                  maxWidth: 230,
+                  background: 'linear-gradient(135deg, #EFFDF5 0%, #D9FBEA 100%)',
+                  color: themeColors.primary,
+                  fontWeight: 800,
+                  borderRadius: '999px'
+                }}
+              />
+            ))}
+          </Box>
         </Box>
       )}
 
@@ -278,7 +284,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
                   sx={{
                     width: 34,
                     height: 34,
-                    bgcolor: themeColors.primary,
+                    background: themeColors.primaryGradient,
                     color: 'white'
                   }}
                 >
@@ -293,10 +299,10 @@ const Chatbot = ({ embedded = false, onClose }) => {
                   py: 1.25,
                   borderRadius: isUser ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
                   background: isUser
-                    ? 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)'
+                    ? themeColors.primaryGradient
                     : '#ffffff',
-                  color: themeColors.textPrimary,
-                  border: isUser ? '1px solid rgba(34,197,94,0.18)' : '1px solid rgba(15,23,42,0.07)',
+                  color: isUser ? '#ffffff' : themeColors.textPrimary,
+                  border: isUser ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(15,23,42,0.07)',
                   boxShadow: '0 8px 20px rgba(15,23,42,0.05)'
                 }}
               >
@@ -323,7 +329,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
 
         {loading && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mt: 1 }}>
-            <Avatar sx={{ width: 34, height: 34, bgcolor: themeColors.primary }}>
+            <Avatar sx={{ width: 34, height: 34, background: themeColors.primaryGradient }}>
               <SmartToyIcon sx={{ fontSize: 18 }} />
             </Avatar>
             <Box
@@ -369,7 +375,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
                   borderColor: 'rgba(15,23,42,0.10)'
                 },
                 '&:hover fieldset': {
-                  borderColor: 'rgba(22,101,52,0.34)'
+                  borderColor: 'rgba(0,122,24,0.34)'
                 },
                 '&.Mui-focused fieldset': {
                   borderColor: themeColors.primary
@@ -388,10 +394,10 @@ const Chatbot = ({ embedded = false, onClose }) => {
               borderRadius: '16px',
               textTransform: 'none',
               fontWeight: 900,
-              bgcolor: themeColors.primary,
-              boxShadow: '0 12px 22px rgba(22,101,52,0.18)',
+              background: themeColors.primaryGradient,
+              boxShadow: '0 12px 22px rgba(0,122,24,0.18)',
               '&:hover': {
-                bgcolor: themeColors.primaryDark,
+                background: themeColors.primaryGradient,
                 transform: 'translateY(-1px)'
               },
               '&:active': {
@@ -416,7 +422,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
       sx={{
         minHeight: '100vh',
         background: `
-          radial-gradient(circle at top left, rgba(34,197,94,0.08), transparent 24%),
+          radial-gradient(circle at top left, rgba(0,208,132,0.16), transparent 24%),
           radial-gradient(circle at top right, rgba(14,165,233,0.05), transparent 20%),
           ${themeColors.background}
         `,
@@ -521,7 +527,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
                       fontSize: '0.78rem',
                       fontWeight: 900,
                       letterSpacing: '0.08em',
-                      color: '#4ade80',
+                      color: '#00D084',
                       textTransform: 'uppercase'
                     }}
                   >
@@ -569,7 +575,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
                 backdropFilter: 'blur(8px)'
               }}
             >
-              <SmartToyIcon sx={{ fontSize: 62, color: '#86efac' }} />
+              <SmartToyIcon sx={{ fontSize: 62, color: '#D9FBEA' }} />
             </Box>
           </Box>
         </Paper>
@@ -697,7 +703,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
                         sx={{
                           width: 34,
                           height: 34,
-                          bgcolor: themeColors.primary,
+                          background: themeColors.primaryGradient,
                           color: 'white'
                         }}
                       >
@@ -712,10 +718,10 @@ const Chatbot = ({ embedded = false, onClose }) => {
                         py: 1.25,
                         borderRadius: isUser ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
                         background: isUser
-                          ? 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)'
+                          ? themeColors.primaryGradient
                           : '#ffffff',
-                        color: themeColors.textPrimary,
-                        border: isUser ? '1px solid rgba(34,197,94,0.18)' : '1px solid rgba(15,23,42,0.07)',
+                        color: isUser ? '#ffffff' : themeColors.textPrimary,
+                        border: isUser ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(15,23,42,0.07)',
                         boxShadow: '0 8px 20px rgba(15,23,42,0.05)'
                       }}
                     >
@@ -742,7 +748,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
 
               {loading && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mt: 1 }}>
-                  <Avatar sx={{ width: 34, height: 34, bgcolor: themeColors.primary }}>
+                  <Avatar sx={{ width: 34, height: 34, background: themeColors.primaryGradient }}>
                     <SmartToyIcon sx={{ fontSize: 18 }} />
                   </Avatar>
                   <Box
@@ -787,7 +793,7 @@ const Chatbot = ({ embedded = false, onClose }) => {
                         borderColor: 'rgba(15,23,42,0.10)'
                       },
                       '&:hover fieldset': {
-                        borderColor: 'rgba(22,101,52,0.34)'
+                        borderColor: 'rgba(0,122,24,0.34)'
                       },
                       '&.Mui-focused fieldset': {
                         borderColor: themeColors.primary
@@ -806,10 +812,10 @@ const Chatbot = ({ embedded = false, onClose }) => {
                     borderRadius: '16px',
                     textTransform: 'none',
                     fontWeight: 900,
-                    bgcolor: themeColors.primary,
-                    boxShadow: '0 12px 22px rgba(22,101,52,0.18)',
+                    background: themeColors.primaryGradient,
+                    boxShadow: '0 12px 22px rgba(0,122,24,0.18)',
                     '&:hover': {
-                      bgcolor: themeColors.primaryDark,
+                      background: themeColors.primaryGradient,
                       transform: 'translateY(-1px)'
                     },
                     '&:active': {
@@ -861,8 +867,8 @@ const Chatbot = ({ embedded = false, onClose }) => {
                     transition: 'all 0.2s ease',
                     '&:hover': {
                       transform: 'translateY(-2px)',
-                      bgcolor: '#f0fdf4',
-                      borderColor: 'rgba(34,197,94,0.18)',
+                      background: 'linear-gradient(135deg, #EFFDF5 0%, #D9FBEA 100%)',
+                      borderColor: 'rgba(0,208,132,0.24)',
                       boxShadow: '0 10px 20px rgba(15,23,42,0.05)'
                     }
                   }}

@@ -381,7 +381,7 @@ const PendingApproval = () => {
                 variant="contained"
                 onClick={() => navigate('/login')}
                 sx={{
-                  bgcolor: '#10b981',
+                  bgcolor: '#00D084',
                   borderRadius: 2,
                   textTransform: 'none',
                   px: 3,

@@ -38,12 +38,12 @@ body {
 }
 
 .btn-primary {
-  background-color: #3b82f6;
+  background-color: #007A18;
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #2563eb;
+  background-color: #003D07;
 }
 
 .input {
@@ -56,6 +56,6 @@ body {
 
 .input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #007A18;
+  box-shadow: 0 0 0 3px rgba(0, 122, 24, 0.1);
 }

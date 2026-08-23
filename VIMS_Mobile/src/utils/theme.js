@@ -1,21 +1,23 @@
 // VIMS Mobile 2026 design system.
 // Intentionally independent from the website: compact, flat, touch-first and calm.
 export const themeColors = {
-  primary: '#176B45',
-  primaryDark: '#105437',
-  primaryDeep: '#0A3F2B',
-  primaryLight: '#39A66F',
-  primarySoft: '#DDF1E6',
-  primaryWash: '#F0F7F3',
-  accent: '#DDF1E6',
-  accentSoft: '#F0F7F3',
-  nav: '#0A3F2B',
-  navActive: '#176B45',
+  primary: '#007A18',
+  primaryDark: '#003D07',
+  primaryDeep: '#002F05',
+  primaryLight: '#00D084',
+  primarySoft: '#D9FBEA',
+  primaryWash: '#EFFDF5',
+  primaryGradient: ['#003D07', '#007A18', '#00D084'],
+  primaryGradientCss: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+  accent: '#D9FBEA',
+  accentSoft: '#EFFDF5',
+  nav: '#002F05',
+  navActive: '#007A18',
   navMuted: '#789488',
-  sidebar: '#176B45',
-  sidebarDark: '#0A3F2B',
-  success: '#16875A',
-  successSoft: '#DDF5E9',
+  sidebar: '#007A18',
+  sidebarDark: '#002F05',
+  success: '#00A85A',
+  successSoft: '#D9FBEA',
   warning: '#B86517',
   warningSoft: '#FFF0D8',
   error: '#BE3E46',
@@ -26,7 +28,7 @@ export const themeColors = {
   backgroundElevated: '#EFF2ED',
   cardBackground: '#FFFFFF',
   surfaceMuted: '#F2F4F0',
-  surfaceTint: '#EAF3ED',
+  surfaceTint: '#EFFDF5',
   textPrimary: '#17221C',
   secondary: '#5E6D64',
   textSecondary: '#5E6D64',
@@ -153,10 +155,10 @@ export const componentStyles = {
 export const pinterestTheme = { canvas: themeColors.background, cardRadius: radii.lg, cardShadow: shadows.small };
 
 export const statCardStyles = [
-  { bg: '#176B45', light: 'rgba(255,255,255,0.12)', accent: '#DDF5E9' },
-  { bg: '#105437', light: 'rgba(255,255,255,0.12)', accent: '#EAF3ED' },
-  { bg: '#0A3F2B', light: 'rgba(255,255,255,0.12)', accent: '#F0F7F3' },
-  { bg: '#39A66F', light: 'rgba(255,255,255,0.12)', accent: '#DDF1E6' },
+  { bg: '#003D07', light: 'rgba(255,255,255,0.12)', accent: '#D9FBEA' },
+  { bg: '#007A18', light: 'rgba(255,255,255,0.12)', accent: '#EFFDF5' },
+  { bg: '#002F05', light: 'rgba(255,255,255,0.12)', accent: '#EFFDF5' },
+  { bg: '#00D084', light: 'rgba(255,255,255,0.12)', accent: '#D9FBEA' },
 ];
 
 export const navigationTheme = {

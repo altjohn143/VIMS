@@ -46,13 +46,13 @@ import toast from 'react-hot-toast';
 import { getBackendApiUrl } from '../utils/api';
 
 const themeColors = {
-  primary: '#166534',
-  primaryLight: '#22c55e',
-  primaryDark: '#14532d',
-  success: '#10b981',
+  primary: '#007A18',
+  primaryLight: '#00D084',
+  primaryDark: '#003D07',
+  success: '#00D084',
   warning: '#f59e0b',
   error: '#ef4444',
-  info: '#3b82f6',
+  info: '#007A18',
   background: '#f3f5f7',
   cardBackground: '#ffffff',
   textPrimary: '#0f172a',
@@ -301,7 +301,7 @@ const AdminVisitorReports = () => {
             borderRadius: '20px',
             color: 'white',
             background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.primaryDark} 100%)`,
-            boxShadow: '0 16px 34px rgba(22,101,52,0.24)',
+            boxShadow: '0 16px 34px rgba(0,122,24,0.24)',
             border: '1px solid rgba(255,255,255,0.10)',
             animation: 'fadeUpSoft 0.45s ease'
           }}

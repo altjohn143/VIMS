@@ -443,7 +443,7 @@ const ReservationsScreen = ({ navigation }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'confirmed': return '#22c55e';
+      case 'confirmed': return '#00D084';
       case 'cancelled': return '#ef4444';
       case 'borrowed': return '#f59e0b';
       case 'returned': return '#0ea5e9';
@@ -506,14 +506,14 @@ const ReservationsScreen = ({ navigation }) => {
       activeOpacity={0.85}
     >
       <View style={styles.selectFieldLeft}>
-        <Ionicons name="list-outline" size={17} color={disabled ? '#cbd5e1' : '#166534'} />
+        <Ionicons name="list-outline" size={17} color={disabled ? '#cbd5e1' : '#007A18'} />
         <Text style={[styles.selectFieldText, !valueText && styles.selectFieldPlaceholder]}>
           {valueText || placeholder}
         </Text>
       </View>
       <View style={styles.selectFieldAction}>
         <Text style={styles.selectFieldActionText}>Choose</Text>
-        <Ionicons name="chevron-down" size={17} color={disabled ? '#cbd5e1' : '#166534'} />
+        <Ionicons name="chevron-down" size={17} color={disabled ? '#cbd5e1' : '#007A18'} />
       </View>
     </TouchableOpacity>
   );
@@ -538,7 +538,7 @@ const ReservationsScreen = ({ navigation }) => {
             >
               <Text style={styles.optionSheetText}>{option.label}</Text>
               {selectSheet.value === option.value && (
-                <Ionicons name="checkmark-circle" size={20} color="#166534" />
+                <Ionicons name="checkmark-circle" size={20} color="#007A18" />
               )}
             </TouchableOpacity>
           ))}
@@ -594,7 +594,7 @@ const ReservationsScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#166534" />
+        <ActivityIndicator size="large" color="#007A18" />
         <Text style={styles.loadingText}>Loading reservations...</Text>
       </View>
     );
@@ -653,7 +653,7 @@ const ReservationsScreen = ({ navigation }) => {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           <TouchableOpacity
-            style={[styles.quickActionButton, { backgroundColor: '#166534' }]}
+            style={[styles.quickActionButton, { backgroundColor: '#007A18' }]}
             onPress={() => {
               setFormData({
                 description: '',
@@ -707,7 +707,7 @@ const ReservationsScreen = ({ navigation }) => {
                     <Ionicons
                       name={reservation.items?.length > 0 ? 'layers' : (reservation.resourceType === 'venue' ? 'business' : 'build')}
                       size={20}
-                      color="#166534"
+                      color="#007A18"
                     />
                     <Text style={styles.resourceName}>
                       {reservation.items && reservation.items.length > 0 
@@ -952,7 +952,7 @@ const ReservationsScreen = ({ navigation }) => {
                   <Text style={styles.availabilityText}>Select a venue or equipment item to see reserved schedules.</Text>
                 ) : availabilityLoading ? (
                   <View style={styles.availabilityLoading}>
-                    <ActivityIndicator size="small" color="#166534" />
+                    <ActivityIndicator size="small" color="#007A18" />
                     <Text style={styles.availabilityText}>Checking availability...</Text>
                   </View>
                 ) : availability.length === 0 ? (
@@ -1183,7 +1183,7 @@ const ReservationsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   availabilityFilters: { flexDirection: 'row', gap: 7, marginBottom: 9 },
   availabilityFilterChip: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 999, backgroundColor: '#f1f5f9' },
-  availabilityFilterChipActive: { backgroundColor: '#166534' },
+  availabilityFilterChipActive: { backgroundColor: '#007A18' },
   availabilityFilterText: { color: '#64748b', fontSize: 11, fontWeight: '800' },
   availabilityFilterTextActive: { color: 'white' },
   container: roleLayouts.resident.screen,
@@ -1428,7 +1428,7 @@ const styles = StyleSheet.create({
   selectField: {
     minHeight: 54,
     borderWidth: 1,
-    borderColor: '#86efac',
+    borderColor: '#D9FBEA',
     borderRadius: 12,
     backgroundColor: '#f0fdf4',
     paddingHorizontal: 12,
@@ -1451,7 +1451,7 @@ const styles = StyleSheet.create({
   },
   selectFieldLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
   selectFieldAction: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingLeft: 8 },
-  selectFieldActionText: { color: '#166534', fontSize: 12, fontWeight: '900' },
+  selectFieldActionText: { color: '#007A18', fontSize: 12, fontWeight: '900' },
   selectFieldPlaceholder: {
     color: '#9ca3af',
     fontWeight: '500',
@@ -1540,7 +1540,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#166534',
+    backgroundColor: '#007A18',
   },
   submitButtonDisabled: {
     backgroundColor: '#9ca3af',
@@ -1586,7 +1586,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#166534',
+    backgroundColor: '#007A18',
   },
   cardActionButtonText: {
     fontSize: 13,
@@ -1598,7 +1598,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#166534',
+    backgroundColor: '#007A18',
     borderRadius: 10,
     paddingVertical: 12,
     marginVertical: 12,
@@ -1614,7 +1614,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0fdf4',
     borderRadius: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#166534',
+    borderLeftColor: '#007A18',
     padding: 10,
     marginBottom: 10,
   },
@@ -1623,7 +1623,7 @@ const styles = StyleSheet.create({
   },
   itemListText: {
     fontSize: 13,
-    color: '#166534',
+    color: '#007A18',
     fontWeight: '500',
   },
   itemCard: {
@@ -1648,7 +1648,7 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#166534',
+    color: '#007A18',
     marginBottom: 4,
   },
   itemType: {
@@ -1706,7 +1706,7 @@ const styles = StyleSheet.create({
   },
   availabilitySuccess: {
     fontSize: 13,
-    color: '#166534',
+    color: '#007A18',
     fontWeight: '700',
   },
   availabilityError: {
@@ -1749,7 +1749,7 @@ const styles = StyleSheet.create({
     marginTop: -4,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#86efac',
+    borderColor: '#D9FBEA',
     borderRadius: 0,
     backgroundColor: '#fff',
     overflow: 'hidden',
@@ -1784,7 +1784,7 @@ const styles = StyleSheet.create({
   iosPickerAction: { minWidth: 68, paddingVertical: 12, alignItems: 'center' },
   iosPickerTitle: { flex: 1, textAlign: 'center', color: '#1e293b', fontSize: 15, fontWeight: '800' },
   iosPickerCancelText: { color: '#64748b', fontSize: 15, fontWeight: '700' },
-  iosPickerDoneText: { color: '#166534', fontSize: 15, fontWeight: '800' },
+  iosPickerDoneText: { color: '#007A18', fontSize: 15, fontWeight: '800' },
   iosPicker: { backgroundColor: 'white' },
   submitButtonText: {
     fontSize: 16,

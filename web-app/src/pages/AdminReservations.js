@@ -304,7 +304,7 @@ const AdminReservations = () => {
           }}
         >
           <Toolbar sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Avatar sx={{ bgcolor: '#166534' }}>
+            <Avatar sx={{ bgcolor: '#007A18' }}>
               <EventAvailableIcon />
             </Avatar>
             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -340,7 +340,7 @@ const AdminReservations = () => {
             borderRadius: '22px',
             color: '#0f172a',
             background: '#f8fafc',
-            border: '1px solid rgba(22, 163, 74, 0.12)',
+            border: '1px solid rgba(0, 208, 132, 0.12)',
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
@@ -351,9 +351,9 @@ const AdminReservations = () => {
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             {[
-              { label: 'Total Requests', value: stats.total, color: '#2563eb' },
+              { label: 'Total Requests', value: stats.total, color: '#003D07' },
               { label: 'Pending', value: stats.pending, color: '#f59e0b' },
-              { label: 'Confirmed', value: stats.confirmed, color: '#16a34a' },
+              { label: 'Confirmed', value: stats.confirmed, color: '#00A85A' },
               { label: 'Borrowed', value: stats.borrowed, color: '#0ea5e9' },
               { label: 'Returned', value: stats.returned, color: '#64748b' },
               { label: 'Checked Out', value: stats.checkedOut, color: '#7c3aed' },

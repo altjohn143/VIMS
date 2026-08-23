@@ -108,13 +108,13 @@ import Notifications from './Notifications';
 import Chatbot from './Chatbot';
 
 const themeColors = {
-  primary: '#166534',
-  primaryDark: '#14532d',
-  primaryLight: '#22c55e',
+  primary: '#007A18',
+  primaryDark: '#003D07',
+  primaryLight: '#00D084',
   primarySoft: '#dcfce7',
-  sidebar: '#146c34',
+  sidebar: '#007A18',
   sidebarDark: '#0f5a2a',
-  success: '#22c55e',
+  success: '#00D084',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#0ea5e9',
@@ -154,7 +154,7 @@ const statCardStyles = [
     accent: '#dbeafe'
   },
   {
-    bg: 'linear-gradient(135deg, #18a34a 0%, #17803d 100%)',
+    bg: 'linear-gradient(135deg, #00A85A 0%, #17803d 100%)',
     light: 'rgba(255,255,255,0.16)',
     icon: <VerifiedUserIcon sx={{ fontSize: 56 }} />,
     accent: '#dcfce7'
@@ -289,7 +289,7 @@ const ResidentReservationCalendar = () => {
             borderRadius: '14px',
             fontWeight: 900,
             bgcolor: themeColors.primary,
-            boxShadow: '0 10px 22px rgba(22,101,52,0.18)',
+            boxShadow: '0 10px 22px rgba(0,122,24,0.18)',
             '&:hover': { bgcolor: themeColors.primaryDark }
           }}
         >
@@ -414,7 +414,7 @@ const ResidentReservationCalendar = () => {
                 </Box>
 
                 {selectedSchedules.length === 0 ? (
-                  <Box sx={{ p: 2, borderRadius: '14px', bgcolor: '#ecfdf5', border: '1px solid #bbf7d0' }}>
+                  <Box sx={{ p: 2, borderRadius: '14px', bgcolor: '#ecfdf5', border: '1px solid #D9FBEA' }}>
                     <Typography sx={{ color: themeColors.primary, fontWeight: 900 }}>
                       This date is open for reservation.
                     </Typography>
@@ -870,7 +870,7 @@ const Dashboard = () => {
       subtitle: 'Casimiro Westville Homes',
       panelLabel: 'Admin Panel',
       icon: <AdminIcon />,
-      color: '#166534',
+      color: '#007A18',
       features: {
         dashboard: [{ title: 'Dashboard', icon: <DashboardIcon />, link: '/dashboard' }],
         visitors: [{ title: 'Visitor Management', icon: <PeopleIcon />, link: '/dashboard/admin/visitor-management' }],
@@ -1183,7 +1183,7 @@ const Dashboard = () => {
         color: 'white',
         display: 'flex',
         flexDirection: 'column',
-        backgroundImage: 'linear-gradient(180deg, #166534 0%, #146c34 60%, #115e31 100%)'
+        backgroundImage: 'linear-gradient(180deg, #007A18 0%, #007A18 60%, #003D07 100%)'
       }}
     >
       <Box
@@ -1323,7 +1323,7 @@ const Dashboard = () => {
                     fontSize: '0.66rem',
                     fontWeight: 800,
                     bgcolor: '#d9f99d',
-                    color: '#14532d',
+                    color: '#003D07',
                     borderRadius: '999px'
                   }}
                 />
@@ -1670,7 +1670,7 @@ const Dashboard = () => {
                 mr: 1.1,
                 bgcolor: themeColors.primary,
                 fontWeight: 800,
-                boxShadow: '0 6px 18px rgba(22,101,52,0.22)'
+                boxShadow: '0 6px 18px rgba(0,122,24,0.22)'
               }}
             >
               {user.firstName?.charAt(0)}
@@ -1912,7 +1912,7 @@ const Dashboard = () => {
                               fontSize: '0.8rem',
                               fontWeight: 800,
                               letterSpacing: '0.08em',
-                              color: '#4ade80',
+                              color: '#00D084',
                               textTransform: 'uppercase',
                               mb: 1.2
                             }}
@@ -1985,7 +1985,7 @@ const Dashboard = () => {
                                 <Typography sx={{ mt: 0.8, fontSize: '0.86rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
                                   {stat.label}
                                 </Typography>
-                                <Typography sx={{ mt: 1, fontSize: '0.76rem', color: '#86efac', fontWeight: 700 }}>
+                                <Typography sx={{ mt: 1, fontSize: '0.76rem', color: '#D9FBEA', fontWeight: 700 }}>
                                   ↗ {stat.helper}
                                 </Typography>
                               </Box>
@@ -2292,7 +2292,7 @@ const Dashboard = () => {
                                 borderRadius: '12px',
                                 fontWeight: 800,
                                 bgcolor: themeColors.primary,
-                                boxShadow: '0 8px 18px rgba(22,101,52,0.20)',
+                                boxShadow: '0 8px 18px rgba(0,122,24,0.20)',
                                 '&:hover': {
                                   bgcolor: themeColors.primaryDark,
                                   transform: 'translateY(-1px)'
@@ -2497,7 +2497,7 @@ const Dashboard = () => {
                         px: 2,
                         py: 1.2,
                         bgcolor: themeColors.primary,
-                        boxShadow: '0 12px 22px rgba(22,101,52,0.18)',
+                        boxShadow: '0 12px 22px rgba(0,122,24,0.18)',
                         '&:hover': {
                           bgcolor: themeColors.primaryDark,
                           transform: 'translateY(-1px)'
@@ -2651,7 +2651,7 @@ const Dashboard = () => {
             borderRadius: '50%',
             bgcolor: assistantOpen || activePageKey === 'ai-assistant' ? themeColors.primaryDark : themeColors.primary,
             color: 'white',
-            boxShadow: '0 18px 36px rgba(22, 101, 52, 0.34)',
+            boxShadow: '0 18px 36px rgba(0, 122, 24, 0.34)',
             textTransform: 'none',
             overflow: 'visible',
             transition: 'transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease',
@@ -2673,7 +2673,7 @@ const Dashboard = () => {
               width: 9,
               height: 9,
               borderRadius: '50%',
-              bgcolor: '#bbf7d0',
+              bgcolor: '#D9FBEA',
               boxShadow: '0 0 0 0 rgba(187,247,208,0.70)',
               opacity: 0,
               transition: 'opacity 0.22s ease'

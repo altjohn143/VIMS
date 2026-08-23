@@ -73,10 +73,10 @@ const PaymentSuccess = () => {
   };
   
   const themeColors = {
-    primary: '#166534',
-    primaryDark: '#14532d',
-    primaryLight: '#22c55e',
-    success: '#10b981',
+    primary: '#007A18',
+    primaryDark: '#003D07',
+    primaryLight: '#00D084',
+    success: '#00D084',
     background: '#f3f5f7',
     textPrimary: '#0f172a',
     textSecondary: '#64748b',
@@ -111,7 +111,7 @@ const PaymentSuccess = () => {
               mb: 2.5,
               py: 1.8,
               borderRadius: 3,
-              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
+              background: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
               color: '#fff'
             }}
           >

@@ -8,9 +8,9 @@ import AnnouncementImage from '../components/AnnouncementImage';
 
 // Match dashboard/login color palette
 const themeColors = {
-  primary: '#166534',
-  primaryDark: '#14532d',
-  primaryLight: '#22c55e',
+  primary: '#007A18',
+  primaryDark: '#003D07',
+  primaryLight: '#00D084',
   background: '#f3f5f7',
   cardBackground: '#ffffff',
   textPrimary: '#0f172a',
@@ -102,13 +102,13 @@ const Announcements = () => {
             sx={{
               borderRadius: '22px',
               color: '#fff',
-              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
-              boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)'
+              background: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+              boxShadow: '0 18px 40px rgba(0, 122, 24, 0.35)'
             }}
           >
             <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <CampaignIcon sx={{ color: '#bef264' }} />
+                <CampaignIcon sx={{ color: '#00D084' }} />
                 <Typography sx={{ fontSize: { xs: '1.5rem', md: '1.8rem' }, fontWeight: 900, color: '#fff' }}>
                   Announcements & Advisories
                 </Typography>
@@ -222,7 +222,7 @@ const Announcements = () => {
                       label={item.category === 'monthlyCollection' ? 'Monthly collection' : 'Community'}
                       sx={{
                         bgcolor: item.category === 'monthlyCollection' ? '#f0fdf4' : '#eff6ff',
-                        color: item.category === 'monthlyCollection' ? '#166534' : '#1d4ed8',
+                        color: item.category === 'monthlyCollection' ? '#007A18' : '#1d4ed8',
                         fontWeight: 700,
                         borderRadius: 999,
                       }}

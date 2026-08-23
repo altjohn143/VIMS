@@ -61,10 +61,10 @@ const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 const VisitorManagement = () => {
   // Unified theme colors aligned with Dashboard/Login
   const themeColors = {
-    primary: '#166534',
-    primaryLight: '#22c55e',
-    primaryDark: '#14532d',
-    success: '#22c55e',
+    primary: '#007A18',
+    primaryLight: '#00D084',
+    primaryDark: '#003D07',
+    success: '#00D084',
     warning: '#f59e0b',
     error: '#ef4444',
     info: '#0ea5e9',
@@ -487,13 +487,13 @@ const VisitorManagement = () => {
                   border-radius: 20px;
                   font-weight: bold;
                   margin: 10px 0;
-                  background: ${isExpired ? '#feb2b2' : hasLeft ? '#9ae6b4' : themeColors.primary + '30'};
-                  color: ${isExpired ? '#742a2a' : hasLeft ? '#22543d' : themeColors.primary};
+                  background: ${isExpired ? '#feb2b2' : hasLeft ? '#D9FBEA' : themeColors.primary + '30'};
+                  color: ${isExpired ? '#742a2a' : hasLeft ? '#003D07' : themeColors.primary};
                 }
                 .qr-code { 
                   max-width: 300px; 
                   margin: 20px auto; 
-                  border: 3px solid ${isExpired ? '#fc8181' : hasLeft ? '#68d391' : themeColors.primary}; 
+                  border: 3px solid ${isExpired ? '#fc8181' : hasLeft ? '#00D084' : themeColors.primary}; 
                   padding: 15px; 
                   background: white;
                   border-radius: 8px;
@@ -750,9 +750,9 @@ const VisitorManagement = () => {
             sx={{
               mr: 2,
               color: themeColors.textPrimary,
-              bgcolor: 'rgba(22,101,52,0.06)',
+              bgcolor: 'rgba(0,122,24,0.06)',
               borderRadius: 2,
-              '&:hover': { bgcolor: 'rgba(22,101,52,0.14)' }
+              '&:hover': { bgcolor: 'rgba(0,122,24,0.14)' }
             }}
           >
             <ArrowBackIcon />

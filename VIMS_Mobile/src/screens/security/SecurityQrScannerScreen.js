@@ -23,6 +23,47 @@ const getQrScanErrorMessage = (error) => {
   return serverMessage || 'Please scan a valid VIMS visitor pass.';
 };
 
+const extractVisitorPassToken = (rawValue = '') => {
+  if (!rawValue || typeof rawValue !== 'string') return '';
+
+  let value = rawValue.trim();
+  try {
+    value = decodeURIComponent(value).trim();
+  } catch (error) {
+    // Keep the raw value if it is not URI-encoded text.
+  }
+  if (!value) return '';
+
+  const candidates = [value];
+  if (value.includes('/')) {
+    candidates.push(...value.split('/').filter(Boolean));
+  }
+
+  if (typeof atob === 'function') {
+    try {
+      candidates.push(atob(value));
+    } catch (error) {
+      // Ignore non-base64 QR values.
+    }
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      candidates.push(parsed.qrToken, parsed.qrCode, parsed.token);
+    } catch (error) {
+      // Ignore non-JSON QR values.
+    }
+  }
+
+  const token = candidates.find((candidate) => (
+    typeof candidate === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate.trim())
+  ));
+
+  return token ? token.trim() : '';
+};
+
 const SecurityQrScannerScreen = ({ route }) => {
   const [hasPermission, setHasPermission] = useState(false);
   const [isHandlingScan, setIsHandlingScan] = useState(false);
@@ -53,12 +94,29 @@ const SecurityQrScannerScreen = ({ route }) => {
     return granted;
   };
 
+  const showInvalidPassAlert = (message) => {
+    setTimeout(() => {
+      Alert.alert(
+        'Invalid Visitor Pass',
+        message || 'Invalid QR code. Please scan a valid VIMS visitor pass.',
+        [{ text: 'Scan Again', onPress: () => setIsHandlingScan(false) }]
+      );
+    }, 80);
+  };
+
   const handleSecurityScan = async ({ data }) => {
     if (isHandlingScan || !data) return;
 
     setIsHandlingScan(true);
+    const visitorPassToken = extractVisitorPassToken(data);
+    if (!visitorPassToken) {
+      showInvalidPassAlert('Invalid QR code. Please scan a valid VIMS visitor pass.');
+      return;
+    }
+
+    let shouldUnlockAutomatically = true;
     try {
-      const response = await api.post('/visitors/scan-action', { scanValue: data, action: scanMode });
+      const response = await api.post('/visitors/scan-action', { scanValue: visitorPassToken, action: scanMode });
       if (response.data?.success) {
         const action = response.data?.data?.action;
         const nextAction = response.data?.data?.nextAction;
@@ -84,9 +142,12 @@ const SecurityQrScannerScreen = ({ route }) => {
         );
       }
     } catch (error) {
-      Alert.alert('Invalid Visitor Pass', getQrScanErrorMessage(error));
+      shouldUnlockAutomatically = false;
+      showInvalidPassAlert(getQrScanErrorMessage(error));
     } finally {
-      setTimeout(() => setIsHandlingScan(false), 900);
+      if (shouldUnlockAutomatically) {
+        setTimeout(() => setIsHandlingScan(false), 900);
+      }
     }
   };
 
@@ -115,14 +176,14 @@ const SecurityQrScannerScreen = ({ route }) => {
           style={[styles.modeButton, scanMode === 'entry' && styles.modeButtonActive]}
           onPress={() => setScanMode('entry')}
         >
-          <Ionicons name="log-in-outline" size={18} color={scanMode === 'entry' ? '#052e16' : '#bbf7d0'} />
+          <Ionicons name="log-in-outline" size={18} color={scanMode === 'entry' ? '#002F05' : '#D9FBEA'} />
           <Text style={[styles.modeButtonText, scanMode === 'entry' && styles.modeButtonTextActive]}>Entry QR Scanner</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.modeButton, scanMode === 'exit' && styles.modeButtonActive]}
           onPress={() => setScanMode('exit')}
         >
-          <Ionicons name="log-out-outline" size={18} color={scanMode === 'exit' ? '#052e16' : '#bbf7d0'} />
+          <Ionicons name="log-out-outline" size={18} color={scanMode === 'exit' ? '#002F05' : '#D9FBEA'} />
           <Text style={[styles.modeButtonText, scanMode === 'exit' && styles.modeButtonTextActive]}>Exit QR Scanner</Text>
         </TouchableOpacity>
       </View>
@@ -170,7 +231,7 @@ const SecurityQrScannerScreen = ({ route }) => {
             <Ionicons
               name={lastResult.action === 'exit_logged' ? 'log-out-outline' : 'log-in-outline'}
               size={22}
-              color="#bbf7d0"
+              color="#D9FBEA"
             />
             <Text style={styles.resultTitle}>Last Scan</Text>
           </View>
@@ -219,8 +280,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#166534',
-    backgroundColor: '#052e16',
+    borderColor: '#007A18',
+    backgroundColor: '#002F05',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -228,15 +289,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   modeButtonActive: {
-    backgroundColor: '#bbf7d0',
+    backgroundColor: '#D9FBEA',
   },
   modeButtonText: {
-    color: '#bbf7d0',
+    color: '#D9FBEA',
     fontWeight: '900',
     fontSize: 12,
   },
   modeButtonTextActive: {
-    color: '#052e16',
+    color: '#002F05',
   },
   cameraWrap: {
     marginHorizontal: 20,
@@ -270,7 +331,7 @@ const styles = StyleSheet.create({
     width: '60%',
     height: '54%',
     borderWidth: 2,
-    borderColor: '#22c55e',
+    borderColor: '#00D084',
     borderRadius: 28,
     backgroundColor: 'transparent',
   },
@@ -309,11 +370,11 @@ const styles = StyleSheet.create({
   resultCard: {
     marginHorizontal: 16,
     marginTop: 10,
-    backgroundColor: '#052e16',
+    backgroundColor: '#002F05',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#166534',
+    borderColor: '#007A18',
   },
   resultHeader: {
     flexDirection: 'row',
@@ -322,7 +383,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   resultTitle: {
-    color: '#bbf7d0',
+    color: '#D9FBEA',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -343,7 +404,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#166534',
+    backgroundColor: '#007A18',
   },
   statusPillText: {
     color: '#dcfce7',
@@ -351,7 +412,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   nextActionText: {
-    color: '#bbf7d0',
+    color: '#D9FBEA',
     fontSize: 12,
     marginTop: 10,
     lineHeight: 18,

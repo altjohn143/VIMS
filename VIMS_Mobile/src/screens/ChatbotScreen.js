@@ -11,6 +11,7 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import { themeColors } from '../utils/theme';
@@ -48,12 +49,17 @@ const suggestedQuestionsByRole = {
 };
 
 const getSuggestedPrompts = (role) => suggestedQuestionsByRole[role] || suggestedQuestionsByRole.default;
+const getKeyboardOffset = (embedded) => {
+  if (Platform.OS !== 'ios') return 0;
+  return embedded ? 8 : 0;
+};
 
 const assistantPalette = {
   screen: '#F7F8F5',
-  header: '#0A3F2B',
+  header: '#002F05',
   card: '#FFFFFF',
-  userBubble: '#176B45',
+  userBubble: '#007A18',
+  userBubbleGradient: ['#003D07', '#007A18', '#00D084'],
   assistantBubble: '#FFFFFF',
   input: '#FFFFFF',
   text: '#17221C',
@@ -62,7 +68,7 @@ const assistantPalette = {
   inverseText: '#FFFFFF',
   border: '#DEE4DE',
   borderStrong: '#C7D1C9',
-  softGreen: '#DDF1E6',
+  softGreen: '#D9FBEA',
 };
 
 const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
@@ -113,18 +119,28 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={embedded ? 0 : 12}
+      keyboardVerticalOffset={getKeyboardOffset(embedded)}
     >
-      <View style={styles.header}>
+      <LinearGradient
+        colors={assistantPalette.userBubbleGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <TouchableOpacity style={styles.headerActionButton} onPress={embedded ? onClose : () => safeGoBack(navigation)}>
           <Ionicons name={embedded ? 'close' : 'arrow-back'} size={16} color="#fff" />
           <Text style={styles.headerActionText}>{embedded ? 'Close' : 'Back'}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{embedded ? 'VIMS Assistant' : 'VIMS AI Assistant'}</Text>
         <View style={{ minWidth: 76 }} />
-      </View>
+      </LinearGradient>
 
-      <View style={styles.suggestionsContainer}>
+      <LinearGradient
+        colors={assistantPalette.userBubbleGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.suggestionsContainer}
+      >
         <Text style={styles.suggestionsTitle}>Suggested questions for {role === 'admin' ? 'Administrator' : role === 'security' ? 'Security Officer' : 'Resident'}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
           {suggestedPrompts.map((prompt) => (
@@ -133,7 +149,7 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.messages}
@@ -142,9 +158,21 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
       >
         {messages.length === 0 && <Text style={styles.empty}>Ask about VIMS workflows, lot recommendations, pricing, and availability.</Text>}
         {messages.map((m, idx) => (
-          <View key={idx} style={[styles.bubble, m.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
-            <Text style={m.role === 'user' ? styles.userBubbleText : styles.assistantBubbleText}>{m.content}</Text>
-          </View>
+          m.role === 'user' ? (
+            <LinearGradient
+              key={idx}
+              colors={assistantPalette.userBubbleGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.bubble, styles.userBubble]}
+            >
+              <Text style={styles.userBubbleText}>{m.content}</Text>
+            </LinearGradient>
+          ) : (
+            <View key={idx} style={[styles.bubble, styles.assistantBubble]}>
+              <Text style={styles.assistantBubbleText}>{m.content}</Text>
+            </View>
+          )
         ))}
       </ScrollView>
 
@@ -160,8 +188,15 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
           keyboardAppearance="light"
           multiline
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={() => sendMessage()} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <><Ionicons name="send" size={16} color="#fff" /><Text style={styles.sendBtnText}>Send</Text></>}
+        <TouchableOpacity style={styles.sendBtnTouch} onPress={() => sendMessage()} disabled={loading}>
+          <LinearGradient
+            colors={assistantPalette.userBubbleGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.sendBtn, loading && styles.sendBtnDisabled]}
+          >
+            {loading ? <ActivityIndicator color="#fff" /> : <><Ionicons name="send" size={16} color="#fff" /><Text style={styles.sendBtnText}>Send</Text></>}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -177,7 +212,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: assistantPalette.header
   },
   headerTitle: { fontSize: 18, fontWeight: '900', color: assistantPalette.inverseText },
   headerActionButton: { minWidth: 76, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
@@ -186,7 +220,7 @@ const styles = StyleSheet.create({
   messagesContent: { padding: 12, flexGrow: 1 },
   empty: { color: assistantPalette.secondaryText, textAlign: 'center', marginTop: 20 },
   bubble: { padding: 10, borderRadius: 12, marginBottom: 10, maxWidth: '88%' },
-  userBubble: { alignSelf: 'flex-end', backgroundColor: assistantPalette.userBubble },
+  userBubble: { alignSelf: 'flex-end' },
   assistantBubble: { alignSelf: 'flex-start', backgroundColor: assistantPalette.assistantBubble, borderWidth: 1, borderColor: assistantPalette.border },
   userBubbleText: { color: assistantPalette.inverseText, fontSize: 14, lineHeight: 20 },
   assistantBubbleText: { color: assistantPalette.text, fontSize: 14, lineHeight: 20 },
@@ -195,15 +229,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     borderTopWidth: 1,
     borderTopColor: assistantPalette.border,
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 14 : 10,
     backgroundColor: assistantPalette.card
   },
   suggestionsContainer: {
-    backgroundColor: assistantPalette.header,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: assistantPalette.border
+    borderBottomColor: 'rgba(255,255,255,0.18)'
   },
   suggestionsTitle: {
     color: assistantPalette.inverseText,
@@ -240,11 +275,15 @@ const styles = StyleSheet.create({
     backgroundColor: assistantPalette.input,
     color: assistantPalette.text
   },
-  sendBtn: {
+  sendBtnTouch: {
     marginLeft: 8,
-    backgroundColor: '#166534',
     minWidth: 72,
     height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  sendBtn: {
+    flex: 1,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -252,6 +291,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 12
   },
+  sendBtnDisabled: { opacity: 0.78 },
   sendBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' }
 });
 

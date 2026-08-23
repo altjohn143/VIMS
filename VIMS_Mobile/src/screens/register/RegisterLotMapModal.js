@@ -28,7 +28,7 @@ export default function RegisterLotMapModal({
 
   const statusConfig = useMemo(
     () => ({
-      vacant: { color: '#22c55e', bg: '#dcfce7', label: 'Vacant', border: '#16a34a' },
+      vacant: { color: '#00D084', bg: '#dcfce7', label: 'Vacant', border: '#00A85A' },
       occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', border: '#dc2626' },
       reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
     }),

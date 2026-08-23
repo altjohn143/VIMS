@@ -71,13 +71,13 @@ import toast from 'react-hot-toast';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
-  primary: '#166534',
-  primaryLight: '#22c55e',
-  primaryDark: '#14532d',
-  success: '#10b981',
+  primary: '#007A18',
+  primaryLight: '#00D084',
+  primaryDark: '#003D07',
+  success: '#00D084',
   warning: '#f59e0b',
   error: '#ef4444',
-  info: '#3b82f6',
+  info: '#007A18',
   background: '#f3f5f7',
   cardBackground: '#ffffff',
   textPrimary: '#0f172a',
@@ -952,8 +952,8 @@ const SecurityVisitorLogs = () => {
             p: { xs: 2.5, md: 3 },
             borderRadius: '22px',
             color: '#fff',
-            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
-            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)'
+            background: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+            boxShadow: '0 18px 40px rgba(0, 122, 24, 0.35)'
           }}
         >
           <Typography variant="h5" sx={{ fontWeight: 800 }}>
@@ -997,7 +997,7 @@ const SecurityVisitorLogs = () => {
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {[
               { label: 'Total Visitors', value: loading ? '-' : stats.total, helper: 'all records', gradient: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)', shadow: '0 14px 34px rgba(29,78,216,0.34)' },
-              { label: 'Scanned Today', value: loading ? '-' : stats.scanned, helper: 'entry logs', gradient: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', shadow: '0 14px 34px rgba(22,163,74,0.34)' },
+              { label: 'Scanned Today', value: loading ? '-' : stats.scanned, helper: 'entry logs', gradient: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)', shadow: '0 14px 34px rgba(0,208,132,0.34)' },
               { label: 'Pending Approval', value: loading ? '-' : stats.pending, helper: 'for security review', gradient: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', shadow: '0 14px 34px rgba(220,38,38,0.34)' }
             ].map((stat) => (
               <Grid item xs={6} sm={4} key={stat.label}>
@@ -1283,7 +1283,7 @@ const SecurityVisitorLogs = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ 
-                bgcolor: 'rgba(22, 163, 74, 0.08)',
+                bgcolor: 'rgba(0, 208, 132, 0.08)',
                 '& th': {
                   fontWeight: 600,
                   color: themeColors.textPrimary,

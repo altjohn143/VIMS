@@ -22,7 +22,7 @@ const PaymentCancelled = lazyWithRetry(() => import('./pages/PaymentCancelled'))
 
 const theme = createTheme({
   palette: {
-    primary: { main: '#3b82f6' },
+    primary: { main: '#007A18', dark: '#003D07', light: '#00D084' },
     secondary: { main: '#6b7280' },
   },
 });

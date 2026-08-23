@@ -61,13 +61,13 @@ import { getBackendApiUrl } from '../utils/api';
 const AdminVisitorManagement = () => {
   // Dashboard Theme Colors
   const themeColors = {
-    primary: '#166534',
-    primaryLight: '#22c55e',
-    primaryDark: '#14532d',
-    success: '#10b981',
+    primary: '#007A18',
+    primaryLight: '#00D084',
+    primaryDark: '#003D07',
+    success: '#00D084',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#3b82f6',
+    info: '#007A18',
     background: '#f3f5f7',
     cardBackground: '#ffffff',
     textPrimary: '#0f172a',
@@ -513,7 +513,7 @@ const AdminVisitorManagement = () => {
                   overflow: 'hidden',
                   borderRadius: '20px', 
                   color: 'white',
-                  background: 'linear-gradient(135deg, #18a34a 0%, #17803d 100%)',
+                  background: 'linear-gradient(135deg, #00A85A 0%, #17803d 100%)',
                   boxShadow: '0 16px 28px rgba(15,23,42,0.10)',
                   border: '1px solid rgba(255,255,255,0.12)',
                   animation: 'fadeUpSoft 0.52s ease',
@@ -1228,7 +1228,7 @@ const AdminVisitorManagement = () => {
               sx={{
                 bgcolor: decisionAction === 'approve' ? themeColors.success : themeColors.error,
                 '&:hover': {
-                  bgcolor: decisionAction === 'approve' ? '#059669' : '#dc2626'
+                  bgcolor: decisionAction === 'approve' ? '#00A85A' : '#dc2626'
                 }
               }}
             >

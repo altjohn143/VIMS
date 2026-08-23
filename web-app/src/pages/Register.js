@@ -111,10 +111,10 @@ const Register = () => {
     primary: '#2d5016',
     primaryLight: '#5a8a1a',
     primaryDark: '#1a3a0a',
-    success: '#10b981',
+    success: '#00D084',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#3b82f6',
+    info: '#007A18',
     textPrimary: '#1e293b',
     textSecondary: '#64748b',
     border: 'rgba(45, 80, 22, 0.15)',
@@ -1071,8 +1071,8 @@ const Register = () => {
                 mb: 2, borderRadius: 2,
                 backgroundColor: 'rgba(34,197,94,0.08)',
                 border: '1px solid rgba(34,197,94,0.3)',
-                color: '#166534',
-                '& .MuiAlert-icon': { color: '#16a34a' },
+                color: '#007A18',
+                '& .MuiAlert-icon': { color: '#00A85A' },
               }}
             >
               <strong>Lot pre-selected from the village map!</strong> Confirm your selection below.

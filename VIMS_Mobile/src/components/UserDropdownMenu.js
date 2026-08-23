@@ -51,15 +51,15 @@ const UserDropdownMenu = ({ navigation }) => {
 
   const roleMenuItems = user?.role === 'admin'
     ? [
-        { label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#16a34a', bg: '#f0fdf4' },
-        { label: 'Services', screen: 'ServicesTab', icon: 'construct-outline', color: '#2563eb', bg: '#eff6ff' },
+        { label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#00A85A', bg: '#f0fdf4' },
+        { label: 'Services', screen: 'ServicesTab', icon: 'construct-outline', color: '#003D07', bg: '#eff6ff' },
         { label: 'Payments', screen: 'PaymentsTab', icon: 'card-outline', color: '#7c3aed', bg: '#f5f3ff' },
         { label: 'Users', screen: 'UsersTab', icon: 'people-outline', color: '#0f766e', bg: '#ecfdf5' },
       ]
     : user?.role === 'resident'
-      ? [{ label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#16a34a', bg: '#f0fdf4' }]
+      ? [{ label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#00A85A', bg: '#f0fdf4' }]
       : user?.role === 'security'
-        ? [{ label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#16a34a', bg: '#f0fdf4' }]
+        ? [{ label: 'Profile Settings', screen: 'ProfileTab', icon: 'person-outline', color: '#00A85A', bg: '#f0fdf4' }]
       : [];
 
   return (
@@ -102,7 +102,7 @@ const UserDropdownMenu = ({ navigation }) => {
 
                 <TouchableOpacity style={styles.dropdownItem} onPress={() => onNavigate('DashboardTab')} activeOpacity={0.7}>
                   <View style={[styles.dropdownItemIcon, { backgroundColor: '#f0fdf4' }]}>
-                    <Ionicons name="grid-outline" size={18} color="#16a34a" />
+                    <Ionicons name="grid-outline" size={18} color="#00A85A" />
                   </View>
                   <Text style={styles.dropdownItemText}>Dashboard</Text>
                 </TouchableOpacity>
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   userPillRole: {
-    color: '#bbf7d0',
+    color: '#D9FBEA',
     fontSize: 9,
     marginTop: 1,
   },

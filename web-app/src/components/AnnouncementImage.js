@@ -64,8 +64,8 @@ const AnnouncementImage = ({
         sx={{
           ...commonSx,
           bgcolor: '#f0fdf4',
-          border: '1px solid rgba(22, 101, 52, 0.14)',
-          color: '#166534',
+          border: '1px solid rgba(0, 122, 24, 0.14)',
+          color: '#007A18',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

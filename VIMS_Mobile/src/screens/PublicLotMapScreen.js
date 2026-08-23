@@ -137,7 +137,7 @@ const PublicLotMapScreen = ({ navigation }) => {
   };
 
   const statusConfig = {
-    vacant: { color: '#22c55e', bg: '#dcfce7', label: 'Vacant', icon: 'checkmark-circle' },
+    vacant: { color: '#00D084', bg: '#dcfce7', label: 'Vacant', icon: 'checkmark-circle' },
     occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', icon: 'close-circle' },
     reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', icon: 'time' },
     amenity: { color: '#64748b', bg: '#e2e8f0', label: 'Community Amenity', icon: 'business' },
@@ -1212,7 +1212,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tourButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#007A18',
   },
   registerButton: {
     backgroundColor: themeColors.success,
@@ -1338,7 +1338,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   activeTourTab: {
-    backgroundColor: '#3b82f6' + '30',
+    backgroundColor: '#007A18' + '30',
   },
   tourTabText: {
     fontSize: 12,
@@ -1346,7 +1346,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeTourTabText: {
-    color: '#3b82f6',
+    color: '#007A18',
     fontWeight: '600',
   },
   tourInfo: {
@@ -1383,13 +1383,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tourPrice: {
-    color: '#22c55e',
+    color: '#00D084',
   },
   tourRegisterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#22c55e',
+    backgroundColor: '#00D084',
     padding: 16,
     borderRadius: 8,
     marginBottom: 16,

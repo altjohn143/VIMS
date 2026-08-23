@@ -28,7 +28,7 @@ import {
 import axios from '../config/axios';
 
 const themeColors = {
-  primary: '#166534',
+  primary: '#007A18',
   textPrimary: '#0f172a',
   textSecondary: '#64748b',
   border: 'rgba(15, 23, 42, 0.08)'
@@ -73,7 +73,7 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
     return [
       { label: 'Personnel', value: team.length, icon: <PeopleIcon />, color: '#7c3aed' },
       { label: 'Patrol Logs', value: logs.length, icon: <AssignmentIcon />, color: '#0ea5e9' },
-      { label: 'Completed', value: completedLogs.length, icon: <CheckCircleIcon />, color: '#16a34a' },
+      { label: 'Completed', value: completedLogs.length, icon: <CheckCircleIcon />, color: '#00A85A' },
       { label: 'Issues', value: issueLogs.length, icon: <ReportProblemOutlinedIcon />, color: '#dc2626' },
       { label: 'Today', value: todayLogs.length, icon: <AnalyticsIcon />, color: '#f59e0b' }
     ];
@@ -173,7 +173,7 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
                 variant="contained"
                 startIcon={<EditLocationAltIcon />}
                 onClick={() => openRouteDialog(member)}
-                sx={{ bgcolor: themeColors.primary, textTransform: 'none', fontWeight: 800, borderRadius: '8px', '&:hover': { bgcolor: '#14532d' } }}
+                sx={{ bgcolor: themeColors.primary, textTransform: 'none', fontWeight: 800, borderRadius: '8px', '&:hover': { bgcolor: '#003D07' } }}
               >
                 Edit Route
               </Button>
@@ -365,7 +365,7 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setRouteDialogOpen(false)} sx={{ textTransform: 'none', fontWeight: 800 }}>Cancel</Button>
-          <Button variant="contained" startIcon={<EditLocationAltIcon />} onClick={saveRoute} disabled={savingRoute} sx={{ bgcolor: themeColors.primary, textTransform: 'none', fontWeight: 800, borderRadius: '8px', '&:hover': { bgcolor: '#14532d' } }}>
+          <Button variant="contained" startIcon={<EditLocationAltIcon />} onClick={saveRoute} disabled={savingRoute} sx={{ bgcolor: themeColors.primary, textTransform: 'none', fontWeight: 800, borderRadius: '8px', '&:hover': { bgcolor: '#003D07' } }}>
             {savingRoute ? 'Saving...' : 'Save Route'}
           </Button>
         </DialogActions>

@@ -601,7 +601,7 @@ router.get('/qr/:qrCode', protect, authorize('security'), async (req, res) => {
     if (!visitor) {
       return res.status(404).json({
         success: false,
-        error: 'Invalid QR code'
+        error: INVALID_VISITOR_PASS_MESSAGE
       });
     }
 

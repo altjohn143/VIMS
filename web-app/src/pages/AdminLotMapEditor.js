@@ -47,9 +47,9 @@ import axios from '../config/axios';
 import mapImage from '../assets/lotbettermap.jpg';
 
 const themeColors = {
-  primary: '#166534',
-  primaryDark: '#14532d',
-  success: '#10b981',
+  primary: '#007A18',
+  primaryDark: '#003D07',
+  success: '#00D084',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#0ea5e9',
@@ -61,7 +61,7 @@ const themeColors = {
 };
 
 const STATUS_CONFIG = {
-  vacant: { color: '#22c55e', border: '#16a34a', label: 'Vacant' },
+  vacant: { color: '#00D084', border: '#00A85A', label: 'Vacant' },
   occupied: { color: '#ef4444', border: '#dc2626', label: 'Occupied' },
   reserved: { color: '#f59e0b', border: '#d97706', label: 'Reserved' }
 };

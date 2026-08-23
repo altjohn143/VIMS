@@ -66,13 +66,13 @@ import { getBackendApiUrl } from '../utils/api';
 
 const AdminPayments = () => {
   const themeColors = {
-    primary: '#166534',
-    primaryLight: '#22c55e',
-    primaryDark: '#14532d',
-    success: '#10b981',
+    primary: '#007A18',
+    primaryLight: '#00D084',
+    primaryDark: '#003D07',
+    success: '#00D084',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#3b82f6',
+    info: '#007A18',
     background: '#f3f5f7',
     cardBackground: '#ffffff',
     textPrimary: '#0f172a',
@@ -511,7 +511,7 @@ const AdminPayments = () => {
                 width: 36,
                 height: 36,
                 bgcolor: themeColors.primary,
-                boxShadow: '0 6px 16px rgba(22,101,52,0.35)'
+                boxShadow: '0 6px 16px rgba(0,122,24,0.35)'
               }}
             >
               {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
@@ -541,8 +541,8 @@ const AdminPayments = () => {
             p: { xs: 2.5, md: 3 },
             borderRadius: '22px',
             color: '#fff',
-            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
-            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+            background: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+            boxShadow: '0 18px 40px rgba(0, 122, 24, 0.35)',
             animation: 'fadeUpSoft .45s ease-out'
           }}
         >
@@ -586,11 +586,11 @@ const AdminPayments = () => {
               sx={{
                 borderRadius: '16px',
                 border: `2px solid ${themeColors.primary}`,
-                boxShadow: '0 8px 24px rgba(22, 101, 52, 0.15)',
+                boxShadow: '0 8px 24px rgba(0, 122, 24, 0.15)',
                 animation: 'fadeUpSoft .5s ease-out',
-                background: `linear-gradient(135deg, rgba(22, 101, 52, 0.05) 0%, rgba(22, 101, 52, 0.02) 100%)`,
+                background: `linear-gradient(135deg, rgba(0, 122, 24, 0.05) 0%, rgba(0, 122, 24, 0.02) 100%)`,
                 transition: 'transform 0.3s, box-shadow 0.3s',
-                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(22, 101, 52, 0.25)' }
+                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(0, 122, 24, 0.25)' }
               }}
             >
               <CardContent>
@@ -636,11 +636,11 @@ const AdminPayments = () => {
               sx={{
                 borderRadius: '16px',
                 border: `2px solid ${themeColors.info}`,
-                boxShadow: '0 8px 24px rgba(59, 130, 246, 0.15)',
+                boxShadow: '0 8px 24px rgba(0, 122, 24, 0.15)',
                 animation: 'fadeUpSoft .6s ease-out',
-                background: `linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%)`,
+                background: `linear-gradient(135deg, rgba(0, 122, 24, 0.05) 0%, rgba(0, 122, 24, 0.02) 100%)`,
                 transition: 'transform 0.3s, box-shadow 0.3s',
-                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(59, 130, 246, 0.25)' }
+                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(0, 122, 24, 0.25)' }
               }}
             >
               <CardContent>
@@ -780,7 +780,7 @@ const AdminPayments = () => {
         >
           <TableContainer>
             <Table>
-              <TableHead sx={{ bgcolor: 'rgba(22, 163, 74, 0.08)' }}>
+              <TableHead sx={{ bgcolor: 'rgba(0, 208, 132, 0.08)' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Resident</TableCell>
@@ -808,7 +808,7 @@ const AdminPayments = () => {
                       hover
                       sx={{
                         '&:hover': {
-                          backgroundColor: 'rgba(22, 163, 74, 0.04)'
+                          backgroundColor: 'rgba(0, 208, 132, 0.04)'
                         }
                       }}
                     >

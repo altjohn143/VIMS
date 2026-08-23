@@ -42,13 +42,13 @@ import { useNavigate } from 'react-router-dom';
 const SecurityVisitorApproval = () => {
   // Dashboard Theme Colors from Login
   const themeColors = {
-    primary: '#166534',
-    primaryLight: '#22c55e',
-    primaryDark: '#14532d',
-    success: '#10b981',
+    primary: '#007A18',
+    primaryLight: '#00D084',
+    primaryDark: '#003D07',
+    success: '#00D084',
     warning: '#f59e0b',
     error: '#ef4444',
-    info: '#3b82f6',
+    info: '#007A18',
     background: '#f3f5f7',
     cardBackground: '#ffffff',
     textPrimary: '#0f172a',
@@ -451,13 +451,13 @@ const SecurityVisitorApproval = () => {
             p: { xs: 2.5, md: 3 },
             borderRadius: '22px',
             color: '#fff',
-            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
-            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)'
+            background: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+            boxShadow: '0 18px 40px rgba(0, 122, 24, 0.35)'
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
             <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.18)' }}>
-              <SecurityIcon sx={{ color: '#bef264' }} />
+              <SecurityIcon sx={{ color: '#00D084' }} />
             </Avatar>
             <Box>
               <Typography variant="h4" component="h1" sx={{ fontWeight: 800, color: '#fff' }}>

@@ -10,10 +10,12 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   Modal,
+  KeyboardAvoidingView,
   Animated,
   TouchableWithoutFeedback,
   Alert,
   Pressable,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -978,11 +980,15 @@ const DashboardScreen = ({ navigation }) => {
         transparent
         onRequestClose={() => setAssistantVisible(false)}
       >
-        <View style={styles.assistantBackdrop}>
+        <KeyboardAvoidingView
+          style={styles.assistantBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        >
           <View style={styles.assistantBubble}>
             <ChatbotScreen navigation={navigation} embedded onClose={() => setAssistantVisible(false)} />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Animated.View

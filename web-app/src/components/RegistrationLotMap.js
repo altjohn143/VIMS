@@ -17,7 +17,7 @@ import {
 import mapImage from '../assets/lotbettermap.jpg';
 
 const STATUS = {
-  vacant: { label: 'Vacant', color: '#16a34a', background: '#dcfce7' },
+  vacant: { label: 'Vacant', color: '#00A85A', background: '#dcfce7' },
   reserved: { label: 'Reserved', color: '#d97706', background: '#fef3c7' },
   occupied: { label: 'Occupied', color: '#dc2626', background: '#fee2e2' },
   amenity: { label: 'Community Amenity', color: '#0f766e', background: '#ccfbf1' },
@@ -210,16 +210,16 @@ const RegistrationLotMap = ({ lots = [], selectedLotId, onSelectLot, themeColors
                     transform: `translate(-50%, -50%) rotate(${position.rotate}deg)`,
                     borderRadius: '3px',
                     border: `${isSelected ? 3 : 1.5}px solid ${isSelected ? '#1d4ed8' : config.color}`,
-                    backgroundColor: isSelected ? '#3b82f640' : `${config.background}aa`,
+                    backgroundColor: isSelected ? '#007A1840' : `${config.background}aa`,
                     cursor: isVacant ? 'pointer' : 'not-allowed',
                     boxShadow: isSelected ? '0 0 0 4px rgba(59,130,246,0.35)' : 'none',
                     transition: 'background-color 0.15s ease, box-shadow 0.15s ease',
                     '&:hover': isVacant ? {
-                      backgroundColor: '#86efaccc',
-                      boxShadow: '0 0 0 3px rgba(22,163,74,0.25)',
+                      backgroundColor: '#D9FBEAcc',
+                      boxShadow: '0 0 0 3px rgba(0,208,132,0.25)',
                     } : {},
                     '&:focus-visible': {
-                      outline: '3px solid #2563eb',
+                      outline: '3px solid #003D07',
                       outlineOffset: 2,
                     },
                   }}

@@ -65,13 +65,13 @@ import { getBackendApiUrl } from '../utils/api';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
-  primary: '#166534',
-  primaryLight: '#22c55e',
-  primaryDark: '#14532d',
-  success: '#10b981',
+  primary: '#007A18',
+  primaryLight: '#00D084',
+  primaryDark: '#003D07',
+  success: '#00D084',
   warning: '#f59e0b',
   error: '#ef4444',
-  info: '#3b82f6',
+  info: '#007A18',
   background: '#f3f5f7',
   cardBackground: '#ffffff',
   textPrimary: '#0f172a',
@@ -960,8 +960,8 @@ const paginatedRequests = useMemo(
             p: { xs: 2.5, md: 3 },
             borderRadius: '22px',
             color: '#fff',
-            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
-            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)',
+            background: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+            boxShadow: '0 18px 40px rgba(0, 122, 24, 0.35)',
             animation: 'fadeUpSoft .45s ease-out'
           }}
         >
@@ -989,8 +989,8 @@ const paginatedRequests = useMemo(
               label: 'Pending Review',
               helper: 'needs admin action',
               icon: <ReviewIcon sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 44 }} />,
-              gradient: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-              shadow: '0 14px 34px rgba(22, 163, 74, 0.34)'
+              gradient: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+              shadow: '0 14px 34px rgba(0, 208, 132, 0.34)'
             },
             {
               value: stats.urgentRequests || 0,
@@ -1314,7 +1314,7 @@ const paginatedRequests = useMemo(
               <Table>
                 <TableHead>
                   <TableRow sx={{ 
-                    bgcolor: 'rgba(22, 163, 74, 0.08)',
+                    bgcolor: 'rgba(0, 208, 132, 0.08)',
                     '& th': {
                       fontWeight: 600,
                       color: themeColors.textPrimary,

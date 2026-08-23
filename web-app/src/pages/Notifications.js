@@ -25,9 +25,9 @@ import toast from 'react-hot-toast';
 
 const Notifications = () => {
   const themeColors = {
-    primary: '#166534',
-    primaryLight: '#22c55e',
-    primaryDark: '#14532d',
+    primary: '#007A18',
+    primaryLight: '#00D084',
+    primaryDark: '#003D07',
     background: '#f3f5f7',
     cardBackground: '#ffffff',
     textPrimary: '#0f172a',
@@ -132,12 +132,12 @@ const Notifications = () => {
             p: { xs: 2.5, md: 3 },
             borderRadius: '22px',
             color: '#fff',
-            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%)',
-            boxShadow: '0 18px 40px rgba(22, 101, 52, 0.35)'
+            background: 'linear-gradient(135deg, #003D07 0%, #007A18 52%, #00D084 100%)',
+            boxShadow: '0 18px 40px rgba(0, 122, 24, 0.35)'
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 0.4 }}>
-            <NotificationsIcon sx={{ color: '#bef264' }} />
+            <NotificationsIcon sx={{ color: '#00D084' }} />
             <Typography variant="h5" sx={{ fontWeight: 800 }}>
               Alerts & Updates
             </Typography>
@@ -195,7 +195,7 @@ const Notifications = () => {
                 sx={{
                   alignItems: 'flex-start',
                   py: 1.6,
-                  '&:hover': { backgroundColor: 'rgba(22, 163, 74, 0.04)' }
+                  '&:hover': { backgroundColor: 'rgba(0, 208, 132, 0.04)' }
                 }}
               >
                 <ListItemText
@@ -207,7 +207,7 @@ const Notifications = () => {
                           size="small"
                           label="Unread"
                           sx={{
-                            bgcolor: 'rgba(59, 130, 246, 0.15)',
+                            bgcolor: 'rgba(0, 122, 24, 0.15)',
                             color: '#1d4ed8',
                             fontWeight: 700
                           }}

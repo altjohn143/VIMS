@@ -51,9 +51,9 @@ const AdminAnnouncements = () => {
   const [viewFilter, setViewFilter] = useState('all');
 
   const themeColors = {
-    primary: '#166534',
-    primaryLight: '#22c55e',
-    primaryDark: '#14532d',
+    primary: '#007A18',
+    primaryLight: '#00D084',
+    primaryDark: '#003D07',
     background: '#f3f5f7',
     textPrimary: '#0f172a',
     textSecondary: '#64748b',
@@ -216,7 +216,7 @@ const AdminAnnouncements = () => {
             borderRadius: '20px',
             color: 'white',
             background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${themeColors.primaryDark} 100%)`,
-            boxShadow: '0 16px 34px rgba(22,101,52,0.24)',
+            boxShadow: '0 16px 34px rgba(0,122,24,0.24)',
             border: '1px solid rgba(255,255,255,0.10)',
             animation: 'fadeUpSoft 0.45s ease'
           }}
@@ -411,7 +411,7 @@ const AdminAnnouncements = () => {
                     label={item.category === 'monthlyCollection' ? 'Monthly Collection' : 'General'}
                     sx={{
                       bgcolor: item.category === 'monthlyCollection' ? '#ecfdf5' : '#eff6ff',
-                      color: item.category === 'monthlyCollection' ? '#166534' : '#1d4ed8',
+                      color: item.category === 'monthlyCollection' ? '#007A18' : '#1d4ed8',
                       fontWeight: 700,
                       borderRadius: '999px'
                     }}

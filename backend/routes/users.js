@@ -11,6 +11,7 @@ const { protect, authorize } = require('../middleware/auth');
 const { sendOnboardingNotification } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
+const { paginateQuery } = require('../utils/pagination');
 
 const PROTECTED_MAIN_ACCOUNT_EMAILS = new Set(['admin@vims.com', 'security@vims.com']);
 const PRIMARY_SECURITY_HEAD_EMAIL = 'security@vims.com';
@@ -160,12 +161,17 @@ router.get('/profile-test', (req, res) => {
 // Get all users (admin only)
 router.get('/', protect, authorize('admin'), async (req, res) => {
   try {
-    const users = await User.find({ isArchived: false })
+    const filter = { isArchived: false };
+    const { data: users, pagination } = await paginateQuery(
+      User.find(filter)
       .select('-password')
       .populate('headOfficerId', 'firstName lastName email securityLevel')
       .populate('secondaryHeadOfficerId', 'firstName lastName email securityLevel')
       .sort({ createdAt: -1 })
-      .lean();
+        .lean(),
+      User.countDocuments(filter),
+      req.query
+    );
 
     const verificationRecords = await IdentityVerification.find({
       userId: { $in: users.map((user) => user._id) }
@@ -193,6 +199,8 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     res.json({
       success: true,
       count: data.length,
+      total: pagination.total,
+      pagination,
       data
     });
   } catch (error) {
@@ -207,15 +215,20 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
 // Get pending approvals (for admin)
 router.get('/pending-approvals', protect, authorize('admin'), async (req, res) => {
   try {
-    const pendingUsers = await User.find({ 
+    const filter = { 
       role: 'resident', 
       isApproved: false,
       approvalStatus: { $ne: 'rejected' },
       isArchived: false
-    })
+    };
+    const { data: pendingUsers, pagination } = await paginateQuery(
+      User.find(filter)
     .select('-password')
     .sort({ createdAt: -1 })
-    .lean();
+        .lean(),
+      User.countDocuments(filter),
+      req.query
+    );
 
     const verificationRecords = await IdentityVerification.find({
       userId: { $in: pendingUsers.map((user) => user._id) }
@@ -245,6 +258,8 @@ router.get('/pending-approvals', protect, authorize('admin'), async (req, res) =
     res.json({
       success: true,
       count: data.length,
+      total: pagination.total,
+      pagination,
       data
     });
   } catch (error) {
@@ -554,12 +569,20 @@ router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
 // Get archived users
 router.get('/archived', protect, authorize('admin'), async (req, res) => {
   try {
-    const users = await User.find({ isArchived: true })
+    const filter = { isArchived: true };
+    const { data: users, pagination } = await paginateQuery(
+      User.find(filter)
       .populate('archivedBy', 'firstName lastName email')
-      .sort({ archivedAt: -1 });
+        .sort({ archivedAt: -1 }),
+      User.countDocuments(filter),
+      req.query
+    );
     
     res.json({
       success: true,
+      count: users.length,
+      total: pagination.total,
+      pagination,
       data: users
     });
     
@@ -876,10 +899,15 @@ router.post('/move-out/request', protect, authorize('resident'), async (req, res
 // Admin: list move-out requests
 router.get('/move-out/requests', protect, authorize('admin'), async (req, res) => {
   try {
-    const rows = await User.find({ role: 'resident', moveOutStatus: 'pending', isArchived: false })
+    const filter = { role: 'resident', moveOutStatus: 'pending', isArchived: false };
+    const { data: rows, pagination } = await paginateQuery(
+      User.find(filter)
       .select('-password')
-      .sort({ moveOutRequestedAt: -1 });
-    return res.json({ success: true, count: rows.length, data: rows });
+        .sort({ moveOutRequestedAt: -1 }),
+      User.countDocuments(filter),
+      req.query
+    );
+    return res.json({ success: true, count: rows.length, total: pagination.total, pagination, data: rows });
   } catch (error) {
     console.error('List move-out requests error:', error);
     return res.status(500).json({ success: false, error: 'Failed to load move-out requests' });

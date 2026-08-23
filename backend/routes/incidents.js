@@ -3,6 +3,7 @@ const Incident = require('../models/Incident');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const ActivityNotificationService = require('../services/activityNotificationService');
+const { paginateQuery } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -40,10 +41,13 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
     const filter = await buildAssignedRouteIncidentFilter(req.user);
 
-    const incidents = await Incident.find(filter)
+    const { data: incidents, pagination } = await paginateQuery(
+      Incident.find(filter)
       .populate('reportedBy', 'firstName lastName role')
-      .sort({ createdAt: -1 })
-      .limit(200);
+        .sort({ createdAt: -1 }),
+      Incident.countDocuments(filter),
+      req.query
+    );
 
     const reportData = incidents.map((incident) => ({
       Title: incident.title,
@@ -95,7 +99,7 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
       return res.send(csvContent);
     }
 
-    res.json({ success: true, count: incidents.length, data: incidents });
+    res.json({ success: true, count: incidents.length, total: pagination.total, pagination, data: incidents });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to load incidents' });
   }

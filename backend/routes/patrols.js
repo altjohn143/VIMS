@@ -2,6 +2,7 @@ const express = require('express');
 const PatrolLog = require('../models/PatrolLog');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
+const { paginateQuery } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -209,11 +210,14 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
       query.phase = Number(req.query.phase);
     }
     
-    const rows = await PatrolLog.find(query)
+    const { data: rows, pagination } = await paginateQuery(
+      PatrolLog.find(query)
       .populate('officerId', 'firstName lastName role securityLevel assignedPhases assignedAreas')
-      .sort({ loggedAt: -1, createdAt: -1 })
-      .limit(200);
-    res.json({ success: true, count: rows.length, data: rows });
+        .sort({ loggedAt: -1, createdAt: -1 }),
+      PatrolLog.countDocuments(query),
+      req.query
+    );
+    res.json({ success: true, count: rows.length, total: pagination.total, pagination, data: rows });
   } catch (error) {
     console.error('Error loading patrol logs:', error);
     res.status(500).json({ success: false, error: 'Failed to load patrol logs' });
@@ -341,12 +345,16 @@ router.get('/assignments', protect, authorize('admin', 'security'), async (req, 
       ];
     }
 
-    const securityOfficers = await User.find(filter)
+    const { data: securityOfficers, pagination } = await paginateQuery(
+      User.find(filter)
       .select('firstName lastName email securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId secondaryHeadOfficerId')
       .populate('headOfficerId', 'firstName lastName')
-      .sort({ firstName: 1 });
+        .sort({ firstName: 1 }),
+      User.countDocuments(filter),
+      req.query
+    );
     
-    res.json({ success: true, data: securityOfficers });
+    res.json({ success: true, count: securityOfficers.length, total: pagination.total, pagination, data: securityOfficers });
   } catch (error) {
     console.error('Error loading security assignments:', error);
     res.status(500).json({ success: false, error: 'Failed to load security assignments' });

@@ -47,6 +47,7 @@ const { protect, authorize } = require('../middleware/auth');
 const { sendServiceRequestStatusNotification } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
+const { paginateQuery } = require('../utils/pagination');
 
 const attachmentUpload = multer({
   storage: multer.memoryStorage(),
@@ -179,15 +180,21 @@ router.get('/my', protect, authorize('resident'), async (req, res) => {
       filter.status = status;
     }
     
-    const requests = await ServiceRequest.find(filter)
+    const { data: requests, pagination } = await paginateQuery(
+      ServiceRequest.find(filter)
       .populate('assignedTo', 'firstName lastName role')
       .populate('cancelledBy', 'firstName lastName role')
       .sort({ createdAt: -1 })
-      .lean();
+        .lean(),
+      ServiceRequest.countDocuments(filter),
+      req.query
+    );
     
     res.json({
       success: true,
       count: requests.length,
+      total: pagination.total,
+      pagination,
       data: requests
     });
     
@@ -207,15 +214,21 @@ router.get('/my/archived', protect, authorize('resident'), async (req, res) => {
     const filter = { residentId: req.user.id, isArchived: true };
     if (category) filter.category = category;
 
-    const requests = await ServiceRequest.find(filter)
+    const { data: requests, pagination } = await paginateQuery(
+      ServiceRequest.find(filter)
       .populate('assignedTo', 'firstName lastName role')
       .populate('cancelledBy', 'firstName lastName role')
       .sort({ archivedAt: -1, updatedAt: -1 })
-      .lean();
+        .lean(),
+      ServiceRequest.countDocuments(filter),
+      req.query
+    );
 
     res.json({
       success: true,
       count: requests.length,
+      total: pagination.total,
+      pagination,
       data: requests
     });
   } catch (error) {
@@ -255,18 +268,24 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
     if (priority && priority !== 'all') filter.priority = priority;
     if (residentId) filter.residentId = residentId;
     
-    const requests = await ServiceRequest.find(filter)
+    const { data: requests, pagination } = await paginateQuery(
+      ServiceRequest.find(filter)
       .populate('residentId', 'firstName lastName houseNumber phone email')
       .populate('assignedTo', 'firstName lastName role phone')
       .populate('reviewedBy', 'firstName lastName')
       .populate('completedBy', 'firstName lastName')
       .populate('cancelledBy', 'firstName lastName role')
       .sort({ createdAt: -1 })
-      .lean();
+        .lean(),
+      ServiceRequest.countDocuments(filter),
+      req.query
+    );
     
     res.json({
       success: true,
       count: requests.length,
+      total: pagination.total,
+      pagination,
       data: requests
     });
     
@@ -648,15 +667,21 @@ router.get('/my', protect, async (req, res) => {
       query.status = status;
     }
     
-    const requests = await ServiceRequest.find(query)
+    const { data: requests, pagination } = await paginateQuery(
+      ServiceRequest.find(query)
       .populate('residentId', 'firstName lastName email phone houseNumber')
       .populate('assignedTo', 'firstName lastName role')
       .sort({ createdAt: -1 })
-      .lean();
+        .lean(),
+      ServiceRequest.countDocuments(query),
+      req.query
+    );
     
     res.json({
       success: true,
       count: requests.length,
+      total: pagination.total,
+      pagination,
       data: requests
     });
     
@@ -671,17 +696,24 @@ router.get('/my', protect, async (req, res) => {
 
 router.get('/admin/pending', protect, authorize('admin'), async (req, res) => {
   try {
-    const requests = await ServiceRequest.find({ 
+    const filter = { 
       status: { $in: ['pending', 'under-review'] },
       isArchived: false
-    })
+    };
+    const { data: requests, pagination } = await paginateQuery(
+      ServiceRequest.find(filter)
       .populate('residentId', 'firstName lastName houseNumber phone email')
       .sort({ createdAt: -1 })
-      .lean();
+        .lean(),
+      ServiceRequest.countDocuments(filter),
+      req.query
+    );
     
     res.json({
       success: true,
       count: requests.length,
+      total: pagination.total,
+      pagination,
       data: requests
     });
     
@@ -1098,11 +1130,19 @@ router.get('/admin/staff', protect, authorize('admin', 'security'), async (req, 
           isArchived: false
         };
 
-    const staffMembers = await User.find(filter)
-      .select('firstName lastName email phone role securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId secondaryHeadOfficerId');
+    const { data: staffMembers, pagination } = await paginateQuery(
+      User.find(filter)
+        .select('firstName lastName email phone role securityLevel assignedPhases assignedAreas patrolSchedule headOfficerId secondaryHeadOfficerId'),
+      User.countDocuments(filter),
+      req.query,
+      { defaultLimit: 100, maxLimit: 500 }
+    );
     
     res.json({
       success: true,
+      count: staffMembers.length,
+      total: pagination.total,
+      pagination,
       data: staffMembers
     });
     
@@ -1118,15 +1158,23 @@ router.get('/admin/staff', protect, authorize('admin', 'security'), async (req, 
 // Get archived service requests
 router.get('/archived', protect, authorize('admin'), async (req, res) => {
   try {
-    const serviceRequests = await ServiceRequest.find({ isArchived: true })
+    const filter = { isArchived: true };
+    const { data: serviceRequests, pagination } = await paginateQuery(
+      ServiceRequest.find(filter)
       .populate('residentId', 'firstName lastName email houseNumber')
       .populate('assignedTo', 'firstName lastName email')
       .populate('archivedBy', 'firstName lastName email')
       .sort({ archivedAt: -1 })
-      .lean();
+        .lean(),
+      ServiceRequest.countDocuments(filter),
+      req.query
+    );
     
     res.json({
       success: true,
+      count: serviceRequests.length,
+      total: pagination.total,
+      pagination,
       data: serviceRequests
     });
     

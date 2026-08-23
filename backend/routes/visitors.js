@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
 const { sendVisitorReminderNotification } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
+const { paginateQuery } = require('../utils/pagination');
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -246,14 +247,20 @@ router.get('/admin/test', (req, res) => {
 // Get visitor history (all visitors for a resident)
 router.get('/history', protect, authorize('resident'), async (req, res) => {
   try {
-    const visitors = await Visitor.find({ residentId: req.user.id })
-      .sort({ createdAt: -1 });
+    const filter = { residentId: req.user.id };
+    const { data: visitors, pagination } = await paginateQuery(
+      Visitor.find(filter).sort({ createdAt: -1 }),
+      Visitor.countDocuments(filter),
+      req.query
+    );
 
     visitors.forEach(attachQrStatus);
     
     res.json({
       success: true,
       count: visitors.length,
+      total: pagination.total,
+      pagination,
       data: visitors
     });
   } catch (error) {
@@ -433,18 +440,25 @@ router.get('/pending', protect, authorize('security'), async (req, res) => {
   try {
     console.log('Fetching pending visitors for security user:', req.user.id);
     
-    const visitors = await Visitor.find({ 
+    const filter = { 
       status: 'pending'  
-    })
+    };
+    const { data: visitors, pagination } = await paginateQuery(
+      Visitor.find(filter)
       .populate('residentId', 'firstName lastName houseNumber phone email')
       .populate('approvedBy', 'firstName lastName')
-      .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 }),
+      Visitor.countDocuments(filter),
+      req.query
+    );
     
     console.log(`Found ${visitors.length} pending visitors`);
     
     res.json({
       success: true,
       count: visitors.length,
+      total: pagination.total,
+      pagination,
       data: visitors
     });
     
@@ -931,14 +945,20 @@ router.put('/:id/exit', protect, authorize('security'), async (req, res) => {
 router.get('/my', protect, authorize('resident'), async (req, res) => {
   try {
     await notifyResidentOverstays({ residentId: req.user.id });
-    const visitors = await Visitor.find({ residentId: req.user.id })
-      .sort({ createdAt: -1 });
+    const filter = { residentId: req.user.id };
+    const { data: visitors, pagination } = await paginateQuery(
+      Visitor.find(filter).sort({ createdAt: -1 }),
+      Visitor.countDocuments(filter),
+      req.query
+    );
 
     visitors.forEach(attachQrStatus);
     
     res.json({
       success: true,
       count: visitors.length,
+      total: pagination.total,
+      pagination,
       data: visitors
     });
     
@@ -995,10 +1015,15 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
       filter.expectedArrival = { $gte: startDate, $lte: endDate };
     }
     
-    const visitors = await Visitor.find(filter)
+    const wantsExport = format === 'pdf' || format === 'csv';
+    const visitorQuery = Visitor.find(filter)
       .populate('residentId', 'firstName lastName houseNumber email')
       .populate('approvedBy', 'firstName lastName role')
       .sort({ createdAt: -1 });
+    const paginationResult = wantsExport
+      ? { data: await visitorQuery, pagination: null }
+      : await paginateQuery(visitorQuery, Visitor.countDocuments(filter), req.query);
+    const visitors = paginationResult.data;
 
     visitors.forEach(attachQrStatus);
 
@@ -1077,6 +1102,8 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
     res.json({
       success: true,
       count: visitors.length,
+      total: paginationResult.pagination?.total ?? visitors.length,
+      pagination: paginationResult.pagination,
       data: visitors
     });
     
@@ -1454,16 +1481,22 @@ router.get('/admin/all', protect, authorize('admin'), async (req, res) => {
     // Filter by resident
     if (residentId) filter.residentId = residentId;
     
-    const visitors = await Visitor.find(filter)
+    const { data: visitors, pagination } = await paginateQuery(
+      Visitor.find(filter)
       .populate('residentId', 'firstName lastName houseNumber email phone')
       .populate('approvedBy', 'firstName lastName role')
-      .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 }),
+      Visitor.countDocuments(filter),
+      req.query
+    );
 
     visitors.forEach(attachQrStatus);
     
     res.json({
       success: true,
       count: visitors.length,
+      total: pagination.total,
+      pagination,
       data: visitors
     });
     

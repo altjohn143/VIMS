@@ -2,12 +2,19 @@ const express = require('express');
 const router = express.Router();
 const Resource = require('../models/Resource');
 const { protect, authorize } = require('../middleware/auth');
+const { paginateQuery } = require('../utils/pagination');
 
 // Get all resources
 router.get('/', protect, async (req, res) => {
   try {
-    const resources = await Resource.find({ isActive: true }).sort({ type: 1, name: 1 });
-    res.json({ success: true, data: resources });
+    const filter = { isActive: true };
+    const { data: resources, pagination } = await paginateQuery(
+      Resource.find(filter).sort({ type: 1, name: 1 }),
+      Resource.countDocuments(filter),
+      req.query,
+      { defaultLimit: 100, maxLimit: 500 }
+    );
+    res.json({ success: true, count: resources.length, total: pagination.total, pagination, data: resources });
   } catch (error) {
     console.error('Get resources error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to fetch resources' });

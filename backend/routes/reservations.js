@@ -6,6 +6,7 @@ const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { sendReservationStatusNotification } = require('../services/notificationService');
+const { paginateQuery } = require('../utils/pagination');
 
 // Helper function to get reservation item summary
 const getReservationItemSummary = (reservation) => {
@@ -191,12 +192,16 @@ router.get('/', protect, async (req, res) => {
       query = { reservedBy: req.user._id };
     }
 
-    const reservations = await Reservation.find(query)
+    const { data: reservations, pagination } = await paginateQuery(
+      Reservation.find(query)
       .populate('reservedBy', 'firstName lastName email')
       .populate('cancelledBy', 'firstName lastName role')
       .sort({ createdAt: -1 })
-      .lean();
-    res.json({ success: true, data: reservations });
+        .lean(),
+      Reservation.countDocuments(query),
+      req.query
+    );
+    res.json({ success: true, count: reservations.length, total: pagination.total, pagination, data: reservations });
   } catch (error) {
     console.error('Get reservations error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to fetch reservations' });

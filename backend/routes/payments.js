@@ -10,6 +10,7 @@ const { createInAppNotification } = require('../services/inAppNotificationServic
 const { sendPaymentReminderEmail, sendPaymentConfirmationEmail } = require('../services/notificationService');
 const { analyzeReceiptFraud } = require('../services/openaiReceiptFraudService');
 const { uploadImageBuffer } = require('../services/cloudinaryService');
+const { paginateQuery } = require('../utils/pagination');
 
 const MONTHLY_DUES_AMOUNT_KEY = 'monthly_dues_amount';
 const DAILY_OVERDUE_PENALTY = 10;
@@ -159,16 +160,25 @@ router.get('/test', (req, res) => {
 // Get all payments for logged-in resident
 router.get('/my', protect, authorize('resident'), async (req, res) => {
   try {
-    const payments = await Payment.find({ residentId: req.user.id }).sort({ createdAt: -1 });
+    const filter = { residentId: req.user.id };
+    const { data: payments, pagination } = await paginateQuery(
+      Payment.find(filter).sort({ createdAt: -1 }),
+      Payment.countDocuments(filter),
+      req.query
+    );
     const resident = await User.findById(req.user.id).select('paymentCreditBalance');
     await applyDailyPenalties(payments);
-    const totalPaid = payments.reduce((sum, p) => sum + Number(p.paidAmount || (p.status === 'paid' ? p.amount : 0)), 0);
-    const pendingPayments = payments.filter(p => p.status === 'pending');
-    const overduePayments = payments.filter(p => p.status === 'pending' && new Date() > p.dueDate);
+    const summaryPayments = await Payment.find(filter).select('amount originalAmount paidAmount penaltyAmount status dueDate').lean();
+    const totalPaid = summaryPayments.reduce((sum, p) => sum + Number(p.paidAmount || (p.status === 'paid' ? p.amount : 0)), 0);
+    const pendingPayments = summaryPayments.filter(p => p.status === 'pending');
+    const overduePayments = summaryPayments.filter(p => p.status === 'pending' && new Date() > p.dueDate);
     
     res.json({
       success: true,
       data: payments,
+      count: payments.length,
+      total: pagination.total,
+      pagination,
       summary: {
         totalPaid,
         totalPending: pendingPayments.reduce((sum, p) => sum + getOutstandingAmount(p), 0),

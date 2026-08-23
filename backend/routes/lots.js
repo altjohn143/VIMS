@@ -3,6 +3,7 @@ const router = express.Router();
 const Lot = require('../models/Lot');
 const OccupancyHistory = require('../models/OccupancyHistory');
 const { protect, authorize } = require('../middleware/auth');
+const { paginateQuery } = require('../utils/pagination');
 
 const AMENITY_LOTS = {
   'P4-B3-L6': 'Covered Court',
@@ -157,17 +158,25 @@ router.post('/generate', async (req, res) => {
 router.get('/available', async (req, res) => {
   try {
     await cleanupUnassignedOccupiedLots();
-    const lots = await Lot.find({
+    const filter = {
       status: 'vacant',
       lotId: { $nin: Object.keys(AMENITY_LOTS) },
       'mapPosition.isPositioned': true
-    })
+    };
+    const { data: lots, pagination } = await paginateQuery(
+      Lot.find(filter)
       .sort({ phase: 1, block: 1, lotNumber: 1 })
-      .select('lotId block lotNumber type sqm price address phase status mapPosition');
+        .select('lotId block lotNumber type sqm price address phase status mapPosition'),
+      Lot.countDocuments(filter),
+      req.query,
+      { defaultLimit: 1000, maxLimit: 1000 }
+    );
     
     res.json({
       success: true,
       count: lots.length,
+      total: pagination.total,
+      pagination,
       data: lots
     });
   } catch (error) {
@@ -180,9 +189,15 @@ router.get('/available', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     await cleanupUnassignedOccupiedLots();
-    const lots = await Lot.find()
+    const filter = {};
+    const { data: lots, pagination } = await paginateQuery(
+      Lot.find(filter)
       .sort({ phase: 1, block: 1, lotNumber: 1 })
-      .populate('occupiedBy', 'firstName lastName email');
+        .populate('occupiedBy', 'firstName lastName email'),
+      Lot.countDocuments(filter),
+      req.query,
+      { defaultLimit: 1000, maxLimit: 1000 }
+    );
 
     for (const lot of lots) {
       await normalizeUnassignedOccupiedLot(lot, true);
@@ -191,6 +206,8 @@ router.get('/', async (req, res) => {
     res.json({
       success: true,
       count: lots.length,
+      total: pagination.total,
+      pagination,
       data: lots
     });
   } catch (error) {
@@ -261,14 +278,21 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
 
 router.get('/history/:lotId', protect, authorize('admin', 'security'), async (req, res) => {
   try {
-    const history = await OccupancyHistory.find({ lotId: req.params.lotId })
+    const filter = { lotId: req.params.lotId };
+    const { data: history, pagination } = await paginateQuery(
+      OccupancyHistory.find(filter)
       .populate('residentId', 'firstName lastName email')
       .populate('performedBy', 'firstName lastName role')
-      .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 }),
+      OccupancyHistory.countDocuments(filter),
+      req.query
+    );
 
     res.json({
       success: true,
       count: history.length,
+      total: pagination.total,
+      pagination,
       data: history
     });
   } catch (error) {

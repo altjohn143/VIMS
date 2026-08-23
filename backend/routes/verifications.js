@@ -11,6 +11,7 @@ const { verifyUserAgainstOcr } = require('../services/openaiIdVerifyService');
 const { detectDuplicateIdentity } = require('../services/duplicateIdentityService');
 const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
 const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
+const { paginateQuery } = require('../utils/pagination');
 
 const router = express.Router();
 
@@ -495,11 +496,15 @@ router.get('/admin/queue', protect, authorize('admin'), async (req, res) => {
       }
     }
 
-    const rows = await IdentityVerification.find(filter)
+    const { data: rows, pagination } = await paginateQuery(
+      IdentityVerification.find(filter)
       .populate('userId', 'firstName lastName email houseNumber')
       .populate('reviewedBy', 'firstName lastName')
       .sort({ updatedAt: -1 })
-      .lean();
+        .lean(),
+      IdentityVerification.countDocuments(filter),
+      req.query
+    );
 
     const data = await Promise.all(
       rows.map(async (row) => {
@@ -544,7 +549,7 @@ router.get('/admin/queue', protect, authorize('admin'), async (req, res) => {
       })
     );
 
-    res.json({ success: true, count: data.length, data });
+    res.json({ success: true, count: data.length, total: pagination.total, pagination, data });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to get verification queue' });
   }

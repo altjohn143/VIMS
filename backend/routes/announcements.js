@@ -5,6 +5,7 @@ const { protect, authorize } = require('../middleware/auth');
 const ActivityNotificationService = require('../services/activityNotificationService');
 const multer = require('multer');
 const { uploadImageBuffer } = require('../services/cloudinaryService');
+const { paginateQuery } = require('../utils/pagination');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -33,17 +34,22 @@ const withImageUrl = (req, row) => {
 router.get('/', protect, async (req, res) => {
   try {
     const now = new Date();
-    const rows = await Announcement.find({
+    const filter = {
       isArchived: false,
       $or: [
         { status: 'published' },
         { status: 'scheduled', scheduledAt: { $lte: now } }
       ]
-    })
+    };
+    const { data: rows, pagination } = await paginateQuery(
+      Announcement.find(filter)
       .populate('createdBy', 'firstName lastName role')
-      .sort({ publishedAt: -1, createdAt: -1 });
+        .sort({ publishedAt: -1, createdAt: -1 }),
+      Announcement.countDocuments(filter),
+      req.query
+    );
 
-    res.json({ success: true, count: rows.length, data: rows.map((row) => withImageUrl(req, row)) });
+    res.json({ success: true, count: rows.length, total: pagination.total, pagination, data: rows.map((row) => withImageUrl(req, row)) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to load announcements' });
   }
@@ -52,10 +58,15 @@ router.get('/', protect, async (req, res) => {
 // Admin list (includes unpublished)
 router.get('/admin', protect, authorize('admin'), async (req, res) => {
   try {
-    const rows = await Announcement.find({ isArchived: false })
+    const filter = { isArchived: false };
+    const { data: rows, pagination } = await paginateQuery(
+      Announcement.find(filter)
       .populate('createdBy', 'firstName lastName role')
-      .sort({ createdAt: -1 });
-    res.json({ success: true, count: rows.length, data: rows.map((row) => withImageUrl(req, row)) });
+        .sort({ createdAt: -1 }),
+      Announcement.countDocuments(filter),
+      req.query
+    );
+    res.json({ success: true, count: rows.length, total: pagination.total, pagination, data: rows.map((row) => withImageUrl(req, row)) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to load announcement admin list' });
   }
@@ -64,11 +75,16 @@ router.get('/admin', protect, authorize('admin'), async (req, res) => {
 // Admin archived list
 router.get('/archived', protect, authorize('admin'), async (req, res) => {
   try {
-    const rows = await Announcement.find({ isArchived: true })
+    const filter = { isArchived: true };
+    const { data: rows, pagination } = await paginateQuery(
+      Announcement.find(filter)
       .populate('createdBy', 'firstName lastName role')
       .populate('archivedBy', 'firstName lastName role')
-      .sort({ archivedAt: -1, updatedAt: -1 });
-    res.json({ success: true, count: rows.length, data: rows.map((row) => withImageUrl(req, row)) });
+        .sort({ archivedAt: -1, updatedAt: -1 }),
+      Announcement.countDocuments(filter),
+      req.query
+    );
+    res.json({ success: true, count: rows.length, total: pagination.total, pagination, data: rows.map((row) => withImageUrl(req, row)) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to load archived announcements' });
   }

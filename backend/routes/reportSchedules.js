@@ -3,10 +3,17 @@ const router = express.Router();
 const ReportSchedule = require('../models/ReportSchedule');
 const { protect, authorize } = require('../middleware/auth');
 const { runSchedule } = require('../services/reportScheduler');
+const { paginateQuery } = require('../utils/pagination');
 
 router.get('/', protect, authorize('admin'), async (req, res) => {
-  const rows = await ReportSchedule.find({}).sort({ createdAt: -1 });
-  res.json({ success: true, data: rows });
+  const filter = {};
+  const { data: rows, pagination } = await paginateQuery(
+    ReportSchedule.find(filter).sort({ createdAt: -1 }),
+    ReportSchedule.countDocuments(filter),
+    req.query,
+    { defaultLimit: 100, maxLimit: 500 }
+  );
+  res.json({ success: true, count: rows.length, total: pagination.total, pagination, data: rows });
 });
 
 router.post('/', protect, authorize('admin'), async (req, res) => {

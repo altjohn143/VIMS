@@ -92,7 +92,7 @@ const PublicLotMapScreen = ({ navigation }) => {
     vacant: selectedPhaseLots.filter(l => l.status === 'vacant').length,
     occupied: selectedPhaseLots.filter(l => l.status === 'occupied').length,
     reserved: selectedPhaseLots.filter(l => l.status === 'reserved').length,
-    amenities: selectedPhaseLots.filter(l => l.status === 'amenity').length,
+    amenity: selectedPhaseLots.filter(l => l.status === 'amenity').length,
     total: selectedPhaseLots.length,
   }), [selectedPhaseLots]);
 

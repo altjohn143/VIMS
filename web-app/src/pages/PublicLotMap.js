@@ -705,12 +705,12 @@ const PublicLotMap = () => {
   }, []);
 
   const stats = useMemo(() => ({
-    vacant:   allLots.filter(l => l.status === 'vacant').length,
-    occupied: allLots.filter(l => l.status === 'occupied').length,
-    reserved: allLots.filter(l => l.status === 'reserved').length,
-    amenities: allLots.filter(l => l.status === 'amenity').length,
-    total:    allLots.length,
-  }), [allLots]);
+  vacant:   allLots.filter(l => l.status === 'vacant').length,
+  occupied: allLots.filter(l => l.status === 'occupied').length,
+  reserved: allLots.filter(l => l.status === 'reserved').length,
+  amenity: allLots.filter(l => l.status === 'amenity').length,
+  total:    allLots.length,
+}), [allLots]);
 
   const phaseFilteredLots = useMemo(() => {
     const s = search.toLowerCase();
@@ -738,12 +738,12 @@ const PublicLotMap = () => {
   );
 
   const phaseStats = useMemo(() => ({
-    vacant: selectedPhaseLots.filter(l => l.status === 'vacant').length,
-    occupied: selectedPhaseLots.filter(l => l.status === 'occupied').length,
-    reserved: selectedPhaseLots.filter(l => l.status === 'reserved').length,
-    amenities: selectedPhaseLots.filter(l => l.status === 'amenity').length,
-    total: selectedPhaseLots.length,
-  }), [selectedPhaseLots]);
+  vacant: selectedPhaseLots.filter(l => l.status === 'vacant').length,
+  occupied: selectedPhaseLots.filter(l => l.status === 'occupied').length,
+  reserved: selectedPhaseLots.filter(l => l.status === 'reserved').length,
+  amenity: selectedPhaseLots.filter(l => l.status === 'amenity').length,
+  total: selectedPhaseLots.length,
+}), [selectedPhaseLots]);
 
   useEffect(() => {
     setSelectedLot((current) => (

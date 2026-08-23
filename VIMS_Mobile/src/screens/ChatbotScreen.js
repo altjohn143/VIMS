@@ -58,6 +58,7 @@ const assistantPalette = {
   screen: '#F7F8F5',
   header: '#002F05',
   card: '#FFFFFF',
+  primary: '#007A18',
   userBubble: '#007A18',
   userBubbleGradient: ['#003D07', '#007A18', '#00D084'],
   assistantBubble: '#FFFFFF',
@@ -69,6 +70,7 @@ const assistantPalette = {
   border: '#DEE4DE',
   borderStrong: '#C7D1C9',
   softGreen: '#D9FBEA',
+  softGreenLight: '#EFFDF5',
 };
 
 const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
@@ -121,26 +123,17 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={getKeyboardOffset(embedded)}
     >
-      <LinearGradient
-        colors={assistantPalette.userBubbleGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
+      <View style={styles.header}>
+        <View style={styles.headerBrand}>
+          <Ionicons name="chatbox" size={23} color={assistantPalette.primary || '#007A18'} />
+          <Text style={styles.headerTitle}>{embedded ? 'VIMS Assistant' : 'VIMS AI Assistant'}</Text>
+        </View>
         <TouchableOpacity style={styles.headerActionButton} onPress={embedded ? onClose : () => safeGoBack(navigation)}>
-          <Ionicons name={embedded ? 'close' : 'arrow-back'} size={16} color="#fff" />
-          <Text style={styles.headerActionText}>{embedded ? 'Close' : 'Back'}</Text>
+          <Ionicons name={embedded ? 'close' : 'arrow-back'} size={25} color={assistantPalette.secondaryText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{embedded ? 'VIMS Assistant' : 'VIMS AI Assistant'}</Text>
-        <View style={{ minWidth: 76 }} />
-      </LinearGradient>
+      </View>
 
-      <LinearGradient
-        colors={assistantPalette.userBubbleGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.suggestionsContainer}
-      >
+      <View style={styles.suggestionsContainer}>
         <Text style={styles.suggestionsTitle}>Suggested questions for {role === 'admin' ? 'Administrator' : role === 'security' ? 'Security Officer' : 'Resident'}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
           {suggestedPrompts.map((prompt) => (
@@ -149,7 +142,7 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         style={styles.messages}
@@ -206,16 +199,19 @@ const ChatbotScreen = ({ navigation, embedded = false, onClose }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: assistantPalette.screen },
   header: {
-    paddingTop: 52,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingTop: 42,
+    paddingHorizontal: 18,
+    paddingBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: assistantPalette.card,
+    borderBottomWidth: 1,
+    borderBottomColor: assistantPalette.border,
   },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: assistantPalette.inverseText },
-  headerActionButton: { minWidth: 76, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)' },
-  headerActionText: { color: assistantPalette.inverseText, fontSize: 11, fontWeight: '800' },
+  headerBrand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerTitle: { fontSize: 19, fontWeight: '900', color: assistantPalette.text },
+  headerActionButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
   messages: { flex: 1 },
   messagesContent: { padding: 12, flexGrow: 1 },
   empty: { color: assistantPalette.secondaryText, textAlign: 'center', marginTop: 20 },
@@ -235,33 +231,34 @@ const styles = StyleSheet.create({
     backgroundColor: assistantPalette.card
   },
   suggestionsContainer: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingTop: 13,
+    paddingBottom: 8,
+    paddingHorizontal: 18,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.18)'
+    borderBottomColor: assistantPalette.border,
+    backgroundColor: assistantPalette.card,
   },
   suggestionsTitle: {
-    color: assistantPalette.inverseText,
-    fontWeight: '700',
-    marginBottom: 8
+    color: assistantPalette.secondaryText,
+    fontWeight: '800',
+    marginBottom: 9,
+    fontSize: 13,
   },
   suggestionsRow: {
     flexDirection: 'row',
     alignItems: 'center'
   },
   suggestionPill: {
-    backgroundColor: assistantPalette.card,
+    backgroundColor: assistantPalette.softGreenLight,
     borderRadius: 18,
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 14,
     marginRight: 10,
-    borderWidth: 1,
-    borderColor: assistantPalette.border
   },
   suggestionText: {
-    color: assistantPalette.text,
+    color: assistantPalette.primary,
     fontSize: 13,
-    fontWeight: '700'
+    fontWeight: '900'
   },
   input: {
     flex: 1,

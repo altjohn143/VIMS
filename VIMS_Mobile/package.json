@@ -8,7 +8,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "clear": "expo start --clear",
-    "web:clear": "expo start --web --clear"
+    "web:clear": "expo start --web --clear",
+    "smoke": "node ../scripts/smoke-test.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../utils/api';
+import websocketService from '../utils/websocket';
 import { themeColors, shadows } from '../utils/theme';
 import { useAuth } from '../context/AuthContext';
 
@@ -55,12 +56,20 @@ const NotificationModal = ({ visible, onClose, navigation, onViewAll }) => {
     }
   }, [visible, slideAnim]);
 
+  useEffect(() => {
+    if (!visible) return undefined;
+    return websocketService.onNotification((notification) => {
+      setNotifications((prev) => [notification, ...prev.filter((row) => row._id !== notification._id)]);
+    });
+  }, [visible]);
+
   const markAsRead = async (id) => {
     try {
       await api.put(`/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) => (n._id === id ? { ...n, readAt: new Date().toISOString() } : n))
       );
+      websocketService.markNotificationRead();
     } catch (error) {
       Alert.alert('Error', 'Failed to mark as read');
     }
@@ -73,6 +82,7 @@ const NotificationModal = ({ visible, onClose, navigation, onViewAll }) => {
     try {
       await api.put('/notifications/read-all');
       setNotifications((prev) => prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() })));
+      websocketService.markAllNotificationsRead();
     } catch (error) {
       Alert.alert('Error', 'Failed to mark all as read');
     }

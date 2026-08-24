@@ -347,6 +347,12 @@ const PaymentsScreen = ({ navigation }) => {
                     ))}
                   </View>
                 )}
+                {currentDues.rejectionReason && (
+                  <View style={styles.rejectionNotice}>
+                    <Ionicons name="alert-circle" size={16} color={themeColors.error} />
+                    <Text style={styles.rejectionText}>Previous payment rejected: {currentDues.rejectionReason}</Text>
+                  </View>
+                )}
               </View>
               <TouchableOpacity
                 style={styles.payNowButton}
@@ -419,6 +425,12 @@ const PaymentsScreen = ({ navigation }) => {
                 )}
                 {payment.notes && (
                   <Text style={styles.paymentNotes}>{payment.notes}</Text>
+                )}
+                {payment.rejectionReason && (
+                  <View style={styles.rejectionNotice}>
+                    <Ionicons name="alert-circle" size={16} color={themeColors.error} />
+                    <Text style={styles.rejectionText}>Rejected: {payment.rejectionReason}</Text>
+                  </View>
                 )}
                 
                 <View style={styles.paymentDetails}>
@@ -914,6 +926,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: themeColors.textSecondary,
     marginBottom: 12,
+  },
+  rejectionNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: themeColors.error + '12',
+    borderWidth: 1,
+    borderColor: themeColors.error + '40',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  rejectionText: {
+    flex: 1,
+    fontSize: 12,
+    color: themeColors.error,
+    fontWeight: '600',
   },
   paymentDetails: {
     flexDirection: 'row',

@@ -78,6 +78,7 @@ const NotificationPanel = ({ anchorEl, open, onClose }) => {
     try {
       await axios.put('/api/notifications/read-all');
       setNotifications((prev) => prev.map((n) => ({ ...n, readAt: new Date().toISOString() })));
+      websocketService.markAllNotificationsRead();
       toast.success('Marked all as read');
     } catch (error) {
       toast.error('Failed to mark all as read');

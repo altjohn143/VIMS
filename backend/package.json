@@ -5,13 +5,13 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "dev": "node seed.js && node server.js",
+    "dev": "node server.js",
     "server": "node server.js",
-    "seed": "node seed.js",
     "reset": "node reset-db.js",
     "cleanup:orphan-verifications": "node scripts/delete-orphan-verifications.js",
     "images:migrate:check": "node scripts/migrate-images-to-cloudinary.js",
     "images:migrate": "node scripts/migrate-images-to-cloudinary.js --apply",
+    "smoke": "node ../scripts/smoke-test.js",
     "start": "node server.js"
   },
   "dependencies": {

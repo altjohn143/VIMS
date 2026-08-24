@@ -3,6 +3,7 @@ const router = express.Router();
 const Resource = require('../models/Resource');
 const { protect, authorize } = require('../middleware/auth');
 const { paginateQuery } = require('../utils/pagination');
+const { createInAppNotification } = require('../services/inAppNotificationService');
 
 // Get all resources
 router.get('/', protect, async (req, res) => {
@@ -41,6 +42,13 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       description: description || '',
       createdBy: req.user._id,
     });
+    await createInAppNotification({
+      userId: req.user._id,
+      type: 'resource',
+      title: 'Resource created',
+      body: `${resource.name} was added to resources.`,
+      metadata: { resourceId: resource._id, action: 'resource_created' }
+    });
 
     res.status(201).json({ success: true, data: resource });
   } catch (error) {
@@ -76,6 +84,13 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
       },
       { new: true, runValidators: true }
     );
+    await createInAppNotification({
+      userId: req.user._id,
+      type: 'resource',
+      title: 'Resource updated',
+      body: `${updatedResource.name} was updated.`,
+      metadata: { resourceId: updatedResource._id, action: 'resource_updated' }
+    });
 
     res.json({ success: true, data: updatedResource });
   } catch (error) {
@@ -110,6 +125,13 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     }
 
     await Resource.findByIdAndUpdate(req.params.id, { isActive: false });
+    await createInAppNotification({
+      userId: req.user._id,
+      type: 'resource',
+      title: 'Resource deactivated',
+      body: `${resource.name} was deactivated.`,
+      metadata: { resourceId: resource._id, action: 'resource_deactivated' }
+    });
     res.json({ success: true, message: 'Resource deactivated successfully' });
   } catch (error) {
     console.error('Delete resource error:', error.message);

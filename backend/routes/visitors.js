@@ -9,6 +9,9 @@ const QRCode = require('qrcode');
 const { sendVisitorReminderNotification } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { paginateQuery } = require('../utils/pagination');
+const debugLog = (...args) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args);
+};
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -226,24 +229,6 @@ const notifyResidentOverstays = async (filter = {}) => {
   }
 };
 
-router.get('/test', (req, res) => {
-  console.log('/api/visitors/test route hit!');
-  res.json({ 
-    success: true, 
-    message: 'Visitors API is working!',
-    timestamp: new Date().toISOString()
-  });
-});
-
-router.get('/admin/test', (req, res) => {
-  console.log('/api/visitors/admin/test route hit!');
-  res.json({ 
-    success: true, 
-    message: 'Admin visitors API is working!',
-    timestamp: new Date().toISOString()
-  });
-});
-
 // Get visitor history (all visitors for a resident)
 router.get('/history', protect, authorize('resident'), async (req, res) => {
   try {
@@ -411,8 +396,8 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       qrCodeVisible: false
     });
 
-console.log('Visitor created with status:', visitor.status);
-console.log('Full visitor object:', visitor);
+debugLog('Visitor created with status:', visitor.status);
+debugLog('Full visitor object:', visitor);
 
     const resident = await User.findById(req.user.id);
     
@@ -438,7 +423,7 @@ console.log('Full visitor object:', visitor);
 
 router.get('/pending', protect, authorize('security'), async (req, res) => {
   try {
-    console.log('Fetching pending visitors for security user:', req.user.id);
+    debugLog('Fetching pending visitors for security user:', req.user.id);
     
     const filter = { 
       status: 'pending'  
@@ -452,7 +437,7 @@ router.get('/pending', protect, authorize('security'), async (req, res) => {
       req.query
     );
     
-    console.log(`Found ${visitors.length} pending visitors`);
+    debugLog(`Found ${visitors.length} pending visitors`);
     
     res.json({
       success: true,
@@ -778,6 +763,13 @@ router.post('/admin/send-reminders', protect, authorize('admin'), async (req, re
           reason: `${result.emailResult.reason || 'email_failed'}|${result.smsResult.reason || 'sms_failed'}`
         });
       }
+      await createInAppNotification({
+        userId: resident._id,
+        type: 'visitor',
+        title: 'Visitor reminder',
+        body: `${visitor.visitorName} is expected within the next 24 hours.`,
+        metadata: { visitorId: visitor._id, expectedArrival: visitor.expectedArrival }
+      });
     }
 
     res.json({
@@ -968,33 +960,6 @@ router.get('/my', protect, authorize('resident'), async (req, res) => {
       success: false,
       error: 'Failed to get visitors'
     });
-  }
-});
-
-router.get('/debug/all', async (req, res) => {
-  try {
-    const visitors = await Visitor.find({})
-      .populate('residentId', 'firstName lastName email')
-      .populate('approvedBy', 'firstName lastName')
-      .sort({ createdAt: -1 });
-    
-    res.json({
-      success: true,
-      count: visitors.length,
-      data: visitors.map(v => ({
-        id: v._id,
-        visitorName: v.visitorName,
-        residentName: v.residentId?.firstName + ' ' + v.residentId?.lastName,
-        status: v.status,
-        qrCodeVisible: v.qrCodeVisible,
-        createdAt: v.createdAt,
-        approvedBy: v.approvedBy?.firstName,
-        rejectionReason: v.rejectionReason
-      }))
-    });
-  } catch (error) {
-    console.error('Debug error:', error);
-    res.status(500).json({ success: false, error: error.message });
   }
 });
 

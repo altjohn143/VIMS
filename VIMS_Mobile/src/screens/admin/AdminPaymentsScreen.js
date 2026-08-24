@@ -42,6 +42,8 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const [selectedImageUri, setSelectedImageUri] = useState(null);
   const [selectedImagePayment, setSelectedImagePayment] = useState(null);
   const [verificationNotes, setVerificationNotes] = useState('');
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const closeReceiptViewer = () => {
     setShowImageViewer(false);
@@ -233,6 +235,32 @@ const AdminPaymentsScreen = ({ navigation }) => {
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to verify payment');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    if (!selectedPayment) return;
+    if (!rejectionReason.trim()) {
+      Alert.alert('Reason Required', 'Please provide a rejection reason so the resident knows what happened.');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const response = await api.put(`/payments/${selectedPayment._id}/reject`, { rejectionReason });
+
+      if (response.data.success) {
+        Alert.alert('Success', 'Payment rejected. The resident can submit again.');
+        fetchPayments();
+        fetchStats();
+        setShowRejectDialog(false);
+        setSelectedPayment(null);
+        setRejectionReason('');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to reject payment');
     } finally {
       setProcessing(false);
     }
@@ -511,6 +539,20 @@ const AdminPaymentsScreen = ({ navigation }) => {
             >
               <Ionicons name="shield-checkmark" size={18} color="white" />
               <Text style={styles.actionButtonText}>Verify QRPh</Text>
+            </TouchableOpacity>
+          )}
+
+          {payment.status === 'pending' && !!(payment.paymentMethod || payment.referenceNumber || payment.receiptImage) && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.rejectButton]}
+              onPress={() => {
+                setSelectedPayment(payment);
+                setRejectionReason('');
+                setShowRejectDialog(true);
+              }}
+            >
+              <Ionicons name="close-circle" size={18} color="white" />
+              <Text style={styles.actionButtonText}>Reject</Text>
             </TouchableOpacity>
           )}
           
@@ -859,6 +901,48 @@ const AdminPaymentsScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </ScrollView>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reject Payment Dialog */}
+      <Modal
+        visible={showRejectDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRejectDialog(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <Text style={styles.confirmTitle}>Reject Payment</Text>
+            {selectedPayment && (
+              <>
+                <View style={styles.confirmDetails}>
+                  <Text style={styles.confirmLabel}>Invoice: <Text style={styles.confirmValue}>{selectedPayment.invoiceNumber}</Text></Text>
+                  <Text style={styles.confirmLabel}>Resident: <Text style={styles.confirmValue}>{selectedPayment.residentId?.firstName} {selectedPayment.residentId?.lastName}</Text></Text>
+                  <Text style={styles.confirmLabel}>Reference: <Text style={styles.confirmValue}>{selectedPayment.referenceNumber || 'N/A'}</Text></Text>
+                  <Text style={styles.confirmLabel}>Balance: <Text style={styles.confirmValue}>{formatCurrency(selectedPayment.amount)}</Text></Text>
+                </View>
+                <Text style={styles.confirmMessage}>The resident will see this reason and can submit a new payment.</Text>
+                <TextInput
+                  style={styles.notesInput}
+                  placeholder="Rejection reason"
+                  value={rejectionReason}
+                  onChangeText={setRejectionReason}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </>
+            )}
+            <View style={styles.confirmActions}>
+              <TouchableOpacity style={styles.cancelConfirmButton} onPress={() => setShowRejectDialog(false)}>
+                <Text style={styles.cancelConfirmText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.confirmButtonLarge, styles.rejectButton]} onPress={handleRejectPayment} disabled={processing || !rejectionReason.trim()}>
+                {processing ? <ActivityIndicator size="small" color="white" /> : <Text style={styles.confirmButtonText}>Reject Payment</Text>}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1246,6 +1330,9 @@ const styles = StyleSheet.create({
   },
   verifyButton: {
     backgroundColor: themeColors.info,
+  },
+  rejectButton: {
+    backgroundColor: themeColors.error,
   },
   viewButton: {
     backgroundColor: themeColors.primary + '10',

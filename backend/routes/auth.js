@@ -1,6 +1,9 @@
 // routes/auth.js
 const express = require('express');
 const router = express.Router();
+const debugLog = (...args) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args);
+};
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
@@ -409,9 +412,9 @@ router.post('/register', registerUpload.fields([
   { name: 'vehicleImage_4', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    console.log('\n===== REGISTRATION ATTEMPT =====');
-    console.log('📝 Email:', req.body.email);
-    console.log('📝 Role from request:', req.body.role);
+    debugLog('\n===== REGISTRATION ATTEMPT =====');
+    debugLog('📝 Email:', req.body.email);
+    debugLog('📝 Role from request:', req.body.role);
     
     const {
       firstName,
@@ -434,7 +437,7 @@ router.post('/register', registerUpload.fields([
 
     // Validation
     if (!firstName || !lastName || !email || !phone || !password) {
-      console.log('Missing required fields');
+      debugLog('Missing required fields');
       return res.status(400).json({
         success: false,
         error: 'All fields are required'
@@ -456,7 +459,7 @@ router.post('/register', registerUpload.fields([
     // Check if user already exists
     const existingUser = await User.findOne({ email: normalizedRegistrationEmail });
     if (existingUser) {
-      console.log('User already exists:', email);
+      debugLog('User already exists:', email);
       return res.status(400).json({
         success: false,
         error: 'User already exists with this email'
@@ -466,7 +469,7 @@ router.post('/register', registerUpload.fields([
     if (req.body.idNumber) {
       const duplicate = await detectDuplicateIdentity({ idNumber: req.body.idNumber, excludeUserId: null });
       if (duplicate.found) {
-        console.log('Duplicate ID detected during registration:', req.body.idNumber);
+        debugLog('Duplicate ID detected during registration:', req.body.idNumber);
         return res.status(409).json({
           success: false,
           error: duplicate.reason || 'This identity document is already linked to an existing resident account.'
@@ -478,7 +481,7 @@ router.post('/register', registerUpload.fields([
     const userRole = 'resident';
     const isApproved = false;
     
-    console.log('⚙️ Registration settings:', {
+    debugLog('⚙️ Registration settings:', {
       role: userRole,
       isApproved: isApproved,
       needsApproval: userRole === 'resident',
@@ -502,7 +505,7 @@ router.post('/register', registerUpload.fields([
 
     // Debug: show received profile photo upload details
     const profilePhotoFile = req.files?.profilePhoto?.[0] || null;
-    console.log('📸 Register request file payload:', {
+    debugLog('📸 Register request file payload:', {
       profilePhoto: profilePhotoFile
         ? {
             originalname: profilePhotoFile.originalname,
@@ -609,7 +612,7 @@ router.post('/register', registerUpload.fields([
       userData.profileComplete = true;
     }
 
-    console.log('User data being saved:', {
+    debugLog('User data being saved:', {
       ...userData,
       password: '[HIDDEN]'
     });
@@ -650,9 +653,32 @@ router.post('/register', registerUpload.fields([
         plainPassword: password,
         message: 'Your account is active. You can now log in.'
       });
+      await createInAppNotification({
+        userId: user._id,
+        type: 'account',
+        title: 'Account created',
+        body: 'Your VIMS account is active. You can now log in.',
+        metadata: { action: 'registration_active' }
+      });
+    } else {
+      const admins = await User.find({ role: 'admin', isActive: true }).select('_id');
+      await Promise.allSettled(admins.map((admin) => createInAppNotification({
+        userId: admin._id,
+        type: 'account',
+        title: 'Resident registration pending',
+        body: `${user.firstName || 'Resident'} ${user.lastName || ''} submitted a registration for approval.`.trim(),
+        metadata: { action: 'resident_registration_pending', residentId: user._id }
+      })));
+      await createInAppNotification({
+        userId: user._id,
+        type: 'account',
+        title: 'Registration submitted',
+        body: 'Your registration is pending admin approval.',
+        metadata: { action: 'registration_pending' }
+      });
     }
     
-    console.log('User created in database:', {
+    debugLog('User created in database:', {
       id: user._id,
       email: user.email,
       role: user.role,
@@ -672,8 +698,8 @@ router.post('/register', registerUpload.fields([
       ? 'Registration successful! You can now login.'
       : 'Registration successful! Your account is pending admin approval. Once approved, your selected lot will be reserved for you.';
 
-    console.log('Response message:', message);
-    console.log('===== REGISTRATION COMPLETE =====\n');
+    debugLog('Response message:', message);
+    debugLog('===== REGISTRATION COMPLETE =====\n');
 
     res.status(201).json({
       success: true,
@@ -715,13 +741,13 @@ router.post('/register', registerUpload.fields([
 // Login route
 router.post('/login', loginLimiter, async (req, res) => {
   try {
-    console.log('\n ===== LOGIN ATTEMPT =====');
-    console.log('Email:', req.body.email);
+    debugLog('\n ===== LOGIN ATTEMPT =====');
+    debugLog('Email:', req.body.email);
     
     const { email, password, expectedRole } = req.body;
     
     if (!email || !password) {
-      console.log('Missing email or password');
+      debugLog('Missing email or password');
       return res.status(400).json({
         success: false,
         error: 'Email and password are required'
@@ -731,14 +757,14 @@ router.post('/login', loginLimiter, async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     
     if (!user) {
-      console.log('User not found:', email);
+      debugLog('User not found:', email);
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials'
       });
     }
 
-    console.log('User found in database:', {
+    debugLog('User found in database:', {
       id: user._id,
       email: user.email,
       role: user.role,
@@ -748,7 +774,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     // Check if expected role matches user's role
     if (expectedRole && user.role !== expectedRole) {
-      console.log('Role mismatch - expected:', expectedRole, 'but user has:', user.role);
+      debugLog('Role mismatch - expected:', expectedRole, 'but user has:', user.role);
       return res.status(403).json({
         success: false,
         error: `This login page is for ${expectedRole} accounts only. Please use the correct login page for your role.`
@@ -756,7 +782,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     if (user.isArchived) {
-      console.log('Account is archived:', email);
+      debugLog('Account is archived:', email);
       return res.status(403).json({
         success: false,
         error: 'Your account has been archived. Please contact admin.'
@@ -764,7 +790,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     if (!user.isActive) {
-      console.log('Account is deactivated:', email);
+      debugLog('Account is deactivated:', email);
       return res.status(403).json({
         success: false,
         error: 'Your account has been deactivated. Please contact admin.'
@@ -774,20 +800,20 @@ router.post('/login', loginLimiter, async (req, res) => {
     const isMatch = await user.comparePassword(password);
     
     if (!isMatch) {
-      console.log('Password mismatch for:', email);
+      debugLog('Password mismatch for:', email);
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials'
       });
     }
     
-    console.log('Checking approval status:', {
+    debugLog('Checking approval status:', {
       isApproved: user.isApproved,
       willAllow: user.isApproved ? 'YES - Login allowed' : 'NO - Login blocked'
     });
     
     if (!user.isApproved) {
-      console.log('⏳ User not approved yet - BLOCKING LOGIN:', email);
+      debugLog('⏳ User not approved yet - BLOCKING LOGIN:', email);
       return res.status(403).json({
         success: false,
         error: 'Your account is pending admin approval. Please wait for approval before logging in.',
@@ -796,7 +822,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       });
     }
     
-    console.log('Login successful for:', email);
+    debugLog('Login successful for:', email);
 
     user.password = undefined;
 
@@ -837,7 +863,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       error: error.message || 'Login failed'
     });
   } finally {
-    console.log('===== LOGIN COMPLETE =====\n');
+    debugLog('===== LOGIN COMPLETE =====\n');
   }
 });
 
@@ -909,7 +935,7 @@ router.put('/change-password', protect, async (req, res) => {
     user.password = newPassword;
     await user.save();
 
-    console.log('Password changed for user:', user.email);
+    debugLog('Password changed for user:', user.email);
 
     // SECURITY: Create security notification
     await createInAppNotification({
@@ -945,6 +971,13 @@ router.post('/change-password-otp/request', protect, otpLimiter, async (req, res
       return res.status(400).json({ success: false, error: 'Current password is incorrect' });
     }
     await sendOtp({ email: user.email, purpose: 'password_change', firstName: user.firstName });
+    await createInAppNotification({
+      userId: user._id,
+      type: 'security',
+      title: 'Password change verification sent',
+      body: 'A verification code was sent to your email for a password change request.',
+      metadata: { action: 'password_change_otp_requested' }
+    });
     return res.json({ success: true, message: 'Verification code sent to your email.' });
   } catch (error) {
     console.error('Change password OTP send error:', error);
@@ -1015,10 +1048,10 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     
-    console.log('Forgot password request received');
+    debugLog('Forgot password request received');
     
     if (!email) {
-      console.log('No email provided');
+      debugLog('No email provided');
       return res.status(400).json({
         success: false,
         error: 'Email is required'
@@ -1036,20 +1069,27 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
     const user = await User.findOne({ email: normalizedEmail });
     
     if (!user) {
-      console.log('Password reset requested for unregistered email');
+      debugLog('Password reset requested for unregistered email');
       return res.json({
         success: true,
         message: 'If your email is registered, you will receive a verification code.'
       });
     }
     
-    console.log('Password reset requested for registered user');
+    debugLog('Password reset requested for registered user');
 
     try {
       await sendOtp({
         email: user.email,
         purpose: 'password_reset',
         firstName: user.firstName
+      });
+      await createInAppNotification({
+        userId: user._id,
+        type: 'security',
+        title: 'Password reset requested',
+        body: 'A password reset verification code was requested for your account.',
+        metadata: { action: 'password_reset_otp_requested' }
       });
     } catch (emailError) {
       console.error('Failed to send password reset OTP:', emailError);
@@ -1167,7 +1207,7 @@ router.post('/reset-password', async (req, res) => {
       }
     });
 
-    console.log('Password reset successful for:', user.email);
+    debugLog('Password reset successful for:', user.email);
 
     res.json({
       success: true,
@@ -1260,20 +1300,6 @@ router.post('/pending-status', async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Failed to get pending status' });
-  }
-});
-
-// Debug route to check all users
-router.get('/debug/all-users', async (req, res) => {
-  try {
-    const users = await User.find({}).select('email role isApproved createdAt houseBlock houseLot');
-    res.json({
-      success: true,
-      count: users.length,
-      users: users
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
   }
 });
 

@@ -3,6 +3,7 @@ const PatrolLog = require('../models/PatrolLog');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { paginateQuery } = require('../utils/pagination');
+const { createInAppNotification } = require('../services/inAppNotificationService');
 
 const router = express.Router();
 
@@ -255,6 +256,21 @@ router.post('/log', protect, authorize('security', 'admin'), async (req, res) =>
       })),
       loggedAt: loggedAt ? new Date(loggedAt) : new Date()
     });
+    if (status === 'issue_found' || findings.some((finding) => finding.severity === 'high')) {
+      const headOfficers = await User.find({
+        role: 'security',
+        securityLevel: 'head-officer',
+        isActive: true,
+        isArchived: false
+      }).select('_id');
+      await Promise.allSettled(headOfficers.map((officer) => createInAppNotification({
+        userId: officer._id,
+        type: 'patrol',
+        title: 'Patrol issue reported',
+        body: `Issue reported at ${row.area} - ${row.checkpoint}.`,
+        metadata: { patrolLogId: row._id, phase: row.phase, status: row.status }
+      })));
+    }
     
     res.status(201).json({ success: true, data: row });
   } catch (error) {
@@ -320,6 +336,18 @@ router.put('/assign/:userId', protect, authorize('admin', 'security'), async (re
     }
     
     await user.save();
+    await createInAppNotification({
+      userId: user._id,
+      type: 'patrol',
+      title: 'Patrol assignment updated',
+      body: 'Your patrol assignment has been updated.',
+      metadata: {
+        action: 'patrol_assignment_updated',
+        assignedPhases: user.assignedPhases,
+        assignedAreas: user.assignedAreas,
+        patrolSchedule: user.patrolSchedule
+      }
+    });
     
     res.json({ success: true, data: user });
   } catch (error) {

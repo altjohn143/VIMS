@@ -76,6 +76,7 @@ import axios from 'axios';
 import AdminDashboardGraphs from '../components/AdminDashboardGraphs';
 import SecurityDashboardGraphs from '../components/SecurityDashboardGraphs';
 import NotificationPanel from '../components/NotificationPanel';
+import websocketService from '../utils/websocket';
 import AnnouncementImage from '../components/AnnouncementImage';
 import VisitorManagement from './VisitorManagement';
 import ServiceRequests from './ServiceRequests';
@@ -664,6 +665,32 @@ const Dashboard = () => {
     };
     loadNotifications();
   }, [user?.role]);
+
+  useEffect(() => {
+    const unsubscribeCount = websocketService.onUnreadCountDelta((delta) => {
+      if (delta === 'reset') {
+        setUnreadCount(0);
+        return;
+      }
+      if (delta < 0) setUnreadCount((prev) => Math.max(0, prev + delta));
+    });
+
+    const unsubscribeNotification = websocketService.onNotification((notification) => {
+      setUnreadCount((prev) => prev + (notification?.readAt ? 0 : 1));
+      setRecentActivities((prev) => [
+        {
+          text: notification?.title || 'New notification',
+          time: notification?.createdAt ? new Date(notification.createdAt).toLocaleString() : new Date().toLocaleString()
+        },
+        ...prev
+      ].slice(0, 8));
+    });
+
+    return () => {
+      unsubscribeCount();
+      unsubscribeNotification();
+    };
+  }, []);
 
   useEffect(() => {
     const loadResidentAnnouncements = async () => {

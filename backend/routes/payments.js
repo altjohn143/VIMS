@@ -3,159 +3,30 @@ const router = express.Router();
 const { getCached } = require('../utils/cache');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
-const Setting = require('../models/Setting');
 const { protect, authorize } = require('../middleware/auth');
-const { v4: uuidv4 } = require('uuid');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { sendPaymentReminderEmail, sendPaymentConfirmationEmail } = require('../services/notificationService');
 const { analyzeReceiptFraud } = require('../services/openaiReceiptFraudService');
 const { uploadImageBuffer } = require('../services/cloudinaryService');
 const { paginateQuery } = require('../utils/pagination');
-
-const MONTHLY_DUES_AMOUNT_KEY = 'monthly_dues_amount';
-const DAILY_OVERDUE_PENALTY = 10;
-
-function startOfDay(date) {
-  const value = new Date(date);
-  value.setHours(0, 0, 0, 0);
-  return value;
-}
-
-function parsePesoAmount(value) {
-  const normalized = String(value || '').replace(/[^\d.]/g, '');
-  const amount = Number(normalized);
-  return Number.isFinite(amount) && amount > 0 ? amount : null;
-}
-
-function getOutstandingAmount(payment) {
-  const baseAmount = Number(payment.originalAmount ?? payment.amount ?? 0);
-  const paidAmount = Number(payment.paidAmount || 0);
-  const penaltyAmount = Number(payment.penaltyAmount || 0);
-  return Math.max(0, baseAmount + penaltyAmount - paidAmount);
-}
-
-function syncPaymentAmounts(payment) {
-  if (payment.originalAmount == null && typeof payment.isModified === 'function') {
-    payment.originalAmount = Number(payment.amount || 0);
-  }
-  payment.amount = getOutstandingAmount(payment);
-}
-
-async function applyDailyPenalty(payment) {
-  if (!payment || payment.status !== 'pending' || !payment.dueDate || payment.paymentType !== 'monthly_dues') {
-    return payment;
-  }
-
-  const today = startOfDay(new Date());
-  const dueDate = startOfDay(payment.dueDate);
-  if (today <= dueDate) {
-    syncPaymentAmounts(payment);
-    return payment;
-  }
-
-  const lastCalculated = payment.lastPenaltyCalculatedAt
-    ? startOfDay(payment.lastPenaltyCalculatedAt)
-    : dueDate;
-  const daysToCharge = Math.floor((today - lastCalculated) / (24 * 60 * 60 * 1000));
-  if (daysToCharge > 0) {
-    payment.penaltyAmount = Number(payment.penaltyAmount || 0) + (daysToCharge * DAILY_OVERDUE_PENALTY);
-    payment.lastPenaltyCalculatedAt = today;
-  }
-  syncPaymentAmounts(payment);
-  if (payment.isModified()) await payment.save();
-  return payment;
-}
-
-async function applyDailyPenalties(payments) {
-  await Promise.all(payments.map(payment => applyDailyPenalty(payment)));
-  return payments;
-}
-
-async function getMonthlyDuesAmount() {
-  const setting = await Setting.findOne({ key: MONTHLY_DUES_AMOUNT_KEY });
-  return typeof setting?.value === 'number' ? setting.value : 500;
-}
-
-async function setMonthlyDuesAmount(amount) {
-  return await Setting.findOneAndUpdate(
-    { key: MONTHLY_DUES_AMOUNT_KEY },
-    { value: amount, description: 'Default monthly dues amount for association dues.' },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
-}
-
-async function applyResidentCreditToPayment(resident, payment) {
-  const creditBalance = Number(resident.paymentCreditBalance || 0);
-  if (creditBalance <= 0) return payment;
-
-  syncPaymentAmounts(payment);
-  const outstanding = getOutstandingAmount(payment);
-  if (outstanding <= 0) return payment;
-
-  const creditApplied = Math.min(creditBalance, outstanding);
-  payment.paidAmount = Number(payment.paidAmount || 0) + creditApplied;
-  payment.paymentHistory.push({
-    amount: creditApplied,
-    paymentMethod: 'credit',
-    referenceNumber: '',
-    receiptNumber: `CR-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-    notes: 'Applied resident overpayment credit to this invoice'
-  });
-  syncPaymentAmounts(payment);
-  payment.status = getOutstandingAmount(payment) <= 0 ? 'paid' : 'pending';
-  resident.paymentCreditBalance = creditBalance - creditApplied;
-  await Promise.all([payment.save(), resident.save()]);
-  return payment;
-}
-
-async function createMonthlyDuesForResident(resident, targetMonth, targetYear) {
-  const dueDay = 10;
-  const defaultInclusions = ['Maintenance', 'Security', 'Garbage', 'Common Area Upkeep', 'Administrative fees'];
-
-  const existingDues = await Payment.findOne({
-    residentId: resident._id,
-    paymentType: 'monthly_dues',
-    'billingPeriod.month': targetMonth,
-    'billingPeriod.year': targetYear
-  });
-
-  if (existingDues) {
-    return existingDues;
-  }
-
-  const monthlyDuesAmount = await getMonthlyDuesAmount();
-
-  const payment = await Payment.create({
-    residentId: resident._id,
-    amount: monthlyDuesAmount,
-    originalAmount: monthlyDuesAmount,
-    paymentType: 'monthly_dues',
-    status: 'pending',
-    dueDate: new Date(targetYear, targetMonth - 1, dueDay),
-    billingPeriod: { month: targetMonth, year: targetYear },
-    description: `Monthly Association Dues - ${new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })} ${targetYear}`,
-    notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
-    inclusions: defaultInclusions
-  });
-  return await applyResidentCreditToPayment(resident, payment);
-}
-
-function hasSubmittedPaymentForReview(payment) {
-  return Boolean(
-    payment.receiptImage ||
-    payment.referenceNumber ||
-    payment.transactionId ||
-    payment.paymongoSessionId ||
-    payment.paymongoSourceId
-  );
-}
+const {
+  applyDailyPenalty,
+  applyDailyPenalties,
+  createMonthlyDuesForResident,
+  getMonthlyDuesAmount,
+  getOutstandingAmount,
+  hasSubmittedPaymentForReview,
+  notifyAdminsOfPaymentTransaction,
+  notifyResidentOfPaymentTransaction,
+  parsePesoAmount,
+  setMonthlyDuesAmount,
+  syncPaymentAmounts
+} = require('../services/paymentService');
+const debugLog = (...args) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args);
+};
 
 // ========== PAYMENT ROUTES ==========
-
-// Test route to verify payments API is working
-router.get('/test', (req, res) => {
-  res.json({ success: true, message: 'Payments API is working!' });
-});
 
 // Get all payments for logged-in resident
 router.get('/my', protect, authorize('resident'), async (req, res) => {
@@ -206,7 +77,7 @@ router.get('/current-dues', protect, authorize('resident'), async (req, res) => 
     let targetMonth = currentMonth;
     let targetYear = currentYear;
 
-    console.log(`Fetching current dues for user ${req.user.id}, month: ${targetMonth}, year: ${targetYear}`);
+    debugLog(`Fetching current dues for user ${req.user.id}, month: ${targetMonth}, year: ${targetYear}`);
 
     // Check if resident was created after the 10th of the current month and bill next month if needed.
     const user = await User.findById(req.user.id);
@@ -290,7 +161,20 @@ router.post('/:id/pay', protect, authorize('resident'), async (req, res) => {
       payment.status = 'pending';
       payment.paymentMethod = 'cash';
       payment.referenceNumber = referenceNumber;
+      payment.rejectionReason = '';
+      payment.rejectedAt = null;
+      payment.rejectedBy = null;
       await payment.save();
+      await notifyAdminsOfPaymentTransaction({
+        title: 'Cash payment pending confirmation',
+        body: `${req.user.firstName || 'Resident'} ${req.user.lastName || ''} selected cash payment for ${payment.invoiceNumber}.`.trim(),
+        metadata: { paymentId: payment._id, residentId: req.user.id, paymentMethod: 'cash' }
+      });
+      await notifyResidentOfPaymentTransaction(payment, {
+        title: 'Cash payment recorded',
+        body: `Your cash payment request for ${payment.invoiceNumber} is pending admin confirmation.`,
+        metadata: { paymentMethod: 'cash' }
+      });
       return res.json({ 
         success: true, 
         message: 'Cash payment selected. Please pay at the admin office.', 
@@ -303,7 +187,15 @@ router.post('/:id/pay', protect, authorize('resident'), async (req, res) => {
       payment.paymentMethod = 'qrph';
       payment.referenceNumber = referenceNumber;
       payment.status = 'pending';
+      payment.rejectionReason = '';
+      payment.rejectedAt = null;
+      payment.rejectedBy = null;
       await payment.save();
+      await notifyResidentOfPaymentTransaction(payment, {
+        title: 'QRPh payment started',
+        body: `Your QRPh payment for ${payment.invoiceNumber} has been started. Upload your receipt after payment.`,
+        metadata: { paymentMethod: 'qrph' }
+      });
       
       return res.json({
         success: true,
@@ -344,10 +236,10 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
     const { referenceNumber, paymentId } = req.body;
     const receiptFile = req.file;
     
-    console.log('=== DEBUG UPLOAD ===');
-    console.log('Payment ID received:', paymentId);
-    console.log('Reference number:', referenceNumber);
-    console.log('File received:', receiptFile ? `Yes (${receiptFile.originalname})` : 'No');
+    debugLog('=== DEBUG UPLOAD ===');
+    debugLog('Payment ID received:', paymentId);
+    debugLog('Reference number:', referenceNumber);
+    debugLog('File received:', receiptFile ? `Yes (${receiptFile.originalname})` : 'No');
     
     // Validate paymentId format
     if (!paymentId || paymentId === 'undefined' || paymentId === 'null') {
@@ -356,7 +248,7 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
     }
     
     const payment = await Payment.findById(paymentId);
-    console.log('Payment found:', payment ? 'Yes' : 'No');
+    debugLog('Payment found:', payment ? 'Yes' : 'No');
     
     if (!payment) {
       return res.status(404).json({ success: false, error: 'Payment not found. Please refresh and try again.' });
@@ -383,6 +275,9 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
     payment.paymentMethod = 'qrph';
     payment.referenceNumber = referenceNumber;
     payment.status = 'pending';
+    payment.rejectionReason = '';
+    payment.rejectedAt = null;
+    payment.rejectedBy = null;
     let tempReceiptPath = null;
     if (receiptFile?.buffer) {
       const uploadedReceipt = await uploadImageBuffer(receiptFile.buffer, {
@@ -443,8 +338,18 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
       payment.submittedAmount = parsePesoAmount(req.body.amount);
     }
     await payment.save();
+    await notifyAdminsOfPaymentTransaction({
+      title: 'QRPh payment submitted',
+      body: `${req.user.firstName || 'Resident'} ${req.user.lastName || ''} submitted a QRPh receipt for ${payment.invoiceNumber}.`.trim(),
+      metadata: { paymentId: payment._id, residentId: req.user.id, paymentMethod: 'qrph' }
+    });
+    await notifyResidentOfPaymentTransaction(payment, {
+      title: 'Payment submitted for review',
+      body: `Your payment for ${payment.invoiceNumber} was submitted and is pending admin verification.`,
+      metadata: { paymentMethod: 'qrph' }
+    });
     
-    console.log(`QRPh payment submitted for invoice ${payment.invoiceNumber}. Reference: ${referenceNumber}`);
+    debugLog(`QRPh payment submitted for invoice ${payment.invoiceNumber}. Reference: ${referenceNumber}`);
     
     res.json({
       success: true,
@@ -554,7 +459,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate + 'T23:59:59.999') };
 
 let payments = await Payment.find(filter)
-      .select('residentId amount originalAmount paidAmount submittedAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber receiptImage receiptAi description')
+      .select('residentId amount originalAmount paidAmount submittedAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber receiptImage receiptAi description notes rejectionReason rejectedAt')
       .populate('residentId', 'firstName lastName houseNumber paymentCreditBalance')
       .sort({ createdAt: -1 })
       .lean();
@@ -674,6 +579,13 @@ router.post('/generate-monthly', protect, authorize('admin'), async (req, res) =
 
       if (!existing) {
         await createMonthlyDuesForResident(resident, targetMonth, targetYear);
+        await createInAppNotification({
+          userId: resident._id,
+          type: 'payment',
+          title: 'New monthly dues invoice',
+          body: `Your monthly dues invoice for ${new Date(targetYear, targetMonth - 1).toLocaleString('default', { month: 'long' })} ${targetYear} is now available.`,
+          metadata: { month: targetMonth, year: targetYear, paymentType: 'monthly_dues' }
+        });
         created++;
       }
     }
@@ -759,6 +671,9 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     payment.receiptImagePublicId = null;
     payment.submittedAmount = null;
     payment.receiptAi = undefined;
+    payment.rejectionReason = '';
+    payment.rejectedAt = null;
+    payment.rejectedBy = null;
 
     syncPaymentAmounts(payment);
     const remainingBalance = getOutstandingAmount(payment);
@@ -776,6 +691,11 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
         ? `Your payment ${payment.invoiceNumber} has been confirmed.${creditedAmount > 0 ? ` Excess payment of PHP ${creditedAmount.toFixed(2)} was added as credit for future dues.` : ''}`
         : `Your partial payment of PHP ${appliedAmount.toFixed(2)} was confirmed. Remaining balance: PHP ${remainingBalance.toFixed(2)}.`,
       metadata: { paymentId: payment._id }
+    });
+    await notifyAdminsOfPaymentTransaction({
+      title: payment.status === 'paid' ? 'Payment confirmed' : 'Partial payment confirmed',
+      body: `${payment.invoiceNumber} was ${payment.status === 'paid' ? 'fully confirmed' : 'partially confirmed'} by admin.`,
+      metadata: { paymentId: payment._id, residentId: payment.residentId, paymentStatus: payment.status }
     });
 
     let emailResult = { sent: false, reason: 'not_attempted' };
@@ -798,6 +718,83 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
   } catch (error) {
     console.error('Confirm payment error:', error);
     res.status(500).json({ success: false, error: 'Failed to confirm payment' });
+  }
+});
+
+// Admin: Reject submitted payment attempt and allow resident to resubmit
+router.put('/:id/reject', protect, authorize('admin'), async (req, res) => {
+  try {
+    const rejectionReason = String(req.body.rejectionReason || '').trim();
+    if (!rejectionReason) {
+      return res.status(400).json({ success: false, error: 'Rejection reason is required' });
+    }
+
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) return res.status(404).json({ success: false, error: 'Payment not found' });
+    if (payment.status === 'paid') {
+      return res.status(400).json({ success: false, error: 'Paid payments cannot be rejected' });
+    }
+    if (!hasSubmittedPaymentForReview(payment)) {
+      return res.status(400).json({ success: false, error: 'No submitted payment is pending review' });
+    }
+
+    await applyDailyPenalty(payment);
+
+    const rejectedReferenceNumber = payment.referenceNumber || '';
+    const rejectedReceiptImage = payment.receiptImage || '';
+    const rejectedMethod = payment.paymentMethod || '';
+    const rejectedAmount = Number(payment.submittedAmount || 0);
+
+    payment.paymentHistory.push({
+      amount: rejectedAmount,
+      creditedAmount: 0,
+      paymentMethod: rejectedMethod,
+      referenceNumber: rejectedReferenceNumber,
+      receiptNumber: '',
+      receiptImage: rejectedReceiptImage,
+      verifiedBy: req.user.id,
+      notes: `Rejected: ${rejectionReason}`
+    });
+
+    payment.status = 'pending';
+    payment.paymentMethod = null;
+    payment.referenceNumber = undefined;
+    payment.transactionId = undefined;
+    payment.receiptImage = null;
+    payment.receiptImagePublicId = null;
+    payment.submittedAmount = null;
+    payment.receiptAi = undefined;
+    payment.rejectionReason = rejectionReason;
+    payment.rejectedAt = new Date();
+    payment.rejectedBy = req.user.id;
+    payment.processedBy = req.user.id;
+    payment.processedAt = new Date();
+    payment.notes = `${payment.notes || ''}\n[Payment rejected: ${rejectionReason}]`.trim();
+
+    syncPaymentAmounts(payment);
+    await payment.save();
+
+    await createInAppNotification({
+      userId: payment.residentId,
+      type: 'payment',
+      title: 'Payment rejected',
+      body: `Your payment for ${payment.invoiceNumber} was rejected. Reason: ${rejectionReason}`,
+      metadata: { paymentId: payment._id }
+    });
+    await notifyAdminsOfPaymentTransaction({
+      title: 'Payment rejected',
+      body: `${payment.invoiceNumber} was rejected. Reason: ${rejectionReason}`,
+      metadata: { paymentId: payment._id, residentId: payment.residentId }
+    });
+
+    res.json({
+      success: true,
+      message: 'Payment rejected. The resident can submit a new payment.',
+      data: payment
+    });
+  } catch (error) {
+    console.error('Reject payment error:', error);
+    res.status(500).json({ success: false, error: 'Failed to reject payment' });
   }
 });
 
@@ -839,6 +836,13 @@ router.post('/send-reminders', protect, authorize('admin'), async (req, res) => 
           failed++;
           console.warn(`Payment reminder email skipped for ${resident.email}: ${emailResult.reason}`);
         }
+        await createInAppNotification({
+          userId: resident._id,
+          type: 'payment',
+          title: 'Payment reminder',
+          body: `You have ${payments.length} pending payment${payments.length === 1 ? '' : 's'} requiring attention.`,
+          metadata: { paymentIds: payments.map((payment) => payment._id), reminderType: 'manual_admin' }
+        });
       } catch (error) {
         failed++;
         console.error(`Failed to send payment reminder email for ${resident.email}:`, error.message);

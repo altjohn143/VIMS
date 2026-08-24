@@ -4,6 +4,10 @@ const Lot = require('../models/Lot');
 const OccupancyHistory = require('../models/OccupancyHistory');
 const { protect, authorize } = require('../middleware/auth');
 const { paginateQuery } = require('../utils/pagination');
+const { createInAppNotification } = require('../services/inAppNotificationService');
+const debugLog = (...args) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args);
+};
 
 const AMENITY_LOTS = {
   'P4-B3-L6': 'Covered Court',
@@ -266,6 +270,22 @@ router.put('/:lotId/status', protect, authorize('admin'), async (req, res) => {
       reason: 'Manual lot status update',
       performedBy: req.user._id
     });
+    if (lot.occupiedBy) {
+      await createInAppNotification({
+        userId: lot.occupiedBy,
+        type: 'lot',
+        title: 'Lot status updated',
+        body: `${lot.lotId} is now ${nextStatus}.`,
+        metadata: { lotId: lot.lotId, status: nextStatus, action: 'lot_status_updated' }
+      });
+    }
+    await createInAppNotification({
+      userId: req.user._id,
+      type: 'lot',
+      title: 'Lot status updated',
+      body: `${lot.lotId} status changed from ${previousStatus} to ${nextStatus}.`,
+      metadata: { lotId: lot.lotId, previousStatus, status: nextStatus, action: 'lot_status_updated' }
+    });
     
     res.json({
       success: true,
@@ -362,6 +382,13 @@ router.put('/:lotId/map-position', protect, authorize('admin'), async (req, res)
     };
 
     await lot.save();
+    await createInAppNotification({
+      userId: req.user._id,
+      type: 'lot',
+      title: 'Lot map position saved',
+      body: `Map position saved for ${lot.lotId}.`,
+      metadata: { lotId: lot.lotId, action: 'lot_map_position_saved' }
+    });
 
     res.json({
       success: true,
@@ -395,6 +422,13 @@ router.delete('/:lotId/map-position', protect, authorize('admin'), async (req, r
     };
 
     await lot.save();
+    await createInAppNotification({
+      userId: req.user._id,
+      type: 'lot',
+      title: 'Lot map position cleared',
+      body: `Map position cleared for ${lot.lotId}.`,
+      metadata: { lotId: lot.lotId, action: 'lot_map_position_cleared' }
+    });
 
     res.json({
       success: true,
@@ -595,6 +629,14 @@ router.post('/map-data/import', protect, authorize('admin'), async (req, res) =>
       }
     }
 
+    await createInAppNotification({
+      userId: req.user._id,
+      type: 'lot',
+      title: 'Lot map data imported',
+      body: `Imported ${backupLots.length} lots. Created ${created}, updated ${updated}.`,
+      metadata: { action: 'lot_map_data_imported', total: backupLots.length, created, updated, positioned }
+    });
+
     res.json({
       success: true,
       message: `Imported ${backupLots.length} lots`,
@@ -650,7 +692,7 @@ router.get('/export', protect, async (req, res) => {
     const { format = 'pdf', phase, block, status, type, timezoneOffset = 0 } = req.query;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
-    console.log('Export request:', { format, phase, block, status, type, user: req.user._id });
+    debugLog('Export request:', { format, phase, block, status, type, user: req.user._id });
 
     // Build filter based on query parameters
     let filter = {
@@ -665,7 +707,7 @@ router.get('/export', protect, async (req, res) => {
       .populate('occupiedBy', 'firstName lastName email')
       .sort({ phase: 1, block: 1, lotNumber: 1 });
 
-    console.log(`Found ${lots.length} lots for export`);
+    debugLog(`Found ${lots.length} lots for export`);
 
     if (!lots.length) {
       return res.status(404).json({
@@ -688,7 +730,7 @@ router.get('/export', protect, async (req, res) => {
       'Occupied By': lot.occupiedBy ? `${lot.occupiedBy.firstName} ${lot.occupiedBy.lastName}` : 'Vacant'
     }));
 
-    console.log(`Prepared ${data.length} data rows for export`);
+    debugLog(`Prepared ${data.length} data rows for export`);
 
     const columns = [
       { header: 'Lot ID', key: 'Lot ID', width: 12 },
@@ -715,11 +757,11 @@ router.get('/export', protect, async (req, res) => {
     };
 
     if (format === 'pdf') {
-      console.log('Generating PDF report...');
+      debugLog('Generating PDF report...');
       const pdfReportService = require('../services/pdfReportService');
       const pdfBuffer = await pdfReportService.generateDataReport(title, data, columns, { creator: req.user, timezoneOffsetMinutes, summary: lotSummary });
 
-      console.log(`PDF generated, buffer size: ${pdfBuffer.length} bytes`);
+      debugLog(`PDF generated, buffer size: ${pdfBuffer.length} bytes`);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="VIMS_Lots_Export_${new Date().toISOString().split('T')[0]}.pdf"`);

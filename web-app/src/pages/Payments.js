@@ -573,6 +573,11 @@ const Payments = () => {
                     ))}
                   </Box>
                 )}
+                {currentDues.rejectionReason && (
+                  <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
+                    Previous payment rejected: {currentDues.rejectionReason}
+                  </Alert>
+                )}
               </Box>
               <Button
                 variant="contained"
@@ -711,6 +716,11 @@ const Payments = () => {
                       <TableCell>{payment.paymentDate ? formatDate(payment.paymentDate) : '-'}</TableCell>
                       <TableCell>{getStatusChip(payment.status, payment.dueDate)}</TableCell>
                       <TableCell align="center">
+                        {payment.rejectionReason && (
+                          <Alert severity="error" sx={{ mb: 1, textAlign: 'left', borderRadius: 2 }}>
+                            Rejected: {payment.rejectionReason}
+                          </Alert>
+                        )}
                         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
                           {payment.status === 'pending' && (
                             <Button

@@ -4,6 +4,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const { isExpoPushToken } = require('../services/pushNotificationService');
+const { emitUnreadCountDelta } = require('../services/inAppNotificationService');
 
 router.get('/', protect, async (req, res) => {
   try {
@@ -25,7 +26,8 @@ router.get('/unread-count', protect, async (req, res) => {
 
 router.put('/:id/read', protect, async (req, res) => {
   try {
-    await Notification.updateOne({ _id: req.params.id, userId: req.user._id }, { $set: { readAt: new Date() } });
+    const result = await Notification.updateOne({ _id: req.params.id, userId: req.user._id, readAt: null }, { $set: { readAt: new Date() } });
+    if (result.modifiedCount > 0) emitUnreadCountDelta(req.user._id, -1);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to mark read' });
@@ -34,7 +36,9 @@ router.put('/:id/read', protect, async (req, res) => {
 
 router.put('/read-all', protect, async (req, res) => {
   try {
+    const unreadCount = await Notification.countDocuments({ userId: req.user._id, readAt: null });
     await Notification.updateMany({ userId: req.user._id, readAt: null }, { $set: { readAt: new Date() } });
+    if (unreadCount > 0) emitUnreadCountDelta(req.user._id, -unreadCount);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to mark all read' });

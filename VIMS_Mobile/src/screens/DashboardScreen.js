@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import api, { getProtectedImageDataUrl } from '../utils/api';
 import { startUnreadCountPolling } from '../utils/notifications';
+import websocketService from '../utils/websocket';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationModal from '../components/NotificationModal';
 import { radii, shadows, themeColors } from '../utils/theme';
@@ -212,6 +213,35 @@ const DashboardScreen = ({ navigation }) => {
       onCount: (count) => setUnreadCount(count),
     });
     return stop;
+  }, [user?.role]);
+
+  useEffect(() => {
+    if (!user?.role) return;
+    const unsubscribeCount = websocketService.onUnreadCountDelta((delta) => {
+      if (delta === 'reset') {
+        setUnreadCount(0);
+        return;
+      }
+      if (delta < 0) setUnreadCount((prev) => Math.max(0, prev + delta));
+    });
+    const unsubscribeNotification = websocketService.onNotification((notification) => {
+      setUnreadCount((prev) => prev + (notification?.readAt ? 0 : 1));
+      setRecentActivity((prev) => [
+        {
+          title: notification?.title || 'New notification',
+          description: notification?.body || '',
+          time: notification?.createdAt ? new Date(notification.createdAt).toLocaleString() : new Date().toLocaleString(),
+          icon: 'notifications-outline',
+          color: themeColors.primary
+        },
+        ...prev
+      ].slice(0, 8));
+    });
+
+    return () => {
+      unsubscribeCount();
+      unsubscribeNotification();
+    };
   }, [user?.role]);
 
   const fetchDashboardData = async (userData) => {

@@ -96,6 +96,9 @@ const AdminPayments = () => {
   const [qrphDialogOpen, setQrphDialogOpen] = useState(false);
   const [selectedQRPhPayment, setSelectedQRPhPayment] = useState(null);
   const [verificationNotes, setVerificationNotes] = useState('');
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedRejectPayment, setSelectedRejectPayment] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
   const [monthlyDuesAmount, setMonthlyDuesAmount] = useState(500);
   const [duesAmountDialogOpen, setDuesAmountDialogOpen] = useState(false);
   const [duesAmountDraft, setDuesAmountDraft] = useState('');
@@ -352,6 +355,37 @@ const AdminPayments = () => {
       toast.success(`${fileFormat.toUpperCase()} exported`);
     } catch (error) {
       toast.error(error.message || `Failed to export ${fileFormat.toUpperCase()}`);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    if (!selectedRejectPayment) return;
+    if (!rejectionReason.trim()) {
+      toast.error('Please provide a rejection reason');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const token = sessionStorage.getItem('token');
+      const response = await axios.put(
+        `/api/payments/${selectedRejectPayment._id}/reject`,
+        { rejectionReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        toast.success('Payment rejected. Resident can submit again.');
+        fetchPayments();
+        fetchStats();
+        setRejectDialogOpen(false);
+        setSelectedRejectPayment(null);
+        setRejectionReason('');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to reject payment');
     } finally {
       setProcessing(false);
     }
@@ -931,6 +965,23 @@ const AdminPayments = () => {
                               Verify QRPh
                             </Button>
                           )}
+
+                          {payment.status === 'pending' && (payment.paymentMethod || payment.referenceNumber || payment.receiptImage) && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => {
+                                setSelectedRejectPayment(payment);
+                                setRejectionReason('');
+                                setRejectDialogOpen(true);
+                              }}
+                              startIcon={<CloseIcon />}
+                              sx={{ fontSize: '0.7rem', minWidth: '80px' }}
+                            >
+                              Reject
+                            </Button>
+                          )}
                           
                           {/* View Receipt Image Button */}
                           {payment.receiptImage && (
@@ -1128,6 +1179,47 @@ const AdminPayments = () => {
             <Button onClick={() => setConfirmDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
             <Button variant="contained" color="success" onClick={handleConfirmCashPayment} disabled={processing} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
               {processing ? <CircularProgress size={20} /> : 'Confirm Payment'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Reject Payment Dialog */}
+        <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
+          <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>
+            Reject Payment
+          </DialogTitle>
+          <DialogContent>
+            {selectedRejectPayment && (
+              <Box sx={{ mt: 1 }}>
+                <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+                  The resident will see this reason and can submit a new payment for the same invoice.
+                </Alert>
+                <Paper sx={{ p: 2, mb: 2, bgcolor: themeColors.background, borderRadius: 2 }}>
+                  <Typography><strong>Invoice:</strong> {selectedRejectPayment.invoiceNumber}</Typography>
+                  <Typography><strong>Resident:</strong> {selectedRejectPayment.residentId?.firstName} {selectedRejectPayment.residentId?.lastName}</Typography>
+                  <Typography><strong>Reference:</strong> {selectedRejectPayment.referenceNumber || 'N/A'}</Typography>
+                  <Typography><strong>Balance:</strong> {formatCurrency(selectedRejectPayment.amount)}</Typography>
+                </Paper>
+                <TextField
+                  autoFocus
+                  fullWidth
+                  required
+                  multiline
+                  rows={3}
+                  label="Rejection Reason"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Example: Payment was not received by admin, invalid receipt, or wrong reference number."
+                />
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
+            <Button onClick={() => setRejectDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+              Cancel
+            </Button>
+            <Button variant="contained" color="error" onClick={handleRejectPayment} disabled={processing || !rejectionReason.trim()} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+              {processing ? <CircularProgress size={20} /> : 'Reject Payment'}
             </Button>
           </DialogActions>
         </Dialog>

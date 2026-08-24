@@ -48,6 +48,9 @@ const paymentSchema = new mongoose.Schema({
   }],
   description: { type: String },
   notes: { type: String },
+  rejectionReason: { type: String, default: '' },
+  rejectedAt: { type: Date, default: null },
+  rejectedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   inclusions: { type: [String], default: [] }, // What's included in this payment (e.g., Maintenance, Security, Garbage, etc.)
   processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   processedAt: { type: Date },

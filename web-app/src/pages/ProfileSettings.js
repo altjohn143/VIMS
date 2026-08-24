@@ -1208,35 +1208,38 @@ const ProfileSettings = () => {
                     </DialogActions>
                   </Dialog>
 
-                  {/* Security Section */}
-                  <Box>
-                    <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
-                      <SecurityIcon />
-                      Security
-                    </Typography>
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      startIcon={<LockResetIcon />}
-                      onClick={handleOpenPasswordDialog}
-                      sx={{ 
-                        mt: 1,
-                        borderRadius: 2.5,
-                        borderColor: themeColors.primary,
-                        color: themeColors.primary,
-                        textTransform: 'none',
-                        fontWeight: 700,
-                        '&:hover': {
-                          borderColor: themeColors.primaryDark,
-                          backgroundColor: themeColors.primary + '08'
-                        }
-                      }}
-                    >
-                      Change Password
-                    </Button>
-                  </Box>
                 </>
               )}
+
+              <Divider sx={{ my: 3, borderColor: themeColors.border }} />
+
+              {/* Security Section */}
+              <Box>
+                <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: themeColors.textPrimary, fontWeight: 600 }}>
+                  <SecurityIcon />
+                  Security
+                </Typography>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<LockResetIcon />}
+                  onClick={handleOpenPasswordDialog}
+                  sx={{
+                    mt: 1,
+                    borderRadius: 2.5,
+                    borderColor: themeColors.primary,
+                    color: themeColors.primary,
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    '&:hover': {
+                      borderColor: themeColors.primaryDark,
+                      backgroundColor: themeColors.primary + '08'
+                    }
+                  }}
+                >
+                  Change Password
+                </Button>
+              </Box>
             </Paper>
 
             {/* Move-out Request Dialog */}
@@ -1902,7 +1905,7 @@ const ProfileSettings = () => {
 
         {/* Change Password Dialog */}
         <Dialog
-          open={isResidentProfile && changePasswordOpen}
+          open={changePasswordOpen}
           onClose={handleClosePasswordDialog}
           maxWidth="sm"
           fullWidth

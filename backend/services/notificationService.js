@@ -139,6 +139,7 @@ async function sendPaymentReminderEmail(payments, resident, options = {}) {
   const firstName = resident.firstName || 'Resident';
   const safeFirstName = escapeHtml(firstName);
   const isDueTomorrow = options.timing === 'due_tomorrow';
+  const invoiceCount = paymentList.length;
   const introText = isDueTomorrow
     ? `This is a reminder that you have ${invoiceCount} invoice${invoiceCount === 1 ? '' : 's'} due tomorrow.`
     : `This is a reminder that you have ${invoiceCount} unpaid invoice${invoiceCount === 1 ? '' : 's'}.`;
@@ -154,7 +155,6 @@ async function sendPaymentReminderEmail(payments, resident, options = {}) {
     const invoiceNumber = payment.invoiceNumber || 'Invoice';
     return `- ${invoiceNumber}: ${formatAmount(payment.amount)} due ${formatDate(payment.dueDate)}`;
   }).join('\n');
-  const invoiceCount = paymentList.length;
 
   const result = await resend.emails.send({
     from: RESEND_FROM_EMAIL,

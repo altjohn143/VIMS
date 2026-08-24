@@ -142,6 +142,8 @@ if (!BASE_URL && Platform.OS === 'android') {
 
 debugLog('API Configuration:', { platform: Platform.OS, isDevice: Constants.isDevice, baseURL: BASE_URL });
 
+export const API_BASE_URL = BASE_URL.replace(/\/api\/?$/, '');
+
 // ============================================
 // AXIOS INSTANCE
 // ============================================

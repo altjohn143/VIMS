@@ -12,6 +12,10 @@ const { detectDuplicateIdentity } = require('../services/duplicateIdentityServic
 const { getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
 const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
 const { paginateQuery } = require('../utils/pagination');
+const { createInAppNotification } = require('../services/inAppNotificationService');
+const debugLog = (...args) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args);
+};
 
 const router = express.Router();
 
@@ -151,7 +155,7 @@ router.post(
       const frontFile = req.files?.frontImage?.[0] || null;
       const backFile = req.files?.backImage?.[0] || null;
 
-      console.log('🧾 upload-id request files:', {
+      debugLog('🧾 upload-id request files:', {
         user: { id: user._id.toString(), email: snapEmail },
         frontImage: frontFile
           ? { originalname: frontFile.originalname, mimetype: frontFile.mimetype, size: frontFile.size }
@@ -186,12 +190,12 @@ router.post(
         try {
           fs.writeFileSync(frontPath, frontMeta.buffer);
           fs.writeFileSync(backPath, backMeta.buffer);
-          console.log('✅ Saved ID documents to disk:', { frontPath, backPath });
+          debugLog('✅ Saved ID documents to disk:', { frontPath, backPath });
         } catch (saveError) {
           console.error('Failed to save ID documents to uploads/ids:', saveError);
         }
       } else {
-        console.log('Skipping local ID file save in production; Cloudinary is the permanent store.');
+        debugLog('Skipping local ID file save in production; Cloudinary is the permanent store.');
       }
 
       const front = frontMeta;
@@ -368,7 +372,7 @@ router.post(
         return res.status(400).json({ success: false, error: 'Front and back ID images are required' });
       }
 
-      console.log('🔍 ocr-id request files:', {
+      debugLog('🔍 ocr-id request files:', {
         frontImage: frontFile
           ? { originalname: frontFile.originalname, mimetype: frontFile.mimetype, size: frontFile.size }
           : null,
@@ -392,12 +396,12 @@ router.post(
         try {
           fs.writeFileSync(frontPath, frontMeta.buffer);
           fs.writeFileSync(backPath, backMeta.buffer);
-          console.log('✅ Saved OCR ID upload files to disk:', { frontPath, backPath });
+          debugLog('✅ Saved OCR ID upload files to disk:', { frontPath, backPath });
         } catch (saveError) {
           console.error('Failed to save OCR files to uploads/ids:', saveError);
         }
       } else {
-        console.log('Skipping temporary OCR file save in production; buffers are processed in memory.');
+        debugLog('Skipping temporary OCR file save in production; buffers are processed in memory.');
       }
 
       const result = await extractIdFieldsFromImagePaths(frontMeta, backMeta, req.body.documentType);
@@ -610,6 +614,15 @@ router.put('/admin/:id/approve', protect, authorize('admin'), async (req, res) =
     verification.reviewedAt = new Date();
     verification.reviewNotes = req.body.reviewNotes || '';
     await verification.save();
+    if (verification.userId) {
+      await createInAppNotification({
+        userId: verification.userId,
+        type: 'verification',
+        title: 'Identity verification approved',
+        body: 'Your identity documents were approved by admin.',
+        metadata: { verificationId: verification._id, status: verification.status }
+      });
+    }
     res.json({ success: true, data: verification });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to approve verification' });
@@ -625,6 +638,15 @@ router.put('/admin/:id/reject', protect, authorize('admin'), async (req, res) =>
     verification.reviewedAt = new Date();
     verification.rejectReason = req.body.rejectReason || 'Rejected by admin';
     await verification.save();
+    if (verification.userId) {
+      await createInAppNotification({
+        userId: verification.userId,
+        type: 'verification',
+        title: 'Identity verification rejected',
+        body: `Your identity documents were rejected. Reason: ${verification.rejectReason}`,
+        metadata: { verificationId: verification._id, status: verification.status, rejectReason: verification.rejectReason }
+      });
+    }
     res.json({ success: true, data: verification });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to reject verification' });

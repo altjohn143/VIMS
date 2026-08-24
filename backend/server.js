@@ -1,13 +1,18 @@
 const express = require('express');
+const http = require('http');
 const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const jwt = require('jsonwebtoken');
+const { Server } = require('socket.io');
 require('dotenv').config();
 const auditLogger = require('./middleware/auditLogger');
 const requestIdMiddleware = require('./middleware/requestId');
 const errorHandler = require('./middleware/errorHandler');
+const User = require('./models/User');
+const { setNotificationSocket } = require('./services/inAppNotificationService');
 
 console.log('\n📂 Starting VIMS Server...');
 
@@ -59,35 +64,22 @@ const frontendUrlsFromEnv = (process.env.FRONTEND_URL || '')
 // Combine all origins (including env-based ones and regex patterns)
 const allAllowedOrigins = [...allowedOrigins, ...frontendUrlsFromEnv];
 
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  for (const allowed of allAllowedOrigins) {
+    if (allowed instanceof RegExp && allowed.test(origin)) return true;
+    if (allowed === origin) return true;
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    if (/^http:\/\/localhost:\d+$/.test(origin)) return true;
+    if (/^exp:\/\/.*/.test(origin)) return true;
+  }
+  return false;
+};
+
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (mobile apps, curl requests)
-    if (!origin) return callback(null, true);
-
-    // Check if origin is in allowed list
-    for (const allowed of allAllowedOrigins) {
-      if (allowed instanceof RegExp) {
-        if (allowed.test(origin)) {
-          return callback(null, true);
-        }
-      } else if (allowed === origin) {
-        return callback(null, true);
-      }
-    }
-
-    // Allow localhost on any port for development
-    if (process.env.NODE_ENV !== 'production') {
-      const localhostPattern = /^http:\/\/localhost:\d+$/;
-      if (localhostPattern.test(origin)) {
-        return callback(null, true);
-      }
-      // Also allow Expo dev URLs in development
-      const expoDevPattern = /^exp:\/\/.*/;
-      if (expoDevPattern.test(origin)) {
-        return callback(null, true);
-      }
-    }
-
+    if (isOriginAllowed(origin)) return callback(null, true);
     return callback(new Error(`CORS not allowed: ${origin}`));
   },
   credentials: true,
@@ -95,6 +87,40 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400
 }));
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) return callback(null, true);
+      return callback(new Error(`Socket CORS not allowed: ${origin}`));
+    },
+    credentials: true
+  }
+});
+
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace(/^Bearer\s+/i, '');
+    if (!token) return next(new Error('Authentication required'));
+    if (!process.env.JWT_SECRET) return next(new Error('Authentication configuration error'));
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('_id role');
+    if (!user) return next(new Error('User not found'));
+
+    socket.user = user;
+    next();
+  } catch (error) {
+    next(new Error('Authentication failed'));
+  }
+});
+
+io.on('connection', (socket) => {
+  socket.join(`user:${socket.user._id.toString()}`);
+});
+
+setNotificationSocket(io);
 
 // Middleware
 app.use(express.json({ limit: '10mb' })); // SECURITY: Add payload size limit
@@ -214,60 +240,79 @@ async function initializeLots() {
   }
 }
 
+function isStrongSeedPassword(password) {
+  return typeof password === 'string'
+    && password.length >= 12
+    && /[a-z]/.test(password)
+    && /[A-Z]/.test(password)
+    && /\d/.test(password)
+    && /[^A-Za-z0-9]/.test(password);
+}
+
+function buildSeedUser({ prefix, defaultEmail, role, securityLevel }) {
+  const email = (process.env[`${prefix}_EMAIL`] || defaultEmail).toLowerCase().trim();
+  const password = process.env[`${prefix}_PASSWORD`];
+  const firstName = process.env[`${prefix}_FIRST_NAME`] || (role === 'admin' ? 'System' : 'Security');
+  const lastName = process.env[`${prefix}_LAST_NAME`] || 'Bootstrap';
+  const phone = process.env[`${prefix}_PHONE`] || '';
+
+  if (!password) {
+    throw new Error(`${prefix}_PASSWORD is required when ENABLE_DEFAULT_ACCOUNT_SEED=true`);
+  }
+
+  if (!isStrongSeedPassword(password)) {
+    throw new Error(`${prefix}_PASSWORD must be at least 12 characters and include uppercase, lowercase, number, and symbol`);
+  }
+
+  return {
+    firstName,
+    lastName,
+    email,
+    phone,
+    password,
+    role,
+    ...(securityLevel ? { securityLevel } : {}),
+    isApproved: true,
+    isActive: true
+  };
+}
+
 // Auto-seed function
 async function autoSeedDatabase() {
   try {
-    const bcrypt = require('bcryptjs');
     const User = require('./models/User');
     const Resource = require('./models/Resource');
-    
-    console.log('Checking/creating admin and security accounts...');
-    
-    // Check if accounts already exist before deleting
-    const existingAdmin = await User.findOne({ email: 'admin@vims.com' });
-    const existingSecurity = await User.findOne({ email: 'security@vims.com' });
-    
-    if (existingAdmin && existingSecurity) {
-      console.log('Admin and Security accounts already exist, skipping user seed...');
-    } else {
-      // Delete existing accounts to ensure clean slate (only if they exist)
-      await User.deleteMany({ email: { $in: ['admin@vims.com', 'security@vims.com'] } });
-      console.log('Removed existing admin/security accounts');
-      
-      // Use compliant password for production seeding (must be 8+ chars with uppercase, lowercase, number, special char)
-      const compliantPassword = 'SecureVIMS@123';
-      
-      // Create Admin with compliant password
-      const adminUser = new User({
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'admin@vims.com',
-        phone: '9876543210',
-        password: compliantPassword,
-        role: 'admin',
-        isApproved: true,
-        isActive: true
-      });
-      await adminUser.save();
-      console.log('Admin account created with password: SecureVIMS@123');
 
-      const securityUser = new User({
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'security@vims.com',
-        phone: '9876543211',
-        password: compliantPassword,
-        role: 'security',
-        securityLevel: 'head-officer',
-        isApproved: true,
-        isActive: true
-      });
-      await securityUser.save();
-      console.log('Security account created with password: SecureVIMS@123');
-      
-      console.log('\nLogin credentials:');
-      console.log('   Admin: admin@vims.com / SecureVIMS@123');
-      console.log('   Security: security@vims.com / SecureVIMS@123');
+    if (process.env.ENABLE_DEFAULT_ACCOUNT_SEED === 'true') {
+      console.log('Checking bootstrap admin/security accounts...');
+
+      const seedUsers = [
+        buildSeedUser({
+          prefix: 'SEED_ADMIN',
+          defaultEmail: 'admin@vims.com',
+          role: 'admin'
+        }),
+        buildSeedUser({
+          prefix: 'SEED_SECURITY',
+          defaultEmail: 'security@vims.com',
+          role: 'security',
+          securityLevel: 'head-officer'
+        })
+      ];
+
+      for (const seedUser of seedUsers) {
+        const existingUser = await User.findOne({ email: seedUser.email });
+
+        if (existingUser) {
+          console.log(`Bootstrap ${seedUser.role} account already exists: ${seedUser.email}`);
+          continue;
+        }
+
+        await new User(seedUser).save();
+        console.log(`Bootstrap ${seedUser.role} account created: ${seedUser.email}`);
+      }
+    } else {
+      console.log('Bootstrap account seeding disabled.');
     }
 
     const existingResources = await Resource.find({});
@@ -454,15 +499,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.get('/api/test-connection', (req, res) => {
-  console.log('Test connection route hit!');
-  res.json({ 
-    success: true, 
-    message: 'Server is running correctly',
-    timestamp: new Date().toISOString()
-  });
-});
-
 // SECURITY: Remove all test endpoints that expose sensitive information
 // Removed: /api/test-password-direct, /api/debug/lots-count, /api/debug/check-users
 
@@ -481,7 +517,7 @@ app.use(errorHandler);
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
   console.log(`📍 API: http://localhost:${PORT}/api`);
   console.log(`📍 Health: http://localhost:${PORT}/api/health`);

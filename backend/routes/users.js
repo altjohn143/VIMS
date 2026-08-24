@@ -12,6 +12,9 @@ const { sendOnboardingNotification } = require('../services/notificationService'
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
 const { paginateQuery } = require('../utils/pagination');
+const debugLog = (...args) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args);
+};
 
 const PROTECTED_MAIN_ACCOUNT_EMAILS = new Set(['admin@vims.com', 'security@vims.com']);
 const PRIMARY_SECURITY_HEAD_EMAIL = 'security@vims.com';
@@ -124,39 +127,6 @@ async function createMonthlyDuesForResident(resident) {
   });
   return await applyResidentCreditToPayment(resident, payment);
 }
-
-// ===== TEST ROUTE - REMOVE AFTER DEBUGGING =====
-router.get('/test', (req, res) => {
-  console.log('/api/users/test route hit!');
-  res.json({ 
-    success: true, 
-    message: 'Users API is working!',
-    path: '/api/users/test',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// ===== TEST ROUTE 2 - Without protection =====
-router.get('/public-test', (req, res) => {
-  console.log('/api/users/public-test route hit!');
-  res.json({ 
-    success: true, 
-    message: 'Public test route is working!',
-    path: '/api/users/public-test',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// ===== TEST ROUTE 3 - Profile test without protection =====
-router.get('/profile-test', (req, res) => {
-  console.log('/api/users/profile-test route hit!');
-  res.json({ 
-    success: true, 
-    message: 'Profile test route is working!',
-    path: '/api/users/profile-test',
-    timestamp: new Date().toISOString()
-  });
-});
 
 // Get all users (admin only)
 router.get('/', protect, authorize('admin'), async (req, res) => {
@@ -329,15 +299,15 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
           reason: 'Resident approved by admin',
           performedBy: req.user._id
         });
-        console.log(`✅ Lot ${lotId} marked as occupied by ${user.email}`);
+        debugLog(`✅ Lot ${lotId} marked as occupied by ${user.email}`);
       } else if (lot && lot.status !== 'vacant') {
-        console.log(`⚠️ Lot ${lotId} is already ${lot.status}, cannot approve user`);
+        debugLog(`⚠️ Lot ${lotId} is already ${lot.status}, cannot approve user`);
         return res.status(400).json({
           success: false,
           error: `This lot (${lotId}) is no longer available. Please contact admin.`
         });
       } else {
-        console.log(`⚠️ Lot ${lotId} not found in database`);
+        debugLog(`⚠️ Lot ${lotId} not found in database`);
         return res.status(400).json({
           success: false,
           error: `Lot ${lotId} not found. Please contact admin.`
@@ -355,7 +325,7 @@ router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
 
     try {
       await createMonthlyDuesForResident(user);
-      console.log(`Monthly dues created automatically for resident ${user._id}`);
+      debugLog(`Monthly dues created automatically for resident ${user._id}`);
     } catch (duesError) {
       console.error('Error creating monthly dues on approval:', duesError);
     }
@@ -424,6 +394,14 @@ router.put('/:id/reject', protect, authorize('admin'), async (req, res) => {
     user.rejectionReason = reason;
     await user.save();
 
+    await createInAppNotification({
+      userId: user._id,
+      type: 'account',
+      title: 'Registration rejected',
+      body: `Your resident registration was rejected. Reason: ${reason}`,
+      metadata: { action: 'resident_registration_rejected', rejectionReason: reason }
+    });
+
     res.json({
       success: true,
       message: 'Resident rejected successfully',
@@ -487,7 +465,7 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
           reason: 'Resident archived',
           performedBy: req.user._id
         });
-        console.log(`✅ Lot ${lotId} freed up (was occupied by ${user.email})`);
+        debugLog(`✅ Lot ${lotId} freed up (was occupied by ${user.email})`);
       }
     }
     
@@ -503,7 +481,14 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     user.archivedReason = archiveReason;
     await user.save();
     
-    console.log(`📦 User archived: ${user.email}, Reason: ${user.archivedReason}`);
+    debugLog(`📦 User archived: ${user.email}, Reason: ${user.archivedReason}`);
+    await createInAppNotification({
+      userId: user._id,
+      type: 'account',
+      title: 'Account archived',
+      body: `Your account was archived by admin. Reason: ${archiveReason}`,
+      metadata: { action: 'account_archived', archiveReason }
+    });
     
     res.json({
       success: true,
@@ -548,7 +533,14 @@ router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
     user.wasActiveBeforeArchive = null;
     await user.save();
     
-    console.log(`♻️ User restored: ${user.email}`);
+    debugLog(`♻️ User restored: ${user.email}`);
+    await createInAppNotification({
+      userId: user._id,
+      type: 'account',
+      title: 'Account restored',
+      body: 'Your account has been restored by admin.',
+      metadata: { action: 'account_restored' }
+    });
     
     res.json({
       success: true,
@@ -662,7 +654,7 @@ router.get('/stats/registrations', protect, authorize('admin'), async (req, res)
   }
 });
 
-console.log('🔧 Loading users route file');
+debugLog('🔧 Loading users route file');
 const photoUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
@@ -676,7 +668,7 @@ const photoUpload = multer({
 });
 
 router.post('/profile-photo', protect, photoUpload.single('photo'), async (req, res) => {
-  console.log('🔧 Received POST /api/users/profile-photo');
+  debugLog('🔧 Received POST /api/users/profile-photo');
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No photo file uploaded' });
@@ -720,6 +712,14 @@ router.post('/profile-photo', protect, photoUpload.single('photo'), async (req, 
         console.warn('Unable to delete previous profile photo:', error.message)
       );
     }
+
+    await createInAppNotification({
+      userId: user._id,
+      type: 'profile',
+      title: 'Profile photo updated',
+      body: 'Your profile photo was updated successfully.',
+      metadata: { action: 'profile_photo_updated' }
+    });
 
     res.json({
       success: true,
@@ -776,6 +776,14 @@ router.put('/profile', protect, async (req, res) => {
 
     await user.save();
     user.password = undefined;
+
+    await createInAppNotification({
+      userId: user._id,
+      type: 'profile',
+      title: 'Profile updated',
+      body: 'Your profile information was updated successfully.',
+      metadata: { action: 'profile_updated', fields: Object.keys(filteredUpdates) }
+    });
 
     res.json({
       success: true,
@@ -882,6 +890,23 @@ router.post('/move-out/request', protect, authorize('resident'), async (req, res
     user.moveOutReviewNotes = '';
     await user.save();
 
+    const admins = await User.find({ role: 'admin', isActive: true }).select('_id');
+    await Promise.allSettled(admins.map((admin) => createInAppNotification({
+      userId: admin._id,
+      type: 'account',
+      title: 'Move-out request submitted',
+      body: `${user.firstName || 'Resident'} ${user.lastName || ''} requested move-out review.`.trim(),
+      metadata: { action: 'move_out_requested', residentId: user._id }
+    })));
+
+    await createInAppNotification({
+      userId: user._id,
+      type: 'account',
+      title: 'Move-out request submitted',
+      body: 'Your move-out request was submitted and is pending admin review.',
+      metadata: { action: 'move_out_requested' }
+    });
+
     return res.json({
       success: true,
       message: 'Move-out request submitted. An admin will review and confirm your move-out.',
@@ -946,9 +971,9 @@ router.put('/:id/move-out/approve', protect, authorize('admin'), async (req, res
             reason: 'Move-out approved by admin',
             performedBy: req.user._id
           });
-          console.log(`✅ Lot ${lotId} vacated (move-out) for ${user.email}`);
+          debugLog(`✅ Lot ${lotId} vacated (move-out) for ${user.email}`);
         } else {
-          console.log(`⚠️ Lot ${lotId} occupied by different user; skipping vacate`);
+          debugLog(`⚠️ Lot ${lotId} occupied by different user; skipping vacate`);
           await OccupancyHistory.create({
             lotId,
             residentId: previousOccupiedBy || user._id,
@@ -969,6 +994,14 @@ router.put('/:id/move-out/approve', protect, authorize('admin'), async (req, res
     user.movedOutAt = new Date();
     user.isActive = false;
     await user.save();
+
+    await createInAppNotification({
+      userId: user._id,
+      type: 'account',
+      title: 'Move-out approved',
+      body: 'Your move-out request was approved. Your resident account has been deactivated.',
+      metadata: { action: 'move_out_approved', lotId }
+    });
 
     return res.json({
       success: true,
@@ -997,6 +1030,14 @@ router.put('/:id/move-out/deny', protect, authorize('admin'), async (req, res) =
     user.moveOutReviewedBy = req.user._id;
     user.moveOutReviewNotes = String(notes || '').trim();
     await user.save();
+
+    await createInAppNotification({
+      userId: user._id,
+      type: 'account',
+      title: 'Move-out request denied',
+      body: `Your move-out request was denied.${notes ? ` Notes: ${notes}` : ''}`,
+      metadata: { action: 'move_out_denied', notes: String(notes || '').trim() }
+    });
 
     return res.json({
       success: true,
@@ -1041,6 +1082,13 @@ router.put('/:id/status', protect, authorize('admin'), async (req, res) => {
     await user.save();
 
     user.password = undefined;
+    await createInAppNotification({
+      userId: user._id,
+      type: 'account',
+      title: isActive ? 'Account activated' : 'Account deactivated',
+      body: `Your account has been ${isActive ? 'activated' : 'deactivated'} by admin.`,
+      metadata: { action: isActive ? 'account_activated' : 'account_deactivated' }
+    });
 
     res.json({
       success: true,
@@ -1174,6 +1222,13 @@ router.post('/', protect, authorize('admin', 'security'), async (req, res) => {
     }
 
     const newUser = await User.create(userData);
+    await createInAppNotification({
+      userId: newUser._id,
+      type: 'account',
+      title: 'Account created',
+      body: `Your ${role} account has been created.`,
+      metadata: { action: 'account_created', role, createdBy: req.user._id }
+    });
     newUser.password = undefined;
 
     res.status(201).json({ success: true, data: newUser });
@@ -1328,37 +1383,6 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
       error: 'Failed to export users'
     });
   }
-});
-
-// Wildcard route for debugging
-router.get('*', (req, res) => {
-  console.log('Wildcard route hit in users.js!');
-  console.log('Original URL:', req.originalUrl);
-  console.log('Path:', req.path);
-  console.log('Method:', req.method);
-  
-  res.json({
-    success: false,
-    error: 'Route not found in users.js',
-    originalUrl: req.originalUrl,
-    path: req.path,
-    method: req.method,
-    availableRoutes: [
-      'GET /api/users/test',
-      'GET /api/users/public-test',
-      'GET /api/users/profile-test',
-      'GET /api/users/profile',
-      'PUT /api/users/profile',
-      'GET /api/users/:id/profile',
-      'GET /api/users/',
-      'POST /api/users/',
-      'GET /api/users/pending-approvals',
-      'PUT /api/users/:id/approve',
-      'DELETE /api/users/:id',
-      'GET /api/users/stats/summary',
-      'PUT /api/users/:id/status'
-    ]
-  });
 });
 
 module.exports = router;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import villageLogo from '../assets/village-logo-96.webp';
 import bgImage from '../assets/Westville.webp';
 import { useAuth } from '../context/AuthContext';
@@ -34,6 +35,7 @@ const T = {
 };
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
+const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
 const heroBg = '/hero-roof.webp';
 const deferredSectionSx = {
   contentVisibility: 'auto',
@@ -418,6 +420,20 @@ const getAnnouncementColor = (category) => {
   return '#237a35';
 };
 
+const toPublicAnnouncementCard = (item) => ({
+  id: item._id || item.id,
+  category: getAnnouncementCategory(item.category),
+  date: new Date(item.publishedAt || item.scheduledAt || item.createdAt || Date.now()).toLocaleDateString([], {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  }),
+  title: item.title,
+  body: item.body,
+  color: getAnnouncementColor(item.category),
+  imageUrl: item.imageUrl
+});
+
 const OFFICIALS = [
   { name: 'Eduardo M. Santos', position: 'HOA President', description: 'Leads the Homeowners Association in promoting community welfare, overseeing governance, and representing residents in all official matters.', avatar: 'ES' },
   { name: 'Maria Luisa R. Cruz', position: 'HOA Vice President', description: 'Assists the HOA President and oversees community programs, including environmental projects and resident welfare initiatives.', avatar: 'MC' },
@@ -546,6 +562,8 @@ const PrivacyPolicySection = () => (
 const ContactPage = ({ onClose, embedded = false }) => {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
   const [errors, setErrors] = useState({});
 
   const validate = () => {
@@ -558,10 +576,27 @@ const ContactPage = ({ onClose, embedded = false }) => {
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
-    setSent(true);
+    setSending(true);
+    setSendError('');
+    try {
+      const response = await fetch(`${API_URL}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Failed to send message');
+      }
+      setSent(true);
+    } catch (error) {
+      setSendError(error.message || 'Failed to send message. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const content = (
@@ -573,7 +608,7 @@ const ContactPage = ({ onClose, embedded = false }) => {
             {[
               { icon: <LocationIcon sx={{ color: T.primary }} />, label: 'Address', value: 'Westville Casimiro Homes, Casimiro Avenue, Bacoor City, Cavite, Philippines' },
               { icon: <PhoneIcon sx={{ color: T.primary }} />, label: 'Phone', value: '+63 (02) 8123-4567\n+63 917 123 4567 (Mobile)' },
-              { icon: <EmailIcon sx={{ color: T.primary }} />, label: 'Email', value: 'admin@westvillecasimiro.com\nsecurity@westvillecasimiro.com' },
+              { icon: <EmailIcon sx={{ color: T.primary }} />, label: 'Email', value: 'admin@casimiro-westville-homes-vims.online\nsecurity@casimiro-westville-homes-vims.online' },
               { icon: <TimeIcon sx={{ color: T.primary }} />, label: 'Office Hours', value: 'Monday – Friday: 8:00 AM – 5:00 PM\nSaturday: 8:00 AM – 12:00 PM' },
             ].map((item) => (
               <Box key={item.label} sx={{ display: 'flex', gap: 2, mb: 3 }}>
@@ -619,6 +654,7 @@ const ContactPage = ({ onClose, embedded = false }) => {
                 <>
                   <Typography sx={{ fontSize: '1.3rem', fontWeight: 800, color: T.primary, mb: 0.5 }}>Send Us a Message</Typography>
                   <Typography sx={{ color: '#888', fontSize: '0.85rem', mb: 3 }}>Fill out the form below and we'll respond as soon as possible.</Typography>
+                  {sendError && <Alert severity="error" sx={{ mb: 2 }}>{sendError}</Alert>}
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
                       <TextField sx={noRedErrorFieldSx} fullWidth label="Full Name" value={form.name} onChange={e => { setForm({ ...form, name: e.target.value }); setErrors({ ...errors, name: '' }); }}
@@ -637,9 +673,9 @@ const ContactPage = ({ onClose, embedded = false }) => {
                         error={!!errors.message} helperText={errors.message} InputProps={{ sx: { borderRadius: 2 } }} />
                     </Grid>
                     <Grid item xs={12}>
-                      <Button fullWidth variant="contained" onClick={handleSubmit}
+                      <Button fullWidth variant="contained" onClick={handleSubmit} disabled={sending}
                         sx={{ backgroundColor: T.primary, py: 1.5, borderRadius: 2, fontWeight: 700, fontSize: '0.95rem', textTransform: 'none', '&:hover': { backgroundColor: T.dark }, boxShadow: '0 4px 14px rgba(45,80,22,0.35)' }}>
-                        Send Message
+                        {sending ? 'Sending...' : 'Send Message'}
                       </Button>
                     </Grid>
                   </Grid>
@@ -794,19 +830,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         if (!response.ok || !payload.success) {
           throw new Error(payload.error || 'Unable to load announcements');
         }
-        const rows = (payload.data || []).map((item) => ({
-          id: item._id || item.id,
-          category: getAnnouncementCategory(item.category),
-          date: new Date(item.publishedAt || item.scheduledAt || item.createdAt || Date.now()).toLocaleDateString([], {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric'
-          }),
-          title: item.title,
-          body: item.body,
-          color: getAnnouncementColor(item.category),
-          imageUrl: item.imageUrl
-        }));
+        const rows = (payload.data || []).map(toPublicAnnouncementCard);
         setPublicAnnouncements(rows);
       } catch (error) {
         setPublicAnnouncements([]);
@@ -817,6 +841,41 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
     loadPublicAnnouncements();
     return undefined;
+  }, [showDeferredContent]);
+
+  useEffect(() => {
+    if (!showDeferredContent) return undefined;
+
+    const socket = io(API_BASE_URL, {
+      transports: ['websocket', 'polling']
+    });
+
+    const upsertAnnouncement = ({ announcement } = {}) => {
+      if (!announcement) return;
+      const nextAnnouncement = toPublicAnnouncementCard(announcement);
+      setPublicAnnouncements((current) => {
+        const withoutExisting = current.filter((item) => item.id !== nextAnnouncement.id);
+        return [nextAnnouncement, ...withoutExisting].slice(0, 12);
+      });
+      setAnnouncementsLoading(false);
+    };
+
+    const removeAnnouncement = ({ announcement } = {}) => {
+      const id = announcement?._id || announcement?.id;
+      if (!id) return;
+      setPublicAnnouncements((current) => current.filter((item) => item.id !== id));
+    };
+
+    socket.on('announcement:created', upsertAnnouncement);
+    socket.on('announcement:updated', upsertAnnouncement);
+    socket.on('announcement:removed', removeAnnouncement);
+
+    return () => {
+      socket.off('announcement:created', upsertAnnouncement);
+      socket.off('announcement:updated', upsertAnnouncement);
+      socket.off('announcement:removed', removeAnnouncement);
+      socket.disconnect();
+    };
   }, [showDeferredContent]);
 
   useEffect(() => {

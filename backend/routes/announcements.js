@@ -6,6 +6,11 @@ const ActivityNotificationService = require('../services/activityNotificationSer
 const multer = require('multer');
 const { uploadImageBuffer } = require('../services/cloudinaryService');
 const { paginateQuery } = require('../utils/pagination');
+const {
+  emitPublicAnnouncement,
+  isPublicAnnouncement,
+  serializePublicAnnouncement
+} = require('../services/announcementRealtimeService');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -20,15 +25,7 @@ const upload = multer({
 });
 
 const router = express.Router();
-const withImageUrl = (req, row) => {
-  const obj = typeof row.toObject === 'function' ? row.toObject() : row;
-  if (obj.image) {
-    obj.imageUrl = /^https?:\/\//i.test(obj.image)
-      ? obj.image
-      : `${req.protocol}://${req.get('host')}/uploads/announcements/${obj.image}`;
-  }
-  return obj;
-};
+const withImageUrl = (req, row) => serializePublicAnnouncement(req, row);
 
 // Public feed for logged-in users
 router.get('/', protect, async (req, res) => {
@@ -119,6 +116,7 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
     const { title, body, status, scheduledAt, category } = req.body;
     const row = await Announcement.findById(req.params.id);
     if (!row) return res.status(404).json({ success: false, error: 'Announcement not found' });
+    const wasPublic = isPublicAnnouncement(row.toObject());
 
     if (typeof title === 'string') row.title = title.trim();
     if (typeof body === 'string') row.body = body.trim();
@@ -158,6 +156,12 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
     }
 
     await row.save();
+    const isPublic = isPublicAnnouncement(row);
+    if (isPublic) {
+      emitPublicAnnouncement(wasPublic ? 'updated' : 'created', row, req);
+    } else if (wasPublic) {
+      emitPublicAnnouncement('removed', row, req);
+    }
     res.json({ success: true, data: withImageUrl(req, row) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to update announcement' });
@@ -175,6 +179,7 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
     row.archivedBy = req.user._id;
     row.archivedReason = req.body.reason || 'No reason provided';
     await row.save();
+    emitPublicAnnouncement('removed', row, req);
     
     res.json({ success: true, message: 'Announcement archived' });
   } catch (error) {
@@ -197,6 +202,9 @@ router.put('/:id/restore', protect, authorize('admin'), async (req, res) => {
     row.archivedBy = null;
     row.archivedReason = '';
     await row.save();
+    if (isPublicAnnouncement(row)) {
+      emitPublicAnnouncement('created', row, req);
+    }
     
     res.json({ success: true, message: 'Announcement restored', data: withImageUrl(req, row) });
   } catch (error) {
@@ -242,6 +250,10 @@ router.post('/', protect, authorize('admin'), upload.single('image'), async (req
       image,
       imagePublicId
     });
+
+    if (isPublicAnnouncement(row)) {
+      emitPublicAnnouncement('created', row, req);
+    }
 
     res.status(201).json({ success: true, data: withImageUrl(req, row) });
   } catch (error) {

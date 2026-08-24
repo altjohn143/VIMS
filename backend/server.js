@@ -13,6 +13,7 @@ const requestIdMiddleware = require('./middleware/requestId');
 const errorHandler = require('./middleware/errorHandler');
 const User = require('./models/User');
 const { setNotificationSocket } = require('./services/inAppNotificationService');
+const { setAnnouncementSocket } = require('./services/announcementRealtimeService');
 
 console.log('\n📂 Starting VIMS Server...');
 
@@ -102,7 +103,7 @@ const io = new Server(server, {
 io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace(/^Bearer\s+/i, '');
-    if (!token) return next(new Error('Authentication required'));
+    if (!token) return next();
     if (!process.env.JWT_SECRET) return next(new Error('Authentication configuration error'));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -117,10 +118,13 @@ io.use(async (socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  socket.join(`user:${socket.user._id.toString()}`);
+  if (socket.user) {
+    socket.join(`user:${socket.user._id.toString()}`);
+  }
 });
 
 setNotificationSocket(io);
+setAnnouncementSocket(io);
 
 // Middleware
 app.use(express.json({ limit: '10mb' })); // SECURITY: Add payload size limit
@@ -391,6 +395,8 @@ try {
   console.log('/api/resources routes imported');
   const announcementRoutes = require('./routes/announcements');
   console.log('/api/announcements routes imported');
+  const contactRoutes = require('./routes/contact');
+  console.log('/api/contact routes imported');
   const incidentRoutes = require('./routes/incidents');
   console.log('/api/incidents routes imported');
   const patrolRoutes = require('./routes/patrols');
@@ -428,6 +434,8 @@ try {
   console.log('/api/resources routes registered');
   app.use('/api/announcements', announcementRoutes);
   console.log('/api/announcements routes registered');
+  app.use('/api/contact', contactRoutes);
+  console.log('/api/contact routes registered');
   app.use('/api/incidents', incidentRoutes);
   console.log('/api/incidents routes registered');
   app.use('/api/patrols', patrolRoutes);

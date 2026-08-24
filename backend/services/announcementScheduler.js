@@ -1,4 +1,5 @@
 const Announcement = require('../models/Announcement');
+const { emitPublicAnnouncement } = require('./announcementRealtimeService');
 
 class AnnouncementScheduler {
   constructor() {
@@ -36,24 +37,22 @@ class AnnouncementScheduler {
   async publishScheduledAnnouncements() {
     const now = new Date();
     try {
-      const result = await Announcement.updateMany(
-        {
-          status: 'scheduled',
-          scheduledAt: { $lte: now }
-        },
-        {
-          $set: {
-            status: 'published',
-            publishedAt: now
-          },
-          $unset: {
-            scheduledAt: 1
-          }
-        }
-      );
+      const announcements = await Announcement.find({
+        isArchived: false,
+        status: 'scheduled',
+        scheduledAt: { $lte: now }
+      });
 
-      if (result.modifiedCount > 0) {
-        console.log(`Published ${result.modifiedCount} scheduled announcements`);
+      for (const announcement of announcements) {
+        announcement.status = 'published';
+        announcement.publishedAt = now;
+        announcement.scheduledAt = null;
+        await announcement.save();
+        emitPublicAnnouncement('created', announcement);
+      }
+
+      if (announcements.length > 0) {
+        console.log(`Published ${announcements.length} scheduled announcements`);
       }
     } catch (error) {
       console.error('Error publishing scheduled announcements:', error);

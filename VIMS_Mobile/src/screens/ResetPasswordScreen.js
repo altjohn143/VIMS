@@ -202,7 +202,7 @@ const ResetPasswordScreen = ({ navigation }) => {
                   secureTextEntry={!showPassword}
                 />
                 <TouchableOpacity onPress={() => setShowPassword((value) => !value)}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={19} color={themeColors.textSecondary} />
+                  <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={19} color={themeColors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <View style={styles.inputWrapper}>
@@ -215,7 +215,7 @@ const ResetPasswordScreen = ({ navigation }) => {
                   secureTextEntry={!showConfirmPassword}
                 />
                 <TouchableOpacity onPress={() => setShowConfirmPassword((value) => !value)}>
-                  <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={19} color={themeColors.textSecondary} />
+                  <Ionicons name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'} size={19} color={themeColors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <Text style={styles.helper}>Use at least 8 characters with uppercase, lowercase, number, and special character.</Text>

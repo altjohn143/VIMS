@@ -1330,7 +1330,7 @@ const Register = () => {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                          {showPassword ? <Visibility /> : <VisibilityOff />}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -1356,7 +1356,7 @@ const Register = () => {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" size="small">
-                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                          {showConfirmPassword ? <Visibility /> : <VisibilityOff />}
                         </IconButton>
                       </InputAdornment>
                     ),

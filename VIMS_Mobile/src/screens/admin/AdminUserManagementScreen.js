@@ -1016,7 +1016,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
                     accessibilityLabel={showCreatePassword ? 'Hide password' : 'Show password'}
                   >
                     <Ionicons
-                      name={showCreatePassword ? 'eye-off-outline' : 'eye-outline'}
+                      name={showCreatePassword ? 'eye-outline' : 'eye-off-outline'}
                       size={20}
                       color={themeColors.textSecondary}
                     />

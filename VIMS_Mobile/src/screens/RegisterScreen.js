@@ -1773,7 +1773,7 @@ const RegisterScreen = ({ navigation, route }) => {
               onFocus={() => scrollToActiveInput(520)}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
+              <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color={themeColors.textSecondary} />
             </TouchableOpacity>
           </View>
           {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -1789,7 +1789,7 @@ const RegisterScreen = ({ navigation, route }) => {
               onFocus={() => scrollToActiveInput(580)}
             />
             <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-              <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
+              <Ionicons name={showConfirmPassword ? 'eye' : 'eye-off'} size={20} color={themeColors.textSecondary} />
             </TouchableOpacity>
           </View>
           {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}

@@ -350,9 +350,9 @@ const ResetPassword = () => {
                       size="small"
                     >
                       {showPassword ? (
-                        <VisibilityOffIcon fontSize="small" />
-                      ) : (
                         <VisibilityIcon fontSize="small" />
+                      ) : (
+                        <VisibilityOffIcon fontSize="small" />
                       )}
                     </IconButton>
                   </InputAdornment>
@@ -384,9 +384,9 @@ const ResetPassword = () => {
                       size="small"
                     >
                       {showConfirmPassword ? (
-                        <VisibilityOffIcon fontSize="small" />
-                      ) : (
                         <VisibilityIcon fontSize="small" />
+                      ) : (
+                        <VisibilityOffIcon fontSize="small" />
                       )}
                     </IconButton>
                   </InputAdornment>

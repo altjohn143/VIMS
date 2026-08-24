@@ -1973,7 +1973,7 @@ const ProfileSettings = () => {
                             }
                           }}
                         >
-                          {showPassword.current ? <VisibilityOff /> : <Visibility />}
+                          {showPassword.current ? <Visibility /> : <VisibilityOff />}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -2030,7 +2030,7 @@ const ProfileSettings = () => {
                             }
                           }}
                         >
-                          {showPassword.new ? <VisibilityOff /> : <Visibility />}
+                          {showPassword.new ? <Visibility /> : <VisibilityOff />}
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -2112,7 +2112,7 @@ const ProfileSettings = () => {
                             }
                           }}
                         >
-                          {showPassword.confirm ? <VisibilityOff /> : <Visibility />}
+                          {showPassword.confirm ? <Visibility /> : <VisibilityOff />}
                         </IconButton>
                       </InputAdornment>
                     ),

@@ -1901,7 +1901,7 @@ const AdminUserManagement = () => {
                         edge="end"
                         onClick={() => setShowCreatePassword((value) => !value)}
                       >
-                        {showCreatePassword ? <VisibilityOffIcon /> : <ViewIcon />}
+                        {showCreatePassword ? <ViewIcon /> : <VisibilityOffIcon />}
                       </IconButton>
                     </InputAdornment>
                   )

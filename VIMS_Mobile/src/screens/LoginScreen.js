@@ -355,7 +355,7 @@ const LoginScreen = ({ navigation }) => {
                     />
                     <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={10}>
                       <Ionicons
-                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                         size={18}
                         color="#6B8F6B"
                       />

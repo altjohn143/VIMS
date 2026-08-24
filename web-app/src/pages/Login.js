@@ -2201,7 +2201,7 @@ const Login = () => {
                             size="small"
                             sx={{ color: 'rgba(255,255,255,0.68)', '&:hover': { color: hubColors.lime }, '&:active': { transform: 'scale(0.96)' }, transition: 'all 0.15s ease' }}
                           >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                            {showPassword ? <Visibility /> : <VisibilityOff />}
                           </IconButton>
                         </InputAdornment>
                       ),

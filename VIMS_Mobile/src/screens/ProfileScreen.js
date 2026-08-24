@@ -914,7 +914,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
                       onFocus={() => scrollModalTo(passwordScrollRef, 0)}
                     />
                     <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}>
-                      <Ionicons name={showPassword.current ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
+                      <Ionicons name={showPassword.current ? 'eye' : 'eye-off'} size={20} color={themeColors.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -932,7 +932,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
                       onFocus={() => scrollModalTo(passwordScrollRef, 44)}
                     />
                     <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}>
-                      <Ionicons name={showPassword.new ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
+                      <Ionicons name={showPassword.new ? 'eye' : 'eye-off'} size={20} color={themeColors.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -950,7 +950,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
                       onFocus={() => scrollModalTo(passwordScrollRef, 132)}
                     />
                     <TouchableOpacity onPress={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}>
-                      <Ionicons name={showPassword.confirm ? 'eye-off' : 'eye'} size={20} color={themeColors.textSecondary} />
+                      <Ionicons name={showPassword.confirm ? 'eye' : 'eye-off'} size={20} color={themeColors.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 </View>

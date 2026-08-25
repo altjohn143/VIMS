@@ -847,7 +847,8 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
     if (!showDeferredContent) return undefined;
 
     const socket = io(API_BASE_URL, {
-      transports: ['websocket', 'polling']
+      transports: ['polling', 'websocket'],
+      upgrade: true
     });
 
     const upsertAnnouncement = ({ announcement } = {}) => {

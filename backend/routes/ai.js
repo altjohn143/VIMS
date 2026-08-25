@@ -315,10 +315,6 @@ router.post('/reports/admin/financial', protect, reportLimiter, async (req, res)
     if (req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Admin access required' });
     }
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(503).json({ success: false, error: 'OPENAI_API_KEY is not configured' });
-    }
-
     const { period = 'monthly', year = new Date().getFullYear(), month = new Date().getMonth() + 1, format = 'json', timezoneOffset = 0 } = req.body;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
 
@@ -361,19 +357,50 @@ ${payments.slice(0, 10).map(p => {
 }).join('\n')}
     `.trim();
 
-    const model = getOpenAIHighModel();
-    const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: 'You are a financial analyst for a village management system. Generate comprehensive financial reports with insights, trends, and recommendations based on the provided data. Be professional and detailed.' },
-        { role: 'user', content: `Generate a detailed financial report for ${period === 'monthly' ? 'the month' : 'the year'} based on this data:\n\n${dataContext}` }
-      ],
-      max_tokens: 1200
-    });
+    let reportWarning = null;
+    let generatedReport = '';
+
+    try {
+      const model = getOpenAIHighModel();
+      const client = getOpenAIClient();
+      const response = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: 'You are a financial analyst for a village management system. Generate comprehensive financial reports with insights, trends, and recommendations based on the provided data. Be professional and detailed.' },
+          { role: 'user', content: `Generate a detailed financial report for ${period === 'monthly' ? 'the month' : 'the year'} based on this data:\n\n${dataContext}` }
+        ],
+        max_tokens: 1200
+      });
+      generatedReport = response.choices?.[0]?.message?.content || '';
+    } catch (aiError) {
+      reportWarning = aiError.response?.data?.error?.message || aiError.message || 'AI service unavailable';
+      console.error('OpenAI financial report generation failed:', {
+        status: aiError.status || aiError.response?.status,
+        responseData: aiError.response?.data,
+        message: aiError.message
+      });
+    }
+
+    if (!generatedReport) {
+      const label = period === 'monthly'
+        ? `${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year}`
+        : `Year ${year}`;
+      generatedReport = [
+        `Financial Report for ${label}`,
+        '',
+        `Total revenue collected was PHP ${totalRevenue.toLocaleString('en-PH')} from ${paymentCount} confirmed payment${paymentCount === 1 ? '' : 's'}.`,
+        `The system currently has ${totalUsers} resident account${totalUsers === 1 ? '' : 's'}, with ${newUsers} new resident registration${newUsers === 1 ? '' : 's'} during this period.`,
+        `Average confirmed payment value was PHP ${paymentCount > 0 ? Math.round(totalRevenue / paymentCount).toLocaleString('en-PH') : '0'}.`,
+        '',
+        paymentCount > 0
+          ? 'Recommendation: continue monitoring unpaid dues and compare this period against prior months to identify collection gaps.'
+          : 'Recommendation: no confirmed collections were found for this period, so review pending invoices and payment submissions.'
+      ].join('\n');
+    }
 
     const reportData = {
-      report: response.choices?.[0]?.message?.content || 'Unable to generate financial report.',
+      report: generatedReport,
+      warning: reportWarning,
       period,
       year,
       month: period === 'monthly' ? month : null,

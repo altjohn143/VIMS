@@ -214,10 +214,10 @@ const AdminDashboardGraphs = () => {
                       { name: 'Check', value: 10 }
                     ]}
                     cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    cy="45%"
+                    labelLine
+                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                    outerRadius={76}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -230,6 +230,7 @@ const AdminDashboardGraphs = () => {
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend verticalAlign="bottom" height={36} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>

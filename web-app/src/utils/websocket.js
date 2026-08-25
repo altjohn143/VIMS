@@ -15,7 +15,8 @@ const connect = () => {
   if (socket) socket.disconnect();
   socket = io(axios.defaults.baseURL || window.location.origin, {
     auth: { token },
-    transports: ['websocket', 'polling']
+    transports: ['polling', 'websocket'],
+    upgrade: true
   });
 
   socket.on('notification:new', (notification) => {

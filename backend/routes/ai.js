@@ -154,6 +154,30 @@ function buildSecurityContext(securitySummary, lotStats) {
   return lines.join('\n');
 }
 
+const getAnalyticsMonths = (period, year, month) => {
+  if (period === 'monthly') {
+    return [{ year: Number(year), month: Number(month) }];
+  }
+  return Array.from({ length: 12 }, (_, index) => ({ year: Number(year), month: index + 1 }));
+};
+
+const getMonthRange = (year, month) => ({
+  startDate: new Date(Number(year), Number(month) - 1, 1),
+  endDate: new Date(Number(year), Number(month), 0, 23, 59, 59, 999)
+});
+
+const getMonthLabel = (year, month) => `${new Date(Number(year), Number(month) - 1).toLocaleString('default', { month: 'short' })} ${year}`;
+
+const formatMethodName = (method) => {
+  if (method === 'qrph') return 'QRPh';
+  if (method === 'cash') return 'Cash';
+  if (!method) return 'Unspecified';
+  return String(method)
+    .split('_')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
+
 router.get('/chat', protect, async (req, res) => {
   try {
     const chat = await Chat.findOne({ user: req.user._id });
@@ -317,45 +341,120 @@ router.post('/reports/admin/financial', protect, reportLimiter, async (req, res)
     }
     const { period = 'monthly', year = new Date().getFullYear(), month = new Date().getMonth() + 1, format = 'json', timezoneOffset = 0 } = req.body;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
+    const analyticsMonths = getAnalyticsMonths(period, year, month);
+    const firstRange = getMonthRange(analyticsMonths[0].year, analyticsMonths[0].month);
+    const lastMonth = analyticsMonths[analyticsMonths.length - 1];
+    const lastRange = getMonthRange(lastMonth.year, lastMonth.month);
+    const startDate = firstRange.startDate;
+    const endDate = lastRange.endDate;
 
-    // Get financial data
-    const startDate = period === 'monthly' 
-      ? new Date(year, month - 1, 1)
-      : new Date(year, 0, 1);
-    const endDate = period === 'monthly'
-      ? new Date(year, month, 0, 23, 59, 59)
-      : new Date(year, 11, 31, 23, 59, 59);
+    const [paymentTrend, registrationTrend, methodStats, totalUsers] = await Promise.all([
+      Promise.all(analyticsMonths.map(async (item) => {
+        const range = getMonthRange(item.year, item.month);
+        const result = await Payment.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: range.startDate, $lte: range.endDate },
+              $or: [{ status: 'paid' }, { paidAmount: { $gt: 0 } }]
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: { $cond: [{ $gt: ['$paidAmount', 0] }, '$paidAmount', '$amount'] } },
+              count: { $sum: 1 }
+            }
+          }
+        ]);
+        return {
+          period: getMonthLabel(item.year, item.month),
+          totalCollected: Number(result[0]?.total || 0),
+          paymentCount: Number(result[0]?.count || 0)
+        };
+      })),
+      Promise.all(analyticsMonths.map(async (item) => {
+        const range = getMonthRange(item.year, item.month);
+        const count = await User.countDocuments({
+          createdAt: { $gte: range.startDate, $lte: range.endDate },
+          isArchived: false
+        });
+        return {
+          period: getMonthLabel(item.year, item.month),
+          newRegistrations: count
+        };
+      })),
+      Payment.aggregate([
+        { $unwind: '$paymentHistory' },
+        { $match: { 'paymentHistory.verifiedAt': { $gte: startDate, $lte: endDate } } },
+        {
+          $group: {
+            _id: '$paymentHistory.paymentMethod',
+            count: { $sum: 1 },
+            total: {
+              $sum: {
+                $add: [
+                  { $ifNull: ['$paymentHistory.amount', 0] },
+                  { $ifNull: ['$paymentHistory.creditedAmount', 0] }
+                ]
+              }
+            }
+          }
+        },
+        { $sort: { count: -1 } }
+      ]),
+      User.countDocuments({ role: 'resident', isArchived: false })
+    ]);
 
-    const payments = await Payment.find({
-      createdAt: { $gte: startDate, $lte: endDate },
-      $or: [{ status: 'paid' }, { paidAmount: { $gt: 0 } }]
-    }).populate('residentId', 'firstName lastName houseNumber');
+    const totalRevenue = paymentTrend.reduce((sum, item) => sum + item.totalCollected, 0);
+    const paymentCount = paymentTrend.reduce((sum, item) => sum + item.paymentCount, 0);
+    const newUsers = registrationTrend.reduce((sum, item) => sum + item.newRegistrations, 0);
+    const paymentMethods = methodStats.map(item => ({
+      method: formatMethodName(item._id),
+      count: Number(item.count || 0),
+      total: Number(item.total || 0)
+    }));
 
-    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.paidAmount || (p.status === 'paid' ? p.amount : 0) || 0), 0);
-    const paymentCount = payments.length;
+    const rows = [
+      ...paymentTrend.map(item => ({
+        Section: 'Monthly Payment Collections',
+        Period: item.period,
+        Metric: 'Collection Amount',
+        Value: item.totalCollected,
+        Count: item.paymentCount,
+        Notes: 'Confirmed paid or partially paid invoices'
+      })),
+      ...paymentMethods.map(item => ({
+        Section: 'Payment Methods',
+        Period: period === 'monthly' ? getMonthLabel(year, month) : `Year ${year}`,
+        Metric: item.method,
+        Value: item.total,
+        Count: item.count,
+        Notes: 'Confirmed payment history records'
+      })),
+      ...registrationTrend.map(item => ({
+        Section: 'User Registration Trends',
+        Period: item.period,
+        Metric: 'New Registrations',
+        Value: item.newRegistrations,
+        Count: item.newRegistrations,
+        Notes: 'Non-archived user accounts created'
+      }))
+    ];
 
-    // Get user stats
-    const totalUsers = await User.countDocuments({ role: 'resident' });
-    const newUsers = await User.countDocuments({
-      role: 'resident',
-      createdAt: { $gte: startDate, $lte: endDate }
-    });
-
-    const dataContext = `
-Financial Data for ${period === 'monthly' ? `${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year}` : `Year ${year}`}:
-- Total Revenue: ₱${totalRevenue.toLocaleString()}
-- Number of Payments: ${paymentCount}
-- Total Residents: ${totalUsers}
-- New Residents: ${newUsers}
-- Average Payment: ₱${paymentCount > 0 ? Math.round(totalRevenue / paymentCount).toLocaleString() : 0}
-
-Recent Payments:
-${payments.slice(0, 10).map(p => {
-  const resident = p.residentId;
-  const amount = Number(p.paidAmount || (p.status === 'paid' ? p.amount : 0) || 0);
-  return `- ${resident?.firstName || 'Unknown'} ${resident?.lastName || 'Resident'} (${resident?.houseNumber || 'N/A'}): ₱${amount} on ${new Date(p.paymentDate || p.updatedAt || p.createdAt).toLocaleDateString()}`;
-}).join('\n')}
-    `.trim();
+    const dataContext = [
+      `Admin analytics data for ${period === 'monthly' ? getMonthLabel(year, month) : `Year ${year}`}:`,
+      `- Total confirmed collections: PHP ${totalRevenue.toLocaleString('en-PH')}`,
+      `- Confirmed payment records: ${paymentCount}`,
+      `- Total active resident accounts: ${totalUsers}`,
+      `- New registrations: ${newUsers}`,
+      `- Payment methods: ${paymentMethods.map(item => `${item.method}: ${item.count} record(s), PHP ${item.total.toLocaleString('en-PH')}`).join('; ') || 'None'}`,
+      '',
+      'Payment trend:',
+      paymentTrend.map(item => `- ${item.period}: PHP ${item.totalCollected.toLocaleString('en-PH')} from ${item.paymentCount} payment(s)`).join('\n'),
+      '',
+      'Registration trend:',
+      registrationTrend.map(item => `- ${item.period}: ${item.newRegistrations} registration(s)`).join('\n')
+    ].join('\n');
 
     let reportWarning = null;
     let generatedReport = '';
@@ -366,8 +465,8 @@ ${payments.slice(0, 10).map(p => {
       const response = await client.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: 'You are a financial analyst for a village management system. Generate comprehensive financial reports with insights, trends, and recommendations based on the provided data. Be professional and detailed.' },
-          { role: 'user', content: `Generate a detailed financial report for ${period === 'monthly' ? 'the month' : 'the year'} based on this data:\n\n${dataContext}` }
+          { role: 'system', content: 'You are an operations analyst for a village management system. Generate a concise admin analytics report with insights across financial collections, payment methods, and user registration trends. Be professional and practical.' },
+          { role: 'user', content: `Generate an admin dashboard analytics report based on this data:\n\n${dataContext}` }
         ],
         max_tokens: 1200
       });
@@ -383,17 +482,18 @@ ${payments.slice(0, 10).map(p => {
 
     if (!generatedReport) {
       const label = period === 'monthly'
-        ? `${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year}`
+        ? getMonthLabel(year, month)
         : `Year ${year}`;
       generatedReport = [
-        `Financial Report for ${label}`,
+        `Admin Analytics Report for ${label}`,
         '',
         `Total revenue collected was PHP ${totalRevenue.toLocaleString('en-PH')} from ${paymentCount} confirmed payment${paymentCount === 1 ? '' : 's'}.`,
         `The system currently has ${totalUsers} resident account${totalUsers === 1 ? '' : 's'}, with ${newUsers} new resident registration${newUsers === 1 ? '' : 's'} during this period.`,
         `Average confirmed payment value was PHP ${paymentCount > 0 ? Math.round(totalRevenue / paymentCount).toLocaleString('en-PH') : '0'}.`,
+        `Top payment method: ${paymentMethods[0] ? `${paymentMethods[0].method} (${paymentMethods[0].count} record${paymentMethods[0].count === 1 ? '' : 's'})` : 'No confirmed payment method data'}.`,
         '',
         paymentCount > 0
-          ? 'Recommendation: continue monitoring unpaid dues and compare this period against prior months to identify collection gaps.'
+          ? 'Recommendation: compare collections and registrations together to understand whether growth is translating into consistent dues collection.'
           : 'Recommendation: no confirmed collections were found for this period, so review pending invoices and payment submissions.'
       ].join('\n');
     }
@@ -408,37 +508,59 @@ ${payments.slice(0, 10).map(p => {
         totalRevenue,
         paymentCount,
         totalUsers,
-        newUsers
-      }
+        newUsers,
+        paymentMethods
+      },
+      rows
     };
+
+    const reportTitle = 'VIMS Admin Dashboard Analytics Report';
+    const filenameSuffix = `${period}_${year}${period === 'monthly' ? '_' + month : ''}`;
+    const columns = [
+      { header: 'Section', key: 'Section', width: 26 },
+      { header: 'Period', key: 'Period', width: 14 },
+      { header: 'Metric', key: 'Metric', width: 22 },
+      { header: 'Value', key: 'Value', width: 14 },
+      { header: 'Count', key: 'Count', width: 10 },
+      { header: 'Notes', key: 'Notes', width: 34 }
+    ];
+    const exportRows = [
+      { Section: 'Summary', Period: period, Metric: 'Report Year', Value: year, Count: '', Notes: '' },
+      { Section: 'Summary', Period: period, Metric: 'Report Month', Value: reportData.month || 'N/A', Count: '', Notes: '' },
+      { Section: 'Summary', Period: period, Metric: 'Total Revenue', Value: totalRevenue, Count: paymentCount, Notes: 'Confirmed collections' },
+      { Section: 'Summary', Period: period, Metric: 'Total Residents', Value: totalUsers, Count: totalUsers, Notes: 'Active resident accounts' },
+      { Section: 'Summary', Period: period, Metric: 'New Registrations', Value: newUsers, Count: newUsers, Notes: 'Period total' },
+      { Section: 'Analysis', Period: period, Metric: 'Report Analysis', Value: reportData.report, Count: '', Notes: reportWarning || '' },
+      ...rows
+    ];
 
     // Return PDF or JSON based on format
     if (format === 'pdf') {
-      const pdfBuffer = await pdfReportService.generateFinancialReport(reportData, { creator: req.user, timezoneOffsetMinutes });
+      const pdfBuffer = await pdfReportService.generateDataReport(
+        reportTitle,
+        exportRows,
+        columns,
+        {
+          creator: req.user,
+          timezoneOffsetMinutes,
+          layout: 'landscape',
+          table: { headerFontSize: 8, bodyFontSize: 7.5, cellPadding: 3 }
+        }
+      );
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Financial_Report_${period}_${year}${month ? '_' + month : ''}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Admin_Analytics_Report_${filenameSuffix}.pdf"`);
       return res.send(pdfBuffer);
     }
 
     if (format === 'csv') {
-      const csvRows = [
-        { Label: 'Period', Value: period },
-        { Label: 'Year', Value: year },
-        { Label: 'Month', Value: reportData.month || 'N/A' },
-        { Label: 'Total Revenue', Value: totalRevenue },
-        { Label: 'Number of Payments', Value: paymentCount },
-        { Label: 'Total Residents', Value: totalUsers },
-        { Label: 'New Residents', Value: newUsers },
-        { Label: 'Report Analysis', Value: reportData.report }
-      ];
       const csvContent = pdfReportService.generateCsvReport(
-        'VIMS Financial Report',
-        csvRows,
-        [{ key: 'Label', label: 'Label' }, { key: 'Value', label: 'Value' }],
+        reportTitle,
+        exportRows,
+        columns,
         { creator: req.user, timezoneOffsetMinutes }
       );
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Financial_Report_${period}_${year}${month ? '_' + month : ''}.csv"`);
+      res.setHeader('Content-Disposition', `attachment; filename="VIMS_Admin_Analytics_Report_${filenameSuffix}.csv"`);
       return res.send(csvContent);
     }
 
@@ -455,7 +577,7 @@ ${payments.slice(0, 10).map(p => {
     });
     return res.status(500).json({
       success: false,
-      error: 'Failed to generate financial report',
+      error: 'Failed to generate admin analytics report',
       details: error.message
     });
   }

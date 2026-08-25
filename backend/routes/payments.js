@@ -864,6 +864,115 @@ router.post('/send-reminders', protect, authorize('admin'), async (req, res) => 
 });
 
 // Admin: Get stats
+router.get('/admin/dashboard-graphs', protect, authorize('admin'), async (req, res) => {
+  try {
+    const months = Math.min(Math.max(parseInt(req.query.months, 10) || 6, 1), 24);
+    const now = new Date();
+    const monthItems = Array.from({ length: months }, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (months - 1 - index), 1);
+      return {
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        label: date.toLocaleString('default', { month: 'short' }),
+        startDate: new Date(date.getFullYear(), date.getMonth(), 1),
+        endDate: new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999)
+      };
+    });
+
+    const firstMonth = monthItems[0];
+    const lastMonth = monthItems[monthItems.length - 1];
+
+    const [paymentTrend, userTrend, methodStats] = await Promise.all([
+      Promise.all(monthItems.map(async (item) => {
+        const result = await Payment.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: item.startDate, $lte: item.endDate },
+              $or: [{ status: 'paid' }, { paidAmount: { $gt: 0 } }]
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: { $cond: [{ $gt: ['$paidAmount', 0] }, '$paidAmount', '$amount'] } },
+              count: { $sum: 1 }
+            }
+          }
+        ]);
+        return {
+          month: item.label,
+          year: item.year,
+          amount: Number(result[0]?.total || 0),
+          count: Number(result[0]?.count || 0)
+        };
+      })),
+      Promise.all(monthItems.map(async (item) => {
+        const count = await User.countDocuments({
+          createdAt: { $gte: item.startDate, $lte: item.endDate },
+          isArchived: false
+        });
+        return {
+          month: item.label,
+          year: item.year,
+          count
+        };
+      })),
+      Payment.aggregate([
+        { $unwind: '$paymentHistory' },
+        {
+          $match: {
+            'paymentHistory.verifiedAt': {
+              $gte: firstMonth.startDate,
+              $lte: lastMonth.endDate
+            }
+          }
+        },
+        {
+          $group: {
+            _id: '$paymentHistory.paymentMethod',
+            count: { $sum: 1 },
+            total: {
+              $sum: {
+                $add: [
+                  { $ifNull: ['$paymentHistory.amount', 0] },
+                  { $ifNull: ['$paymentHistory.creditedAmount', 0] }
+                ]
+              }
+            }
+          }
+        },
+        { $sort: { count: -1 } }
+      ])
+    ]);
+
+    const formatPaymentMethod = (method) => {
+      if (method === 'qrph') return 'QRPh';
+      if (method === 'cash') return 'Cash';
+      if (!method) return 'Unspecified';
+      return String(method)
+        .split('_')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+    };
+
+    res.json({
+      success: true,
+      data: {
+        paymentTrend,
+        userTrend,
+        paymentMethods: methodStats.map(method => ({
+          method: formatPaymentMethod(method._id),
+          count: method.count || 0,
+          total: method.total || 0
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Get admin dashboard graph data error:', error);
+    res.status(500).json({ success: false, error: 'Failed to get admin dashboard graph data' });
+  }
+});
+
 router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
   try {
     const { year, month } = req.query;

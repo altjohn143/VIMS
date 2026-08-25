@@ -35,18 +35,31 @@ import toast from 'react-hot-toast';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1'];
 
+const downloadBlob = (blob, filename) => {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
+
 const AdminDashboardGraphs = () => {
   const [paymentData, setPaymentData] = useState([]);
   const [userData, setUserData] = useState([]);
   const [paymentMethodData, setPaymentMethodData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiReportOpen, setAiReportOpen] = useState(false);
-  const [reportType, setReportType] = useState('financial');
+  const [reportType, setReportType] = useState('admin_analytics');
   const [reportPeriod, setReportPeriod] = useState('monthly');
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [exportingReport, setExportingReport] = useState('');
   const [aiReport, setAiReport] = useState('');
+  const [aiReportWarning, setAiReportWarning] = useState('');
 
   useEffect(() => {
     loadGraphData();
@@ -58,67 +71,12 @@ const AdminDashboardGraphs = () => {
   const loadGraphData = async () => {
     try {
       setLoading(true);
-
-      // Load payment data for the last 6 months
-      const paymentPromises = [];
-      for (let i = 5; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-
-        paymentPromises.push(
-          axios.get(`/api/payments/admin/stats?year=${year}&month=${month}`)
-            .then(res => ({
-              month: date.toLocaleString('default', { month: 'short' }),
-              year,
-              amount: res.data?.data?.monthlyCollected || 0,
-              count: res.data?.data?.paymentCount || 0
-            }))
-            .catch(() => ({
-              month: date.toLocaleString('default', { month: 'short' }),
-              year,
-              amount: 0,
-              count: 0
-            }))
-        );
-      }
-
-      const paymentResults = await Promise.all(paymentPromises);
-      setPaymentData(paymentResults);
-
-      // Load user registration data for the last 6 months
-      const userPromises = [];
-      for (let i = 5; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-
-        userPromises.push(
-          axios.get(`/api/users/stats/registrations?year=${year}&month=${month}`)
-            .then(res => ({
-              month: date.toLocaleString('default', { month: 'short' }),
-              year,
-              count: res.data?.data?.count || 0
-            }))
-            .catch(() => ({
-              month: date.toLocaleString('default', { month: 'short' }),
-              year,
-              count: 0
-            }))
-        );
-      }
-
-      const userResults = await Promise.all(userPromises);
-      setUserData(userResults);
-
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth() + 1;
-      const methodResponse = await axios.get(`/api/payments/admin/methods?year=${currentYear}&month=${currentMonth}`);
-      const methodResults = methodResponse.data?.data || [];
+      const response = await axios.get('/api/payments/admin/dashboard-graphs?months=6');
+      const graphData = response.data?.data || {};
+      setPaymentData(graphData.paymentTrend || []);
+      setUserData(graphData.userTrend || []);
       setPaymentMethodData(
-        methodResults.map(item => ({
+        (graphData.paymentMethods || []).map(item => ({
           name: item.method || 'Unspecified',
           value: item.count || 0
         }))
@@ -132,18 +90,23 @@ const AdminDashboardGraphs = () => {
     }
   };
 
+  const buildReportPayload = (format = 'json') => ({
+    period: reportPeriod,
+    year: reportYear,
+    month: reportPeriod === 'monthly' ? reportMonth : undefined,
+    format,
+    timezoneOffset: new Date().getTimezoneOffset()
+  });
+
   const generateAIReport = async () => {
     try {
       setGeneratingReport(true);
-      const response = await axios.post('/api/ai/reports/admin/financial', {
-        period: reportPeriod,
-        year: reportYear,
-        month: reportPeriod === 'monthly' ? reportMonth : undefined
-      });
+      const response = await axios.post('/api/ai/reports/admin/financial', buildReportPayload('json'));
 
       if (response.data?.success) {
         setAiReport(response.data.data.report);
-        toast.success('AI report generated successfully');
+        setAiReportWarning(response.data.data.warning || '');
+        toast.success('Admin analytics report generated successfully');
       } else {
         throw new Error(response.data?.error || 'Failed to generate report');
       }
@@ -153,6 +116,27 @@ const AdminDashboardGraphs = () => {
       toast.error(apiError?.details || apiError?.error || error.message || 'Failed to generate AI report');
     } finally {
       setGeneratingReport(false);
+    }
+  };
+
+  const exportAIReport = async (format) => {
+    try {
+      setExportingReport(format);
+      const response = await axios.post('/api/ai/reports/admin/financial', buildReportPayload(format), {
+        responseType: 'blob'
+      });
+      const extension = format === 'pdf' ? 'pdf' : 'csv';
+      const monthPart = reportPeriod === 'monthly' ? `_${String(reportMonth).padStart(2, '0')}` : '';
+      downloadBlob(
+        response.data,
+        `VIMS_Admin_Analytics_Report_${reportPeriod}_${reportYear}${monthPart}.${extension}`
+      );
+      toast.success(`${format.toUpperCase()} exported successfully`);
+    } catch (error) {
+      console.error(`Error exporting ${format} report:`, error);
+      toast.error(error.response?.data?.error || error.message || `Failed to export ${format.toUpperCase()}`);
+    } finally {
+      setExportingReport('');
     }
   };
 
@@ -267,13 +251,13 @@ const AdminDashboardGraphs = () => {
           onClick={() => setAiReportOpen(true)}
           sx={{ minWidth: 200 }}
         >
-          Generate AI Financial Report
+          Generate Admin Analytics Report
         </Button>
       </Box>
 
       {/* AI Report Dialog */}
       <Dialog open={aiReportOpen} onClose={() => setAiReportOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Generate AI Financial Report</DialogTitle>
+        <DialogTitle>Generate Admin Analytics Report</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={4}>
@@ -284,7 +268,7 @@ const AdminDashboardGraphs = () => {
                 value={reportType}
                 onChange={(e) => setReportType(e.target.value)}
               >
-                <MenuItem value="financial">Financial Report</MenuItem>
+                <MenuItem value="admin_analytics">Payments, Methods & Registrations</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={4}>
@@ -335,13 +319,32 @@ const AdminDashboardGraphs = () => {
               </Typography>
             </Alert>
           )}
+          {aiReportWarning && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              AI analysis used the fallback summary because the AI service returned: {aiReportWarning}
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAiReportOpen(false)}>Close</Button>
           <Button
+            onClick={() => exportAIReport('csv')}
+            variant="outlined"
+            disabled={generatingReport || !!exportingReport}
+          >
+            {exportingReport === 'csv' ? 'Exporting...' : 'Export CSV'}
+          </Button>
+          <Button
+            onClick={() => exportAIReport('pdf')}
+            variant="outlined"
+            disabled={generatingReport || !!exportingReport}
+          >
+            {exportingReport === 'pdf' ? 'Exporting...' : 'Export PDF'}
+          </Button>
+          <Button
             onClick={generateAIReport}
             variant="contained"
-            disabled={generatingReport}
+            disabled={generatingReport || !!exportingReport}
           >
             {generatingReport ? 'Generating...' : 'Generate Report'}
           </Button>

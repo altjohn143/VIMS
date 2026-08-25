@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { ActivityIndicator, View, Platform, Text, Image, StatusBar, StyleSheet, KeyboardAvoidingView, Appearance, TextInput } from 'react-native';
+import { View, Platform, StatusBar, StyleSheet, KeyboardAvoidingView, Appearance, TextInput } from 'react-native';
 import * as SystemUI from 'expo-system-ui';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { themeColors, navigationTheme, shadows } from './src/utils/theme';
+import { themeColors, navigationTheme } from './src/utils/theme';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppErrorBoundary from './src/components/AppErrorBoundary';
 import { installCrashDiagnostics } from './src/utils/crashDiagnostics';
+import AnimatedSplashScreen from './src/components/AnimatedSplashScreen';
 
 installCrashDiagnostics();
 
-// VIMS uses one deliberate high-contrast light palette. Keep native controls from
-// silently switching to dark colors when the phone itself is in dark mode.
+
 if (Platform.OS !== 'web') {
   Appearance.setColorScheme('light');
 }
@@ -25,17 +25,6 @@ TextInput.defaultProps = {
   cursorColor: themeColors.primary,
   keyboardAppearance: 'light',
 };
-
-const LoadingScreen = () => (
-  <View style={styles.loadingScreen}>
-    <View style={styles.loadingBrand}>
-      <Image source={require('./assets/village-logo.png')} style={styles.loadingLogo} />
-    </View>
-    <Text style={styles.loadingTitle}>VIMS</Text>
-    <Text style={styles.loadingSubtitle}>Preparing your community workspace</Text>
-    <ActivityIndicator style={styles.loadingIndicator} size="small" color={themeColors.primary} />
-  </View>
-);
 
 export default function App() {
   return (
@@ -51,6 +40,7 @@ export default function App() {
 
 const AppContent = () => {
   const { isLoading } = useAuth();
+  const [splashFinished, setSplashFinished] = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -86,11 +76,7 @@ const AppContent = () => {
     root.style.overflow = 'hidden';
   }, []);
 
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
-  return (
+  const appContent = (
     <>
       <StatusBar barStyle="light-content" backgroundColor={themeColors.primaryDark} />
       <KeyboardAvoidingView
@@ -104,41 +90,20 @@ const AppContent = () => {
       </KeyboardAvoidingView>
     </>
   );
+
+  if (splashFinished) {
+    return appContent;
+  }
+
+  return (
+    <AnimatedSplashScreen ready={!isLoading} onFinish={() => setSplashFinished(true)}>
+      {appContent}
+    </AnimatedSplashScreen>
+  );
 };
 
 const styles = StyleSheet.create({
   appShell: {
     flex: 1,
   },
-  loadingScreen: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: themeColors.background,
-    padding: 24,
-  },
-  loadingBrand: {
-    width: 82,
-    height: 82,
-    borderRadius: 24,
-    backgroundColor: themeColors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.medium,
-  },
-  loadingLogo: { width: 62, height: 62, resizeMode: 'contain' },
-  loadingTitle: {
-    marginTop: 20,
-    color: themeColors.primaryDark,
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  loadingSubtitle: {
-    marginTop: 5,
-    color: themeColors.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  loadingIndicator: { marginTop: 24 },
 });

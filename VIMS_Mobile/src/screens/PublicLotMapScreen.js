@@ -14,6 +14,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { themeColors, shadows } from '../utils/theme';
 import QRCode from 'react-native-qrcode-svg';
 import api from '../utils/api';
@@ -26,6 +27,17 @@ const MIN_MAP_ZOOM = 0.75;
 const MAX_MAP_ZOOM = 2.25;
 const MAP_ZOOM_STEP = 0.25;
 const LOT_MAP_IMAGE = require('../../assets/lotbettermap.jpg');
+const PUBLIC_MAP = {
+  primary: '#007A18',
+  primaryDark: '#003D07',
+  primaryDeep: '#002F05',
+  primaryLight: '#00D084',
+  pageBg: '#F7F8F5',
+  wash: '#EFFDF5',
+  text: '#17221C',
+  muted: '#5E6D64',
+  border: 'rgba(0,122,24,0.16)',
+};
 
 const sortLotsNumerically = (lotList) => [...lotList].sort((a, b) => (
   (Number(a.phase) || 0) - (Number(b.phase) || 0) ||
@@ -137,10 +149,10 @@ const PublicLotMapScreen = ({ navigation }) => {
   };
 
   const statusConfig = {
-    vacant: { color: '#00D084', bg: '#dcfce7', label: 'Vacant', icon: 'checkmark-circle' },
-    occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', icon: 'close-circle' },
-    reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', icon: 'time' },
-    amenity: { color: '#64748b', bg: '#e2e8f0', label: 'Community Amenity', icon: 'business' },
+    vacant: { color: '#00D084', bg: '#dcfce7', border: '#00A85A', label: 'Vacant', icon: 'checkmark-circle' },
+    occupied: { color: '#ef4444', bg: '#fee2e2', border: '#dc2626', label: 'Occupied', icon: 'close-circle' },
+    reserved: { color: '#f59e0b', bg: '#fef3c7', border: '#d97706', label: 'Reserved', icon: 'time' },
+    amenity: { color: '#64748b', bg: '#e2e8f0', border: '#94a3b8', label: 'Community Amenity', icon: 'business' },
   };
 
   const getStatusConfig = (status) => statusConfig[status] || statusConfig.reserved;
@@ -339,44 +351,100 @@ const PublicLotMapScreen = ({ navigation }) => {
 
         <View style={styles.filterRow}>
           <TouchableOpacity
-            style={[styles.filterChip, filterStatus === 'all' && styles.activeFilter]}
+            style={[styles.filterChip, filterStatus === 'all' && styles.activeFilterShell]}
             onPress={() => setFilterStatus('all')}
           >
-            <Text style={[styles.filterText, filterStatus === 'all' && styles.activeFilterText]}>All</Text>
+            {filterStatus === 'all' ? (
+              <LinearGradient
+                colors={[PUBLIC_MAP.primaryDark, PUBLIC_MAP.primary, PUBLIC_MAP.primaryLight]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.activeChipGradient}
+              >
+                <Text style={[styles.filterText, styles.activeFilterText]}>All</Text>
+              </LinearGradient>
+            ) : (
+              <Text style={styles.filterText}>All</Text>
+            )}
           </TouchableOpacity>
           {Object.entries(statusConfig).map(([key, config]) => (
             <TouchableOpacity
               key={key}
-              style={[styles.filterChip, filterStatus === key && styles.activeFilter]}
+              style={[styles.filterChip, filterStatus === key && styles.activeFilterShell]}
               onPress={() => setFilterStatus(key)}
             >
-              <View style={[styles.colorDot, { backgroundColor: config.color }]} />
-              <Text style={[styles.filterText, filterStatus === key && styles.activeFilterText]}>
-                {config.label}
-              </Text>
+              {filterStatus === key ? (
+                <LinearGradient
+                  colors={[PUBLIC_MAP.primaryDark, PUBLIC_MAP.primary, PUBLIC_MAP.primaryLight]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.activeChipGradient}
+                >
+                  <View style={[styles.colorDot, styles.activeColorDot, { backgroundColor: config.color }]} />
+                  <Text style={[styles.filterText, styles.activeFilterText]}>
+                    {config.label}
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <>
+                  <View style={[styles.colorDot, { backgroundColor: config.color }]} />
+                  <Text style={styles.filterText}>
+                    {config.label}
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           ))}
         </View>
 
         <View style={styles.phaseRow}>
-          <TouchableOpacity style={[styles.phaseChip, selectedPhase === 'all' && styles.activePhaseChip]} onPress={() => setSelectedPhase('all')}>
-            <Text style={[styles.phaseText, selectedPhase === 'all' && styles.activePhaseText]}>All phases</Text>
+          <TouchableOpacity style={[styles.phaseChip, selectedPhase === 'all' && styles.activePhaseShell]} onPress={() => setSelectedPhase('all')}>
+            {selectedPhase === 'all' ? (
+              <LinearGradient
+                colors={[PUBLIC_MAP.primaryDark, PUBLIC_MAP.primary, PUBLIC_MAP.primaryLight]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.activeChipGradient}
+              >
+                <Text style={[styles.phaseText, styles.activePhaseText]}>All phases</Text>
+              </LinearGradient>
+            ) : (
+              <Text style={styles.phaseText}>All phases</Text>
+            )}
           </TouchableOpacity>
           {phases.map((phase) => (
             <TouchableOpacity
               key={phase}
-              style={[styles.phaseChip, selectedPhase === phase && styles.activePhaseChip]}
+              style={[styles.phaseChip, selectedPhase === phase && styles.activePhaseShell]}
               onPress={() => setSelectedPhase(phase)}
             >
-              <Text style={[styles.phaseText, selectedPhase === phase && styles.activePhaseText]}>
-                Phase {phase}
-              </Text>
+              {selectedPhase === phase ? (
+                <LinearGradient
+                  colors={[PUBLIC_MAP.primaryDark, PUBLIC_MAP.primary, PUBLIC_MAP.primaryLight]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.activeChipGradient}
+                >
+                  <Text style={[styles.phaseText, styles.activePhaseText]}>
+                    Phase {phase}
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <Text style={styles.phaseText}>
+                  Phase {phase}
+                </Text>
+              )}
             </TouchableOpacity>
           ))}
         </View>
 
         <View style={styles.mapSection}>
-          <View style={styles.mapSectionHeader}>
+          <LinearGradient
+            colors={[PUBLIC_MAP.primaryDeep, PUBLIC_MAP.primaryDark, PUBLIC_MAP.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.mapSectionHeader}
+          >
             <View>
               <Text style={styles.mapSectionTitle}>
                 {selectedPhase === 'all' ? 'ALL PHASES' : `PHASE ${selectedPhase}`}
@@ -386,7 +454,7 @@ const PublicLotMapScreen = ({ navigation }) => {
               </Text>
             </View>
             <Text style={styles.mapResultCount}>{phaseFilteredLots.length} shown</Text>
-          </View>
+          </LinearGradient>
 
           <View style={styles.mapZoomBar}>
             <TouchableOpacity
@@ -395,7 +463,14 @@ const PublicLotMapScreen = ({ navigation }) => {
               disabled={mapZoom <= MIN_MAP_ZOOM}
               accessibilityLabel="Zoom map out"
             >
-              <Ionicons name="remove" size={18} color="white" />
+              <LinearGradient
+                colors={[PUBLIC_MAP.primaryDark, PUBLIC_MAP.primary, PUBLIC_MAP.primaryLight]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.mapZoomGradient}
+              >
+                <Ionicons name="remove" size={18} color="white" />
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.mapZoomReset}
@@ -410,7 +485,14 @@ const PublicLotMapScreen = ({ navigation }) => {
               disabled={mapZoom >= MAX_MAP_ZOOM}
               accessibilityLabel="Zoom map in"
             >
-              <Ionicons name="add" size={18} color="white" />
+              <LinearGradient
+                colors={[PUBLIC_MAP.primaryDark, PUBLIC_MAP.primary, PUBLIC_MAP.primaryLight]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.mapZoomGradient}
+              >
+                <Ionicons name="add" size={18} color="white" />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
@@ -448,7 +530,7 @@ const PublicLotMapScreen = ({ navigation }) => {
                         top: `${Number(position.top)}%`,
                         width: `${Number(position.width)}%`,
                         height: `${Number(position.height)}%`,
-                        borderColor: isSelected && !isAmenity ? '#ffffff' : cfg.color,
+                        borderColor: isSelected && !isAmenity ? '#ffffff' : cfg.border,
                         backgroundColor: isAmenity ? 'rgba(100,116,139,0.28)' : `${cfg.color}38`,
                         transform: [{ rotate: `${Number(position.rotate) || 0}deg` }],
                         opacity: isAmenity ? 0.72 : 1,
@@ -486,8 +568,15 @@ const PublicLotMapScreen = ({ navigation }) => {
         </View>
 
         <TouchableOpacity style={styles.registerCta} onPress={() => navigation.navigate('Register')}>
-          <Ionicons name="home" size={24} color="white" />
-          <Text style={styles.registerCtaText}>Register as Resident</Text>
+          <LinearGradient
+            colors={[PUBLIC_MAP.primaryDark, PUBLIC_MAP.primary, PUBLIC_MAP.primaryLight]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.registerCtaGradient}
+          >
+            <Ionicons name="home" size={24} color="white" />
+            <Text style={styles.registerCtaText}>Register as Resident</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
 
@@ -739,7 +828,7 @@ const PublicLotMapScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: PUBLIC_MAP.pageBg,
   },
   header: {
     flexDirection: 'row',
@@ -765,11 +854,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    height: 48,
     borderWidth: 1,
-    borderColor: themeColors.border,
+    borderColor: PUBLIC_MAP.border,
+    ...shadows.small,
   },
   searchInput: {
     flex: 1,
@@ -794,20 +884,22 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+    backgroundColor: PUBLIC_MAP.pageBg,
   },
   statsRow: {
     flexDirection: 'row',
     marginBottom: 16,
-    gap: 12,
+    gap: 10,
   },
   statItem: {
     flex: 1,
-    backgroundColor: themeColors.surfaceTint,
+    backgroundColor: 'white',
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: themeColors.border,
+    borderColor: PUBLIC_MAP.border,
+    ...shadows.small,
   },
   statValue: {
     fontSize: 20,
@@ -822,6 +914,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     marginBottom: 16,
     gap: 8,
   },
@@ -830,14 +923,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 999,
     backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: PUBLIC_MAP.border,
   },
-  activeFilter: {
-    backgroundColor: themeColors.primary + '20',
-    borderColor: themeColors.primary,
+  activeFilterShell: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderColor: 'transparent',
+    overflow: 'hidden',
+  },
+  activeChipGradient: {
+    minHeight: 34,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterText: {
     fontSize: 12,
@@ -845,13 +949,17 @@ const styles = StyleSheet.create({
     color: themeColors.textSecondary,
   },
   activeFilterText: {
-    color: themeColors.primary,
+    color: 'white',
   },
   colorDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     marginRight: 6,
+  },
+  activeColorDot: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.72)',
   },
   phaseRow: {
     flexDirection: 'row',
@@ -861,16 +969,18 @@ const styles = StyleSheet.create({
   phaseChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 999,
     backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: PUBLIC_MAP.border,
     marginRight: 8,
     marginBottom: 8,
   },
-  activePhaseChip: {
-    backgroundColor: themeColors.primary,
-    borderColor: themeColors.primary,
+  activePhaseShell: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderColor: 'transparent',
+    overflow: 'hidden',
   },
   phaseText: {
     fontSize: 12,
@@ -882,11 +992,12 @@ const styles = StyleSheet.create({
   },
   mapSection: {
     marginBottom: 24,
-    borderRadius: 16,
+    borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: themeColors.border,
+    borderColor: PUBLIC_MAP.border,
+    ...shadows.medium,
   },
   mapSectionHeader: {
     minHeight: 66,
@@ -897,20 +1008,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   mapSectionTitle: {
-    color: themeColors.primaryDeep,
+    color: 'white',
     fontSize: 15,
     fontWeight: '900',
     letterSpacing: 1.2,
   },
   mapSectionSubtitle: {
-    color: themeColors.textSecondary,
+    color: 'rgba(255,255,255,0.78)',
     fontSize: 11,
     marginTop: 3,
   },
   mapResultCount: {
-    color: themeColors.primary,
+    color: PUBLIC_MAP.primaryLight,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   mapZoomBar: {
     flexDirection: 'row',
@@ -918,7 +1029,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 8,
     paddingHorizontal: 14,
-    paddingBottom: 12,
+    paddingVertical: 12,
+    backgroundColor: 'white',
   },
   mapZoomButton: {
     width: 36,
@@ -926,7 +1038,14 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: themeColors.primary,
+    overflow: 'hidden',
+  },
+  mapZoomGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mapZoomButtonDisabled: {
     opacity: 0.4,
@@ -938,12 +1057,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: themeColors.primary + '12',
+    backgroundColor: PUBLIC_MAP.wash,
     borderWidth: 1,
-    borderColor: themeColors.primary + '30',
+    borderColor: PUBLIC_MAP.border,
   },
   mapZoomText: {
-    color: themeColors.primaryDeep,
+    color: PUBLIC_MAP.primaryDeep,
     fontSize: 12,
     fontWeight: '900',
   },
@@ -965,7 +1084,7 @@ const styles = StyleSheet.create({
   mapLotSquare: {
     position: 'absolute',
     borderWidth: 1,
-    borderRadius: 2,
+    borderRadius: 3,
     minWidth: 3,
     minHeight: 3,
     alignItems: 'center',
@@ -974,6 +1093,10 @@ const styles = StyleSheet.create({
   activeMapLotSquare: {
     borderWidth: 2,
     elevation: 5,
+    shadowColor: PUBLIC_MAP.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
   },
   mapLotLabel: {
     fontWeight: '900',
@@ -1029,17 +1152,25 @@ const styles = StyleSheet.create({
   },
   legendContainer: {
     marginBottom: 16,
+    backgroundColor: 'white',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: PUBLIC_MAP.border,
+    padding: 14,
+    ...shadows.small,
   },
   legendTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '900',
     marginBottom: 8,
-    color: themeColors.textPrimary,
+    color: PUBLIC_MAP.primaryDeep,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   legendDot: {
     width: 12,
@@ -1049,21 +1180,25 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    color: themeColors.textSecondary,
+    color: PUBLIC_MAP.muted,
+    fontWeight: '700',
   },
   registerCta: {
+    borderRadius: 999,
+    marginBottom: 20,
+    overflow: 'hidden',
+    ...shadows.medium,
+  },
+  registerCtaGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: themeColors.success,
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
   },
   registerCtaText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '900',
     marginLeft: 8,
   },
   modalOverlay: {

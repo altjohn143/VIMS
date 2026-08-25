@@ -18,8 +18,12 @@ import api from '../utils/api';
 const isStrongPassword = (password) =>
   /^(?=.{8,128}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])/.test(password);
 
+const isValidEmail = (value) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value || '').trim().toLowerCase());
+
 const ResetPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [code, setCode] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [password, setPassword] = useState('');
@@ -30,14 +34,22 @@ const ResetPasswordScreen = ({ navigation }) => {
   const [step, setStep] = useState(1);
 
   const requestCode = async () => {
-    if (!email.trim()) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setEmailError('Email address is required.');
       Alert.alert('Email required', 'Please enter your registered email address.');
       return;
     }
+    if (!isValidEmail(normalizedEmail)) {
+      setEmailError('Enter a valid email address, for example name@example.com.');
+      Alert.alert('Invalid email', 'Please enter a valid email address, for example name@example.com.');
+      return;
+    }
+    setEmailError('');
     setLoading(true);
     try {
       const response = await api.post('/auth/forgot-password', {
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
       });
       Alert.alert(
         'Password Reset',
@@ -54,14 +66,19 @@ const ResetPasswordScreen = ({ navigation }) => {
   };
 
   const verifyCode = async () => {
-    if (!email.trim() || !/^\d{6}$/.test(code.trim())) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !isValidEmail(normalizedEmail) || !/^\d{6}$/.test(code.trim())) {
+      if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
+        setEmailError('Enter a valid email address, for example name@example.com.');
+      }
       Alert.alert('Invalid code', 'Enter your email and the six-digit verification code.');
       return;
     }
+    setEmailError('');
     setLoading(true);
     try {
       const response = await api.post('/auth/forgot-password/verify-otp', {
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         code: code.trim(),
       });
       if (!response.data?.success) {
@@ -154,11 +171,23 @@ const ResetPasswordScreen = ({ navigation }) => {
                   style={styles.input}
                   placeholder="Registered email address"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (emailError) setEmailError('');
+                  }}
+                  onBlur={() => {
+                    const normalizedEmail = email.trim().toLowerCase();
+                    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+                      setEmailError('Enter a valid email address, for example name@example.com.');
+                    }
+                  }}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="emailAddress"
                 />
               </View>
+              {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
               <TouchableOpacity style={styles.secondaryButton} onPress={requestCode} disabled={loading}>
                 <Text style={styles.secondaryButtonText}>Send Reset Code</Text>
               </TouchableOpacity>
@@ -255,6 +284,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, color: themeColors.textPrimary, fontSize: 15, paddingVertical: 12 },
   codeInput: { letterSpacing: 8, textAlign: 'center', fontSize: 20, fontWeight: '800' },
   helper: { color: themeColors.textSecondary, fontSize: 12, lineHeight: 18, marginBottom: 14 },
+  errorText: { color: '#b91c1c', fontSize: 12, lineHeight: 17, marginTop: -4, marginBottom: 10, fontWeight: '700' },
   divider: { height: 1, backgroundColor: themeColors.border, marginVertical: 18 },
   primaryButton: { backgroundColor: themeColors.primaryDeep, borderRadius: 16, minHeight: 54, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   primaryButtonText: { color: 'white', fontSize: 16, fontWeight: '900' },

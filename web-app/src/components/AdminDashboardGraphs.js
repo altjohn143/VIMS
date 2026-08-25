@@ -119,7 +119,7 @@ const AdminDashboardGraphs = () => {
       const methodResults = methodResponse.data?.data || [];
       setPaymentMethodData(
         methodResults.map(item => ({
-          name: item.method || 'Unknown',
+          name: item.method || 'Unspecified',
           value: item.count || 0
         }))
       );
@@ -149,7 +149,8 @@ const AdminDashboardGraphs = () => {
       }
     } catch (error) {
       console.error('Error generating AI report:', error);
-      toast.error(error.response?.data?.error || 'Failed to generate AI report');
+      const apiError = error.response?.data;
+      toast.error(apiError?.details || apiError?.error || error.message || 'Failed to generate AI report');
     } finally {
       setGeneratingReport(false);
     }

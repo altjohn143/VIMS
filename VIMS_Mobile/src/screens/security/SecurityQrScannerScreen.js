@@ -1,26 +1,115 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
 import api from '../../utils/api';
 import { themeColors, roleLayouts } from '../../utils/theme';
 
-const getQrScanErrorMessage = (error) => {
-  const serverMessage = error?.response?.data?.error;
-  if (!serverMessage) return 'Please scan a valid VIMS visitor pass.';
+const SCAN_FEEDBACK = {
+  invalid_pass: {
+    title: 'Invalid Visitor Pass',
+    message: 'Please scan a valid VIMS visitor pass.',
+    icon: 'alert-circle-outline',
+    color: '#ef4444',
+  },
+  expired: {
+    title: 'Expired Pass',
+    message: 'This visitor pass has expired. Ask the resident to create a new pass.',
+    icon: 'time-outline',
+    color: '#f97316',
+  },
+  already_used: {
+    title: 'Already Used',
+    message: 'This visitor pass has already been completed and can no longer be used.',
+    icon: 'checkmark-done-outline',
+    color: '#64748b',
+  },
+  rejected: {
+    title: 'Rejected Pass',
+    message: 'This visitor pass was rejected and cannot be used.',
+    icon: 'close-circle-outline',
+    color: '#dc2626',
+  },
+  cancelled: {
+    title: 'Cancelled Pass',
+    message: 'This visitor pass was cancelled by the resident or admin.',
+    icon: 'ban-outline',
+    color: '#b91c1c',
+  },
+  duplicate_entry_scan: {
+    title: 'Entry Already Scanned',
+    message: 'All visitors on this pass have already been scanned for gate entry.',
+    icon: 'log-in-outline',
+    color: '#f59e0b',
+  },
+  duplicate_exit_scan: {
+    title: 'Exit Already Scanned',
+    message: 'All visitors on this pass have already been scanned for gate exit.',
+    icon: 'log-out-outline',
+    color: '#f59e0b',
+  },
+  resident_confirmation_required: {
+    title: 'Resident Confirmation Needed',
+    message: 'The resident must confirm the visitor step in their app before this scan can continue.',
+    icon: 'person-circle-outline',
+    color: '#eab308',
+  },
+  entry_required: {
+    title: 'Entry Scan Required',
+    message: 'This pass has not been scanned for entry yet. Use Entry QR Scanner first.',
+    icon: 'return-up-forward-outline',
+    color: '#38bdf8',
+  },
+  not_ready: {
+    title: 'Pass Not Ready',
+    message: 'This visitor pass is not approved for scanning yet.',
+    icon: 'hourglass-outline',
+    color: '#a855f7',
+  },
+  network_unavailable: {
+    title: 'Network Unavailable',
+    message: 'Cannot reach the VIMS server. Check the connection, then scan again.',
+    icon: 'cloud-offline-outline',
+    color: '#f97316',
+  },
+  server_error: {
+    title: 'Scanner Service Error',
+    message: 'The server could not process this scan. Please try again.',
+    icon: 'server-outline',
+    color: '#ef4444',
+  },
+};
 
-  const normalized = String(serverMessage).toLowerCase();
-  if (
-    normalized.includes('invalid qr') ||
-    normalized.includes('not found') ||
-    normalized.includes('no longer valid') ||
-    normalized.includes('expired') ||
-    normalized.includes('already been used')
-  ) {
-    return serverMessage;
+const inferQrScanCode = (message = '') => {
+  const normalized = String(message).toLowerCase();
+  if (normalized.includes('expired')) return 'expired';
+  if (normalized.includes('already been used') || normalized.includes('no longer valid')) return 'already_used';
+  if (normalized.includes('rejected')) return 'rejected';
+  if (normalized.includes('cancelled')) return 'cancelled';
+  if (normalized.includes('already been scanned for gate entry')) return 'duplicate_entry_scan';
+  if (normalized.includes('already been scanned for gate exit')) return 'duplicate_exit_scan';
+  if (normalized.includes('resident must')) return 'resident_confirmation_required';
+  if (normalized.includes('entry at the gate first') || normalized.includes('entry qr scanner')) return 'entry_required';
+  if (normalized.includes('not ready') || normalized.includes('pending')) return 'not_ready';
+  return 'invalid_pass';
+};
+
+const getQrScanFeedback = (error) => {
+  if (!error?.response) {
+    return SCAN_FEEDBACK.network_unavailable;
   }
 
-  return serverMessage || 'Please scan a valid VIMS visitor pass.';
+  const serverCode = error.response?.data?.code;
+  const serverMessage = error.response?.data?.error;
+  const code = serverCode || inferQrScanCode(serverMessage);
+  const fallback = SCAN_FEEDBACK[code] || SCAN_FEEDBACK.invalid_pass;
+
+  return {
+    ...fallback,
+    code,
+    message: serverMessage || fallback.message,
+    progress: error.response?.data?.progress,
+  };
 };
 
 const extractVisitorPassToken = (rawValue = '') => {
@@ -68,7 +157,9 @@ const SecurityQrScannerScreen = ({ route }) => {
   const [hasPermission, setHasPermission] = useState(false);
   const [isHandlingScan, setIsHandlingScan] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [lastIssue, setLastIssue] = useState(null);
   const [scanMode, setScanMode] = useState('entry');
+  const recentScanRef = useRef({ value: '', at: 0 });
 
   useEffect(() => {
     if (route?.params?.mode === 'entry' || route?.params?.mode === 'exit') {
@@ -94,11 +185,15 @@ const SecurityQrScannerScreen = ({ route }) => {
     return granted;
   };
 
-  const showInvalidPassAlert = (message) => {
+  const showScanIssueAlert = (feedback) => {
+    setLastIssue({
+      ...feedback,
+      at: new Date().toISOString(),
+    });
     setTimeout(() => {
       Alert.alert(
-        'Invalid Visitor Pass',
-        message || 'Invalid QR code. Please scan a valid VIMS visitor pass.',
+        feedback.title || 'Scan Failed',
+        feedback.message || 'Please scan a valid VIMS visitor pass.',
         [{ text: 'Scan Again', onPress: () => setIsHandlingScan(false) }]
       );
     }, 80);
@@ -110,9 +205,29 @@ const SecurityQrScannerScreen = ({ route }) => {
     setIsHandlingScan(true);
     const visitorPassToken = extractVisitorPassToken(data);
     if (!visitorPassToken) {
-      showInvalidPassAlert('Invalid QR code. Please scan a valid VIMS visitor pass.');
+      showScanIssueAlert({
+        ...SCAN_FEEDBACK.invalid_pass,
+        code: 'invalid_pass',
+        message: 'Invalid QR code. Please scan a valid VIMS visitor pass.',
+      });
       return;
     }
+
+    const now = Date.now();
+    if (
+      recentScanRef.current.value === `${scanMode}:${visitorPassToken}` &&
+      now - recentScanRef.current.at < 3500
+    ) {
+      showScanIssueAlert({
+        title: 'Duplicate Scan Ignored',
+        message: 'This same QR was just scanned. Wait a moment before scanning it again.',
+        icon: 'scan-circle-outline',
+        color: '#f59e0b',
+        code: 'duplicate_camera_read',
+      });
+      return;
+    }
+    recentScanRef.current = { value: `${scanMode}:${visitorPassToken}`, at: now };
 
     let shouldUnlockAutomatically = true;
     try {
@@ -134,16 +249,25 @@ const SecurityQrScannerScreen = ({ route }) => {
           progress,
           at: new Date().toISOString(),
         });
+        setLastIssue(null);
         Alert.alert(
           'Scan Success',
           response.data.message || (action === 'entry_logged'
             ? 'Visitor entry logged and resident notified.'
             : 'Visitor exit logged.')
         );
+      } else {
+        shouldUnlockAutomatically = false;
+        showScanIssueAlert(getQrScanFeedback({
+          response: {
+            status: response.status,
+            data: response.data,
+          },
+        }));
       }
     } catch (error) {
       shouldUnlockAutomatically = false;
-      showInvalidPassAlert(getQrScanErrorMessage(error));
+      showScanIssueAlert(getQrScanFeedback(error));
     } finally {
       if (shouldUnlockAutomatically) {
         setTimeout(() => setIsHandlingScan(false), 900);
@@ -247,6 +371,31 @@ const SecurityQrScannerScreen = ({ route }) => {
             </Text>
           ) : null}
           <Text style={styles.nextActionText}>{formatNextAction(lastResult.nextAction)}</Text>
+        </View>
+      ) : null}
+
+      {lastIssue ? (
+        <View style={[styles.issueCard, { borderColor: lastIssue.color }]}>
+          <View style={styles.resultHeader}>
+            <Ionicons
+              name={lastIssue.icon || 'alert-circle-outline'}
+              size={22}
+              color={lastIssue.color || '#ef4444'}
+            />
+            <Text style={[styles.issueTitle, { color: lastIssue.color }]}>{lastIssue.title}</Text>
+          </View>
+          <Text style={styles.issueText}>{lastIssue.message}</Text>
+          {lastIssue.progress ? (
+            <Text style={styles.progressText}>
+              Entry {lastIssue.progress.entryScanCount}/{lastIssue.progress.groupSize} | Arrival {lastIssue.progress.residentArrivalConfirmCount}/{lastIssue.progress.groupSize} | Departure {lastIssue.progress.residentDepartureConfirmCount}/{lastIssue.progress.groupSize} | Exit {lastIssue.progress.exitScanCount}/{lastIssue.progress.groupSize}
+            </Text>
+          ) : null}
+          <TouchableOpacity
+            style={styles.scanAgainButton}
+            onPress={() => setIsHandlingScan(false)}
+          >
+            <Text style={styles.scanAgainButtonText}>Scan Again</Text>
+          </TouchableOpacity>
         </View>
       ) : null}
     </View>
@@ -376,6 +525,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#007A18',
   },
+  issueCard: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+  },
   resultHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -387,6 +544,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  issueTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
   resultName: {
     color: 'white',
     fontSize: 18,
@@ -397,6 +558,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 13,
     marginBottom: 4,
+  },
+  issueText: {
+    color: '#f8fafc',
+    fontSize: 13,
+    lineHeight: 19,
   },
   statusPill: {
     alignSelf: 'flex-start',
@@ -422,6 +588,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 8,
     lineHeight: 16,
+  },
+  scanAgainButton: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    backgroundColor: '#D9FBEA',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  scanAgainButtonText: {
+    color: '#002F05',
+    fontSize: 12,
+    fontWeight: '900',
   },
 });
 

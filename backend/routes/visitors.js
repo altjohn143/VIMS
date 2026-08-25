@@ -153,6 +153,13 @@ const INVALID_VISITOR_PASS_MESSAGE = 'Invalid QR code. Please scan a valid VIMS 
 const USED_VISITOR_PASS_MESSAGE = 'This visitor pass has already been used and is no longer valid.';
 const EXPIRED_VISITOR_PASS_MESSAGE = 'This visitor pass has expired. Please use a valid visitor pass.';
 
+const sendScanError = (res, status, code, error, extra = {}) => res.status(status).json({
+  success: false,
+  code,
+  error,
+  ...extra
+});
+
 const isVisitorPassExpired = (visitor) => {
   if (!visitor?.expectedDeparture) return false;
   return new Date(visitor.expectedDeparture).getTime() < Date.now();
@@ -1089,34 +1096,34 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
     const visitor = await findVisitorByScanValue(scanValue);
 
     if (!visitor) {
-      return res.status(404).json({ success: false, error: INVALID_VISITOR_PASS_MESSAGE });
+      return sendScanError(res, 404, 'invalid_pass', INVALID_VISITOR_PASS_MESSAGE);
     }
 
     const progress = getVisitorProgress(visitor);
     const action = requestedAction || (visitor.status === 'approved' || progress.entryScanCount < progress.groupSize ? 'entry' : 'exit');
 
     if (!['entry', 'exit'].includes(action)) {
-      return res.status(400).json({ success: false, error: 'Scan action must be entry or exit.' });
+      return sendScanError(res, 400, 'invalid_action', 'Scan action must be entry or exit.');
     }
 
     if (action === 'entry') {
       if (visitor.status === 'completed') {
-        return res.status(400).json({ success: false, error: USED_VISITOR_PASS_MESSAGE });
+        return sendScanError(res, 400, 'already_used', USED_VISITOR_PASS_MESSAGE);
+      }
+      if (visitor.status === 'rejected') {
+        return sendScanError(res, 400, 'rejected', 'This visitor pass was rejected and cannot be used.');
+      }
+      if (visitor.status === 'cancelled') {
+        return sendScanError(res, 400, 'cancelled', 'This visitor pass was cancelled and cannot be used.');
       }
       if (isVisitorPassExpired(visitor)) {
-        return res.status(400).json({ success: false, error: EXPIRED_VISITOR_PASS_MESSAGE });
+        return sendScanError(res, 400, 'expired', EXPIRED_VISITOR_PASS_MESSAGE);
       }
       if (!['approved', 'active'].includes(visitor.status)) {
-        return res.status(400).json({
-          success: false,
-          error: INVALID_VISITOR_PASS_MESSAGE
-        });
+        return sendScanError(res, 400, 'not_ready', `This visitor pass is ${visitor.status || 'not ready'} and cannot be scanned for entry yet.`);
       }
       if (progress.entryScanCount >= progress.groupSize) {
-        return res.status(400).json({
-          success: false,
-          error: 'All visitors on this pass have already been scanned for gate entry.'
-        });
+        return sendScanError(res, 409, 'duplicate_entry_scan', 'All visitors on this pass have already been scanned for gate entry.', { progress });
       }
 
       visitor.entryScanCount = progress.entryScanCount + 1;
@@ -1143,32 +1150,26 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
 
     if (action === 'exit') {
       if (visitor.status === 'completed') {
-        return res.status(400).json({ success: false, error: USED_VISITOR_PASS_MESSAGE });
+        return sendScanError(res, 400, 'already_used', USED_VISITOR_PASS_MESSAGE);
+      }
+      if (visitor.status === 'rejected') {
+        return sendScanError(res, 400, 'rejected', 'This visitor pass was rejected and cannot be used.');
+      }
+      if (visitor.status === 'cancelled') {
+        return sendScanError(res, 400, 'cancelled', 'This visitor pass was cancelled and cannot be used.');
       }
       if (visitor.status !== 'active') {
-        return res.status(400).json({
-          success: false,
-          error: INVALID_VISITOR_PASS_MESSAGE
-        });
+        return sendScanError(res, 400, 'entry_required', 'This pass has not been scanned for entry yet. Use Entry QR Scanner first.');
       }
       const exitPrerequisiteMessage = getExitPrerequisiteMessage(visitor);
       if (exitPrerequisiteMessage) {
-        return res.status(400).json({
-          success: false,
-          error: exitPrerequisiteMessage
-        });
+        return sendScanError(res, 409, 'resident_confirmation_required', exitPrerequisiteMessage, { progress });
       }
       if (progress.exitScanCount >= progress.groupSize) {
-        return res.status(400).json({
-          success: false,
-          error: 'All visitors on this pass have already been scanned for gate exit.'
-        });
+        return sendScanError(res, 409, 'duplicate_exit_scan', 'All visitors on this pass have already been scanned for gate exit.', { progress });
       }
       if (progress.exitScanCount >= progress.residentDepartureConfirmCount) {
-        return res.status(400).json({
-          success: false,
-          error: 'Resident must confirm another visitor departure before this gate exit scan.'
-        });
+        return sendScanError(res, 409, 'resident_confirmation_required', 'Resident must confirm another visitor departure before this gate exit scan.', { progress });
       }
 
       visitor.exitScanCount = progress.exitScanCount + 1;
@@ -1205,19 +1206,13 @@ router.post('/scan-action', protect, authorize('security'), async (req, res) => 
     }
 
     if (visitor.status === 'completed') {
-      return res.status(400).json({
-        success: false,
-        error: USED_VISITOR_PASS_MESSAGE
-      });
+      return sendScanError(res, 400, 'already_used', USED_VISITOR_PASS_MESSAGE);
     }
 
-    return res.status(400).json({
-      success: false,
-      error: INVALID_VISITOR_PASS_MESSAGE
-    });
+    return sendScanError(res, 400, 'invalid_pass', INVALID_VISITOR_PASS_MESSAGE);
   } catch (error) {
     console.error('Security scan action error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to process QR scan action' });
+    return sendScanError(res, 500, 'server_error', 'Failed to process QR scan action');
   }
 });
 

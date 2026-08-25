@@ -315,6 +315,9 @@ router.post('/reports/admin/financial', protect, reportLimiter, async (req, res)
     if (req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Admin access required' });
     }
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({ success: false, error: 'OPENAI_API_KEY is not configured' });
+    }
 
     const { period = 'monthly', year = new Date().getFullYear(), month = new Date().getMonth() + 1, format = 'json', timezoneOffset = 0 } = req.body;
     const timezoneOffsetMinutes = parseInt(timezoneOffset, 10) || 0;
@@ -329,10 +332,10 @@ router.post('/reports/admin/financial', protect, reportLimiter, async (req, res)
 
     const payments = await Payment.find({
       createdAt: { $gte: startDate, $lte: endDate },
-      status: 'completed'
-    }).populate('user', 'firstName lastName houseNumber');
+      $or: [{ status: 'paid' }, { paidAmount: { $gt: 0 } }]
+    }).populate('residentId', 'firstName lastName houseNumber');
 
-    const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.paidAmount || (p.status === 'paid' ? p.amount : 0) || 0), 0);
     const paymentCount = payments.length;
 
     // Get user stats
@@ -351,7 +354,11 @@ Financial Data for ${period === 'monthly' ? `${new Date(year, month - 1).toLocal
 - Average Payment: ₱${paymentCount > 0 ? Math.round(totalRevenue / paymentCount).toLocaleString() : 0}
 
 Recent Payments:
-${payments.slice(0, 10).map(p => `- ${p.user?.firstName} ${p.user?.lastName} (${p.user?.houseNumber}): ₱${p.amount} on ${new Date(p.createdAt).toLocaleDateString()}`).join('\n')}
+${payments.slice(0, 10).map(p => {
+  const resident = p.residentId;
+  const amount = Number(p.paidAmount || (p.status === 'paid' ? p.amount : 0) || 0);
+  return `- ${resident?.firstName || 'Unknown'} ${resident?.lastName || 'Resident'} (${resident?.houseNumber || 'N/A'}): ₱${amount} on ${new Date(p.paymentDate || p.updatedAt || p.createdAt).toLocaleDateString()}`;
+}).join('\n')}
     `.trim();
 
     const model = getOpenAIHighModel();
@@ -413,6 +420,12 @@ ${payments.slice(0, 10).map(p => `- ${p.user?.firstName} ${p.user?.lastName} (${
       data: reportData
     });
   } catch (error) {
+    console.error('Admin financial AI report error:', {
+      status: error.response?.status,
+      responseData: error.response?.data,
+      message: error.message,
+      stack: error.stack
+    });
     return res.status(500).json({
       success: false,
       error: 'Failed to generate financial report',

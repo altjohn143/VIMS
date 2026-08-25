@@ -920,24 +920,48 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
 router.get('/admin/methods', protect, authorize('admin'), async (req, res) => {
   try {
     const { year, month } = req.query;
-    const match = {};
+    const historyMatch = {};
 
     if (year && month) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
       const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
-      match.createdAt = { $gte: startDate, $lte: endDate };
+      historyMatch['paymentHistory.verifiedAt'] = { $gte: startDate, $lte: endDate };
     }
 
     const methods = await Payment.aggregate([
-      { $match: { ...match, $or: [{ status: 'paid' }, { paidAmount: { $gt: 0 } }] } },
-      { $group: { _id: '$paymentMethod', count: { $sum: 1 }, total: { $sum: { $cond: [{ $gt: ['$paidAmount', 0] }, '$paidAmount', '$amount'] } } } },
+      { $unwind: '$paymentHistory' },
+      { $match: historyMatch },
+      {
+        $group: {
+          _id: '$paymentHistory.paymentMethod',
+          count: { $sum: 1 },
+          total: {
+            $sum: {
+              $add: [
+                { $ifNull: ['$paymentHistory.amount', 0] },
+                { $ifNull: ['$paymentHistory.creditedAmount', 0] }
+              ]
+            }
+          }
+        }
+      },
       { $sort: { count: -1 } }
     ]);
+
+    const formatPaymentMethod = (method) => {
+      if (method === 'qrph') return 'QRPh';
+      if (method === 'cash') return 'Cash';
+      if (!method) return 'Unspecified';
+      return String(method)
+        .split('_')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+    };
 
     res.json({
       success: true,
       data: methods.map(method => ({
-        method: method._id || 'Unknown',
+        method: formatPaymentMethod(method._id),
         count: method.count || 0,
         total: method.total || 0
       }))

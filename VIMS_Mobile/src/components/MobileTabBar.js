@@ -70,7 +70,9 @@ const TabItem = ({ route, descriptor, focused, navigation }) => {
       style={({ pressed }) => [styles.item, pressed && styles.pressed]}
     >
       <View style={[styles.indicator, focused && styles.indicatorActive]} />
-      <Ionicons name={focused ? icons[0] : icons[1]} size={22} color={focused ? themeColors.primary : themeColors.textMuted} />
+      <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+        <Ionicons name={focused ? icons[0] : icons[1]} size={20} color={focused ? '#075E2C' : '#8A948E'} />
+      </View>
       <Text numberOfLines={1} style={[styles.label, focused && styles.labelActive]}>{label}</Text>
     </Pressable>
   );
@@ -100,20 +102,27 @@ const MobileTabBar = ({ state, descriptors, navigation }) => {
 
 const styles = StyleSheet.create({
   bar: {
-    minHeight: 68,
-    paddingHorizontal: 5,
-    paddingTop: 0,
-    backgroundColor: themeColors.white,
+    minHeight: 72,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: themeColors.border,
+    borderTopColor: '#E4EAE5',
+    shadowColor: '#102219',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 10,
   },
-  scrollContent: { alignItems: 'stretch', paddingHorizontal: 2 },
-  item: { width: 76, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, paddingTop: 8 },
+  scrollContent: { flexGrow: 1, alignItems: 'stretch', justifyContent: 'space-between', paddingHorizontal: 0 },
+  item: { flex: 1, minWidth: 61, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2, paddingTop: 2 },
   pressed: { opacity: 0.6 },
-  indicator: { position: 'absolute', top: 0, width: 24, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3, backgroundColor: 'transparent' },
-  indicatorActive: { backgroundColor: themeColors.primary },
-  label: { color: themeColors.textMuted, fontSize: 9, lineHeight: 12, fontWeight: '600', marginTop: 3, maxWidth: '100%' },
-  labelActive: { color: themeColors.primaryDeep, fontWeight: '800' },
+  indicator: { display: 'none' },
+  indicatorActive: { backgroundColor: '#0B8F3D' },
+  iconWrap: { width: 34, height: 28, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  iconWrapActive: { backgroundColor: '#EAF8EF' },
+  label: { color: '#8A948E', fontSize: 8, lineHeight: 11, fontWeight: '700', marginTop: 2, maxWidth: '100%' },
+  labelActive: { color: '#075E2C', fontWeight: '900' },
 });
 
 export default MobileTabBar;

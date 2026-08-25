@@ -31,6 +31,7 @@ import ChatbotScreen from './ChatbotScreen';
 const DashboardScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const isNarrow = width < 380;
+  const quickActionCardWidth = Math.floor((width - 36 - 24 - 12) / 2);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -785,11 +786,12 @@ const DashboardScreen = ({ navigation }) => {
         <View style={[styles.statGrid, isNarrow && styles.statGridNarrow]}>
           {config.stats.map((stat, i) => {
             // Curated, beautiful gradients matching the original colors
-            const gradientColors = 
-              i === 0 ? [themeColors.primaryWash, themeColors.primarySoft] :
-              i === 1 ? [themeColors.cardBackground, themeColors.primaryWash] :
+            const gradientColors =
+              i === 0 ? [themeColors.primarySoft, themeColors.primaryWash] :
+              i === 1 ? [themeColors.cardBackground, themeColors.surfaceTint] :
               i === 2 ? [themeColors.cardBackground, themeColors.primaryWash] :
               [themeColors.primaryWash, themeColors.surfaceTint];
+            const hasActiveVisitors = stat.label === 'Active Visitors' && Number(stat.value) > 0;
 
             return (
               <Animated.View
@@ -813,10 +815,16 @@ const DashboardScreen = ({ navigation }) => {
                     style={styles.statCard}
                   >
                     <View style={styles.statCardBgIcon}>
-                      <Ionicons name={stat.icon} size={62} color="rgba(255,255,255,0.12)" />
+                      <Ionicons name={stat.icon} size={62} color="rgba(0,85,17,0.34)" />
                     </View>
+                    {hasActiveVisitors && (
+                      <View style={styles.activeVisitorIndicator}>
+                        <View style={styles.activeVisitorDot} />
+                        <Text style={styles.activeVisitorText}>Active</Text>
+                      </View>
+                    )}
                     <View style={styles.statCardTop}>
-                      <Ionicons name={stat.icon} size={18} color="rgba(255,255,255,0.7)" />
+                      <Ionicons name={stat.icon} size={18} color={stat.bg} />
                     </View>
                     <Text style={styles.statCardValue}>{stat.prefix || ''}{stat.value}</Text>
                     <Text style={styles.statCardLabel} numberOfLines={2}>{stat.label}</Text>
@@ -840,10 +848,13 @@ const DashboardScreen = ({ navigation }) => {
           {!collapsedSections.quickActions && config.quickActions.map((action, i) => (
             <Animated.View
               key={i}
-              style={{
-                width: '50%',
-                transform: [{ scale: actionScaleAnims[i] || 1 }]
-              }}
+              style={[
+                styles.quickActionSlot,
+                {
+                  width: quickActionCardWidth,
+                  transform: [{ scale: actionScaleAnims[i] || 1 }]
+                }
+              ]}
             >
               <Pressable
                 onPressIn={() => animateActionPressIn(i)}
@@ -853,15 +864,15 @@ const DashboardScreen = ({ navigation }) => {
                   styles.actionRow,
                   styles.quickActionTile,
                   pressed && styles.actionRowPressed,
-                  i < config.quickActions.length - 1 && styles.actionRowDivider
+                  styles.quickActionTileBorder
                 ]}
               >
                 <View style={[styles.actionIconWrap, { backgroundColor: action.bg }]}>
                   <Ionicons name={action.icon} size={18} color={action.color} />
                 </View>
                 <View style={styles.actionBody}>
-                  <Text style={styles.actionTitle}>{action.title}</Text>
-                  <Text style={styles.actionSub}>{action.subtitle}</Text>
+                  <Text style={styles.actionTitle} numberOfLines={2}>{action.title}</Text>
+                  <Text style={styles.actionSub} numberOfLines={2}>{action.subtitle}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={themeColors.borderStrong} />
               </Pressable>
@@ -877,12 +888,22 @@ const DashboardScreen = ({ navigation }) => {
             </View>
             <View style={styles.residentOverviewGrid}>
               <TouchableOpacity style={styles.residentOverviewCard} onPress={() => navigation.navigate('PaymentsTab')}>
-                <Ionicons name="wallet-outline" size={20} color={themeColors.primary} />
+                <View style={styles.residentOverviewBgIcon}>
+                  <Ionicons name="wallet-outline" size={54} color="rgba(0,85,17,0.32)" />
+                </View>
+                <View style={styles.residentOverviewIconWrap}>
+                  <Ionicons name="wallet-outline" size={18} color={themeColors.primary} />
+                </View>
                 <Text style={styles.residentOverviewValue}>₱{formatPeso(residentOverview.pendingDues)}</Text>
                 <Text style={styles.residentOverviewLabel}>Pending dues</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.residentOverviewCard} onPress={() => navigation.navigate('ServicesTab')}>
-                <Ionicons name="build-outline" size={20} color={themeColors.primaryDeep} />
+                <View style={styles.residentOverviewBgIcon}>
+                  <Ionicons name="build-outline" size={54} color="rgba(0,85,17,0.32)" />
+                </View>
+                <View style={styles.residentOverviewIconWrap}>
+                  <Ionicons name="build-outline" size={18} color={themeColors.primaryDeep} />
+                </View>
                 <Text style={styles.residentOverviewValue}>{residentOverview.openServices}</Text>
                 <Text style={styles.residentOverviewLabel}>Open services</Text>
               </TouchableOpacity>
@@ -893,7 +914,7 @@ const DashboardScreen = ({ navigation }) => {
             {residentOverview.announcements.length ? residentOverview.announcements.map(item => (
               <View key={item._id} style={styles.feedRow}><Ionicons name="megaphone-outline" size={17} color={themeColors.primary} /><View style={{ flex: 1 }}><Text style={styles.feedRowTitle} numberOfLines={1}>{item.title}</Text><Text style={styles.feedRowMeta} numberOfLines={1}>{item.body}</Text></View></View>
             )) : <Text style={styles.analyticsEmpty}>No announcements yet</Text>}
-            <Text style={[styles.feedTitle, { marginTop: 14 }]}>Upcoming community schedules</Text>
+            <Text style={styles.feedSectionTitle}>Upcoming community schedules</Text>
             {residentOverview.upcomingSchedules.length ? residentOverview.upcomingSchedules.map((item, index) => (
               <View key={item.reservationId || item._id || index} style={styles.feedRow}><Ionicons name="calendar-outline" size={17} color={themeColors.primary} /><View style={{ flex: 1 }}><Text style={styles.feedRowTitle} numberOfLines={1}>{item.resourceName || 'Community reservation'}</Text><Text style={styles.feedRowMeta}>{item.startDate ? new Date(item.startDate).toLocaleString() : 'Schedule pending'}</Text></View></View>
             )) : <Text style={styles.analyticsEmpty}>No upcoming schedules</Text>}
@@ -1042,13 +1063,34 @@ const DashboardScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  residentOverviewGrid: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  residentOverviewCard: { flex: 1, padding: 14, borderRadius: 15, backgroundColor: themeColors.primaryWash, borderWidth: 1, borderColor: themeColors.border },
-  residentOverviewValue: { color: themeColors.textPrimary, fontSize: 20, fontWeight: '900', marginTop: 7 },
+  residentOverviewGrid: { flexDirection: 'row', gap: 12, marginTop: 12, marginBottom: 12, paddingHorizontal: 12 },
+  residentOverviewCard: {
+    flex: 1,
+    minHeight: 102,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: themeColors.surfaceTint,
+    borderWidth: 1,
+    borderColor: '#DCE8DF',
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  residentOverviewBgIcon: { position: 'absolute', right: -6, bottom: -8, opacity: 0.55 },
+  residentOverviewIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  residentOverviewValue: { color: themeColors.textPrimary, fontSize: 20, fontWeight: '900', marginTop: 2 },
   residentOverviewLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '700', marginTop: 2 },
-  feedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, marginBottom: 7 },
+  feedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 6, paddingHorizontal: 12 },
   feedTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '900' },
-  feedRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  feedSectionTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '900', marginTop: 12, marginBottom: 4, paddingHorizontal: 12 },
+  feedRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 9, marginHorizontal: 12, borderBottomWidth: 1, borderBottomColor: themeColors.border },
   feedRowTitle: { color: themeColors.textPrimary, fontSize: 12, fontWeight: '800' },
   feedRowMeta: { color: themeColors.textSecondary, fontSize: 10, marginTop: 2 },
   container: { flex: 1, backgroundColor: themeColors.background },
@@ -1176,7 +1218,7 @@ const styles = StyleSheet.create({
 
   /* Scroll */
   content: { flex: 1 },
-  contentContainer: { padding: 18, paddingBottom: 36, gap: 18 },
+  contentContainer: { padding: 18, paddingBottom: 96, gap: 18 },
 
   /* Hero */
   heroCard: { display: 'none' },
@@ -1276,11 +1318,12 @@ const styles = StyleSheet.create({
   statCard: {
     width: '100%', borderRadius: 18, padding: 14, minHeight: 102,
     overflow: 'hidden', justifyContent: 'flex-end',
+    borderWidth: 1, borderColor: '#DCE8DF',
   },
   statCardWrapper: { width: '48%' },
   statCardNarrow: { width: '48%' },
-  statCardBgIcon: { position: 'absolute', right: -8, bottom: -8, opacity: 0.35 },
-  statCardTop: { marginBottom: 6 },
+  statCardBgIcon: { position: 'absolute', right: -8, bottom: -8, opacity: 0.62 },
+  statCardTop: { marginBottom: 6, width: 32, height: 32, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.55)', alignItems: 'center', justifyContent: 'center' },
   statCardValue: { color: themeColors.textPrimary, fontSize: 25, fontWeight: '900', lineHeight: 28 },
   statCardLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '800', marginTop: 4 },
   statCardHint: { color: themeColors.textMuted, fontSize: 9, fontWeight: '700', marginTop: 5 },
@@ -1290,8 +1333,8 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.cardBackground, borderRadius: 12,
     borderWidth: 1, borderColor: themeColors.border, overflow: 'hidden', ...shadows.small,
   },
-  quickActionsCard: { flexDirection: 'row', flexWrap: 'wrap' },
-  quickActionsHeader: { width: '100%' },
+  quickActionsCard: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', padding: 12 },
+  quickActionsHeader: { width: '100%', marginBottom: 12 },
   sectionHeader: {
     paddingHorizontal: 14, paddingVertical: 12,
     borderBottomWidth: 0.5, borderBottomColor: themeColors.border,
@@ -1307,25 +1350,57 @@ const styles = StyleSheet.create({
   sectionToggleText: { fontSize: 12, fontWeight: '700', color: themeColors.textSecondary },
   actionRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 14, paddingVertical: 14,
+    paddingHorizontal: 12, paddingVertical: 12,
     minHeight: 72,
   },
   actionRowDivider: { borderBottomWidth: 0.5, borderBottomColor: themeColors.border },
   quickActionTile: {
-    minHeight: 142,
+    width: '100%',
+    height: 132,
     flexDirection: 'column',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
-    borderRightWidth: 0.5,
-    borderRightColor: themeColors.border,
+    backgroundColor: themeColors.surfaceTint,
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderRightWidth: 0,
+    borderRightColor: 'transparent',
   },
-  actionIconWrap: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  quickActionSlot: { marginBottom: 12, minWidth: 0 },
+  quickActionTileBorder: {
+    borderWidth: 1,
+    borderColor: '#DCE8DF',
+  },
+  actionIconWrap: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: themeColors.primaryWash, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: themeColors.primary },
   liveBadgeText: { fontSize: 10, fontWeight: '700', color: themeColors.primaryDeep },
+  activeVisitorIndicator: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(217,251,234,0.92)',
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  activeVisitorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: themeColors.primaryLight,
+  },
+  activeVisitorText: {
+    color: themeColors.primaryDeep,
+    fontSize: 9,
+    fontWeight: '800',
+  },
   analyticsBlock: {
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -1343,12 +1418,9 @@ const styles = StyleSheet.create({
   statusCell: { flexGrow: 1, minWidth: '45%', backgroundColor: themeColors.primaryWash, borderRadius: 12, padding: 10 },
   statusValue: { color: themeColors.primary, fontSize: 18, fontWeight: '900' },
   statusLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '800', textTransform: 'capitalize' },
-  actionBody: { flex: 1, minWidth: 0 },
-  actionTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800' },
-  actionSub: { color: themeColors.textMuted, fontSize: 11, marginTop: 1 },
-  actionBody: { flex: 1, minWidth: 0 },
-  actionTitle: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '800' },
-  actionSub: { color: themeColors.textMuted, fontSize: 11, marginTop: 1 },
+  actionBody: { width: '100%', minWidth: 0, marginTop: 16 },
+  actionTitle: { color: themeColors.textPrimary, fontSize: 12, lineHeight: 15, fontWeight: '700', flexShrink: 1 },
+  actionSub: { color: themeColors.textSecondary, fontSize: 10, lineHeight: 13, fontWeight: '500', marginTop: 2, flexShrink: 1 },
 
   /* Footer */
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 },

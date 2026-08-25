@@ -8,7 +8,7 @@ const Visitor = require('../models/Visitor');
 const Incident = require('../models/Incident');
 const ServiceRequest = require('../models/ServiceRequest');
 const Chat = require('../models/Chat');
-const { getOpenAIClient, getOpenAIHighModel, getOpenAILowModel } = require('../services/openaiClient');
+const { getOpenAIClient, getOpenAIHighModel, getOpenAILowModel, getOpenAITokenLimitParam } = require('../services/openaiClient');
 const pdfReportService = require('../services/pdfReportService');
 
 const router = express.Router();
@@ -295,7 +295,7 @@ router.post('/chat', protect, chatLimiter, async (req, res) => {
     const response = await client.chat.completions.create({
       model,
       messages,
-      max_tokens: 800
+      ...getOpenAITokenLimitParam(model, 800)
     });
 
     const reply = response.choices?.[0]?.message?.content || 'I could not generate a response.';
@@ -468,7 +468,7 @@ router.post('/reports/admin/financial', protect, reportLimiter, async (req, res)
           { role: 'system', content: 'You are an operations analyst for a village management system. Generate a concise admin analytics report with insights across financial collections, payment methods, and user registration trends. Be professional and practical.' },
           { role: 'user', content: `Generate an admin dashboard analytics report based on this data:\n\n${dataContext}` }
         ],
-        max_tokens: 1200
+        ...getOpenAITokenLimitParam(model, 1200)
       });
       generatedReport = response.choices?.[0]?.message?.content || '';
     } catch (aiError) {
@@ -628,7 +628,7 @@ ${visitors.slice(0, 15).map(v => `- ${v.visitorName} visiting ${v.user?.firstNam
         { role: 'system', content: 'You are a security analyst for a village management system. Generate detailed visitor reports with security insights, patterns, and recommendations based on the provided data. Focus on security implications and visitor management efficiency.' },
         { role: 'user', content: `Generate a comprehensive visitor report for ${period === 'daily' ? 'today' : 'this week'} based on this data:\n\n${dataContext}` }
       ],
-      max_tokens: 1200
+      ...getOpenAITokenLimitParam(model, 1200)
     });
 
     const reportData = {
@@ -730,7 +730,7 @@ ${incidents.slice(0, 10).map(i => `- ${i.title}: ${i.description.substring(0, 10
         { role: 'system', content: 'You are a security analyst for a village management system. Generate detailed incident reports with security analysis, risk assessment, and recommendations based on the provided data. Focus on security patterns, response effectiveness, and preventive measures.' },
         { role: 'user', content: `Generate a comprehensive incident report for ${period === 'weekly' ? 'this week' : 'today'} based on this data:\n\n${dataContext}` }
       ],
-      max_tokens: 1200
+      ...getOpenAITokenLimitParam(model, 1200)
     });
 
     const reportData = {

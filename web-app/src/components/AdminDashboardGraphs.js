@@ -262,6 +262,8 @@ const AdminDashboardGraphs = () => {
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={4}>
               <TextField
+                id="admin-analytics-report-type"
+                name="reportType"
                 select
                 fullWidth
                 label="Report Type"
@@ -273,6 +275,8 @@ const AdminDashboardGraphs = () => {
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
+                id="admin-analytics-report-period"
+                name="reportPeriod"
                 select
                 fullWidth
                 label="Period"
@@ -285,6 +289,8 @@ const AdminDashboardGraphs = () => {
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
+                id="admin-analytics-report-year"
+                name="reportYear"
                 fullWidth
                 label="Year"
                 type="number"
@@ -296,6 +302,8 @@ const AdminDashboardGraphs = () => {
             {reportPeriod === 'monthly' && (
               <Grid item xs={12} sm={4}>
                 <TextField
+                  id="admin-analytics-report-month"
+                  name="reportMonth"
                   select
                   fullWidth
                   label="Month"

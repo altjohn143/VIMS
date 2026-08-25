@@ -31,9 +31,18 @@ function getOpenAIModel(mode = 'high') {
   return mode === 'low' ? getOpenAILowModel() : getOpenAIHighModel();
 }
 
+function getOpenAITokenLimitParam(model, tokens) {
+  const normalized = String(model || '').toLowerCase();
+  const key = normalized.startsWith('gpt-5') || normalized.startsWith('o')
+    ? 'max_completion_tokens'
+    : 'max_tokens';
+  return { [key]: tokens };
+}
+
 module.exports = {
   getOpenAIClient,
   getOpenAIModel,
   getOpenAIHighModel,
-  getOpenAILowModel
+  getOpenAILowModel,
+  getOpenAITokenLimitParam
 };

@@ -37,6 +37,8 @@ const T = {
 const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
 const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
 const heroBg = '/hero-roof.webp';
+const landingHeadingFont = "'Lexend', sans-serif";
+const landingBodyFont = "'Source Sans 3', sans-serif";
 const deferredSectionSx = {
   contentVisibility: 'auto',
   containIntrinsicSize: '1px 800px',
@@ -970,6 +972,9 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         '@media (prefers-reduced-motion: reduce)': {
           '*': { animation: 'none !important', transition: 'none !important' },
         },
+        '& .MuiTypography-root, & .MuiButton-root, & .MuiListItemText-primary': {
+          fontFamily: landingBodyFont,
+        },
       }}
     >
 
@@ -991,7 +996,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             backgroundImage: `url(${heroBg})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center 38%',
-            filter: 'saturate(1.08) contrast(1.04)',
+            filter: 'brightness(0.82) saturate(1.18) contrast(1.12)',
             animation: 'heroZoom 18s ease-in-out infinite alternate',
             transformOrigin: 'center',
           }}
@@ -1000,19 +1005,16 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           sx={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: `
+            background: `
               linear-gradient(
                 90deg,
-                rgba(2, 26, 13, 0.88) 0%,
-                rgba(8, 55, 28, 0.78) 38%,
-                rgba(12, 76, 38, 0.64) 68%,
-                rgba(6, 36, 18, 0.56) 100%
+                rgba(1, 15, 7, 0.94) 0%,
+                rgba(4, 35, 17, 0.88) 36%,
+                rgba(8, 59, 29, 0.74) 66%,
+                rgba(2, 19, 9, 0.72) 100%
               ),
-              url(${heroBg})
+              linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.52) 100%)
             `,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundBlendMode: 'overlay',
           }}
         />
         <Box
@@ -1042,6 +1044,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           bgcolor: 'rgba(11, 61, 31, 0.38)',
           backdropFilter: 'blur(12px)',
           animation: 'fadeUpSoft 0.55s ease',
+          fontFamily: landingBodyFont,
         }}
       >
 
@@ -1061,10 +1064,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             }}
           />
           <Box>
-            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.85rem', lineHeight: 1 }}>
+            <Typography sx={{ color: 'white', fontFamily: landingHeadingFont, fontWeight: 800, fontSize: '0.85rem', lineHeight: 1 }}>
               WESTVILLE CASIMIRO
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.78)', fontFamily: landingBodyFont, fontSize: '0.7rem', letterSpacing: 0, fontWeight: 700 }}>
               HOMES
             </Typography>
           </Box>
@@ -1196,6 +1199,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       {/* HERO */}
       <Box
         ref={homeRef}
+        className="landing-copy"
         sx={{
           position: 'relative',
           zIndex: 5,
@@ -1206,13 +1210,13 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           animation: 'fadeUpSoft 0.75s ease',
         }}
       >
-        <Typography sx={{ color: T.accent, fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', mb: 1.2 }}>
+        <Typography sx={{ color: '#9AF28A', fontFamily: landingBodyFont, fontSize: '0.78rem', fontWeight: 900, letterSpacing: 0, textTransform: 'uppercase', mb: 1.2, textShadow: '0 3px 16px rgba(0,0,0,0.72)' }}>
           Bacoor City, Cavite, Philippines
         </Typography>
-        <Typography sx={{ fontFamily: 'Georgia, serif', fontSize: { xs: '2.45rem', md: '4rem' }, fontWeight: 900, color: 'white', lineHeight: 0.94, textTransform: 'uppercase', textShadow: '0 5px 26px rgba(0,0,0,0.72)', mb: 2 }}>
+        <Typography sx={{ fontFamily: landingHeadingFont, fontSize: { xs: '2.35rem', sm: '3rem', md: '4.05rem' }, fontWeight: 900, color: 'white', lineHeight: 0.98, textTransform: 'uppercase', textShadow: '0 8px 34px rgba(0,0,0,0.82)', mb: 2 }}>
           YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.94)', fontSize: '0.92rem', mb: 3, maxWidth: 560, lineHeight: 1.65, fontWeight: 700, textShadow: '0 3px 14px rgba(0,0,0,0.62)' }}>
+        <Typography sx={{ color: 'rgba(255,255,255,0.96)', fontSize: { xs: '1rem', md: '1.05rem' }, mb: 3, maxWidth: 620, lineHeight: 1.65, fontWeight: 800, textShadow: '0 4px 18px rgba(0,0,0,0.76)' }}>
           Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
         </Typography>
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1225,6 +1229,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               borderRadius: 999,
               px: 2.4,
               py: 1.1,
+              fontFamily: landingBodyFont,
               fontWeight: 900,
               textTransform: 'none',
               boxShadow: '0 14px 34px rgba(0,0,0,0.28)',
@@ -1244,6 +1249,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               borderRadius: 999,
               px: 2.2,
               py: 1.05,
+              fontFamily: landingBodyFont,
               fontWeight: 900,
               textTransform: 'none',
               whiteSpace: 'nowrap',
@@ -1264,8 +1270,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               px: 1.5,
               py: 1,
               borderRadius: 999,
-              bgcolor: 'rgba(255,255,255,0.10)',
-              border: '1px solid rgba(255,255,255,0.14)',
+              bgcolor: 'rgba(255,255,255,0.14)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              boxShadow: '0 18px 44px rgba(0,0,0,0.28)',
+              backdropFilter: 'blur(14px)',
               animation: 'floatY 6s ease-in-out infinite',
             }}
           >
@@ -1275,10 +1283,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
               { k: '98%', l: 'Collection rate' },
             ].map((s) => (
               <Box key={s.l} sx={{ minWidth: 98, textAlign: 'center' }}>
-                <Typography sx={{ color: 'white', fontWeight: 900, lineHeight: 1, fontSize: '1.05rem' }}>
+                <Typography sx={{ color: 'white', fontFamily: landingHeadingFont, fontWeight: 900, lineHeight: 1, fontSize: '1.05rem' }}>
                   {s.k}
                 </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.70)', fontSize: '0.72rem', fontWeight: 700, mt: 0.25 }}>
+                <Typography sx={{ color: 'rgba(255,255,255,0.82)', fontFamily: landingBodyFont, fontSize: '0.72rem', fontWeight: 800, mt: 0.25 }}>
                   {s.l}
                 </Typography>
               </Box>

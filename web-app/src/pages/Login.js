@@ -43,6 +43,40 @@ const deferredSectionSx = {
   contentVisibility: 'auto',
   containIntrinsicSize: '1px 800px',
 };
+const landingSectionHeaderSx = {
+  display: 'grid',
+  gridTemplateColumns: { xs: '1fr', md: '0.88fr 1.12fr' },
+  alignItems: 'end',
+  gap: { xs: 1.2, md: 4 },
+  mb: { xs: 3.5, md: 5 },
+};
+const landingEyebrowSx = {
+  color: '#237a35',
+  fontWeight: 900,
+  fontSize: '0.72rem',
+  letterSpacing: 0,
+  textTransform: 'uppercase',
+  mb: 0.8,
+};
+const landingSectionTitleSx = {
+  color: '#062c17',
+  fontFamily: landingHeadingFont,
+  fontWeight: 900,
+  fontSize: { xs: '1.85rem', md: '2.55rem' },
+  lineHeight: 1.05,
+};
+const landingSectionTextSx = {
+  color: 'rgba(15, 23, 42, 0.66)',
+  fontWeight: 700,
+  fontSize: { xs: '0.95rem', md: '1.04rem' },
+  lineHeight: 1.7,
+};
+const landingPanelSx = {
+  borderRadius: 4,
+  backgroundColor: 'rgba(255, 255, 255, 0.92)',
+  border: '1px solid rgba(15, 90, 42, 0.10)',
+  boxShadow: '0 24px 60px rgba(6, 34, 18, 0.10)',
+};
 
 const noRedErrorFieldSx = {
   '& .MuiFormLabel-root.Mui-error': { color: '#475569' },
@@ -80,8 +114,8 @@ const PageHero = ({ title, subtitle, onClose }) => (
 
 // ─── SHARED FOOTER ────────────────────────────────────────────────────────────
 const PageFooter = () => (
-  <Box sx={{ backgroundColor: T.primary, py: { xs: 4, md: 6 }, px: { xs: 3, md: 8 } }}>
-    <Grid container spacing={4}>
+  <Box sx={{ background: 'linear-gradient(180deg, #0b3d1f 0%, #04170b 100%)', py: { xs: 4.5, md: 6.5 }, px: { xs: 3, md: 8 }, borderTop: '1px solid rgba(118, 223, 104, 0.18)' }}>
+    <Grid container spacing={4.5}>
       {[
         { title: 'About Westville', links: ['Brand History', 'Vision & Mission', 'Core Values', 'Community News'] },
         { title: 'Resident Services', links: ['Service Requests', 'Visitor Management', 'Announcements', 'Pay Dues'] },
@@ -89,15 +123,15 @@ const PageFooter = () => (
         { title: 'Support', links: ['Contact Us', 'FAQs', 'Security Office', 'Emergency Hotline'] },
       ].map((col) => (
         <Grid item xs={6} md={3} key={col.title}>
-          <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '0.85rem', mb: 1.5 }}>{col.title}</Typography>
-          {col.links.map((l) => <Typography key={l} sx={{ color: 'rgba(255,255,255,0.82)', fontSize: '0.78rem', mb: 0.8, cursor: 'pointer', '&:hover': { color: 'white' } }}>{l}</Typography>)}
+          <Typography sx={{ color: 'white', fontFamily: landingHeadingFont, fontWeight: 900, fontSize: '0.94rem', mb: 1.6 }}>{col.title}</Typography>
+          {col.links.map((l) => <Typography key={l} sx={{ color: 'rgba(255,255,255,0.70)', fontSize: '0.8rem', mb: 0.9, cursor: 'pointer', fontWeight: 700, transition: 'color 0.18s ease, transform 0.18s ease', '&:hover': { color: '#9af084', transform: 'translateX(2px)' } }}>{l}</Typography>)}
         </Grid>
       ))}
     </Grid>
-    <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid rgba(255,255,255,0.15)', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-      <Typography sx={{ color: 'rgba(255,255,255,0.78)', fontSize: '0.75rem' }}>© {new Date().getFullYear()} Westville Casimiro Homes. All rights reserved.</Typography>
-      <Box sx={{ display: 'flex', gap: 3 }}>
-        {['Privacy Policy', 'Terms and Conditions', 'Sitemap'].map((i) => <Typography key={i} sx={{ color: 'rgba(255,255,255,0.78)', fontSize: '0.75rem', cursor: 'pointer', '&:hover': { color: 'white' } }}>{i}</Typography>)}
+    <Box sx={{ mt: 4.5, pt: 3, borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 1.5 }}>
+      <Typography sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', fontWeight: 700 }}>© {new Date().getFullYear()} Westville Casimiro Homes. All rights reserved.</Typography>
+      <Box sx={{ display: 'flex', gap: { xs: 1.4, md: 3 }, flexWrap: 'wrap' }}>
+        {['Privacy Policy', 'Terms and Conditions', 'Sitemap'].map((i) => <Typography key={i} sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700, '&:hover': { color: '#9af084' } }}>{i}</Typography>)}
       </Box>
     </Box>
   </Box>
@@ -231,7 +265,7 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
   return (
     <Grid container spacing={3} alignItems="stretch">
       <Grid item xs={12} md={5}>
-        <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: 2, border: '1px solid rgba(45,80,22,0.15)', height: '100%' }}>
+        <Box sx={{ ...landingPanelSx, p: { xs: 2, md: 2.4 }, height: '100%' }}>
           <Box sx={{ mb: 1.5, display: 'flex', gap: 0.8, flexWrap: 'wrap' }}>
             {[
               { value: 'all', label: 'All' },
@@ -246,20 +280,24 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
                   bgcolor: resourceFilter === option.value ? T.primary : '#f1f5f9',
                   color: resourceFilter === option.value ? 'white' : '#334155',
                   fontWeight: 900,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  borderRadius: 999,
+                  border: resourceFilter === option.value ? '1px solid transparent' : '1px solid rgba(15, 90, 42, 0.10)',
+                  transition: 'background-color 0.18s ease, color 0.18s ease, transform 0.18s ease',
+                  '&:hover': { transform: 'translateY(-1px)' }
                 }}
               />
             ))}
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-            <IconButton size="small" onClick={onPrevMonth} aria-label="Previous month">
+            <IconButton size="small" onClick={onPrevMonth} aria-label="Previous month" sx={{ bgcolor: 'rgba(15,90,42,0.07)', '&:hover': { bgcolor: 'rgba(15,90,42,0.12)' } }}>
               <ArrowBackIcon fontSize="small" sx={{ color: T.primary }} />
             </IconButton>
-            <Typography sx={{ fontWeight: 900, color: T.primary }}>
+            <Typography sx={{ fontFamily: landingHeadingFont, fontWeight: 900, color: '#062c17' }}>
               {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
             </Typography>
-            <IconButton size="small" onClick={onNextMonth} aria-label="Next month">
+            <IconButton size="small" onClick={onNextMonth} aria-label="Next month" sx={{ bgcolor: 'rgba(15,90,42,0.07)', '&:hover': { bgcolor: 'rgba(15,90,42,0.12)' } }}>
               <ArrowBackIcon fontSize="small" sx={{ color: T.primary, transform: 'rotate(180deg)' }} />
             </IconButton>
           </Box>
@@ -285,13 +323,14 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
                     borderRadius: 2,
                     cursor: 'pointer',
                     border: `1px solid ${selected ? T.primary : hasReservation ? '#fecaca' : 'rgba(15,23,42,0.08)'}`,
-                    bgcolor: selected ? '#dcfce7' : hasReservation ? '#fff1f2' : '#f8fafc',
+                    bgcolor: selected ? '#dff7dc' : hasReservation ? '#fff1f2' : '#f8fafc',
                     color: hasReservation ? '#991b1b' : '#0f172a',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
                     fontWeight: 900,
+                    boxShadow: selected ? '0 8px 18px rgba(15,90,42,0.14)' : 'none',
                     '&:hover': { transform: 'translateY(-1px)', boxShadow: '0 8px 18px rgba(15,23,42,0.10)' },
                     transition: 'all 0.16s ease'
                   }}
@@ -311,7 +350,7 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
       </Grid>
 
       <Grid item xs={12} md={7}>
-        <Box sx={{ backgroundColor: 'white', borderRadius: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.10)', p: { xs: 2, md: 2.5 }, border: '1px solid rgba(45,80,22,0.15)', minHeight: 365 }}>
+        <Box sx={{ ...landingPanelSx, p: { xs: 2.2, md: 2.8 }, minHeight: 365 }}>
           {loading ? (
             <Box sx={{ minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <CircularProgress size={28} sx={{ color: T.primary }} />
@@ -322,7 +361,7 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
             <>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 2, flexWrap: 'wrap' }}>
                 <Box>
-                  <Typography sx={{ color: '#0f172a', fontSize: '1.1rem', fontWeight: 900 }}>
+                  <Typography sx={{ color: '#062c17', fontFamily: landingHeadingFont, fontSize: '1.2rem', fontWeight: 900 }}>
                     {selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
                   </Typography>
                   <Typography sx={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700 }}>
@@ -339,7 +378,7 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
                 <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
                   {selectedSchedules.map((slot) => (
                     <Grid item xs={12} sm={6} key={`${slot.reservationId}-${slot.resourceName}`}>
-                      <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid rgba(15,23,42,0.08)', bgcolor: '#f8fafc' }}>
+                    <Card sx={{ borderRadius: 2.4, boxShadow: 'none', border: '1px solid rgba(15,90,42,0.10)', bgcolor: '#f8fafc' }}>
                         <CardContent sx={{ p: 1.75, '&:last-child': { pb: 1.75 } }}>
                           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.75 }}>
                             <TimeIcon sx={{ color: T.primary, fontSize: 18 }} />
@@ -375,7 +414,7 @@ const PublicReservationSchedule = ({ currentDate, onPrevMonth, onNextMonth }) =>
               ) : (
                 <Box sx={{ display: 'grid', gap: 1 }}>
                   {upcomingSchedules.map((slot) => (
-                    <Box key={`${slot.reservationId}-${slot.resourceName}-${slot.startDate}`} sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, alignItems: 'center', p: 1.1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid rgba(15,23,42,0.06)' }}>
+                    <Box key={`${slot.reservationId}-${slot.resourceName}-${slot.startDate}`} sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, alignItems: 'center', p: 1.2, borderRadius: 2.4, bgcolor: '#f8fafc', border: '1px solid rgba(15,90,42,0.08)' }}>
                       <Box sx={{ minWidth: 0 }}>
                         <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: '0.86rem' }} noWrap>
                           {slot.resourceName}
@@ -504,17 +543,18 @@ const PrivacyPolicySection = () => (
       <Paper
         sx={{
           p: { xs: 2.5, md: 3 },
-          borderRadius: 3,
+          borderRadius: 4,
           height: '100%',
-          bgcolor: T.primary,
+          background: 'linear-gradient(160deg, #062c17 0%, #0f5a2a 100%)',
           color: 'white',
-          boxShadow: '0 12px 32px rgba(15,90,42,0.18)'
+          boxShadow: '0 24px 60px rgba(6,34,18,0.18)',
+          border: '1px solid rgba(118, 223, 104, 0.20)'
         }}
       >
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.accent, mb: 1 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: 0, textTransform: 'uppercase', color: '#9af084', mb: 1 }}>
           Data Privacy
         </Typography>
-        <Typography sx={{ fontSize: { xs: '1.65rem', md: '2rem' }, fontWeight: 950, lineHeight: 1.08, mb: 2 }}>
+        <Typography sx={{ fontFamily: landingHeadingFont, fontSize: { xs: '1.75rem', md: '2.15rem' }, fontWeight: 900, lineHeight: 1.08, mb: 2 }}>
           Privacy Policy
         </Typography>
         <Typography sx={{ color: 'rgba(255,255,255,0.78)', fontWeight: 600, lineHeight: 1.75, fontSize: '0.9rem' }}>
@@ -532,20 +572,18 @@ const PrivacyPolicySection = () => (
       <Paper
         sx={{
           p: { xs: 2.5, md: 3 },
-          borderRadius: 3,
-          boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-          border: '1px solid rgba(45,80,22,0.12)'
+          ...landingPanelSx,
         }}
       >
         <Grid container spacing={2.25}>
           {PRIVACY_SECTIONS.map((section) => (
             <Grid item xs={12} key={section.title}>
-              <Box sx={{ pb: 2, borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
-                <Typography sx={{ color: T.primary, fontWeight: 900, fontSize: '1rem', mb: 1 }}>
+              <Box sx={{ pb: 2, borderBottom: '1px solid rgba(15,90,42,0.10)' }}>
+                <Typography sx={{ color: '#0f5a2a', fontFamily: landingHeadingFont, fontWeight: 900, fontSize: '1.05rem', mb: 1 }}>
                   {section.title}
                 </Typography>
                 {section.body.map((paragraph) => (
-                  <Typography key={paragraph} sx={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.75, mb: 1 }}>
+                  <Typography key={paragraph} sx={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.78, mb: 1, fontWeight: 600 }}>
                     {paragraph}
                   </Typography>
                 ))}
@@ -602,11 +640,11 @@ const ContactPage = ({ onClose, embedded = false }) => {
   };
 
   const content = (
-    <Grid container spacing={5}>
+    <Grid container spacing={5} alignItems="stretch">
 
           {/* Contact Info */}
           <Grid item xs={12} md={5}>
-            <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: T.primary, mb: 3 }}>Get in Touch</Typography>
+            <Typography sx={{ fontFamily: landingHeadingFont, fontSize: '1.65rem', fontWeight: 900, color: '#062c17', mb: 3 }}>Get in Touch</Typography>
             {[
               { icon: <LocationIcon sx={{ color: T.primary }} />, label: 'Address', value: 'Westville Casimiro Homes, Casimiro Avenue, Bacoor City, Cavite, Philippines' },
               { icon: <PhoneIcon sx={{ color: T.primary }} />, label: 'Phone', value: '+63 (02) 8123-4567\n+63 917 123 4567 (Mobile)' },
@@ -614,25 +652,25 @@ const ContactPage = ({ onClose, embedded = false }) => {
               { icon: <TimeIcon sx={{ color: T.primary }} />, label: 'Office Hours', value: 'Monday – Friday: 8:00 AM – 5:00 PM\nSaturday: 8:00 AM – 12:00 PM' },
             ].map((item) => (
               <Box key={item.label} sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <Box sx={{ width: 44, height: 44, borderRadius: 2, backgroundColor: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid rgba(45,80,22,0.15)` }}>
+                <Box sx={{ width: 46, height: 46, borderRadius: 2.4, backgroundColor: '#eef7f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid rgba(15,90,42,0.12)`, boxShadow: '0 10px 22px rgba(6,34,18,0.07)' }}>
                   {item.icon}
                 </Box>
                 <Box>
-                  <Typography sx={{ fontWeight: 700, color: '#1e293b', fontSize: '0.85rem', mb: 0.3 }}>{item.label}</Typography>
-                  <Typography sx={{ color: '#555', fontSize: '0.82rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{item.value}</Typography>
+                  <Typography sx={{ fontWeight: 900, color: '#062c17', fontSize: '0.88rem', mb: 0.35 }}>{item.label}</Typography>
+                  <Typography sx={{ color: '#53635a', fontSize: '0.84rem', lineHeight: 1.65, whiteSpace: 'pre-line', fontWeight: 600 }}>{item.value}</Typography>
                 </Box>
               </Box>
             ))}
 
-            <Box sx={{ mt: 3, p: 3, backgroundColor: T.primary, borderRadius: 3 }}>
-              <Typography sx={{ color: 'white', fontWeight: 700, mb: 1 }}>Emergency Hotline</Typography>
-              <Typography sx={{ color: T.accent, fontSize: '1.4rem', fontWeight: 900 }}>+63 917 911 0000</Typography>
+            <Box sx={{ mt: 3, p: 3, background: 'linear-gradient(145deg, #062c17 0%, #0f5a2a 100%)', borderRadius: 4, boxShadow: '0 22px 46px rgba(6,34,18,0.18)' }}>
+              <Typography sx={{ color: 'white', fontFamily: landingHeadingFont, fontWeight: 900, mb: 1 }}>Emergency Hotline</Typography>
+              <Typography sx={{ color: '#9af084', fontSize: '1.45rem', fontWeight: 900 }}>+63 917 911 0000</Typography>
               <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', mt: 0.5 }}>Available 24/7 for security emergencies</Typography>
             </Box>
 
             <Box sx={{ mt: 3, display: 'flex', gap: 1.5 }}>
               {[<FacebookIcon />, <InstagramIcon />, <YouTubeIcon />, <LinkedInIcon />].map((icon, i) => (
-                <Box key={i} sx={{ width: 40, height: 40, borderRadius: 2, backgroundColor: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', '&:hover': { backgroundColor: T.dark } }}>
+                <Box key={i} sx={{ width: 42, height: 42, borderRadius: 2.4, backgroundColor: '#ffffff', border: '1px solid rgba(15,90,42,0.12)', boxShadow: '0 12px 24px rgba(6,34,18,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.primary, cursor: 'pointer', transition: 'transform 0.18s ease, background-color 0.18s ease, color 0.18s ease', '&:hover': { backgroundColor: T.primary, color: 'white', transform: 'translateY(-2px)' } }}>
                   {icon}
                 </Box>
               ))}
@@ -641,21 +679,21 @@ const ContactPage = ({ onClose, embedded = false }) => {
 
           {/* Contact Form */}
           <Grid item xs={12} md={7}>
-            <Paper sx={{ p: { xs: 3, md: 4 }, borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}>
+            <Paper sx={{ ...landingPanelSx, p: { xs: 3, md: 4 } }}>
               {sent ? (
                 <Box sx={{ textAlign: 'center', py: 6 }}>
-                  <Box sx={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-                    <StarIcon sx={{ color: '#00D084', fontSize: 36 }} />
+                  <Box sx={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: '#dff7dc', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+                    <StarIcon sx={{ color: T.primary, fontSize: 36 }} />
                   </Box>
-                  <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: T.primary, mb: 1 }}>Message Sent!</Typography>
+                  <Typography sx={{ fontFamily: landingHeadingFont, fontSize: '1.45rem', fontWeight: 900, color: T.primary, mb: 1 }}>Message Sent!</Typography>
                   <Typography sx={{ color: '#666', mb: 3 }}>Thank you for reaching out. Our team will get back to you within 1–2 business days.</Typography>
                   <Button variant="contained" onClick={() => { setSent(false); setForm({ name: '', email: '', subject: '', message: '' }); }}
-                    sx={{ backgroundColor: T.primary, borderRadius: 2, textTransform: 'none' }}>Send Another Message</Button>
+                    sx={{ backgroundColor: T.primary, borderRadius: 999, textTransform: 'none', px: 3, fontWeight: 900 }}>Send Another Message</Button>
                 </Box>
               ) : (
                 <>
-                  <Typography sx={{ fontSize: '1.3rem', fontWeight: 800, color: T.primary, mb: 0.5 }}>Send Us a Message</Typography>
-                  <Typography sx={{ color: '#888', fontSize: '0.85rem', mb: 3 }}>Fill out the form below and we'll respond as soon as possible.</Typography>
+                  <Typography sx={{ fontFamily: landingHeadingFont, fontSize: '1.45rem', fontWeight: 900, color: '#062c17', mb: 0.5 }}>Send Us a Message</Typography>
+                  <Typography sx={{ color: '#64748b', fontSize: '0.88rem', mb: 3, fontWeight: 700 }}>Fill out the form below and we'll respond as soon as possible.</Typography>
                   {sendError && <Alert severity="error" sx={{ mb: 2 }}>{sendError}</Alert>}
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
@@ -676,7 +714,7 @@ const ContactPage = ({ onClose, embedded = false }) => {
                     </Grid>
                     <Grid item xs={12}>
                       <Button fullWidth variant="contained" onClick={handleSubmit} disabled={sending}
-                        sx={{ backgroundColor: T.primary, py: 1.5, borderRadius: 2, fontWeight: 700, fontSize: '0.95rem', textTransform: 'none', '&:hover': { backgroundColor: T.dark }, boxShadow: '0 4px 14px rgba(45,80,22,0.35)' }}>
+                        sx={{ backgroundColor: T.primary, py: 1.5, borderRadius: 999, fontWeight: 900, fontSize: '0.95rem', textTransform: 'none', '&:hover': { backgroundColor: T.dark }, boxShadow: '0 14px 28px rgba(15,90,42,0.24)' }}>
                         {sending ? 'Sending...' : 'Send Message'}
                       </Button>
                     </Grid>
@@ -708,43 +746,54 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
   const content = (
     <>
     {/* Vision */}
-    <Box sx={{ backgroundColor: T.bg, py: { xs: 6, md: 10 } }}>
+    <Box sx={{ background: 'linear-gradient(180deg, #f7fbf8 0%, #eef7f0 100%)', py: { xs: 6, md: 10 } }}>
       <Container maxWidth="lg">
         <Grid container spacing={6} alignItems="center">
           <Grid item xs={12} md={6}>
-            <Box component="img" src="/images/vision.webp" alt="Casimiro Westville Homes community vision" loading="lazy" decoding="async" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
+            <Box sx={{ position: 'relative' }}>
+              <Box component="img" src="/images/vision.webp" alt="Casimiro Westville Homes community vision" loading="lazy" decoding="async" sx={{ width: '100%', borderRadius: 4, boxShadow: '0 26px 64px rgba(6,34,18,0.18)', height: { xs: 260, md: 390 }, objectFit: 'cover', filter: 'saturate(1.08) contrast(1.05)' }} />
+              <Box sx={{ position: 'absolute', inset: 0, borderRadius: 4, border: '1px solid rgba(255,255,255,0.60)', boxShadow: 'inset 0 -80px 90px rgba(4,26,13,0.22)' }} />
+            </Box>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: T.primary, mb: 3, textTransform: 'uppercase' }}>VISION</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is a premier residential community committed to delivering beautifully designed, affordable homes within a safe, well-planned, and sustainable environment in Bacoor, Cavite.</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>The Westville life inspires memories created within dream-like homes and moments nurtured in its exclusive amenities. Each home carries the distinct character of its surroundings and lush landscapes.</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8 }}>More than places of residence, Westville homes serve as sanctuaries for Filipino families — a convergence of nature's serenity and urban convenience.</Typography>
+            <Typography sx={landingEyebrowSx}>Vision</Typography>
+            <Typography sx={{ ...landingSectionTitleSx, mb: 2.2 }}>A safer, greener place to belong</Typography>
+            <Typography sx={{ color: '#475569', lineHeight: 1.85, mb: 2, fontWeight: 650 }}>Westville Casimiro Homes is a premier residential community committed to delivering beautifully designed, affordable homes within a safe, well-planned, and sustainable environment in Bacoor, Cavite.</Typography>
+            <Typography sx={{ color: '#475569', lineHeight: 1.85, mb: 2, fontWeight: 650 }}>The Westville life inspires memories created within dream-like homes and moments nurtured in its exclusive amenities. Each home carries the distinct character of its surroundings and lush landscapes.</Typography>
+            <Typography sx={{ color: '#475569', lineHeight: 1.85, fontWeight: 650 }}>More than places of residence, Westville homes serve as sanctuaries for Filipino families — a convergence of nature's serenity and urban convenience.</Typography>
           </Grid>
         </Grid>
       </Container>
     </Box>
 
     {/* Mission */}
-    <Box sx={{ backgroundColor: '#fff', py: { xs: 6, md: 10 } }}>
+    <Box sx={{ backgroundColor: '#ffffff', py: { xs: 6, md: 10 } }}>
       <Container maxWidth="lg">
         <Grid container spacing={6} alignItems="center" direction={{ xs: 'column-reverse', md: 'row' }}>
           <Grid item xs={12} md={6}>
-            <Typography sx={{ fontSize: '2rem', fontWeight: 900, color: T.primary, mb: 3, textTransform: 'uppercase' }}>MISSION</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>For years, we have built quality homes, well-planned communities, and safe living spaces across Bacoor City. These spaces elevate lives and are perfect for families who seek security, comfort, and a sense of belonging.</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8, mb: 2 }}>Westville Casimiro Homes is dedicated to providing residents with modern facilities, responsive management, and a thriving community where every member feels valued and heard.</Typography>
-            <Typography sx={{ color: '#333', lineHeight: 1.8 }}>We continuously innovate through our Village Information Management System (VIMS), ensuring transparent governance, efficient visitor management, and accessible resident services.</Typography>
+            <Typography sx={landingEyebrowSx}>Mission</Typography>
+            <Typography sx={{ ...landingSectionTitleSx, mb: 2.2 }}>Service that feels organized and close</Typography>
+            <Typography sx={{ color: '#475569', lineHeight: 1.85, mb: 2, fontWeight: 650 }}>For years, we have built quality homes, well-planned communities, and safe living spaces across Bacoor City. These spaces elevate lives and are perfect for families who seek security, comfort, and a sense of belonging.</Typography>
+            <Typography sx={{ color: '#475569', lineHeight: 1.85, mb: 2, fontWeight: 650 }}>Westville Casimiro Homes is dedicated to providing residents with modern facilities, responsive management, and a thriving community where every member feels valued and heard.</Typography>
+            <Typography sx={{ color: '#475569', lineHeight: 1.85, fontWeight: 650 }}>We continuously innovate through our Village Information Management System (VIMS), ensuring transparent governance, efficient visitor management, and accessible resident services.</Typography>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Box component="img" src="/images/mission.webp" alt="Casimiro Westville Homes community mission" loading="lazy" decoding="async" sx={{ width: '100%', borderRadius: 3, boxShadow: '0 12px 40px rgba(0,0,0,0.15)', height: { xs: 260, md: 380 }, objectFit: 'cover' }} />
+            <Box sx={{ position: 'relative' }}>
+              <Box component="img" src="/images/mission.webp" alt="Casimiro Westville Homes community mission" loading="lazy" decoding="async" sx={{ width: '100%', borderRadius: 4, boxShadow: '0 26px 64px rgba(6,34,18,0.18)', height: { xs: 260, md: 390 }, objectFit: 'cover', filter: 'saturate(1.08) contrast(1.05)' }} />
+              <Box sx={{ position: 'absolute', inset: 0, borderRadius: 4, border: '1px solid rgba(255,255,255,0.60)', boxShadow: 'inset 0 -80px 90px rgba(4,26,13,0.22)' }} />
+            </Box>
           </Grid>
         </Grid>
       </Container>
     </Box>
     
     {/* Core Values */}
-    <Box sx={{ backgroundColor: T.bg, py: { xs: 6, md: 10 } }}>
+    <Box sx={{ background: 'linear-gradient(180deg, #eef7f0 0%, #ffffff 100%)', py: { xs: 6, md: 10 } }}>
       <Container maxWidth="lg">
-        <Typography sx={{ textAlign: 'center', fontSize: '2rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 6 }}>OUR CORE VALUES</Typography>
+        <Box sx={{ textAlign: 'center', maxWidth: 680, mx: 'auto', mb: 5.5 }}>
+          <Typography sx={{ ...landingEyebrowSx, mb: 1 }}>Our Core Values</Typography>
+          <Typography sx={landingSectionTitleSx}>Built around the daily life of residents</Typography>
+        </Box>
         <Grid container spacing={4}>
           {[
             { title: 'Community', desc: 'We foster a strong sense of belonging, nurturing relationships and building a vibrant, inclusive neighborhood for all residents.', img: '/images/hoa1-420.webp' },
@@ -753,11 +802,11 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
             { title: 'Transparency', desc: 'We uphold honest communication with all homeowners, ensuring fair governance and accessible community information.', img: '/images/hoa4-420.webp' },
           ].map((val) => (
             <Grid item xs={12} sm={6} md={3} key={val.title}>
-              <Box sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 6px 24px rgba(0,0,0,0.1)', backgroundColor: 'white', height: '100%', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-6px)' } }}>
-                <Box component="img" src={val.img} alt={val.title} loading="lazy" decoding="async" sx={{ width: '100%', height: 180, objectFit: 'cover' }} />
+              <Box sx={{ borderRadius: 4, overflow: 'hidden', boxShadow: '0 22px 54px rgba(6,34,18,0.12)', backgroundColor: 'white', height: '100%', border: '1px solid rgba(15,90,42,0.10)', transition: 'transform 0.25s ease, box-shadow 0.25s ease', '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 28px 64px rgba(6,34,18,0.16)' } }}>
+                <Box component="img" src={val.img} alt={val.title} loading="lazy" decoding="async" sx={{ width: '100%', height: 185, objectFit: 'cover', filter: 'saturate(1.08) contrast(1.04)' }} />
                 <Box sx={{ p: 3 }}>
-                  <Typography sx={{ fontWeight: 800, color: T.primary, fontSize: '1.05rem', mb: 1 }}>{val.title}</Typography>
-                  <Typography sx={{ color: '#555', fontSize: '0.85rem', lineHeight: 1.6 }}>{val.desc}</Typography>
+                  <Typography sx={{ fontFamily: landingHeadingFont, fontWeight: 900, color: '#0f5a2a', fontSize: '1.1rem', mb: 1 }}>{val.title}</Typography>
+                  <Typography sx={{ color: '#53635a', fontSize: '0.86rem', lineHeight: 1.65, fontWeight: 600 }}>{val.desc}</Typography>
                 </Box>
               </Box>
             </Grid>
@@ -767,12 +816,12 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
     </Box>
 
     {/* Stats */}
-    <Box sx={{ backgroundColor: T.primary, py: { xs: 5, md: 7 } }}>
+    <Box sx={{ background: 'linear-gradient(135deg, #062c17 0%, #0b3d1f 52%, #124f29 100%)', py: { xs: 5, md: 7 }, borderTop: '1px solid rgba(118,223,104,0.18)', borderBottom: '1px solid rgba(118,223,104,0.18)' }}>
       <Container maxWidth="lg">
         <Grid container spacing={4} justifyContent="center">
           {[['500+', 'Homeowners'], ['24/7', 'Security Monitoring'], ['10+', 'Years of Service'], ['100%', 'Committed to Excellence']].map(([n, l]) => (
             <Grid item xs={6} md={3} key={l} sx={{ textAlign: 'center' }}>
-              <Typography sx={{ fontSize: { xs: '2rem', md: '2.8rem' }, fontWeight: 900, color: T.accent }}>{n}</Typography>
+              <Typography sx={{ fontFamily: landingHeadingFont, fontSize: { xs: '2rem', md: '2.8rem' }, fontWeight: 900, color: '#9af084' }}>{n}</Typography>
               <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem', fontWeight: 600 }}>{l}</Typography>
             </Grid>
           ))}
@@ -781,11 +830,11 @@ const AboutUsPage = ({ onClose, embedded = false }) => {
     </Box>
 
     {/* Social */}
-    <Box sx={{ backgroundColor: '#f9f9f9', py: { xs: 5, md: 7 }, textAlign: 'center' }}>
-      <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: T.primary, letterSpacing: '0.1em', textTransform: 'uppercase', mb: 3 }}>Catch the Latest on Our Social Media</Typography>
+    <Box sx={{ backgroundColor: '#ffffff', py: { xs: 5, md: 7 }, textAlign: 'center' }}>
+      <Typography sx={{ fontFamily: landingHeadingFont, fontSize: '1.18rem', fontWeight: 900, color: '#062c17', mb: 3 }}>Catch the Latest on Our Social Media</Typography>
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
         {[<FacebookIcon />, <InstagramIcon />, <YouTubeIcon />, <LinkedInIcon />].map((icon, i) => (
-          <Box key={i} sx={{ width: 48, height: 48, borderRadius: 2, backgroundColor: T.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', '&:hover': { backgroundColor: T.dark } }}>{icon}</Box>
+          <Box key={i} sx={{ width: 48, height: 48, borderRadius: 2.5, backgroundColor: '#eef7f0', border: '1px solid rgba(15,90,42,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.primary, cursor: 'pointer', transition: 'transform 0.18s ease, background-color 0.18s ease, color 0.18s ease', '&:hover': { backgroundColor: T.primary, color: 'white', transform: 'translateY(-2px)' } }}>{icon}</Box>
         ))}
       </Box>
     </Box>
@@ -899,7 +948,33 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   }, [showDeferredContent]);
 
   const visibleAnnouncements = publicAnnouncements.length > 0 ? publicAnnouncements : ANNOUNCEMENTS;
-
+  const communityCards = [
+    {
+      image: '/images/hoa4-640.webp',
+      category: 'Westville Homes',
+      title: 'Modern homes built for family life',
+    },
+    {
+      image: '/images/hoa1-640.webp',
+      category: 'Green Spaces',
+      title: 'Open community areas for everyday living',
+    },
+    {
+      image: '/images/hoa2-640.webp',
+      category: 'Village Life',
+      title: 'A connected neighborhood in Bacoor',
+    },
+    {
+      image: '/images/admin-640.webp',
+      category: 'Administration',
+      title: 'Organized services for residents and staff',
+    },
+    {
+      image: '/images/security-640.webp',
+      category: 'Security',
+      title: 'Gate monitoring and visitor coordination',
+    },
+  ];
   const scrollTo = (ref) => {
     const el = ref?.current;
     if (el) {
@@ -917,7 +992,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
   const navItem = (label, onClick) => (
     <Typography key={label} onClick={onClick}
-      sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', cursor: 'pointer', '&:hover': { color: T.accent }, transition: 'color 0.2s' }}>
+      sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.72rem', fontWeight: 700, letterSpacing: 0, cursor: 'pointer', '&:hover': { color: T.accent }, transition: 'color 0.2s' }}>
       {label}
     </Typography>
   );
@@ -969,6 +1044,10 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           from: { opacity: 0, transform: 'translateY(12px) scale(0.985)' },
           to: { opacity: 1, transform: 'translateY(0) scale(1)' },
         },
+        '@keyframes carouselDrift': {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-50%)' },
+        },
         '@media (prefers-reduced-motion: reduce)': {
           '*': { animation: 'none !important', transition: 'none !important' },
         },
@@ -985,7 +1064,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           top: 0,
           left: 0,
           right: 0,
-          height: { xs: 620, md: 680 },
+          height: { xs: 760, md: 820 },
           overflow: 'hidden',
         }}
       >
@@ -1008,12 +1087,12 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             background: `
               linear-gradient(
                 90deg,
-                rgba(1, 15, 7, 0.94) 0%,
-                rgba(4, 35, 17, 0.88) 36%,
-                rgba(8, 59, 29, 0.74) 66%,
-                rgba(2, 19, 9, 0.72) 100%
+                rgba(1, 15, 7, 0.92) 0%,
+                rgba(4, 35, 17, 0.84) 38%,
+                rgba(8, 59, 29, 0.68) 68%,
+                rgba(2, 19, 9, 0.70) 100%
               ),
-              linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.52) 100%)
+              linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.42) 100%)
             `,
           }}
         />
@@ -1204,22 +1283,26 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           position: 'relative',
           zIndex: 5,
           px: { xs: 3, md: 6 },
-          pt: { xs: 5, md: 8 },
-          pb: { xs: 5, md: 7 },
-          maxWidth: 760,
+          pt: { xs: 6, md: 9 },
+          pb: { xs: 4, md: 5 },
+          maxWidth: 960,
+          mx: 'auto',
+          textAlign: 'center',
           animation: 'fadeUpSoft 0.75s ease',
         }}
       >
         <Typography sx={{ color: '#9AF28A', fontFamily: landingBodyFont, fontSize: '0.78rem', fontWeight: 900, letterSpacing: 0, textTransform: 'uppercase', mb: 1.2, textShadow: '0 3px 16px rgba(0,0,0,0.72)' }}>
           Bacoor City, Cavite, Philippines
         </Typography>
-        <Typography sx={{ fontFamily: landingHeadingFont, fontSize: { xs: '2.35rem', sm: '3rem', md: '4.05rem' }, fontWeight: 900, color: 'white', lineHeight: 0.98, textTransform: 'uppercase', textShadow: '0 8px 34px rgba(0,0,0,0.82)', mb: 2 }}>
-          YOUR DREAM LIFE AWAITS<br />IN WESTVILLE HOMES
+        <Typography sx={{ fontFamily: landingHeadingFont, fontSize: { xs: '2.4rem', sm: '3.4rem', md: '4.7rem' }, fontWeight: 900, color: 'white', lineHeight: 0.98, textTransform: 'uppercase', textShadow: '0 8px 34px rgba(0,0,0,0.82)', mb: 2 }}>
+          YOUR DREAM LIFE AWAITS
+          <br />
+          IN WESTVILLE HOMES
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.96)', fontSize: { xs: '1rem', md: '1.05rem' }, mb: 3, maxWidth: 620, lineHeight: 1.65, fontWeight: 800, textShadow: '0 4px 18px rgba(0,0,0,0.76)' }}>
+        <Typography sx={{ color: 'rgba(255,255,255,0.96)', fontSize: { xs: '1rem', md: '1.08rem' }, mb: 3, maxWidth: 680, mx: 'auto', lineHeight: 1.65, fontWeight: 800, textShadow: '0 4px 18px rgba(0,0,0,0.76)' }}>
           Standing the test of time, Westville has grown from an innovative real estate developer into a strong name in the industry, continuously building quality homes and vibrant communities.
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
           <Button
             variant="contained"
             onClick={() => scrollTo(aboutRef)}
@@ -1295,79 +1378,258 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
       </Box>
 
+      {/* COMMUNITY IMAGE CAROUSEL */}
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 6,
+          width: '100%',
+          overflow: 'hidden',
+          pt: { xs: 1, md: 2 },
+          pb: { xs: 4, md: 5.5 },
+          '&::before, &::after': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            width: { xs: 36, md: 150 },
+            zIndex: 2,
+            pointerEvents: 'none',
+          },
+          '&::before': {
+            left: 0,
+            background: 'linear-gradient(90deg, rgba(2, 18, 9, 0.92) 0%, rgba(2, 18, 9, 0) 100%)',
+          },
+          '&::after': {
+            right: 0,
+            background: 'linear-gradient(270deg, rgba(2, 18, 9, 0.86) 0%, rgba(2, 18, 9, 0) 100%)',
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            width: 'max-content',
+            gap: { xs: 2, md: 3 },
+            pl: { xs: 2, md: 3 },
+            animation: 'carouselDrift 38s linear infinite',
+            '&:hover': { animationPlayState: 'paused' },
+          }}
+        >
+          {[...communityCards, ...communityCards].map((card, index) => (
+            <Box
+              key={`${card.title}-${index}`}
+              sx={{
+                position: 'relative',
+                flexShrink: 0,
+                width: { xs: 250, sm: 292, md: 344 },
+                height: { xs: 320, sm: 360, md: 420 },
+                overflow: 'hidden',
+                borderRadius: { xs: 4, md: 5 },
+                border: '1px solid rgba(255,255,255,0.20)',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.30)',
+                backgroundColor: '#0b3d1f',
+                transform: index % 2 === 0 ? 'translateY(0)' : 'translateY(20px)',
+              }}
+            >
+              <Box
+                component="img"
+                src={card.image}
+                alt={card.title}
+                loading="lazy"
+                decoding="async"
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  filter: 'saturate(1.06) contrast(1.05)',
+                }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(180deg, rgba(2, 15, 7, 0.02) 0%, rgba(2, 15, 7, 0.20) 42%, rgba(2, 15, 7, 0.82) 100%)',
+                }}
+              />
+              <Box sx={{ position: 'absolute', left: 22, right: 22, bottom: 22 }}>
+                <Typography sx={{ color: 'rgba(255,255,255,0.78)', fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0, mb: 0.7 }}>
+                  {card.category}
+                </Typography>
+                <Typography sx={{ color: '#ffffff', fontFamily: landingHeadingFont, fontSize: { xs: '1.2rem', md: '1.45rem' }, fontWeight: 800, lineHeight: 1.18, textShadow: '0 8px 24px rgba(0,0,0,0.50)' }}>
+                  {card.title}
+                </Typography>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+
       {/* ROLE CARDS */}
       <Box
         sx={{
           position: 'relative',
           zIndex: 5,
-          // White section to match screenshot’s clean layout
-          backgroundColor: '#ffffff',
+          background:
+            'linear-gradient(180deg, #f7fbf8 0%, #eef7f0 42%, #ffffff 100%)',
           mt: 'auto',
-          pt: { xs: 5, md: 6 },
-          pb: { xs: 5, md: 6 },
+          pt: { xs: 5.5, md: 7 },
+          pb: { xs: 5.5, md: 7 },
           px: { xs: 2, md: 6 },
-          boxShadow: '0 -18px 44px rgba(15, 23, 42, 0.06)',
+          boxShadow: '0 -18px 60px rgba(6, 34, 18, 0.08)',
+          overflow: 'hidden',
         }}
       >
-        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
-          <Box sx={{ textAlign: 'center', mb: 3.5, animation: 'fadeUpSoft 0.8s ease' }}>
-            <Typography sx={{ color: '#237a35', fontWeight: 900, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-              Community Portal
-            </Typography>
-            <Typography sx={{ color: T.primary, fontWeight: 900, fontSize: { xs: '1.35rem', md: '1.65rem' }, mt: 0.8 }}>
-              Who are you logging in as?
-            </Typography>
-            <Typography sx={{ color: 'rgba(15, 23, 42, 0.72)', fontWeight: 600, fontSize: '0.9rem', mt: 0.6 }}>
-              Select your role to access your personalized dashboard and community features.
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(circle at 12% 18%, rgba(118, 223, 104, 0.20), transparent 30%), radial-gradient(circle at 88% 10%, rgba(15, 90, 42, 0.14), transparent 28%)',
+            pointerEvents: 'none',
+          }}
+        />
+        <Box sx={{ maxWidth: 1240, mx: 'auto', position: 'relative', zIndex: 1 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '0.92fr 1.08fr' },
+              alignItems: 'end',
+              gap: { xs: 1.4, md: 4 },
+              mb: { xs: 3.4, md: 4.8 },
+              animation: 'fadeUpSoft 0.8s ease',
+            }}
+          >
+            <Box>
+              <Typography sx={{ color: '#237a35', fontWeight: 900, fontSize: '0.72rem', letterSpacing: 0, textTransform: 'uppercase', mb: 0.9 }}>
+                Community Portal
+              </Typography>
+              <Typography sx={{ color: '#062c17', fontFamily: landingHeadingFont, fontWeight: 900, fontSize: { xs: '1.85rem', md: '2.7rem' }, lineHeight: 1.04 }}>
+                Choose your VIMS access
+              </Typography>
+            </Box>
+            <Typography sx={{ color: 'rgba(15, 23, 42, 0.66)', fontWeight: 700, fontSize: { xs: '0.94rem', md: '1.05rem' }, maxWidth: 620, lineHeight: 1.65 }}>
+              Select the role that matches your community access. Each portal keeps the same secure login flow with a more polished Westville Homes experience.
             </Typography>
           </Box>
 
-          <Grid container spacing={3} justifyContent="center" alignItems="stretch">
-            {ROLES.map((role) => (
+          <Grid container spacing={{ xs: 2.4, md: 3.2 }} justifyContent="center" alignItems="stretch">
+            {ROLES.map((role, idx) => (
               <Grid item xs={12} sm={4} key={role.key} sx={{ display: 'flex' }}>
                 <Card
                   onClick={() => onRoleSelect(role.key)}
                   sx={{
                     width: '100%',
-                    height: { xs: 420, sm: 356, md: 360 },
+                    height: { xs: 430, sm: 445, md: 500 },
                     display: 'flex',
                     flexDirection: 'column',
-                    borderRadius: 3,
+                    justifyContent: 'flex-end',
+                    borderRadius: 4,
                     overflow: 'hidden',
                     cursor: 'pointer',
-                    backgroundColor: 'white',
-                    border: '1px solid rgba(15, 23, 42, 0.08)',
-                    boxShadow: '0 12px 36px rgba(15,23,42,0.12)',
-                    transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-                    animation: 'cardPop 0.6s ease both',
-                    '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 54px rgba(15,23,42,0.18)' },
-                    '&:active': { transform: 'translateY(-4px)' },
+                    position: 'relative',
+                    backgroundColor: '#062c17',
+                    border: '1px solid rgba(255, 255, 255, 0.65)',
+                    boxShadow: '0 24px 64px rgba(6, 34, 18, 0.18)',
+                    transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
+                    animation: `cardPop 0.5s ease ${idx * 0.06}s both`,
+                    '&:hover': {
+                      transform: 'translateY(-8px)',
+                      boxShadow: '0 30px 78px rgba(6, 34, 18, 0.24)',
+                      borderColor: 'rgba(118, 223, 104, 0.52)',
+                    },
+                    '&:hover .role-image': { transform: 'scale(1.055)' },
+                    '&:hover .role-button': {
+                      backgroundColor: '#76df68',
+                      color: '#062c17',
+                    },
+                    '&:active': { transform: 'translateY(-3px)' },
                   }}
                 >
-                  <Box sx={{ height: { xs: 190, sm: 150, md: 160 }, flexShrink: 0, backgroundImage: `url(${role.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
-                    <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(2,6,23,0.08), rgba(2,6,23,0.38))' }} />
-                    <Box sx={{ position: 'absolute', bottom: -24, left: '50%', transform: 'translateX(-50%)', width: 56, height: 56, borderRadius: '50%', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 24px rgba(0,0,0,0.22)', border: '3px solid #e8f5e9' }}>{role.icon}</Box>
-                  </Box>
-                  <CardContent sx={{ pt: 5, pb: 3, textAlign: 'center', px: 3, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: T.primary, letterSpacing: '0.08em', mb: 1 }}>{role.label}</Typography>
-                    <Typography sx={{ fontSize: '0.8rem', color: '#555', lineHeight: 1.5, minHeight: 42, maxWidth: 360 }}>{role.description}</Typography>
-                    <Button variant="contained" onClick={(e) => { e.stopPropagation(); onRoleSelect(role.key); }}
+                  <Box
+                    className="role-image"
                     sx={{
-                      mt: 'auto',
-                      backgroundColor: T.primary,
-                      color: 'white',
-                      borderRadius: 999,
-                      minWidth: 136,
-                      px: 3,
-                      py: 0.9,
-                      fontSize: '0.78rem',
-                      fontWeight: 800,
-                      textTransform: 'none',
-                      boxShadow: '0 10px 20px rgba(15,90,42,0.22)',
-                      '&:hover': { backgroundColor: T.dark, transform: 'translateY(-1px)' },
-                      '&:active': { transform: 'translateY(1px) scale(0.99)' },
-                      transition: 'transform 0.15s ease, background-color 0.15s ease',
-                    }}>
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundImage: `url(${role.bgImage})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      filter: 'saturate(1.1) contrast(1.08) brightness(0.86)',
+                      transition: 'transform 0.55s ease',
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      background:
+                        'linear-gradient(180deg, rgba(4, 26, 13, 0.06) 0%, rgba(4, 26, 13, 0.26) 34%, rgba(4, 26, 13, 0.90) 100%)',
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 20,
+                      left: 20,
+                      width: 58,
+                      height: 58,
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                      color: T.primary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 16px 34px rgba(0, 0, 0, 0.22)',
+                      border: '1px solid rgba(255, 255, 255, 0.72)',
+                    }}
+                  >
+                    {role.icon}
+                  </Box>
+                  <Typography
+                    sx={{
+                      position: 'absolute',
+                      top: 26,
+                      right: 22,
+                      color: 'rgba(255, 255, 255, 0.86)',
+                      fontSize: '0.68rem',
+                      fontWeight: 900,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0,
+                    }}
+                  >
+                    0{idx + 1}
+                  </Typography>
+                  <CardContent sx={{ position: 'relative', zIndex: 1, p: { xs: 2.7, md: 3.2 }, color: '#ffffff' }}>
+                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 900, color: '#9af084', textTransform: 'uppercase', letterSpacing: 0, mb: 0.9 }}>
+                      {role.label} Portal
+                    </Typography>
+                    <Typography sx={{ fontFamily: landingHeadingFont, fontSize: { xs: '1.75rem', md: '2rem' }, fontWeight: 900, lineHeight: 1.02, mb: 1.1 }}>
+                      {role.label}
+                    </Typography>
+                    <Typography sx={{ fontSize: { xs: '0.9rem', md: '0.95rem' }, color: 'rgba(255,255,255,0.78)', lineHeight: 1.55, fontWeight: 700, maxWidth: 320 }}>
+                      {role.description}
+                    </Typography>
+                    <Button
+                      className="role-button"
+                      variant="contained"
+                      onClick={(e) => { e.stopPropagation(); onRoleSelect(role.key); }}
+                      sx={{
+                        mt: 2.6,
+                        backgroundColor: 'rgba(255, 255, 255, 0.94)',
+                        color: '#0b3d1f',
+                        borderRadius: 999,
+                        minWidth: 138,
+                        px: 3,
+                        py: 0.95,
+                        fontSize: '0.82rem',
+                        fontWeight: 900,
+                        textTransform: 'none',
+                        boxShadow: '0 14px 28px rgba(0,0,0,0.22)',
+                        '&:hover': { backgroundColor: '#76df68', color: '#062c17', transform: 'translateY(-1px)' },
+                        '&:active': { transform: 'translateY(1px) scale(0.99)' },
+                        transition: 'transform 0.15s ease, background-color 0.15s ease, color 0.15s ease',
+                      }}
+                    >
                       Click here
                     </Button>
                   </CardContent>
@@ -1377,33 +1639,35 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           </Grid>
 
           {/* Browse Lots */}
-          <Box sx={{ mt: 4, borderTop: '1px solid rgba(15, 23, 42, 0.12)', pt: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 2, px: { xs: 0, md: 2 } }}>
+          <Box sx={{ mt: { xs: 3.5, md: 4.6 }, p: { xs: 2.4, md: 3 }, borderRadius: 4, background: 'linear-gradient(135deg, #062c17 0%, #0f5a2a 100%)', border: '1px solid rgba(118, 223, 104, 0.22)', boxShadow: '0 24px 54px rgba(6, 34, 18, 0.18)', display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between', gap: 2.4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ width: 52, height: 52, borderRadius: 2, backgroundColor: 'rgba(15, 90, 42, 0.08)', border: '1.5px solid rgba(15, 90, 42, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <MapIcon sx={{ fontSize: 26, color: T.accent }} />
+              <Box sx={{ width: 54, height: 54, borderRadius: 2.4, backgroundColor: 'rgba(255, 255, 255, 0.10)', border: '1px solid rgba(255, 255, 255, 0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <MapIcon sx={{ fontSize: 27, color: '#9af084' }} />
               </Box>
               <Box>
-                <Typography sx={{ color: T.primary, fontWeight: 700, fontSize: '1rem' }}>Not a resident yet?</Typography>
-                <Typography sx={{ color: 'rgba(15, 23, 42, 0.64)', fontSize: '0.84rem', fontWeight: 600 }}>
-                  Browse available lots on the interactive village map — no account needed.
+                <Typography sx={{ color: '#ffffff', fontFamily: landingHeadingFont, fontWeight: 900, fontSize: { xs: '1.05rem', md: '1.18rem' } }}>Not a resident yet?</Typography>
+                <Typography sx={{ color: 'rgba(255, 255, 255, 0.72)', fontSize: '0.88rem', fontWeight: 700, lineHeight: 1.45 }}>
+                  Browse available lots on the interactive village map. No account needed.
                 </Typography>
               </Box>
             </Box>
             <Button variant="outlined" startIcon={<MapIcon />} onClick={onBrowseLots}
               sx={{
-                borderColor: T.primary,
-                color: T.primary,
+                borderColor: 'rgba(255,255,255,0.62)',
+                color: '#ffffff',
                 borderRadius: 999,
-                px: 3,
-                py: 1.05,
+                px: 2.8,
+                py: 1,
                 fontWeight: 900,
                 fontSize: '0.85rem',
                 textTransform: 'none',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
-                '&:hover': { backgroundColor: 'rgba(15, 90, 42, 0.06)', borderColor: T.dark },
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                boxShadow: 'none',
+                '&:hover': { backgroundColor: '#ffffff', borderColor: '#ffffff', color: '#0b3d1f' },
                 '&:active': { transform: 'translateY(1px) scale(0.99)' },
-                transition: 'transform 0.15s ease',
+                transition: 'transform 0.15s ease, background-color 0.15s ease, color 0.15s ease',
               }}>
               Browse Available Lots
             </Button>
@@ -1412,43 +1676,66 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
           <Box ref={deferredContentTriggerRef} aria-hidden="true" sx={{ height: 1 }} />
           {showDeferredContent && (
           <>
-          <Box sx={{ ...deferredSectionSx, mt: { xs: 5, md: 6 }, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 3, md: 3.5 }, background: 'linear-gradient(135deg, #1f5f33 0%, #2f7a43 100%)' }}>
-            <Grid container spacing={2} justifyContent="center">
-              {[
-                { k: '200+', l: 'TOTAL LOTS', icon: <MapIcon sx={{ fontSize: 16 }} /> },
-                { k: '45', l: 'ACTIVE RESIDENTS', icon: <HomeIcon sx={{ fontSize: 16 }} /> },
-                { k: '98%', l: 'COLLECTION RATE', icon: <SecurityIcon sx={{ fontSize: 16 }} /> },
-                { k: '4.9', l: 'COMMUNITY RATING', icon: <StarIcon sx={{ fontSize: 16 }} /> },
-              ].map((s) => (
-                <Grid item xs={6} md={3} key={s.l}>
-                  <Box sx={{ textAlign: 'center', color: 'white' }}>
-                    <Box sx={{ width: 28, height: 28, mx: 'auto', borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)' }}>
-                      {s.icon}
-                    </Box>
-                    <Typography sx={{ mt: 0.8, fontWeight: 900, fontSize: { xs: '1.5rem', md: '1.7rem' }, lineHeight: 1 }}>{s.k}</Typography>
-                    <Typography sx={{ mt: 0.3, fontWeight: 800, color: 'rgba(255,255,255,0.78)', fontSize: '0.66rem', letterSpacing: '0.07em' }}>{s.l}</Typography>
+          <Box sx={{ ...deferredSectionSx, mt: { xs: 5, md: 6 }, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 5, md: 7 }, background: '#04170b', color: '#ffffff', borderTop: '1px solid rgba(118,223,104,0.18)', borderBottom: '1px solid rgba(118,223,104,0.18)' }}>
+            <Grid container spacing={{ xs: 3, md: 5 }} alignItems="stretch">
+              <Grid item xs={12} md={4}>
+                <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 3 }}>
+                  <Box>
+                    <Typography sx={{ ...landingEyebrowSx, color: '#9af084' }}>Westville at a glance</Typography>
+                    <Typography sx={{ fontFamily: landingHeadingFont, fontWeight: 900, fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.02 }}>
+                      Calm systems for a growing village.
+                    </Typography>
                   </Box>
-                </Grid>
-              ))}
+                  <Typography sx={{ color: 'rgba(255,255,255,0.70)', fontWeight: 700, lineHeight: 1.7, maxWidth: 380 }}>
+                    VIMS helps residents, officers, and security teams stay connected through one organized community portal.
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={8}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.4, height: '100%' }}>
+                  {[
+                    { k: '200+', l: 'Total lots', icon: <MapIcon sx={{ fontSize: 18 }} /> },
+                    { k: '45', l: 'Active residents', icon: <HomeIcon sx={{ fontSize: 18 }} /> },
+                    { k: '98%', l: 'Collection rate', icon: <SecurityIcon sx={{ fontSize: 18 }} /> },
+                    { k: '4.9', l: 'Community rating', icon: <StarIcon sx={{ fontSize: 18 }} /> },
+                  ].map((s, idx) => (
+                    <Box key={s.l} sx={{ minHeight: { xs: 150, md: idx % 2 === 0 ? 220 : 180 }, alignSelf: idx % 2 === 0 ? 'stretch' : 'end', borderRadius: 3.5, p: { xs: 1.8, md: 2.2 }, background: idx % 2 === 0 ? 'rgba(154,240,132,0.13)' : 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 22px 52px rgba(0,0,0,0.20)' }}>
+                      <Box sx={{ width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: 'rgba(255,255,255,0.12)', color: '#9af084' }}>
+                        {s.icon}
+                      </Box>
+                      <Box>
+                        <Typography sx={{ fontFamily: landingHeadingFont, fontWeight: 900, fontSize: { xs: '2rem', md: '2.4rem' }, lineHeight: 1 }}>{s.k}</Typography>
+                        <Typography sx={{ mt: 0.7, fontWeight: 900, color: 'rgba(255,255,255,0.72)', fontSize: '0.72rem', letterSpacing: 0, textTransform: 'uppercase' }}>{s.l}</Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Grid>
             </Grid>
           </Box>
 
-          <Box sx={{ ...deferredSectionSx, mt: 0, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 4, md: 5 }, backgroundColor: '#d9e8b6' }}>
-            <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={6}>
-                <Typography sx={{ color: '#4d5f16', fontWeight: 900, fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-                  What we offer
+          <Box sx={{ ...deferredSectionSx, mx: { xs: -2, md: -6 }, px: { xs: 2, md: 6 }, py: { xs: 6, md: 9 }, background: '#ffffff' }}>
+            <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+              <Grid item xs={12} md={7}>
+                <Box sx={{ position: 'relative', minHeight: { xs: 430, md: 520 } }}>
+                  <Box component="img" src="/images/hoa4-640.webp" alt="Westville model house" loading="lazy" decoding="async" sx={{ position: 'absolute', inset: { xs: '0 0 auto 0', md: '0 auto auto 0' }, width: { xs: '100%', md: '74%' }, height: { xs: 270, md: 420 }, objectFit: 'cover', borderRadius: 4, boxShadow: '0 30px 80px rgba(6,34,18,0.18)', filter: 'saturate(1.08) contrast(1.05)' }} />
+                  <Box component="img" src="/images/hoa1-640.webp" alt="Westville community park" loading="lazy" decoding="async" sx={{ position: 'absolute', right: { xs: 0, md: 10 }, bottom: { xs: 50, md: 0 }, width: { xs: '58%', md: '42%' }, height: { xs: 170, md: 260 }, objectFit: 'cover', borderRadius: 4, boxShadow: '0 26px 70px rgba(6,34,18,0.20)', border: '8px solid #ffffff', filter: 'saturate(1.1) contrast(1.04)' }} />
+                  <Box sx={{ position: 'absolute', left: { xs: 16, md: 42 }, bottom: { xs: 0, md: 28 }, maxWidth: 300, p: 2.2, borderRadius: 3, backgroundColor: 'rgba(4,23,11,0.88)', color: '#ffffff', border: '1px solid rgba(154,240,132,0.22)', backdropFilter: 'blur(16px)', boxShadow: '0 22px 52px rgba(6,34,18,0.24)' }}>
+                    <Typography sx={{ color: '#9af084', fontWeight: 900, fontSize: '0.72rem', mb: 0.6, textTransform: 'uppercase', letterSpacing: 0 }}>Village living</Typography>
+                    <Typography sx={{ fontWeight: 800, lineHeight: 1.45, fontSize: '0.9rem' }}>A community view that feels modern without losing the familiar Westville character.</Typography>
+                  </Box>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={5}>
+                <Typography sx={landingEyebrowSx}>What we offer</Typography>
+                <Typography sx={{ ...landingSectionTitleSx, fontSize: { xs: '2rem', md: '3rem' }, mb: 1.6 }}>
+                  Everyday services, organized beautifully.
                 </Typography>
-                <Typography sx={{ color: '#0f172a', fontWeight: 900, fontSize: { xs: '1.75rem', md: '2rem' }, lineHeight: 1.05, mt: 1 }}>
-                  A Complete Community
-                  <br />
-                  Living Experience
-                </Typography>
-                <Typography sx={{ color: 'rgba(15, 23, 42, 0.62)', fontWeight: 700, fontSize: '0.84rem', mt: 1.2, maxWidth: 460, lineHeight: 1.6 }}>
+                <Typography sx={{ ...landingSectionTextSx, mb: 3 }}>
                   Casimiro Westville Homes is designed to provide everything your family needs - from modern utilities to lush green spaces and a strong, secure community.
                 </Typography>
-
-                <Box sx={{ mt: 2.2, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.1 }}>
+                <Box sx={{ display: 'grid', gap: 1.2 }}>
                   {[
                     { label: 'High-Speed Internet' },
                     { label: 'Water & Utilities' },
@@ -1456,22 +1743,12 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
                     { label: 'Maintenance Team' },
                     { label: 'Parks & Greenery' },
                     { label: 'Visitor Parking' },
-                  ].map((f) => (
-                    <Box key={f.label} sx={{ backgroundColor: '#f6f8ee', borderRadius: 1.5, border: '1px solid rgba(15, 90, 42, 0.10)', px: 1.15, py: 0.75, display: 'flex', alignItems: 'center', gap: 0.8 }}>
-                      <Box sx={{ width: 16, height: 16, borderRadius: '50%', bgcolor: 'rgba(15, 90, 42, 0.12)', color: T.primary, fontSize: '0.65rem', fontWeight: 900, display: 'grid', placeItems: 'center' }}>+</Box>
-                      <Typography sx={{ color: '#1f2937', fontWeight: 700, fontSize: '0.72rem' }}>{f.label}</Typography>
+                  ].map((f, idx) => (
+                    <Box key={f.label} sx={{ display: 'grid', gridTemplateColumns: '44px 1fr', alignItems: 'center', gap: 1.4, p: 1.3, borderRadius: 3, backgroundColor: idx % 2 === 0 ? '#eef7f0' : '#ffffff', border: '1px solid rgba(15,90,42,0.10)', boxShadow: '0 12px 30px rgba(6,34,18,0.06)' }}>
+                      <Box sx={{ width: 44, height: 44, borderRadius: 2.4, bgcolor: '#0f5a2a', color: '#9af084', fontSize: '1rem', fontWeight: 900, display: 'grid', placeItems: 'center' }}>+</Box>
+                      <Typography sx={{ color: '#062c17', fontWeight: 900, fontSize: '0.92rem' }}>{f.label}</Typography>
                     </Box>
                   ))}
-                </Box>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Box sx={{ maxWidth: 430, ml: { xs: 0, md: 'auto' } }}>
-                  <Box component="img" src="/images/hoa4-640.webp" alt="Westville model house" loading="lazy" decoding="async" sx={{ width: '100%', height: { xs: 170, md: 210 }, objectFit: 'cover', borderRadius: 3, boxShadow: '0 16px 32px rgba(0,0,0,0.18)' }} />
-                  <Box sx={{ mt: 1.3, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.1 }}>
-                    <Box component="img" src="/images/hoa1-640.webp" alt="Westville community park" loading="lazy" decoding="async" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
-                    <Box component="img" src="/images/hoa2-640.webp" alt="Westville community homes" loading="lazy" decoding="async" sx={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 2.4, boxShadow: '0 10px 24px rgba(0,0,0,0.14)' }} />
-                  </Box>
                 </Box>
               </Grid>
             </Grid>
@@ -1484,40 +1761,46 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
 
       {/* CONTENT SECTIONS (scrollable) */}
       {showDeferredContent && (
-      <Box sx={{ backgroundColor: T.bg }}>
+      <Box sx={{ backgroundColor: '#f7fbf8' }}>
         {/* Announcements */}
-        <Box ref={announcementRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 } }}>
+        <Box ref={announcementRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, background: 'linear-gradient(180deg, #eef7f0 0%, #ffffff 100%)' }}>
           <Container maxWidth="lg">
-            <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
-                Announcements
-              </Typography>
-              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+            <Reveal sx={landingSectionHeaderSx}>
+              <Box>
+                <Typography sx={landingEyebrowSx}>Announcements</Typography>
+                <Typography sx={landingSectionTitleSx}>
+                  Community updates at a glance
+                </Typography>
+              </Box>
+              <Typography sx={landingSectionTextSx}>
                 Stay updated with the latest advisories, maintenance schedules, and community events.
               </Typography>
             </Reveal>
-            <Grid container spacing={3}>
+            <Grid container spacing={2.5} alignItems="stretch">
               {announcementsLoading ? (
                 <Grid item xs={12}>
-                  <Paper sx={{ p: 3, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Paper sx={{ ...landingPanelSx, p: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <CircularProgress size={24} sx={{ color: T.primary }} />
                     <Typography sx={{ color: '#475569', fontWeight: 800 }}>Loading announcements...</Typography>
                   </Paper>
                 </Grid>
               ) : visibleAnnouncements.slice(0, 4).map((ann, idx) => (
-                <Grid item xs={12} md={6} key={ann.id}>
+                <Grid item xs={12} md={idx === 0 ? 7 : 5} key={ann.id}>
                   <Reveal delayMs={idx * 80}>
-                    <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', borderLeft: `5px solid ${ann.color}` }}>
-                      {ann.imageUrl && (
-                        <Box component="img" src={ann.imageUrl} alt={ann.title} loading="lazy" decoding="async" sx={{ width: '100%', height: 170, objectFit: 'cover' }} />
+                    <Card sx={{ height: '100%', minHeight: idx === 0 ? { xs: 360, md: 438 } : 136, borderRadius: 4, overflow: 'hidden', position: 'relative', border: idx === 0 ? '1px solid rgba(154,240,132,0.22)' : '1px solid rgba(15,90,42,0.10)', boxShadow: idx === 0 ? '0 30px 78px rgba(6,34,18,0.20)' : '0 18px 42px rgba(6,34,18,0.08)', backgroundColor: idx === 0 ? '#04170b' : '#ffffff', transition: 'transform 0.22s ease, box-shadow 0.22s ease', '&:hover': { transform: 'translateY(-4px)', boxShadow: idx === 0 ? '0 36px 86px rgba(6,34,18,0.24)' : '0 26px 58px rgba(6,34,18,0.12)' } }}>
+                      {idx === 0 && (
+                        <>
+                          <Box component="img" src={ann.imageUrl || '/images/hoa2-640.webp'} alt={ann.title} loading="lazy" decoding="async" sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.74) saturate(1.08) contrast(1.05)' }} />
+                          <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(4,23,11,0.10) 0%, rgba(4,23,11,0.48) 44%, rgba(4,23,11,0.94) 100%)' }} />
+                        </>
                       )}
-                      <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Chip label={ann.category} size="small" sx={{ backgroundColor: ann.color + '20', color: ann.color, fontWeight: 700, fontSize: '0.7rem' }} />
-                          <Typography sx={{ fontSize: '0.75rem', color: '#888' }}>{ann.date}</Typography>
+                      <CardContent sx={{ position: 'relative', zIndex: 1, p: idx === 0 ? { xs: 2.7, md: 3.4 } : 2.4, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: idx === 0 ? 'flex-end' : 'center' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 1.1 }}>
+                          <Chip label={ann.category} size="small" sx={{ backgroundColor: idx === 0 ? 'rgba(154,240,132,0.16)' : ann.color + '18', color: idx === 0 ? '#9af084' : ann.color, fontWeight: 900, fontSize: '0.7rem', borderRadius: 999, border: idx === 0 ? '1px solid rgba(154,240,132,0.22)' : 'none' }} />
+                          <Typography sx={{ fontSize: '0.75rem', color: idx === 0 ? 'rgba(255,255,255,0.72)' : '#64748b', fontWeight: 800 }}>{ann.date}</Typography>
                         </Box>
-                        <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.95rem', mb: 1, lineHeight: 1.4 }}>{ann.title}</Typography>
-                        <Typography sx={{ color: '#666', fontSize: '0.82rem', lineHeight: 1.7 }}>{ann.body}</Typography>
+                        <Typography sx={{ fontFamily: landingHeadingFont, fontWeight: 900, color: idx === 0 ? '#ffffff' : '#062c17', fontSize: idx === 0 ? { xs: '1.55rem', md: '2.05rem' } : '1rem', mb: 1, lineHeight: 1.18 }}>{ann.title}</Typography>
+                        <Typography sx={{ color: idx === 0 ? 'rgba(255,255,255,0.78)' : '#53635a', fontSize: idx === 0 ? '0.94rem' : '0.82rem', lineHeight: 1.68, fontWeight: 650 }}>{ann.body}</Typography>
                       </CardContent>
                     </Card>
                   </Reveal>
@@ -1528,33 +1811,34 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Officials */}
-        <Box ref={officialsRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
+        <Box ref={officialsRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, background: '#04170b' }}>
           <Container maxWidth="lg">
-            <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
-                Community Officials
-              </Typography>
-              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+            <Reveal sx={landingSectionHeaderSx}>
+              <Box>
+                <Typography sx={{ ...landingEyebrowSx, color: '#9af084' }}>Officials</Typography>
+                <Typography sx={{ ...landingSectionTitleSx, color: '#ffffff' }}>
+                  The people behind the community
+                </Typography>
+              </Box>
+              <Typography sx={{ ...landingSectionTextSx, color: 'rgba(255,255,255,0.74)' }}>
                 Meet the leaders who help keep Westville organized, safe, and thriving.
               </Typography>
             </Reveal>
-            <Grid container spacing={3}>
+            <Grid container spacing={2.4}>
               {OFFICIALS.map((official, idx) => (
-                <Grid item xs={12} sm={6} md={3} key={official.name}>
+                <Grid item xs={12} md={6} key={official.name}>
                   <Reveal delayMs={idx * 60}>
-                    <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', textAlign: 'center', overflow: 'hidden', height: '100%' }}>
-                      <Box sx={{ backgroundColor: T.primary, pt: 4, pb: 6, position: 'relative' }}>
-                        <Avatar sx={{ width: 80, height: 80, mx: 'auto', backgroundColor: T.accent, color: T.dark, fontSize: '1.4rem', fontWeight: 900, border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                    <Card sx={{ minHeight: 154, borderRadius: 4, boxShadow: '0 20px 48px rgba(0,0,0,0.18)', overflow: 'hidden', height: '100%', background: idx % 3 === 0 ? 'rgba(154,240,132,0.12)' : 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(14px)', transition: 'transform 0.22s ease, border-color 0.22s ease, background-color 0.22s ease', '&:hover': { transform: 'translateY(-4px)', borderColor: 'rgba(154,240,132,0.34)', backgroundColor: 'rgba(255,255,255,0.12)' } }}>
+                      <CardContent sx={{ p: { xs: 2.2, md: 2.6 }, display: 'grid', gridTemplateColumns: '76px 1fr', gap: 2, alignItems: 'center' }}>
+                        <Avatar sx={{ width: 76, height: 76, backgroundColor: '#dff7dc', color: T.dark, fontSize: '1.2rem', fontWeight: 900, border: '1px solid rgba(255,255,255,0.62)', boxShadow: '0 14px 28px rgba(0,0,0,0.22)' }}>
                           {official.avatar}
                         </Avatar>
-                      </Box>
-                      <Box sx={{ mt: -4, position: 'relative', zIndex: 2, px: 2, pb: 3 }}>
-                        <Box sx={{ backgroundColor: 'white', borderRadius: 3, p: 2.5, boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}>
-                          <Typography sx={{ fontWeight: 800, color: '#1e293b', fontSize: '0.9rem', mb: 0.5 }}>{official.name}</Typography>
-                          <Typography sx={{ color: T.primary, fontSize: '0.78rem', fontWeight: 700, mb: 1.5 }}>{official.position}</Typography>
-                          <Typography sx={{ color: '#666', fontSize: '0.76rem', lineHeight: 1.6 }}>{official.description}</Typography>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ fontFamily: landingHeadingFont, fontWeight: 900, color: '#ffffff', fontSize: '1.03rem', mb: 0.35 }}>{official.name}</Typography>
+                          <Typography sx={{ color: '#9af084', fontSize: '0.78rem', fontWeight: 900, mb: 0.9 }}>{official.position}</Typography>
+                          <Typography sx={{ color: 'rgba(255,255,255,0.70)', fontSize: '0.79rem', lineHeight: 1.58, fontWeight: 600 }}>{official.description}</Typography>
                         </Box>
-                      </Box>
+                      </CardContent>
                     </Card>
                   </Reveal>
                 </Grid>
@@ -1564,30 +1848,36 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Contact */}
-        <Box ref={contactRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 } }}>
+        <Box ref={contactRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, background: 'linear-gradient(135deg, #062c17 0%, #0b3d1f 55%, #124f29 100%)' }}>
           <Container maxWidth="lg">
-            <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
-                Contact Us
-              </Typography>
-              <Typography sx={{ color: '#556', mb: 5, maxWidth: 760, lineHeight: 1.8 }}>
+            <Reveal sx={landingSectionHeaderSx}>
+              <Box>
+                <Typography sx={{ ...landingEyebrowSx, color: '#9af084' }}>Contact</Typography>
+                <Typography sx={{ ...landingSectionTitleSx, color: '#ffffff' }}>
+                  Reach the right office faster
+                </Typography>
+              </Box>
+              <Typography sx={{ ...landingSectionTextSx, color: 'rgba(255,255,255,0.76)' }}>
                 Questions or concerns? Reach out to the Westville Casimiro Homes administration.
               </Typography>
             </Reveal>
-            <Reveal delayMs={80}>
+            <Reveal delayMs={80} sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.94)', border: '1px solid rgba(255,255,255,0.24)', boxShadow: '0 30px 82px rgba(0,0,0,0.25)' }}>
               <ContactPage onClose={() => {}} embedded />
             </Reveal>
           </Container>
         </Box>
 
         {/* About */}
-        <Box ref={aboutRef} sx={{ ...deferredSectionSx, backgroundColor: '#fff' }}>
+        <Box ref={aboutRef} sx={{ ...deferredSectionSx, backgroundColor: '#ffffff' }}>
           <Container maxWidth="lg" sx={{ pt: { xs: 6, md: 10 } }}>
-            <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
-                About Us
-              </Typography>
-              <Typography sx={{ color: '#556', mb: 5, maxWidth: 760, lineHeight: 1.8 }}>
+            <Reveal sx={landingSectionHeaderSx}>
+              <Box>
+                <Typography sx={landingEyebrowSx}>About Us</Typography>
+                <Typography sx={landingSectionTitleSx}>
+                  A neighborhood with a clear purpose
+                </Typography>
+              </Box>
+              <Typography sx={landingSectionTextSx}>
                 Learn more about Westville Casimiro Homes, our mission, and what we value as a community.
               </Typography>
             </Reveal>
@@ -1598,17 +1888,20 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Reservation Schedule (inline) */}
-        <Box ref={calendarSectionRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, backgroundColor: T.bg }}>
+        <Box ref={calendarSectionRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, background: 'linear-gradient(180deg, #ffffff 0%, #eef7f0 100%)', borderTop: '1px solid rgba(15,90,42,0.08)' }}>
           <Container maxWidth="lg">
-            <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
-                Reservation Schedule
-              </Typography>
-              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+            <Reveal sx={landingSectionHeaderSx}>
+              <Box>
+                <Typography sx={landingEyebrowSx}>Schedule</Typography>
+                <Typography sx={landingSectionTitleSx}>
+                  Check community availability
+                </Typography>
+              </Box>
+              <Typography sx={landingSectionTextSx}>
                 View reserved venues and equipment by date and time. Days without listed reservations are open for reservation.
               </Typography>
             </Reveal>
-            <Reveal delayMs={80}>
+            <Reveal delayMs={80} sx={{ p: { xs: 1.4, md: 2 }, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.72)', border: '1px solid rgba(15,90,42,0.10)', boxShadow: '0 24px 60px rgba(6,34,18,0.08)' }}>
               <PublicReservationSchedule
                 currentDate={currentDate}
                 onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
@@ -1619,13 +1912,16 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
         </Box>
 
         {/* Privacy Policy */}
-        <Box ref={privacyRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, backgroundColor: '#fff' }}>
+        <Box ref={privacyRef} sx={{ ...deferredSectionSx, py: { xs: 6, md: 10 }, background: 'linear-gradient(180deg, #eef7f0 0%, #ffffff 100%)' }}>
           <Container maxWidth="lg">
-            <Reveal>
-              <Typography sx={{ fontSize: '1.8rem', fontWeight: 900, color: T.primary, textTransform: 'uppercase', mb: 1 }}>
-                Privacy Policy
-              </Typography>
-              <Typography sx={{ color: '#556', mb: 4, maxWidth: 760, lineHeight: 1.8 }}>
+            <Reveal sx={landingSectionHeaderSx}>
+              <Box>
+                <Typography sx={landingEyebrowSx}>Privacy Policy</Typography>
+                <Typography sx={landingSectionTitleSx}>
+                  Clear handling of community data
+                </Typography>
+              </Box>
+              <Typography sx={landingSectionTextSx}>
                 Learn how Westville Casimiro Homes and VIMS handle personal data for residents, visitors, personnel, and community partners.
               </Typography>
             </Reveal>

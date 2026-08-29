@@ -2378,7 +2378,7 @@ const Login = () => {
                       {roleInfo.label} Access
                     </Typography>
                     <Typography sx={{ color: 'white', fontWeight: 950, fontSize: { xs: '1.6rem', md: '1.85rem' }, lineHeight: 1.05 }}>
-                      Sign in securely
+                      Sign in
                     </Typography>
                   </Box>
                 </Box>

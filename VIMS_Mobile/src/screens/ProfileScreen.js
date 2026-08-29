@@ -22,9 +22,6 @@ import { themeColors, shadows, roleLayouts } from '../utils/theme';
 import api, { getProtectedImageDataUrl } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UserDropdownMenu from '../components/UserDropdownMenu';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system/legacy';
-import { getAuthToken } from '../utils/secureSession';
 import { safeGoBack } from '../utils/navigation';
 
 const ProfileScreen = ({ navigation }) => {
@@ -79,6 +76,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [documentModalTitle, setDocumentModalTitle] = useState('');
   const [documentModalImage, setDocumentModalImage] = useState(null);
+  const [documentModalImageSize, setDocumentModalImageSize] = useState(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -367,30 +365,6 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
     }
   };
 
-  const shareDocument = async () => {
-    if (!documentModalImage) return;
-    try {
-      const match = String(documentModalImage).match(/^data:([^;]+);base64,(.+)$/);
-      const safeTitle = documentModalTitle.replace(/\s+/g, '-').toLowerCase();
-      let target;
-      let mimeType = 'image/jpeg';
-      if (match) {
-        mimeType = match[1];
-        const extension = mimeType.includes('png') ? 'png' : 'jpg';
-        target = `${FileSystem.cacheDirectory}${safeTitle}.${extension}`;
-        await FileSystem.writeAsStringAsync(target, match[2], { encoding: FileSystem.EncodingType.Base64 });
-      } else {
-        const token = await getAuthToken();
-        target = `${FileSystem.cacheDirectory}${safeTitle}.jpg`;
-        const result = await FileSystem.downloadAsync(documentModalImage, target, { headers: { Authorization: `Bearer ${token}` } });
-        target = result.uri;
-      }
-      await Sharing.shareAsync(target, { mimeType, dialogTitle: `Save ${documentModalTitle}` });
-    } catch (error) {
-      Alert.alert('Unable to save', 'This document could not be saved or shared.');
-    }
-  };
-
   const pickProfileImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.status !== 'granted') {
@@ -451,6 +425,14 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   const openDocumentModal = (title, imageUrl) => {
     setDocumentModalTitle(title);
     setDocumentModalImage(imageUrl);
+    setDocumentModalImageSize(null);
+    if (imageUrl) {
+      Image.getSize(
+        imageUrl,
+        (width, height) => setDocumentModalImageSize({ width, height }),
+        () => setDocumentModalImageSize(null)
+      );
+    }
     setShowDocumentModal(true);
   };
 
@@ -458,6 +440,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
     setShowDocumentModal(false);
     setDocumentModalTitle('');
     setDocumentModalImage(null);
+    setDocumentModalImageSize(null);
   };
 
   const uploadProfilePhoto = async (uri) => {
@@ -545,6 +528,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   }
 
   const isResidentProfile = user?.role === 'resident';
+  const canChangePassword = !['admin', 'security'].includes(user?.role);
 
   return (
     <View style={styles.container}>
@@ -857,14 +841,16 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
               </View>
             </View>
 
-            <View style={[styles.section, shadows.small]}>
-              <Text style={styles.sectionTitle}>Security</Text>
-              <TouchableOpacity style={styles.securityButton} onPress={() => setShowPasswordModal(true)}>
-                <Ionicons name="lock-closed" size={20} color={themeColors.primary} />
-                <Text style={styles.securityButtonText}>Change Password</Text>
-                <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
-              </TouchableOpacity>
-            </View>
+            {canChangePassword && (
+              <View style={[styles.section, shadows.small]}>
+                <Text style={styles.sectionTitle}>Security</Text>
+                <TouchableOpacity style={styles.securityButton} onPress={() => setShowPasswordModal(true)}>
+                  <Ionicons name="lock-closed" size={20} color={themeColors.primary} />
+                  <Text style={styles.securityButtonText}>Change Password</Text>
+                  <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            )}
 
             <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSaveProfile} disabled={saving}>
               {saving ? <ActivityIndicator color="white" /> : <><Ionicons name="save-outline" size={18} color="white" /><Text style={styles.saveButtonText}>Save Profile Changes</Text></>}
@@ -873,7 +859,7 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
         )}
       </ScrollView>
 
-      <Modal visible={isResidentProfile && showPasswordModal} animationType="slide" transparent onRequestClose={() => setShowPasswordModal(false)}>
+      <Modal visible={canChangePassword && showPasswordModal} animationType="slide" transparent onRequestClose={() => setShowPasswordModal(false)}>
         <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -1026,16 +1012,33 @@ const [showMoveOutModal, setShowMoveOutModal] = useState(false);
       <Modal visible={showDocumentModal} animationType="slide" transparent onRequestClose={closeDocumentModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.documentModalContent}>
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, styles.documentModalHeader]}>
               <Text style={styles.modalTitle}>{documentModalTitle}</Text>
-              <TouchableOpacity onPress={closeDocumentModal}>
+              <TouchableOpacity
+                style={styles.documentCloseButton}
+                onPress={closeDocumentModal}
+                hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close document preview"
+              >
                 <Ionicons name="close" size={24} color={themeColors.textPrimary} />
               </TouchableOpacity>
             </View>
             {documentModalImage ? (
               <View style={styles.documentViewerWrapper}>
-                <Image source={{ uri: documentModalImage }} style={styles.documentViewerImage} resizeMode="contain" />
-                <TouchableOpacity style={styles.shareDocumentButton} onPress={shareDocument}><Ionicons name="share-outline" size={18} color="white" /><Text style={styles.shareDocumentText}>Save or share document</Text></TouchableOpacity>
+                <Image
+                  source={{ uri: documentModalImage }}
+                  style={[
+                    styles.documentViewerImage,
+                    documentModalImageSize && {
+                      height: Math.min(
+                        (Dimensions.get('window').width - 40) * (documentModalImageSize.height / documentModalImageSize.width),
+                        Dimensions.get('window').height * 0.62
+                      ),
+                    },
+                  ]}
+                  resizeMode="contain"
+                />
               </View>
             ) : (
               <View style={styles.noDocuments}>
@@ -1135,11 +1138,11 @@ const styles = StyleSheet.create({
   documentHint: { fontSize: 12, color: themeColors.textSecondary, marginTop: 6 },
   verificationStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, backgroundColor: '#f8fafc', borderRadius: 8 },
   verificationStatusText: { fontSize: 14, fontWeight: '600', marginLeft: 8 },
-  documentModalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, minHeight: 360 },
-  documentViewerWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 8 },
-  documentViewerImage: { width: '100%', height: 420, borderRadius: 16 },
-  shareDocumentButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 10, width: '100%', paddingVertical: 12, borderRadius: 12, backgroundColor: themeColors.primaryDeep },
-  shareDocumentText: { color: 'white', fontWeight: '800' },
+  documentModalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14, maxHeight: '88%', overflow: 'hidden' },
+  documentModalHeader: { zIndex: 5, elevation: 5 },
+  documentCloseButton: { width: 44, height: 44, marginRight: -10, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: 'white' },
+  documentViewerWrapper: { flexShrink: 1, justifyContent: 'flex-start', alignItems: 'center' },
+  documentViewerImage: { width: '100%', height: Math.min(320, Dimensions.get('window').height * 0.42), borderRadius: 16 },
   noDocuments: { alignItems: 'center', padding: 32 },
   noDocumentsText: { fontSize: 16, fontWeight: '600', color: themeColors.textPrimary, marginTop: 16 },
   noDocumentsSubtext: { fontSize: 14, color: themeColors.textSecondary, marginTop: 4, textAlign: 'center' },

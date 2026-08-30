@@ -136,8 +136,8 @@ const SecurityTabs = () => {
     >
       <Tab.Screen name="DashboardTab" component={DashboardScreen} options={{ title: 'Dashboard' }} />
       <Tab.Screen name="ApprovalsTab" component={SecurityVisitorApprovalScreen} options={{ title: 'Approvals' }} />
-      <Tab.Screen name="ScannerTab" component={SecurityQrScannerScreen} options={{ title: 'Scanner' }} />
       <Tab.Screen name="LogsTab" component={SecurityVisitorLogsScreen} options={{ title: 'Logs' }} />
+      <Tab.Screen name="ScannerTab" component={SecurityQrScannerScreen} options={{ title: 'Scanner' }} />
       <Tab.Screen name="SecurityServiceRequests" component={SecurityServiceRequestsScreen} options={{ title: 'Services' }} />
       <Tab.Screen name="SecurityPatrolSchedule" component={SecurityPatrolScheduleScreen} options={{ title: 'Patrol' }} />
       <Tab.Screen name="SecurityIncidents" component={SecurityIncidentsScreen} options={{ title: 'Incidents' }} />

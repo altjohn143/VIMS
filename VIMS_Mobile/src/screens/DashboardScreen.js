@@ -913,11 +913,11 @@ const DashboardScreen = ({ navigation }) => {
             </TouchableOpacity>
             {residentOverview.announcements.length ? residentOverview.announcements.map(item => (
               <View key={item._id} style={styles.feedRow}><Ionicons name="megaphone-outline" size={17} color={themeColors.primary} /><View style={{ flex: 1 }}><Text style={styles.feedRowTitle} numberOfLines={1}>{item.title}</Text><Text style={styles.feedRowMeta} numberOfLines={1}>{item.body}</Text></View></View>
-            )) : <Text style={styles.analyticsEmpty}>No announcements yet</Text>}
+            )) : <Text style={styles.residentFeedEmpty}>No announcements yet</Text>}
             <Text style={styles.feedSectionTitle}>Upcoming community schedules</Text>
             {residentOverview.upcomingSchedules.length ? residentOverview.upcomingSchedules.map((item, index) => (
               <View key={item.reservationId || item._id || index} style={styles.feedRow}><Ionicons name="calendar-outline" size={17} color={themeColors.primary} /><View style={{ flex: 1 }}><Text style={styles.feedRowTitle} numberOfLines={1}>{item.resourceName || 'Community reservation'}</Text><Text style={styles.feedRowMeta}>{item.startDate ? new Date(item.startDate).toLocaleString() : 'Schedule pending'}</Text></View></View>
-            )) : <Text style={styles.analyticsEmpty}>No upcoming schedules</Text>}
+            )) : <Text style={styles.residentFeedEmpty}>No upcoming schedules</Text>}
           </View>
         )}
 
@@ -1414,6 +1414,14 @@ const styles = StyleSheet.create({
   analyticsBarFill: { height: '100%', borderRadius: 999 },
   analyticsValue: { width: 24, textAlign: 'right', color: themeColors.textPrimary, fontSize: 12, fontWeight: '900' },
   analyticsEmpty: { color: themeColors.textMuted, fontSize: 12, fontWeight: '600' },
+  residentFeedEmpty: {
+    color: themeColors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    paddingHorizontal: 28,
+    paddingTop: 2,
+    paddingBottom: 12,
+  },
   statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statusCell: { flexGrow: 1, minWidth: '45%', backgroundColor: themeColors.primaryWash, borderRadius: 12, padding: 10 },
   statusValue: { color: themeColors.primary, fontSize: 18, fontWeight: '900' },

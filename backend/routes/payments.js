@@ -384,7 +384,7 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
         const analysis = await analyzeReceiptFraud({
           receiptAbsPath: tempReceiptPath,
           paymentContext: {
-            expectedAmount: payment.amount,
+            expectedAmount: outstandingAmount,
             expectedReferenceNumber: referenceNumber || '',
             invoiceNumber: payment.invoiceNumber || '',
             residentName: resident ? `${resident.firstName || ''} ${resident.lastName || ''}`.trim() : '',

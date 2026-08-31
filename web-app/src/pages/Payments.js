@@ -302,49 +302,84 @@ const Payments = () => {
   }, [fetchData, hasActivePaymentAttempt, paymentAmount, processing, referenceNumber, selectedPayment, showExistingPaymentAttemptToast, uploadedReceipt]);
 
   const handlePrintReceipt = useCallback(() => {
-    const printContent = document.getElementById('receipt-content');
-    if (!printContent) return;
-    
+    if (!receiptData) return;
+
+    const escapeHtml = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+    const paymentMethod = (receiptData.paymentMethod || 'QRPh').toUpperCase();
+    const remainingBalance = Number(receiptData.remainingBalance || 0);
+
     const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
     printWindow.document.write(`
       <html>
         <head>
           <title>Payment Receipt - VIMS</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
-            .receipt { 
-              max-width: 400px; 
-              margin: 0 auto; 
-              border: 1px solid #ddd; 
-              padding: 20px; 
-              border-radius: 8px;
-              background: white;
-            }
-            .header { text-align: center; margin-bottom: 20px; }
-            .header h2 { color: #2224be; margin: 0; }
-            .divider { border-top: 1px dashed #ddd; margin: 15px 0; }
-            .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
-            .total { font-weight: bold; font-size: 1.2em; margin-top: 10px; }
-            .footer { text-align: center; margin-top: 20px; font-size: 11px; color: #666; }
+            * { box-sizing: border-box; }
+            body { margin: 0; padding: 32px 16px; background: #f1f5f3; color: #17221c; font-family: Arial, Helvetica, sans-serif; }
+            .receipt { max-width: 680px; margin: 0 auto; background: #fff; border: 1px solid #d7e2db; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(18, 51, 31, .08); }
+            .header { padding: 28px 36px 22px; text-align: center; background: #087f2e; color: #fff; }
+            .brand { margin: 0; font-size: 12px; letter-spacing: 2px; font-weight: 700; }
+            .title { margin: 10px 0 4px; font-size: 28px; font-weight: 700; }
+            .subtitle { margin: 0; font-size: 13px; opacity: .9; }
+            .content { padding: 28px 36px 24px; }
+            .status { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #e4f5e8; color: #087f2e; font-size: 12px; font-weight: 700; letter-spacing: .5px; }
+            .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 32px; margin: 24px 0; }
+            .label { display: block; margin-bottom: 5px; color: #6a786f; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; }
+            .value { display: block; font-size: 14px; font-weight: 600; word-break: break-word; }
+            .summary { margin-top: 8px; padding: 20px; border: 1px solid #d7e2db; border-radius: 8px; background: #f7fbf8; }
+            .summary-row { display: flex; justify-content: space-between; gap: 20px; padding: 8px 0; font-size: 14px; }
+            .summary-row.total { border-top: 1px solid #c9d9ce; margin-top: 8px; padding-top: 16px; color: #087f2e; font-size: 21px; font-weight: 700; }
+            .description { margin: 22px 0 0; color: #536159; font-size: 13px; line-height: 1.5; }
+            .footer { padding: 18px 36px 24px; border-top: 1px dashed #c9d9ce; text-align: center; color: #6a786f; font-size: 11px; line-height: 1.5; }
+            .actions { text-align: center; margin: 18px auto 0; }
+            button { border: 0; border-radius: 6px; padding: 10px 18px; margin: 0 4px; background: #087f2e; color: #fff; font-weight: 700; cursor: pointer; }
+            button.secondary { background: #e7ede9; color: #26362d; }
             @media print {
-              body { padding: 0; }
-              .no-print { display: none; }
+              body { padding: 0; background: #fff; }
+              .receipt { max-width: none; border: 0; border-radius: 0; box-shadow: none; }
+              .actions { display: none; }
             }
           </style>
         </head>
         <body>
           <div class="receipt">
-            ${printContent.innerHTML}
+            <header class="header">
+              <p class="brand">WESTVILLE CASIMIRO HOMES</p>
+              <h1 class="title">Payment Receipt</h1>
+              <p class="subtitle">Village Information Management System</p>
+            </header>
+            <main class="content">
+              <span class="status">PAYMENT CONFIRMED</span>
+              <section class="meta">
+                <div><span class="label">Receipt Number</span><span class="value">${escapeHtml(receiptData.receiptNumber || 'N/A')}</span></div>
+                <div><span class="label">Invoice Number</span><span class="value">${escapeHtml(receiptData.invoiceNumber || 'N/A')}</span></div>
+                <div><span class="label">Payment Date</span><span class="value">${escapeHtml(formatDate(receiptData.paymentDate))}</span></div>
+                <div><span class="label">Payment Method</span><span class="value">${escapeHtml(paymentMethod)}</span></div>
+              </section>
+              <section class="summary">
+                <div class="summary-row"><span>Payment applied</span><strong>${escapeHtml(formatCurrency(receiptData.amount))}</strong></div>
+                ${remainingBalance > 0 ? `<div class="summary-row"><span>Remaining balance</span><strong>${escapeHtml(formatCurrency(remainingBalance))}</strong></div>` : ''}
+                <div class="summary-row total"><span>Total paid</span><span>${escapeHtml(formatCurrency(receiptData.amount))}</span></div>
+              </section>
+              <p class="description"><strong>Description:</strong> ${escapeHtml(receiptData.description || 'Association dues payment')}</p>
+            </main>
+            <footer class="footer">This is a system-generated receipt.<br />Thank you for your payment.</footer>
           </div>
-          <div style="text-align: center; margin-top: 20px;" class="no-print">
-            <button onclick="window.print()" style="padding: 10px 20px; margin: 5px; cursor: pointer;">Print</button>
-            <button onclick="window.close()" style="padding: 10px 20px; margin: 5px; cursor: pointer;">Close</button>
+          <div class="actions">
+            <button onclick="window.print()">Print Receipt</button>
+            <button class="secondary" onclick="window.close()">Close</button>
           </div>
         </body>
       </html>
     `);
     printWindow.document.close();
-  }, []);
+  }, [formatDate, formatCurrency, receiptData]);
 
   const handleBack = useCallback(() => navigate('/dashboard'), [navigate]);
   

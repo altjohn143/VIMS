@@ -181,8 +181,9 @@ const PaymentsScreen = ({ navigation }) => {
     
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
+      // Preserve the complete receipt and its original detail for OCR.
+      allowsEditing: false,
+      quality: 1,
     });
     
     if (!result.canceled) {

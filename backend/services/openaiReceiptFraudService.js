@@ -37,13 +37,14 @@ async function analyzeReceiptFraud({ receiptAbsPath, paymentContext }) {
           {
             type: 'input_text',
             text: [
-              'Analyze this resident payment receipt and compare with expected transaction context.',
-              `Expected context: ${JSON.stringify(paymentContext)}`,
+              'Read the receipt image first and extract the actual amount printed on the receipt. Do not replace the printed amount with the expected amount from the transaction context.',
+              'The expected transaction context is only for comparison after extraction.',
+              `Expected transaction context: ${JSON.stringify(paymentContext)}`,
               'Return JSON with keys: fraudScore,flags,recommendation,explanation,extracted',
               'fraudScore is 0..1 where 1 means highly suspicious.',
               'flags is a short string list (e.g. amount_mismatch, duplicate_reference, tampered_receipt, unreadable_receipt).',
               "recommendation is one of: likely_legit, needs_review, likely_fraud.",
-              'extracted object should include amount, refNo, date, merchant.'
+              'extracted object should include amount, refNo, date, merchant. The extracted amount must be the total amount actually sent or paid shown on the receipt, including any amount above the expected dues. If the amount is unreadable, return an empty amount and include unreadable_receipt in flags.'
             ].join('\n')
           },
           { type: 'input_image', image_url: toDataUrl(receiptAbsPath) }

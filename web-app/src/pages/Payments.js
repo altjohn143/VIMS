@@ -108,7 +108,7 @@ const Payments = () => {
 
   const hasActivePaymentAttempt = useCallback((payment) => (
     payment?.status === 'paid' ||
-    (payment?.status === 'pending' && !!(payment?.paymentMethod || payment?.referenceNumber || payment?.receiptImage))
+    (payment?.status === 'pending' && !!(payment?.paymentMethod || payment?.referenceNumber || payment?.transactionId))
   ), []);
 
   const showExistingPaymentAttemptToast = useCallback(() => {

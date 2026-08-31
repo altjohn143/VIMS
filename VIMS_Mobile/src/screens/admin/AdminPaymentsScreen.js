@@ -295,11 +295,15 @@ const AdminPaymentsScreen = ({ navigation }) => {
     const receiptImage = payment?.receiptImage || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.receiptImage)?.receiptImage;
     setSelectedImage(receiptImage);
     setSelectedImagePayment(payment);
-    setSelectedImageUri(null);
+    setSelectedImageUri(/^https?:\/\//i.test(receiptImage) ? receiptImage : null);
     setShowImageViewer(true);
 
     if (!receiptImage) {
       Alert.alert('Receipt Missing', 'No receipt image is available for this payment.');
+      return;
+    }
+
+    if (/^https?:\/\//i.test(receiptImage)) {
       return;
     }
 
@@ -395,6 +399,10 @@ const AdminPaymentsScreen = ({ navigation }) => {
     return configs[method] || { label: method?.toUpperCase() || 'N/A', color: themeColors.textSecondary };
   };
 
+  const getDisplayedPaymentMethod = (payment) => (
+    payment?.paymentMethod || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.paymentMethod)?.paymentMethod || null
+  );
+
   const getReceiptAiMeta = (receiptAi) => {
     if (!receiptAi) return { label: 'AI not analyzed', color: themeColors.textSecondary };
     if (receiptAi.recommendation === 'likely_legit') return { label: 'AI: Likely legit', color: themeColors.success };
@@ -456,7 +464,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
 
   const renderPaymentCard = ({ item: payment }) => {
     const status = getStatusChip(payment.status, payment.dueDate);
-    const methodConfig = getPaymentMethodConfig(payment.paymentMethod);
+    const methodConfig = getPaymentMethodConfig(getDisplayedPaymentMethod(payment));
     const receiptAiMeta = getReceiptAiMeta(payment.receiptAi);
     
     return (
@@ -547,7 +555,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
 
-          {payment.status === 'pending' && !!(payment.paymentMethod || payment.referenceNumber || payment.receiptImage) && (
+          {payment.status === 'pending' && !!(payment.paymentMethod || payment.referenceNumber || payment.transactionId) && (
             <TouchableOpacity
               style={[styles.actionButton, styles.rejectButton]}
               onPress={() => {
@@ -761,7 +769,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
                   ['Penalty', formatCurrency(selectedPayment.penaltyAmount)],
                   ['Type', (selectedPayment.paymentType || 'N/A').replace(/_/g, ' ')],
                   ['Status', getStatusChip(selectedPayment.status, selectedPayment.dueDate).label],
-                  ['Method', getPaymentMethodConfig(selectedPayment.paymentMethod).label],
+                  ['Method', getPaymentMethodConfig(getDisplayedPaymentMethod(selectedPayment)).label],
                   ['Due date', formatDate(selectedPayment.dueDate)],
                   ['Payment date', formatDate(selectedPayment.paymentDate)],
                   ['Reference', selectedPayment.referenceNumber || 'N/A'],

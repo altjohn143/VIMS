@@ -408,8 +408,12 @@ const AdminPayments = () => {
 
     setSelectedImage(receiptImage);
     setSelectedImagePayment(payment);
-    setSelectedImageUrl(null);
+    setSelectedImageUrl(/^https?:\/\//i.test(receiptImage) ? receiptImage : null);
     setImageViewerOpen(true);
+
+    if (/^https?:\/\//i.test(receiptImage)) {
+      return;
+    }
 
     try {
       const imageResponse = await axios.get(`/api/payments/receipt-image/payment/${payment._id}`, {
@@ -491,6 +495,10 @@ const AdminPayments = () => {
       />
     );
   };
+
+  const getDisplayedPaymentMethod = (payment) => (
+    payment?.paymentMethod || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.paymentMethod)?.paymentMethod || null
+  );
 
   const getReceiptAiChip = (receiptAi) => {
     if (!receiptAi) return <Chip label="Not analyzed" size="small" variant="outlined" />;
@@ -924,7 +932,7 @@ const AdminPayments = () => {
                       </TableCell>
                       <TableCell>{formatDate(payment.dueDate)}</TableCell>
                       <TableCell>{getStatusChip(payment.status, payment.dueDate)}</TableCell>
-                      <TableCell>{getPaymentMethodChip(payment.paymentMethod)}</TableCell>
+                      <TableCell>{getPaymentMethodChip(getDisplayedPaymentMethod(payment))}</TableCell>
                       <TableCell>
                         {payment.referenceNumber ? (
                           <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
@@ -976,7 +984,7 @@ const AdminPayments = () => {
                             </Button>
                           )}
 
-                          {payment.status === 'pending' && (payment.paymentMethod || payment.referenceNumber || payment.receiptImage) && (
+                          {payment.status === 'pending' && (payment.paymentMethod || payment.referenceNumber || payment.transactionId) && (
                             <Button
                               size="small"
                               variant="outlined"

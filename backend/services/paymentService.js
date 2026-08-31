@@ -133,7 +133,6 @@ async function createMonthlyDuesForResident(resident, targetMonth, targetYear) {
 
 function hasSubmittedPaymentForReview(payment) {
   return Boolean(
-    payment.receiptImage ||
     payment.referenceNumber ||
     payment.transactionId ||
     payment.paymongoSessionId ||

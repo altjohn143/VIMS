@@ -54,7 +54,7 @@ async function applyDailyPenalty(payment) {
   }
   syncPaymentAmounts(payment);
   if (payment.isModified()) await payment.save();
-  return payment;
+  return await applyResidentCreditToPayment(resident, payment);
 }
 
 async function applyDailyPenalties(payments) {
@@ -128,7 +128,7 @@ async function createMonthlyDuesForResident(resident, targetMonth, targetYear) {
     notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
     inclusions: defaultInclusions
   });
-  return await applyResidentCreditToPayment(resident, payment);
+  return payment;
 }
 
 function hasSubmittedPaymentForReview(payment) {

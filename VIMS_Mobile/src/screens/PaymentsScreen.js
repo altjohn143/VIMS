@@ -31,7 +31,8 @@ const PaymentsScreen = ({ navigation }) => {
     totalPending: 0,
     pendingCount: 0,
     overdueCount: 0,
-    overdueAmount: 0
+    overdueAmount: 0,
+    creditBalance: 0
   });
   const [currentDues, setCurrentDues] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +43,7 @@ const PaymentsScreen = ({ navigation }) => {
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [showCashDialog, setShowCashDialog] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
   const [uploadedReceipt, setUploadedReceipt] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
@@ -117,6 +119,7 @@ const PaymentsScreen = ({ navigation }) => {
     }
 
     setShowPaymentMethod(false);
+    setPaymentAmount(String(selectedPayment?.amount || ''));
     setShowQRDialog(true);
   };
 
@@ -179,6 +182,17 @@ const PaymentsScreen = ({ navigation }) => {
       Alert.alert('Error', 'Please enter your reference number');
       return;
     }
+
+    const enteredAmount = Number(paymentAmount);
+    if (!Number.isFinite(enteredAmount) || enteredAmount <= 0) {
+      Alert.alert('Error', 'Please enter the amount you paid');
+      return;
+    }
+
+    if (enteredAmount > Number(selectedPayment?.amount || 0)) {
+      Alert.alert('Error', `Amount paid cannot exceed ${formatCurrency(selectedPayment?.amount)}`);
+      return;
+    }
     
     if (!uploadedReceipt) {
       Alert.alert('Error', 'Please upload your payment receipt/screenshot');
@@ -199,7 +213,7 @@ const PaymentsScreen = ({ navigation }) => {
       const formData = new FormData();
       formData.append('referenceNumber', referenceNumber);
       formData.append('paymentId', selectedPayment._id);
-      formData.append('amount', selectedPayment.amount);
+      formData.append('amount', enteredAmount);
       formData.append('receipt', {
         uri: uploadedReceipt.uri,
         name: uploadedReceipt.name,
@@ -214,6 +228,7 @@ const PaymentsScreen = ({ navigation }) => {
         Alert.alert('Success', 'Payment receipt submitted! Admin will verify your payment within 24 hours.');
         setShowQRDialog(false);
         setReferenceNumber('');
+        setPaymentAmount('');
         setUploadedReceipt(null);
         fetchData();
       } else {
@@ -322,6 +337,12 @@ const PaymentsScreen = ({ navigation }) => {
             <Ionicons name="alert-circle-outline" style={styles.coloredStatBgIcon} />
             <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.overdueAmount)}</Text>
             <Text style={styles.coloredStatLabel}>Overdue</Text>
+          </View>
+          <View style={styles.coloredStatCard}>
+            <View style={styles.statCardHighlight} />
+            <Ionicons name="wallet-outline" style={styles.coloredStatBgIcon} />
+            <Text style={styles.coloredStatValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(summary.creditBalance)}</Text>
+            <Text style={styles.coloredStatLabel}>Available Credit</Text>
           </View>
         </View>
 
@@ -454,6 +475,40 @@ const PaymentsScreen = ({ navigation }) => {
                     </View>
                   )}
                 </View>
+
+                {payment.paymentHistory?.length > 0 && (
+                  <View style={styles.transactionHistory}>
+                    <Text style={styles.transactionTitle}>Transactions</Text>
+                    {payment.paymentHistory.map((transaction, index) => {
+                      const transactionAmount = Number(transaction.amount || 0) + Number(transaction.creditedAmount || 0);
+                      const isRejected = String(transaction.notes || '').toLowerCase().includes('rejected');
+                      return (
+                        <View key={transaction._id || `${payment._id}-${index}`} style={styles.transactionRow}>
+                          <View style={styles.transactionMain}>
+                            <Text style={styles.transactionAmount}>{formatCurrency(transactionAmount)}</Text>
+                            <Text style={styles.transactionMeta}>
+                              {formatDate(transaction.verifiedAt)} • {(transaction.paymentMethod || 'payment').toUpperCase()}
+                            </Text>
+                            {!!transaction.referenceNumber && (
+                              <Text style={styles.transactionMeta}>Ref: {transaction.referenceNumber}</Text>
+                            )}
+                            {!!transaction.receiptNumber && (
+                              <Text style={styles.transactionMeta}>Receipt: {transaction.receiptNumber}</Text>
+                            )}
+                            {!!transaction.creditedAmount && (
+                              <Text style={styles.transactionCredit}>Credit added: {formatCurrency(transaction.creditedAmount)}</Text>
+                            )}
+                          </View>
+                          <View style={[styles.transactionStatus, isRejected ? styles.transactionRejected : styles.transactionConfirmed]}>
+                            <Text style={[styles.transactionStatusText, isRejected ? styles.transactionRejectedText : styles.transactionConfirmedText]}>
+                              {isRejected ? 'Rejected' : 'Confirmed'}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
                 
                 {payment.status === 'pending' && (
                   <TouchableOpacity
@@ -464,7 +519,7 @@ const PaymentsScreen = ({ navigation }) => {
                     <Text style={styles.payButtonText}>Pay Now</Text>
                   </TouchableOpacity>
                 )}
-                {payment.receiptNumber && (
+                {(payment.receiptNumber || payment.paymentHistory?.some(transaction => transaction.receiptNumber)) && (
                   <TouchableOpacity
                     style={[styles.receiptButton, payment.status === 'pending' && { marginTop: 8 }]}
                     onPress={() => {
@@ -537,6 +592,7 @@ const PaymentsScreen = ({ navigation }) => {
                 <Text style={styles.cashDesc}>Pay at the admin office</Text>
               </View>
             </TouchableOpacity>
+
           </View>
         </View>
       </Modal>
@@ -588,6 +644,14 @@ const PaymentsScreen = ({ navigation }) => {
                 value={referenceNumber}
                 onChangeText={setReferenceNumber}
               />
+
+              <TextInput
+                style={styles.referenceInput}
+                placeholder="Amount Paid"
+                value={paymentAmount}
+                onChangeText={setPaymentAmount}
+                keyboardType="decimal-pad"
+              />
               
               <TouchableOpacity style={styles.uploadButton} onPress={pickReceiptImage}>
                 <Ionicons name="cloud-upload" size={20} color={themeColors.primary} />
@@ -602,9 +666,9 @@ const PaymentsScreen = ({ navigation }) => {
               )}
               
               <TouchableOpacity
-                style={[styles.submitButton, (!referenceNumber || !uploadedReceipt || processing) && styles.disabledButton]}
+                style={[styles.submitButton, (!referenceNumber || !paymentAmount || !uploadedReceipt || processing) && styles.disabledButton]}
                 onPress={handleUploadReceipt}
-                disabled={!referenceNumber || !uploadedReceipt || processing}
+                disabled={!referenceNumber || !paymentAmount || !uploadedReceipt || processing}
               >
                 {processing ? (
                   <ActivityIndicator color="white" />
@@ -750,6 +814,7 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     paddingHorizontal: 16,
     paddingTop: 14,
@@ -757,7 +822,8 @@ const styles = StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   coloredStatCard: {
-    flex: 1,
+    flexBasis: '47%',
+    flexGrow: 1,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 12,
@@ -948,6 +1014,8 @@ const styles = StyleSheet.create({
   },
   paymentDetails: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
     justifyContent: 'space-between',
     marginBottom: 16,
     paddingTop: 12,
@@ -963,6 +1031,69 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: themeColors.textPrimary,
+  },
+  transactionHistory: {
+    borderTopWidth: 1,
+    borderTopColor: themeColors.border,
+    paddingTop: 12,
+    marginBottom: 14,
+    gap: 8,
+  },
+  transactionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: themeColors.textPrimary,
+  },
+  transactionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    backgroundColor: themeColors.surfaceTint,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    padding: 10,
+  },
+  transactionMain: {
+    flex: 1,
+  },
+  transactionAmount: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: themeColors.textPrimary,
+  },
+  transactionMeta: {
+    fontSize: 10,
+    color: themeColors.textSecondary,
+    marginTop: 2,
+  },
+  transactionCredit: {
+    fontSize: 10,
+    color: themeColors.primaryDeep,
+    marginTop: 2,
+    fontWeight: '700',
+  },
+  transactionStatus: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  transactionConfirmed: {
+    backgroundColor: themeColors.success + '18',
+  },
+  transactionRejected: {
+    backgroundColor: themeColors.error + '14',
+  },
+  transactionStatusText: {
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  transactionConfirmedText: {
+    color: themeColors.success,
+  },
+  transactionRejectedText: {
+    color: themeColors.error,
   },
   payButton: {
     backgroundColor: themeColors.primary,

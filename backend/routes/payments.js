@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { getCached } = require('../utils/cache');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
@@ -25,6 +24,47 @@ const {
 const debugLog = (...args) => {
   if (process.env.NODE_ENV !== 'production') console.log(...args);
 };
+
+function getNextBillingPeriod(payment) {
+  const sourceMonth = Number(payment.billingPeriod?.month || (payment.dueDate ? new Date(payment.dueDate).getMonth() + 1 : new Date().getMonth() + 1));
+  const sourceYear = Number(payment.billingPeriod?.year || (payment.dueDate ? new Date(payment.dueDate).getFullYear() : new Date().getFullYear()));
+  const nextMonth = sourceMonth === 12 ? 1 : sourceMonth + 1;
+  const nextYear = sourceMonth === 12 ? sourceYear + 1 : sourceYear;
+  return { month: nextMonth, year: nextYear };
+}
+
+async function createNextMonthlyDuesForPaidInvoice(payment) {
+  if (payment.paymentType !== 'monthly_dues' || payment.status !== 'paid') {
+    return null;
+  }
+
+  const { month, year } = getNextBillingPeriod(payment);
+  const existing = await Payment.findOne({
+    residentId: payment.residentId,
+    paymentType: 'monthly_dues',
+    'billingPeriod.month': month,
+    'billingPeriod.year': year
+  });
+
+  if (existing) {
+    return { payment: existing, created: false };
+  }
+
+  const resident = await User.findById(payment.residentId);
+  if (!resident) {
+    return null;
+  }
+
+  const nextPayment = await createMonthlyDuesForResident(resident, month, year);
+  await createInAppNotification({
+    userId: resident._id,
+    type: 'payment',
+    title: 'Next monthly dues generated',
+    body: `Your monthly dues invoice for ${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year} is now available.`,
+    metadata: { paymentId: nextPayment._id, month, year, paymentType: 'monthly_dues' }
+  });
+  return { payment: nextPayment, created: true };
+}
 
 // ========== PAYMENT ROUTES ==========
 
@@ -683,6 +723,7 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     }
     
     await payment.save();
+    const nextMonthlyDues = await createNextMonthlyDuesForPaidInvoice(payment);
     await createInAppNotification({
       userId: payment.residentId,
       type: 'payment',
@@ -713,7 +754,21 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     res.json({
       success: true,
       message: payment.status === 'paid' ? 'Payment confirmed' : 'Partial payment confirmed',
-      data: { email: emailResult, appliedAmount, creditedAmount, remainingBalance, paymentStatus: payment.status }
+      data: {
+        email: emailResult,
+        appliedAmount,
+        creditedAmount,
+        remainingBalance,
+        paymentStatus: payment.status,
+        nextMonthlyDues: nextMonthlyDues ? {
+          paymentId: nextMonthlyDues.payment._id,
+          invoiceNumber: nextMonthlyDues.payment.invoiceNumber,
+          month: nextMonthlyDues.payment.billingPeriod?.month,
+          year: nextMonthlyDues.payment.billingPeriod?.year,
+          status: nextMonthlyDues.payment.status,
+          created: nextMonthlyDues.created
+        } : null
+      }
     });
   } catch (error) {
     console.error('Confirm payment error:', error);
@@ -976,45 +1031,37 @@ router.get('/admin/dashboard-graphs', protect, authorize('admin'), async (req, r
 router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
   try {
     const { year, month } = req.query;
-    
-    const cacheKey = `payment-stats:${year || 'current'}:${month || 'current'}`;
-    const ttlMs = 60 * 1000; // 1 minute TTL
-    
-    const data = await getCached(cacheKey, ttlMs, async () => {
-      let startDate, endDate;
-  
-      if (year && month) {
-        // Specific month
-        startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-        endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
-      } else {
-        // Current month by default
-        startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        endDate = new Date();
-      }
-  
-      const [allPayments, totalInvoices, paidInvoices] = await Promise.all([
-        Payment.find({}).lean(),
-        Payment.countDocuments({}),
-        Payment.countDocuments({ status: 'paid' })
-      ]);
-      await applyDailyPenalties(allPayments);
-      const totalCollected = allPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
-      const monthlyPayments = allPayments.filter(payment => payment.createdAt >= startDate && payment.createdAt <= endDate);
-      const monthlyCollected = monthlyPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
-      const paymentCount = monthlyPayments.filter(payment => Number(payment.paidAmount || 0) > 0 || payment.status === 'paid').length;
-      const pendingTotal = allPayments
-        .filter(payment => payment.status === 'pending')
-        .reduce((sum, payment) => sum + getOutstandingAmount(payment), 0);
-  
-      return {
-        totalCollected,
-        monthlyCollected,
-        paymentCount,
-        pendingTotal,
-        collectionRate: totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 1000) / 10 : 0
-      };
-    });
+
+    let startDate, endDate;
+
+    if (year && month) {
+      startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
+    } else {
+      startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      endDate = new Date();
+    }
+
+    const allPayments = await Payment.find({});
+    await applyDailyPenalties(allPayments);
+
+    const totalInvoices = allPayments.length;
+    const paidInvoices = allPayments.filter(payment => payment.status === 'paid').length;
+    const totalCollected = allPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
+    const monthlyPayments = allPayments.filter(payment => payment.createdAt >= startDate && payment.createdAt <= endDate);
+    const monthlyCollected = monthlyPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
+    const paymentCount = monthlyPayments.filter(payment => Number(payment.paidAmount || 0) > 0 || payment.status === 'paid').length;
+    const pendingTotal = allPayments
+      .filter(payment => payment.status === 'pending')
+      .reduce((sum, payment) => sum + getOutstandingAmount(payment), 0);
+
+    const data = {
+      totalCollected,
+      monthlyCollected,
+      paymentCount,
+      pendingTotal,
+      collectionRate: totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 1000) / 10 : 0
+    };
     
     res.json({
       success: true,

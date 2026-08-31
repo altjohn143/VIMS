@@ -147,7 +147,7 @@ const AdminPayments = () => {
       if (response.data.success) {
         setPayments(response.data.data);
         setTotal(response.data.pagination.total);
-        setSummary(response.data.summary);
+        setSummary(prev => ({ ...prev, ...response.data.summary }));
       }
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -186,6 +186,11 @@ const AdminPayments = () => {
       console.error('Error fetching monthly dues amount:', error);
     }
   }, []);
+
+  const refreshPaymentConsole = useCallback(() => {
+    fetchPayments();
+    fetchStats();
+  }, [fetchPayments, fetchStats]);
 
   // Now useEffect with proper dependencies
   useEffect(() => {
@@ -722,7 +727,7 @@ const AdminPayments = () => {
               <Button variant="outlined" onClick={() => handleExportFile('csv')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
                 Export CSV
               </Button>
-              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchPayments} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
+              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={refreshPaymentConsole} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
                 Refresh
               </Button>
             </Grid>
@@ -1552,7 +1557,6 @@ const AdminPayments = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Generate Invoices Dialog */}
         {/* Send Reminders Dialog */}
         <Dialog open={reminderDialogOpen} onClose={() => setReminderDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '18px' } }}>
           <DialogTitle sx={{ fontWeight: 600, color: themeColors.textPrimary }}>

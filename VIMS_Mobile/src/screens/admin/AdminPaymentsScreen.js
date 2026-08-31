@@ -85,7 +85,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
       if (response.data.success) {
         setPayments(response.data.data);
         setTotal(response.data.pagination.total);
-        setSummary(response.data.summary);
+        setSummary(prev => ({ ...prev, ...response.data.summary }));
       }
     } catch (error) {
       console.error('Error fetching payments:', error);

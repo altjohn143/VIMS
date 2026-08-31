@@ -91,6 +91,7 @@ const Payments = () => {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [cashDialogOpen, setCashDialogOpen] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
   const [uploadedReceipt, setUploadedReceipt] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
@@ -185,6 +186,7 @@ const Payments = () => {
     }
 
     setPaymentMethodOpen(false);
+    setPaymentAmount(String(selectedPayment?.amount || ''));
     setQrDialogOpen(true);
   }, [fetchData, hasActivePaymentAttempt, selectedPayment, showExistingPaymentAttemptToast]);
 
@@ -224,6 +226,17 @@ const Payments = () => {
       toast.error('Please enter your reference number');
       return;
     }
+
+    const enteredAmount = Number(paymentAmount);
+    if (!Number.isFinite(enteredAmount) || enteredAmount <= 0) {
+      toast.error('Please enter the amount you paid');
+      return;
+    }
+
+    if (enteredAmount > Number(selectedPayment?.amount || 0)) {
+      toast.error('Amount paid cannot exceed the invoice balance');
+      return;
+    }
     
     if (!uploadedReceipt) {
       toast.error('Please upload your payment receipt/screenshot');
@@ -245,7 +258,7 @@ const Payments = () => {
       formData.append('referenceNumber', referenceNumber);
       formData.append('receipt', uploadedReceipt);
       formData.append('paymentId', selectedPayment._id);
-      formData.append('amount', selectedPayment.amount);
+      formData.append('amount', enteredAmount);
       
         const response = await axios.post('/api/payments/upload-qrph-receipt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -255,6 +268,7 @@ const Payments = () => {
         toast.success('Payment receipt submitted! Admin will verify your payment within 24 hours.');
         setQrDialogOpen(false);
         setReferenceNumber('');
+        setPaymentAmount('');
         setUploadedReceipt(null);
         fetchData();
       } else {
@@ -266,7 +280,7 @@ const Payments = () => {
     } finally {
       setProcessing(false);
     }
-  }, [fetchData, hasActivePaymentAttempt, processing, referenceNumber, selectedPayment, showExistingPaymentAttemptToast, uploadedReceipt]);
+  }, [fetchData, hasActivePaymentAttempt, paymentAmount, processing, referenceNumber, selectedPayment, showExistingPaymentAttemptToast, uploadedReceipt]);
 
   const handlePrintReceipt = useCallback(() => {
     const printContent = document.getElementById('receipt-content');
@@ -696,6 +710,63 @@ const Payments = () => {
                         {false && payment.notes && (
                           <Typography variant="caption" color="textSecondary">{payment.notes}</Typography>
                         )}
+                        {payment.paymentHistory?.length > 0 && (
+                          <Box sx={{ mt: 1.25 }}>
+                            <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, color: themeColors.textPrimary, mb: 0.5 }}>
+                              Transactions
+                            </Typography>
+                            {payment.paymentHistory.map((transaction, index) => {
+                              const transactionAmount = Number(transaction.amount || 0) + Number(transaction.creditedAmount || 0);
+                              const isRejected = String(transaction.notes || '').toLowerCase().includes('rejected');
+                              return (
+                                <Box
+                                  key={transaction._id || `${payment._id}-${index}`}
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    justifyContent: 'space-between',
+                                    gap: 1,
+                                    p: 1,
+                                    mb: 0.75,
+                                    borderRadius: 2,
+                                    bgcolor: 'rgba(15, 23, 42, 0.035)',
+                                    border: `1px solid ${themeColors.border}`
+                                  }}
+                                >
+                                  <Box>
+                                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 800 }}>
+                                      {formatCurrency(transactionAmount)}
+                                    </Typography>
+                                    <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                                      {formatDate(transaction.verifiedAt)} • {(transaction.paymentMethod || 'payment').toUpperCase()}
+                                    </Typography>
+                                    {!!transaction.referenceNumber && (
+                                      <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                                        Ref: {transaction.referenceNumber}
+                                      </Typography>
+                                    )}
+                                    {!!transaction.receiptNumber && (
+                                      <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                                        Receipt: {transaction.receiptNumber}
+                                      </Typography>
+                                    )}
+                                    {!!transaction.creditedAmount && (
+                                      <Typography variant="caption" sx={{ display: 'block', color: themeColors.primary, fontWeight: 700 }}>
+                                        Credit added: {formatCurrency(transaction.creditedAmount)}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                  <Chip
+                                    size="small"
+                                    color={isRejected ? 'error' : 'success'}
+                                    label={isRejected ? 'Rejected' : 'Confirmed'}
+                                    sx={{ height: 22, fontSize: '0.65rem', fontWeight: 700 }}
+                                  />
+                                </Box>
+                              );
+                            })}
+                          </Box>
+                        )}
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -732,7 +803,7 @@ const Payments = () => {
                               Pay
                             </Button>
                           )}
-                          {payment.receiptNumber && (
+                          {(payment.receiptNumber || payment.paymentHistory?.some(transaction => transaction.receiptNumber)) && (
                           <IconButton
                             size="small"
                             onClick={() => {
@@ -961,6 +1032,23 @@ const Payments = () => {
                   ),
                 }}
               />
+
+              <TextField
+                fullWidth
+                type="number"
+                label="Amount Paid"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                inputProps={{ min: 1, max: selectedPayment?.amount || undefined, step: '0.01' }}
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CashIcon sx={{ color: themeColors.textSecondary }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
               
               <Button
                 fullWidth
@@ -989,10 +1077,10 @@ const Payments = () => {
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
             <Button onClick={() => setQrDialogOpen(false)} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>Cancel</Button>
-            <Button 
+              <Button 
               variant="contained" 
               onClick={handleUploadReceipt}
-              disabled={!referenceNumber || !uploadedReceipt || processing}
+              disabled={!referenceNumber || !paymentAmount || !uploadedReceipt || processing}
               sx={{ bgcolor: themeColors.success, borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
             >
               {processing ? <CircularProgress size={20} /> : 'Submit Payment'}

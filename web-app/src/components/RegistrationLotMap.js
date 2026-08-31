@@ -20,7 +20,7 @@ const STATUS = {
   vacant: { label: 'Vacant', color: '#00A85A', background: '#dcfce7' },
   reserved: { label: 'Reserved', color: '#d97706', background: '#fef3c7' },
   occupied: { label: 'Occupied', color: '#dc2626', background: '#fee2e2' },
-  amenity: { label: 'Community Amenity', color: '#0f766e', background: '#ccfbf1' },
+  amenity: { label: 'Community Amenity', color: '#64748b', background: '#e2e8f0' },
 };
 
 const getPosition = (lot) => {

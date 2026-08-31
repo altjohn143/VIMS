@@ -31,6 +31,7 @@ export default function RegisterLotMapModal({
       vacant: { color: '#00D084', bg: '#dcfce7', label: 'Vacant', border: '#00A85A' },
       occupied: { color: '#ef4444', bg: '#fee2e2', label: 'Occupied', border: '#dc2626' },
       reserved: { color: '#f59e0b', bg: '#fef3c7', label: 'Reserved', border: '#d97706' },
+      amenity: { color: '#64748b', bg: '#e2e8f0', label: 'Community Amenity', border: '#94a3b8' },
     }),
     []
   );

@@ -50,6 +50,7 @@ const PaymentsScreen = ({ navigation }) => {
   const [receiptData, setReceiptData] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [expandedTransactions, setExpandedTransactions] = useState({});
 
   const { user } = useAuth();
 
@@ -497,8 +498,10 @@ const PaymentsScreen = ({ navigation }) => {
 
                 {payment.paymentHistory?.length > 0 && (
                   <View style={styles.transactionHistory}>
-                    <Text style={styles.transactionTitle}>Transactions</Text>
-                    {payment.paymentHistory.map((transaction, index) => {
+                    <TouchableOpacity onPress={() => setExpandedTransactions((current) => ({ ...current, [payment._id]: !current[payment._id] }))}>
+                      <Text style={styles.transactionTitle}>Transactions ({payment.paymentHistory.length}) {expandedTransactions[payment._id] ? '- Hide' : '+ Show'}</Text>
+                    </TouchableOpacity>
+                    {expandedTransactions[payment._id] && payment.paymentHistory.map((transaction, index) => {
                       const transactionAmount = Number(transaction.amount || 0) + Number(transaction.creditedAmount || 0);
                       const isRejected = String(transaction.notes || '').toLowerCase().includes('rejected');
                       return (

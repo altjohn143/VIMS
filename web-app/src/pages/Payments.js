@@ -100,6 +100,7 @@ const Payments = () => {
   const [selectedDescriptionPayment, setSelectedDescriptionPayment] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [expandedTransactions, setExpandedTransactions] = useState({});
 
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -730,10 +731,11 @@ const Payments = () => {
                         )}
                         {payment.paymentHistory?.length > 0 && (
                           <Box sx={{ mt: 1.25 }}>
-                            <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, color: themeColors.textPrimary, mb: 0.5 }}>
-                              Transactions
-                            </Typography>
-                            {payment.paymentHistory.map((transaction, index) => {
+                            <Button size="small" onClick={() => setExpandedTransactions((current) => ({ ...current, [payment._id]: !current[payment._id] }))}
+                              sx={{ p: 0, minWidth: 0, textTransform: 'none', fontWeight: 800, color: themeColors.textPrimary }}>
+                              Transactions ({payment.paymentHistory.length}) {expandedTransactions[payment._id] ? '- Hide' : '+ Show'}
+                            </Button>
+                            {expandedTransactions[payment._id] && payment.paymentHistory.map((transaction, index) => {
                               const transactionAmount = Number(transaction.amount || 0) + Number(transaction.creditedAmount || 0);
                               const isRejected = String(transaction.notes || '').toLowerCase().includes('rejected');
                               return (

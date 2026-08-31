@@ -451,16 +451,18 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
 // Serve uploaded receipt images by payment ID (Admin only)
 router.get('/receipt-image/payment/:paymentId', protect, authorize('admin'), async (req, res) => {
   try {
-    const payment = await Payment.findById(req.params.paymentId).select('receiptImage');
-    if (!payment || !payment.receiptImage) {
+    const payment = await Payment.findById(req.params.paymentId).select('receiptImage paymentHistory');
+    const historicalReceipt = payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.receiptImage)?.receiptImage;
+    const receiptImage = payment?.receiptImage || historicalReceipt;
+    if (!payment || !receiptImage) {
       return res.status(404).json({ success: false, error: 'Receipt not found' });
     }
 
-    if (/^https?:\/\//i.test(payment.receiptImage)) {
-      return res.redirect(payment.receiptImage);
+    if (/^https?:\/\//i.test(receiptImage)) {
+      return res.redirect(receiptImage);
     }
 
-    const safeFilename = path.basename(payment.receiptImage);
+    const safeFilename = path.basename(receiptImage);
     const imagePath = path.join(__dirname, '../uploads/receipts', safeFilename);
 
     if (!fs.existsSync(imagePath)) {
@@ -544,7 +546,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate + 'T23:59:59.999') };
 
 let payments = await Payment.find(filter)
-      .select('residentId amount originalAmount paidAmount submittedAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber receiptImage receiptAi description notes rejectionReason rejectedAt')
+      .select('residentId amount originalAmount paidAmount submittedAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber receiptImage receiptAi paymentHistory description notes rejectionReason rejectedAt')
       .populate('residentId', 'firstName lastName houseNumber paymentCreditBalance')
       .sort({ createdAt: -1 })
       .lean();
@@ -752,10 +754,7 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     payment.paymentMethod = null;
     payment.referenceNumber = undefined;
     payment.transactionId = undefined;
-    payment.receiptImage = null;
-    payment.receiptImagePublicId = null;
     payment.submittedAmount = null;
-    payment.receiptAi = undefined;
     payment.rejectionReason = '';
     payment.rejectedAt = null;
     payment.rejectedBy = null;

@@ -397,12 +397,13 @@ const AdminPayments = () => {
   };
 
   const handleViewReceiptImage = async (payment) => {
-    if (!payment?.receiptImage) {
+    const receiptImage = payment?.receiptImage || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.receiptImage)?.receiptImage;
+    if (!receiptImage) {
       toast.error('No receipt image available for this payment');
       return;
     }
 
-    setSelectedImage(payment.receiptImage);
+    setSelectedImage(receiptImage);
     setSelectedImagePayment(payment);
     setSelectedImageUrl(null);
     setImageViewerOpen(true);
@@ -989,7 +990,7 @@ const AdminPayments = () => {
                           )}
                           
                           {/* View Receipt Image Button */}
-                          {payment.receiptImage && (
+                          {(payment.receiptImage || payment.paymentHistory?.some((transaction) => transaction.receiptImage)) && (
                             <IconButton 
                               size="small" 
                               onClick={() => handleViewReceiptImage(payment)}
@@ -1003,35 +1004,6 @@ const AdminPayments = () => {
                             </IconButton>
                           )}
                           
-                          {/* View Receipt Info Button (for text notes) */}
-                          {payment.notes && payment.notes.includes('QRPh payment submitted') && !payment.receiptImage && (
-                            <IconButton 
-                              size="small" 
-                              onClick={() => {
-                                toast((t) => (
-                                  <Box>
-                                    <Typography variant="subtitle2" fontWeight="bold">Payment Notes:</Typography>
-                                    <Typography variant="body2">{payment.notes}</Typography>
-                                    {payment.referenceNumber && (
-                                      <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-                                        Ref: {payment.referenceNumber}
-                                      </Typography>
-                                    )}
-                                  </Box>
-                                ), { duration: 5000 });
-                              }}
-                              title="View Receipt Info"
-                            >
-                              <ReceiptIcon fontSize="small" />
-                            </IconButton>
-                          )}
-                          
-                          {/* View Receipt for paid payments */}
-                          {payment.receiptNumber && (
-                            <IconButton size="small" title="View Receipt">
-                              <ReceiptIcon fontSize="small" />
-                            </IconButton>
-                          )}
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -1106,6 +1078,22 @@ const AdminPayments = () => {
                     <Typography variant="body2" color="textSecondary" sx={{ whiteSpace: 'pre-wrap' }}>
                       {selectedDescriptionPayment.notes}
                     </Typography>
+                  </Box>
+                )}
+                {selectedDescriptionPayment.receiptAi && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>AI Receipt Analysis</Typography>
+                    <Box sx={{ mt: 0.5 }}>{getReceiptAiChip(selectedDescriptionPayment.receiptAi)}</Box>
+                    {selectedDescriptionPayment.receiptAi.flags?.length > 0 && (
+                      <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>
+                        Flags: {selectedDescriptionPayment.receiptAi.flags.join(', ')}
+                      </Typography>
+                    )}
+                    {selectedDescriptionPayment.receiptAi.explanation && (
+                      <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>
+                        {selectedDescriptionPayment.receiptAi.explanation}
+                      </Typography>
+                    )}
                   </Box>
                 )}
               </Box>

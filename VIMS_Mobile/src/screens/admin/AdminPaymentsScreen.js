@@ -289,12 +289,13 @@ const AdminPaymentsScreen = ({ navigation }) => {
   };
 
   const handleViewReceiptImage = async (payment) => {
-    setSelectedImage(payment.receiptImage);
+    const receiptImage = payment?.receiptImage || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.receiptImage)?.receiptImage;
+    setSelectedImage(receiptImage);
     setSelectedImagePayment(payment);
     setSelectedImageUri(null);
     setShowImageViewer(true);
 
-    if (!payment?.receiptImage) {
+    if (!receiptImage) {
       Alert.alert('Receipt Missing', 'No receipt image is available for this payment.');
       return;
     }
@@ -556,13 +557,15 @@ const AdminPaymentsScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
           
-          <TouchableOpacity
-            style={[styles.actionButton, styles.viewButton]}
-            onPress={() => handleViewReceiptImage(payment)}
-          >
-            <Ionicons name="image" size={18} color={themeColors.info} />
-            <Text style={[styles.actionButtonText, { color: themeColors.info }]}>View Receipt</Text>
-          </TouchableOpacity>
+          {(payment.receiptImage || payment.paymentHistory?.some((transaction) => transaction.receiptImage)) && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.viewButton]}
+              onPress={() => handleViewReceiptImage(payment)}
+            >
+              <Ionicons name="image" size={18} color={themeColors.info} />
+              <Text style={[styles.actionButtonText, { color: themeColors.info }]}>View Receipt</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );

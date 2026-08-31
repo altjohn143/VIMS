@@ -54,7 +54,7 @@ async function applyDailyPenalty(payment) {
   }
   syncPaymentAmounts(payment);
   if (payment.isModified()) await payment.save();
-  return await applyResidentCreditToPayment(resident, payment);
+  return payment;
 }
 
 async function applyDailyPenalties(payments) {
@@ -165,6 +165,7 @@ async function notifyResidentOfPaymentTransaction(payment, { title, body, metada
 module.exports = {
   applyDailyPenalty,
   applyDailyPenalties,
+  applyResidentCreditToPayment,
   createMonthlyDuesForResident,
   getMonthlyDuesAmount,
   getOutstandingAmount,

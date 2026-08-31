@@ -125,7 +125,7 @@ async function createMonthlyDuesForResident(resident) {
     notes: 'Includes Maintenance, Security, Garbage, Common Area Upkeep, and Administrative fees.',
     inclusions: defaultInclusions
   });
-  return await applyResidentCreditToPayment(resident, payment);
+  return payment;
 }
 
 // Get all users (admin only)

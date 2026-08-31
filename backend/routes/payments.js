@@ -11,6 +11,7 @@ const { paginateQuery } = require('../utils/pagination');
 const {
   applyDailyPenalty,
   applyDailyPenalties,
+  applyResidentCreditToPayment,
   createMonthlyDuesForResident,
   getMonthlyDuesAmount,
   getOutstandingAmount,
@@ -255,6 +256,38 @@ router.post('/:id/pay', protect, authorize('resident'), async (req, res) => {
   }
 });
 
+// Resident: explicitly apply available credit to an existing invoice.
+router.put('/:id/apply-credit', protect, authorize('resident'), async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) return res.status(404).json({ success: false, error: 'Payment not found' });
+    if (String(payment.residentId) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: 'Not authorized to update this invoice' });
+    }
+    if (payment.status === 'paid') {
+      return res.status(400).json({ success: false, error: 'This invoice is already paid' });
+    }
+
+    await applyDailyPenalty(payment);
+    const resident = await User.findById(req.user.id);
+    const before = Number(resident?.paymentCreditBalance || 0);
+    if (before <= 0) return res.status(400).json({ success: false, error: 'No available credit to apply' });
+
+    const outstandingBeforeCredit = getOutstandingAmount(payment);
+    const creditApplied = Math.min(before, outstandingBeforeCredit);
+    await applyResidentCreditToPayment(resident, payment);
+    const nextMonthlyDues = await createNextMonthlyDuesForPaidInvoice(payment);
+    res.json({
+      success: true,
+      message: `Applied ${creditApplied.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })} credit to this invoice`,
+      data: { payment, creditBalance: Number(resident.paymentCreditBalance || 0), nextMonthlyDues: nextMonthlyDues?.payment || null }
+    });
+  } catch (error) {
+    console.error('Apply resident credit error:', error);
+    res.status(500).json({ success: false, error: 'Failed to apply available credit' });
+  }
+});
+
 // Upload QRPh payment receipt
 const multer = require('multer');
 const fs = require('fs');
@@ -303,6 +336,18 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
     }
 
     await applyDailyPenalty(payment);
+
+    const submittedAmount = parsePesoAmount(req.body.amount);
+    const outstandingAmount = getOutstandingAmount(payment);
+    if (!submittedAmount) {
+      return res.status(400).json({ success: false, error: 'Amount paid is required' });
+    }
+    if (submittedAmount > outstandingAmount) {
+      return res.status(400).json({
+        success: false,
+        error: `Amount paid cannot exceed the invoice balance of ${outstandingAmount.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}`
+      });
+    }
 
     if (payment.status === 'pending' && hasSubmittedPaymentForReview(payment)) {
       return res.status(409).json({
@@ -357,7 +402,7 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
           analyzedAt: new Date(),
           model: analysis.model
         };
-        payment.submittedAmount = parsePesoAmount(analysis.extracted?.amount);
+        payment.submittedAmount = submittedAmount;
       } catch (aiError) {
         payment.receiptAi = {
           fraudScore: null,
@@ -375,7 +420,7 @@ router.post('/upload-qrph-receipt', protect, authorize('resident'), upload.singl
       }
     }
     if (!payment.submittedAmount) {
-      payment.submittedAmount = parsePesoAmount(req.body.amount);
+      payment.submittedAmount = submittedAmount;
     }
     await payment.save();
     await notifyAdminsOfPaymentTransaction({

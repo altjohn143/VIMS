@@ -47,7 +47,6 @@ import {
   QrCode as QrCodeIcon,
   Settings as SettingsIcon,
   History as HistoryIcon,
-  AttachMoney as CashIcon,
   CloudUpload as UploadIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
@@ -218,6 +217,25 @@ const Payments = () => {
       setProcessing(false);
     }
   }, [fetchData, hasActivePaymentAttempt, processing, selectedPayment, showExistingPaymentAttemptToast]);
+
+  const handleApplyCredit = useCallback(async () => {
+    if (processing || !selectedPayment || Number(summary.creditBalance || 0) <= 0) return;
+    setProcessing(true);
+    try {
+      const response = await axios.put(`/api/payments/${selectedPayment._id}/apply-credit`);
+      if (response.data.success) {
+        toast.success('Available credit applied to this invoice.');
+        setPaymentMethodOpen(false);
+        fetchData();
+      } else {
+        toast.error(response.data?.error || 'Could not apply credit');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Could not apply credit');
+    } finally {
+      setProcessing(false);
+    }
+  }, [fetchData, processing, selectedPayment, summary.creditBalance]);
 
   const handleUploadReceipt = useCallback(async () => {
     if (processing) return;
@@ -919,6 +937,17 @@ const Payments = () => {
               Balance due: <strong>{formatCurrency(selectedPayment?.amount)}</strong>
             </Typography>
             <Grid container spacing={2} sx={{ mt: 1 }}>
+              {Number(summary.creditBalance || 0) > 0 && (
+                <Grid item xs={12}>
+                  <Button fullWidth variant="outlined" onClick={handleApplyCredit} disabled={processing}
+                    sx={{ py: 1.5, justifyContent: 'flex-start', borderColor: themeColors.primary, color: themeColors.primary, borderRadius: 2.5, textTransform: 'none' }}>
+                    <Box sx={{ textAlign: 'left' }}>
+                      <Typography sx={{ fontWeight: 700 }}>Use available credit</Typography>
+                      <Typography variant="body2">Apply up to {formatCurrency(Math.min(Number(summary.creditBalance), Number(selectedPayment?.amount || 0)))} from your credit balance</Typography>
+                    </Box>
+                  </Button>
+                </Grid>
+              )}
               <Grid item xs={12}>
                 <Button
                   fullWidth
@@ -946,7 +975,7 @@ const Payments = () => {
                 <Button
                   fullWidth
                   variant="outlined"
-                  startIcon={<CashIcon />}
+                  startIcon={<Typography component="span" sx={{ fontSize: 24, lineHeight: 1 }}>₱</Typography>}
                   onClick={handleCashPayment}
                   sx={{ 
                     py: 2, 
@@ -1038,13 +1067,17 @@ const Payments = () => {
                 type="number"
                 label="Amount Paid"
                 value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const max = Number(selectedPayment?.amount || 0);
+                  setPaymentAmount(value === '' ? '' : String(Math.min(Number(value), max)));
+                }}
                 inputProps={{ min: 1, max: selectedPayment?.amount || undefined, step: '0.01' }}
                 sx={{ mb: 2 }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <CashIcon sx={{ color: themeColors.textSecondary }} />
+                      <Typography component="span" sx={{ color: themeColors.textSecondary, fontSize: 24, lineHeight: 1 }}>₱</Typography>
                     </InputAdornment>
                   ),
                 }}

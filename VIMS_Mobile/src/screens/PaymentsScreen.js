@@ -151,6 +151,25 @@ const PaymentsScreen = ({ navigation }) => {
     }
   };
 
+  const handleApplyCredit = async () => {
+    if (processing || !selectedPayment || Number(summary.creditBalance || 0) <= 0) return;
+    setProcessing(true);
+    try {
+      const response = await api.put(`/payments/${selectedPayment._id}/apply-credit`);
+      if (response.data.success) {
+        Alert.alert('Credit applied', 'Available credit was applied to this invoice.');
+        setShowPaymentMethod(false);
+        fetchData();
+      } else {
+        Alert.alert('Error', response.data?.error || 'Could not apply credit');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Could not apply credit');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const pickReceiptImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
@@ -572,6 +591,16 @@ const PaymentsScreen = ({ navigation }) => {
             <Text style={styles.modalAmount}>
               Balance due: {formatCurrency(selectedPayment?.amount)}
             </Text>
+
+            {Number(summary.creditBalance || 0) > 0 && (
+              <TouchableOpacity style={styles.creditOption} onPress={handleApplyCredit} disabled={processing}>
+                <Ionicons name="wallet-outline" size={28} color={themeColors.primary} />
+                <View style={styles.creditTextContainer}>
+                  <Text style={styles.creditTitle}>Use available credit</Text>
+                  <Text style={styles.creditDesc}>Apply up to {formatCurrency(Math.min(Number(summary.creditBalance), Number(selectedPayment?.amount || 0)))}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
             
             <TouchableOpacity style={styles.qrphOption} onPress={handleQRPhPayment}>
               <View style={styles.qrphIcon}>
@@ -649,7 +678,10 @@ const PaymentsScreen = ({ navigation }) => {
                 style={styles.referenceInput}
                 placeholder="Amount Paid"
                 value={paymentAmount}
-                onChangeText={setPaymentAmount}
+                onChangeText={(value) => {
+                  const max = Number(selectedPayment?.amount || 0);
+                  setPaymentAmount(value === '' ? '' : String(Math.min(Number(value), max)));
+                }}
                 keyboardType="decimal-pad"
               />
               
@@ -1161,6 +1193,30 @@ const styles = StyleSheet.create({
     color: themeColors.primary,
     textAlign: 'center',
     marginBottom: 20,
+  },
+  creditOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: themeColors.primary,
+  },
+  creditTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  creditTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: themeColors.primary,
+  },
+  creditDesc: {
+    fontSize: 12,
+    color: themeColors.textSecondary,
+    marginTop: 2,
   },
   qrphOption: {
     flexDirection: 'row',

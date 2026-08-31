@@ -16,6 +16,27 @@ function toDataUrl(absPath) {
   return `data:${mime};base64,${base64}`;
 }
 
+function parseAmount(value) {
+  const match = String(value || '').replace(/,/g, '').match(/\d+(?:\.\d{1,2})?/);
+  const amount = match ? Number(match[0]) : NaN;
+  return Number.isFinite(amount) && amount > 0 ? amount : null;
+}
+
+function extractExplicitAmountFromExplanation(explanation) {
+  const text = String(explanation || '');
+  const patterns = [
+    /extracted\s+total\s*\(?\s*(?:₱|PHP)?\s*([\d,]+(?:\.\d{1,2})?)/i,
+    /receipt\s+shows\s+(?:a\s+)?total\s+(?:of\s+)?(?:₱|PHP)?\s*([\d,]+(?:\.\d{1,2})?)/i,
+    /total\s+amount\s+(?:sent|paid)\s*(?:is|:)\s*(?:₱|PHP)?\s*([\d,]+(?:\.\d{1,2})?)/i
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const amount = parseAmount(match?.[1]);
+    if (amount) return amount;
+  }
+  return null;
+}
+
 async function analyzeReceiptFraud({ receiptAbsPath, paymentContext }) {
   const client = getOpenAIClient();
   const model = getOpenAIHighModel();
@@ -83,6 +104,12 @@ async function analyzeReceiptFraud({ receiptAbsPath, paymentContext }) {
 
   const parsed = JSON.parse(response.output_text || '{}');
   const fraudScore = Number(parsed.fraudScore);
+  const extractedAmount = parseAmount(parsed.extracted?.amount);
+  const explanationAmount = extractExplicitAmountFromExplanation(parsed.explanation);
+  const normalizedAmount = explanationAmount && explanationAmount !== extractedAmount
+    ? explanationAmount
+    : extractedAmount;
+
   return {
     fraudScore: Number.isFinite(fraudScore) ? Math.max(0, Math.min(1, fraudScore)) : 0.5,
     flags: Array.isArray(parsed.flags) ? parsed.flags.slice(0, 10) : [],
@@ -91,7 +118,7 @@ async function analyzeReceiptFraud({ receiptAbsPath, paymentContext }) {
       : 'needs_review',
     explanation: String(parsed.explanation || '').slice(0, 1000),
     extracted: {
-      amount: String(parsed.extracted?.amount || ''),
+      amount: normalizedAmount ? normalizedAmount.toFixed(2) : String(parsed.extracted?.amount || ''),
       refNo: String(parsed.extracted?.refNo || ''),
       date: String(parsed.extracted?.date || ''),
       merchant: String(parsed.extracted?.merchant || '')

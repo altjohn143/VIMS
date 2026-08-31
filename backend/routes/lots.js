@@ -18,12 +18,6 @@ const AMENITY_LOTS = {
 
 const OLD_AMENITY_LOTS = ['P4-B18-L6', 'P2-B10-L13', 'P4-B17-L7', 'P3-B5-L9'];
 
-const POSITIONED_BLOCK_RENUMBERING = {
-  2: { 6: 1, 7: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 7, 13: 8 },
-  3: { 11: 1, 12: 2, 13: 3, 14: 4, 15: 5 },
-  4: { 16: 1, 17: 2, 18: 3 }
-};
-
 const isAmenityLot = (lotId) => Boolean(AMENITY_LOTS[String(lotId || '').toUpperCase()]);
 
 const normalizeAmenityLot = async (lot, persist = false) => {
@@ -519,37 +513,6 @@ const normalizeBackupLot = (lot, userId = null) => {
   };
 };
 
-const getCorrectedBlockForPositionedLot = (phase, block) => (
-  POSITIONED_BLOCK_RENUMBERING[phase]?.[block] || block
-);
-
-const applyPositionedLotLabelCorrections = (backupLots) => {
-  const lots = backupLots.map((lot) => ({ ...lot, mapPosition: { ...(lot.mapPosition || {}) } }));
-  const byLotId = new Map(lots.map((lot) => [String(lot.lotId), lot]));
-  let corrected = 0;
-
-  for (const sourceLot of lots) {
-    if (!sourceLot.mapPosition?.isPositioned) continue;
-
-    const phase = Number(sourceLot.phase);
-    const block = Number(sourceLot.block);
-    const lotNumber = Number(sourceLot.lotNumber);
-    const correctedBlock = getCorrectedBlockForPositionedLot(phase, block);
-
-    if (correctedBlock === block) continue;
-
-    const correctedLotId = `P${phase}-B${correctedBlock}-L${lotNumber}`;
-    const targetLot = byLotId.get(correctedLotId);
-    if (!targetLot) continue;
-
-    targetLot.mapPosition = { ...sourceLot.mapPosition };
-    sourceLot.mapPosition = emptyMapPosition();
-    corrected++;
-  }
-
-  return { lots, corrected };
-};
-
 // Admin: Export restorable public lot map data as JSON
 router.get('/map-data/export', protect, authorize('admin'), async (req, res) => {
   try {
@@ -607,9 +570,7 @@ router.post('/map-data/import', protect, authorize('admin'), async (req, res) =>
     let updated = 0;
     let positioned = 0;
 
-    const correctedBackup = applyPositionedLotLabelCorrections(backupLots);
-
-    for (const rawLot of correctedBackup.lots) {
+    for (const rawLot of backupLots) {
       const lotData = normalizeBackupLot(rawLot, req.user._id);
       if (lotData.mapPosition.isPositioned) positioned++;
 
@@ -643,8 +604,7 @@ router.post('/map-data/import', protect, authorize('admin'), async (req, res) =>
         total: backupLots.length,
         created,
         updated,
-        positioned,
-        correctedPositionLabels: correctedBackup.corrected
+        positioned
       }
     });
   } catch (error) {

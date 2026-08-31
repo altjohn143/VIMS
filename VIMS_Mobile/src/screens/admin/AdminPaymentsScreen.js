@@ -42,6 +42,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const [selectedImageUri, setSelectedImageUri] = useState(null);
   const [selectedImagePayment, setSelectedImagePayment] = useState(null);
   const [verificationNotes, setVerificationNotes] = useState('');
+  const [verificationAmount, setVerificationAmount] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
@@ -221,6 +222,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
     try {
       const response = await api.put(`/payments/${selectedPayment._id}/confirm`, {
         verificationNotes: verificationNotes,
+        verifiedAmount: verificationAmount || undefined,
         verifiedBy: user?.id,
         paymentMethod: 'qrph'
       });
@@ -232,6 +234,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
         setShowQRVerifyDialog(false);
         setSelectedPayment(null);
         setVerificationNotes('');
+        setVerificationAmount('');
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to verify payment');
@@ -535,6 +538,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
               style={[styles.actionButton, styles.verifyButton]}
               onPress={() => {
                 setSelectedPayment(payment);
+                setVerificationAmount(String(payment.receiptAi?.extracted?.amount || payment.submittedAmount || payment.amount || ''));
                 setShowQRVerifyDialog(true);
               }}
             >
@@ -847,7 +851,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
                   <View style={styles.verifyRow}>
                     <Text style={styles.verifyLabel}>AI scanned:</Text>
                     <Text style={[styles.verifyValue, { color: themeColors.info }]}>
-                      {selectedPayment.submittedAmount ? formatCurrency(selectedPayment.submittedAmount) : selectedPayment.receiptAi?.extracted?.amount || 'Needs admin check'}
+                      {selectedPayment.receiptAi?.extracted?.amount || (selectedPayment.submittedAmount ? formatCurrency(selectedPayment.submittedAmount) : 'Needs admin check')}
                     </Text>
                   </View>
                   {!!selectedPayment.paidAmount && (
@@ -885,6 +889,14 @@ const AdminPaymentsScreen = ({ navigation }) => {
                   </View>
                 )}
                 
+                <TextInput
+                  style={styles.notesInput}
+                  placeholder="Verified receipt amount"
+                  value={verificationAmount}
+                  onChangeText={setVerificationAmount}
+                  keyboardType="decimal-pad"
+                />
+                <Text style={[styles.verifyValue, { marginBottom: 10 }]}>Expected store credit: {formatCurrency(Math.max(0, Number(verificationAmount || 0) - Number(selectedPayment.amount || 0)))}</Text>
                 <TextInput
                   style={styles.notesInput}
                   placeholder="Verification Notes (Optional)"

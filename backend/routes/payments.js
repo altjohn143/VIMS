@@ -720,7 +720,9 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
 
     await applyDailyPenalty(payment);
     const outstandingBeforePayment = getOutstandingAmount(payment);
+    const ocrAmount = parsePesoAmount(payment.receiptAi?.extracted?.amount);
     const verifiedAmount = parsePesoAmount(req.body.verifiedAmount)
+      || ocrAmount
       || Number(payment.submittedAmount || 0)
       || outstandingBeforePayment;
     if (!Number.isFinite(verifiedAmount) || verifiedAmount <= 0) {

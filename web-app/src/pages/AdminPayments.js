@@ -96,6 +96,7 @@ const AdminPayments = () => {
   const [qrphDialogOpen, setQrphDialogOpen] = useState(false);
   const [selectedQRPhPayment, setSelectedQRPhPayment] = useState(null);
   const [verificationNotes, setVerificationNotes] = useState('');
+  const [verificationAmount, setVerificationAmount] = useState('');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedRejectPayment, setSelectedRejectPayment] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -260,7 +261,8 @@ const AdminPayments = () => {
       
       const response = await axios.put(
         `/api/payments/${selectedQRPhPayment._id}/confirm`,
-        { 
+        {
+          verifiedAmount: verificationAmount || undefined,
           verificationNotes: verificationNotes,
           verifiedBy: user?.id,
           paymentMethod: 'qrph'
@@ -275,6 +277,7 @@ const AdminPayments = () => {
         setQrphDialogOpen(false);
         setSelectedQRPhPayment(null);
         setVerificationNotes('');
+        setVerificationAmount('');
       }
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to verify payment');
@@ -963,6 +966,7 @@ const AdminPayments = () => {
                               color="info"
                               onClick={() => {
                                 setSelectedQRPhPayment(payment);
+                                setVerificationAmount(String(payment.receiptAi?.extracted?.amount || payment.submittedAmount || payment.amount || ''));
                                 setQrphDialogOpen(true);
                               }}
                               startIcon={<VerifyIcon />}
@@ -1281,7 +1285,7 @@ const AdminPayments = () => {
                     </Grid>
                     <Grid item xs={8}>
                       <Typography variant="body2" sx={{ fontWeight: 700, color: themeColors.info }}>
-                        {selectedQRPhPayment.submittedAmount ? formatCurrency(selectedQRPhPayment.submittedAmount) : selectedQRPhPayment.receiptAi?.extracted?.amount || 'Needs admin check'}
+                        {selectedQRPhPayment.receiptAi?.extracted?.amount || (selectedQRPhPayment.submittedAmount ? formatCurrency(selectedQRPhPayment.submittedAmount) : 'Needs admin check')}
                       </Typography>
                     </Grid>
                     {!!selectedQRPhPayment.paidAmount && (
@@ -1327,6 +1331,9 @@ const AdminPayments = () => {
                         </Box>
                       </Grid>
                     )}
+                    <Grid item xs={12}>
+                      <TextField fullWidth type="number" label="Verified receipt amount" value={verificationAmount} onChange={(e) => setVerificationAmount(e.target.value)} inputProps={{ min: 0, step: '0.01' }} sx={{ mt: 2 }} helperText={`Expected store credit: ${formatCurrency(Math.max(0, Number(verificationAmount || 0) - Number(selectedQRPhPayment.amount || 0)))}`} />
+                    </Grid>
                     <Grid item xs={12}>
                       <Divider sx={{ my: 1 }} />
                       <Typography variant="caption" color="textSecondary">Resident's Notes:</Typography>
@@ -1385,6 +1392,7 @@ const AdminPayments = () => {
               setQrphDialogOpen(false);
               setSelectedQRPhPayment(null);
               setVerificationNotes('');
+              setVerificationAmount('');
             }}>
               Cancel
             </Button>

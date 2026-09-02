@@ -36,8 +36,8 @@ const T = {
 const API_URL = process.env.REACT_APP_API_URL || 'https://vims-backend.onrender.com/api';
 const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
 const heroBg = '/hero-roof.webp';
-const landingHeadingFont = "'Lexend', sans-serif";
-const landingBodyFont = "'Source Sans 3', sans-serif";
+const landingHeadingFont = "'Arial Black', 'Segoe UI', Arial, sans-serif";
+const landingBodyFont = "'Segoe UI', Arial, sans-serif";
 const deferredSectionSx = {
   contentVisibility: 'auto',
   containIntrinsicSize: '1px 800px',
@@ -858,6 +858,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showDeferredContent, setShowDeferredContent] = useState(false);
+  const [showHeroCarousel, setShowHeroCarousel] = useState(false);
   const [publicAnnouncements, setPublicAnnouncements] = useState([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
   const homeRef = useRef(null);
@@ -892,6 +893,21 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
     loadPublicAnnouncements();
     return undefined;
   }, [showDeferredContent]);
+
+  useEffect(() => {
+    const showCarousel = () => setShowHeroCarousel(true);
+    const idleId = window.requestIdleCallback
+      ? window.requestIdleCallback(showCarousel, { timeout: 1200 })
+      : window.setTimeout(showCarousel, 900);
+
+    return () => {
+      if (window.cancelIdleCallback) {
+        window.cancelIdleCallback(idleId);
+      } else {
+        window.clearTimeout(idleId);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!showDeferredContent) return undefined;
@@ -1387,7 +1403,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       </Box>
 
       {/* COMMUNITY IMAGE CAROUSEL */}
-      <Box
+      {showHeroCarousel && <Box
         sx={{
           position: 'relative',
           zIndex: 6,
@@ -1471,7 +1487,7 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
             </Box>
           ))}
         </Box>
-      </Box>
+      </Box>}
 
       {/* ROLE CARDS */}
       <Box

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { io } from 'socket.io-client';
 import villageLogo from '../assets/village-logo-96.webp';
 import bgImage from '../assets/Westville.webp';
 import { useAuth } from '../context/AuthContext';
@@ -897,10 +896,8 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   useEffect(() => {
     if (!showDeferredContent) return undefined;
 
-    const socket = io(API_BASE_URL, {
-      transports: ['polling', 'websocket'],
-      upgrade: true
-    });
+    let socket;
+    let cancelled = false;
 
     const upsertAnnouncement = ({ announcement } = {}) => {
       if (!announcement) return;
@@ -918,15 +915,26 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
       setPublicAnnouncements((current) => current.filter((item) => item.id !== id));
     };
 
-    socket.on('announcement:created', upsertAnnouncement);
-    socket.on('announcement:updated', upsertAnnouncement);
-    socket.on('announcement:removed', removeAnnouncement);
+    import('socket.io-client').then(({ io }) => {
+      if (cancelled) return;
+      socket = io(API_BASE_URL, {
+        transports: ['polling', 'websocket'],
+        upgrade: true
+      });
+
+      socket.on('announcement:created', upsertAnnouncement);
+      socket.on('announcement:updated', upsertAnnouncement);
+      socket.on('announcement:removed', removeAnnouncement);
+    });
 
     return () => {
-      socket.off('announcement:created', upsertAnnouncement);
-      socket.off('announcement:updated', upsertAnnouncement);
-      socket.off('announcement:removed', removeAnnouncement);
-      socket.disconnect();
+      cancelled = true;
+      if (socket) {
+        socket.off('announcement:created', upsertAnnouncement);
+        socket.off('announcement:updated', upsertAnnouncement);
+        socket.off('announcement:removed', removeAnnouncement);
+        socket.disconnect();
+      }
     };
   }, [showDeferredContent]);
 

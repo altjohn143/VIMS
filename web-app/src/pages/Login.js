@@ -895,18 +895,24 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   }, [showDeferredContent]);
 
   useEffect(() => {
-    const showCarousel = () => setShowHeroCarousel(true);
-    const idleId = window.requestIdleCallback
-      ? window.requestIdleCallback(showCarousel, { timeout: 1200 })
-      : window.setTimeout(showCarousel, 900);
-
-    return () => {
-      if (window.cancelIdleCallback) {
-        window.cancelIdleCallback(idleId);
-      } else {
-        window.clearTimeout(idleId);
-      }
+    const showCarousel = () => {
+      setShowHeroCarousel(true);
+      cleanup();
     };
+
+    const cleanup = () => {
+      window.removeEventListener('scroll', showCarousel);
+      window.removeEventListener('pointerdown', showCarousel);
+      window.removeEventListener('keydown', showCarousel);
+      window.clearTimeout(timerId);
+    };
+
+    window.addEventListener('scroll', showCarousel, { passive: true });
+    window.addEventListener('pointerdown', showCarousel, { passive: true });
+    window.addEventListener('keydown', showCarousel);
+    const timerId = window.setTimeout(showCarousel, 4500);
+
+    return cleanup;
   }, []);
 
   useEffect(() => {

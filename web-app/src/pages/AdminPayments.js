@@ -87,6 +87,7 @@ const AdminPayments = () => {
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
@@ -139,6 +140,7 @@ const AdminPayments = () => {
       if (statusFilter !== 'all') params.status = statusFilter;
       if (paymentTypeFilter !== 'all') params.paymentType = paymentTypeFilter;
       if (paymentMethodFilter !== 'all') params.paymentMethod = paymentMethodFilter;
+      if (appliedSearchTerm) params.search = appliedSearchTerm;
       
       const response = await axios.get('/api/payments', {
         params,
@@ -156,7 +158,7 @@ const AdminPayments = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, statusFilter, paymentTypeFilter, paymentMethodFilter]);
+  }, [page, rowsPerPage, statusFilter, paymentTypeFilter, paymentMethodFilter, appliedSearchTerm]);
 
   // Define fetchStats with useCallback
   const fetchStats = useCallback(async () => {
@@ -192,6 +194,18 @@ const AdminPayments = () => {
     fetchPayments();
     fetchStats();
   }, [fetchPayments, fetchStats]);
+
+  const applyFilters = useCallback(() => {
+    const nextSearch = searchTerm.trim();
+    setAppliedSearchTerm(nextSearch);
+    if (page !== 0) {
+      setPage(0);
+      return;
+    }
+    if (nextSearch === appliedSearchTerm) {
+      fetchPayments();
+    }
+  }, [appliedSearchTerm, fetchPayments, page, searchTerm]);
 
   // Now useEffect with proper dependencies
   useEffect(() => {
@@ -811,7 +825,7 @@ const AdminPayments = () => {
                 fullWidth
                 variant="outlined"
                 startIcon={<FilterIcon />}
-                onClick={fetchPayments}
+                onClick={applyFilters}
                 sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
               >
                 Apply Filters

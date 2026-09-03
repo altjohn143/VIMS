@@ -301,6 +301,23 @@ const Payments = () => {
     }
   }, [fetchData, hasActivePaymentAttempt, paymentAmount, processing, referenceNumber, selectedPayment, showExistingPaymentAttemptToast, uploadedReceipt]);
 
+  const formatDate = useCallback((date) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-PH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }, []);
+
+  const formatCurrency = useCallback((amount) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2
+    }).format(amount || 0);
+  }, []);
+
   const handlePrintReceipt = useCallback(() => {
     if (!receiptData) return;
 
@@ -399,23 +416,6 @@ const Payments = () => {
       return <Chip icon={<WarningIcon />} label="Overdue" color="error" size="small" />;
     }
     return <Chip icon={<PendingIcon />} label="Pending" color="warning" size="small" />;
-  }, []);
-
-  const formatDate = useCallback((date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-PH', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }, []);
-
-  const formatCurrency = useCallback((amount) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP',
-      minimumFractionDigits: 2
-    }).format(amount || 0);
   }, []);
 
   const getDescriptionPreview = useCallback((payment) => {

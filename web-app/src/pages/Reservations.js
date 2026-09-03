@@ -143,7 +143,7 @@ const Reservations = () => {
     fetchResources();
   }, []);
 
-  const fetchReservations = async () => {
+  async function fetchReservations() {
     try {
       const token = sessionStorage.getItem('token');
       const response = await axios.get('/api/reservations', {
@@ -158,9 +158,9 @@ const Reservations = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const fetchResources = async () => {
+  async function fetchResources() {
     try {
       const token = sessionStorage.getItem('token');
       const response = await axios.get('/api/reservations/resources', {
@@ -380,7 +380,7 @@ const Reservations = () => {
         severity: 'error'
       });
     }
-  };
+  }
 
   const handleCancelReservation = async (reservationId) => {
     if (!window.confirm('Are you sure you want to cancel this reservation?')) {
@@ -461,15 +461,15 @@ const Reservations = () => {
     return new Date(startA) < new Date(endB) && new Date(endA) > new Date(startB);
   };
 
-  const getSelectedScheduleConflicts = () => {
+  function getSelectedScheduleConflicts() {
     const selectedKeys = new Set(formData.items.map((item) => `${item.resourceType}:${item.resourceName}`));
     return availability.filter((slot) =>
       selectedKeys.has(`${slot.resourceType}:${slot.resourceName}`) &&
       rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
     );
-  };
+  }
 
-  const validateReservationSchedule = () => {
+  function validateReservationSchedule() {
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
 
@@ -482,9 +482,9 @@ const Reservations = () => {
     }
 
     return '';
-  };
+  }
 
-  const fetchScheduleConflictsForSubmit = async () => {
+  async function fetchScheduleConflictsForSubmit() {
     const token = sessionStorage.getItem('token');
     const selectedResources = formData.items.filter((item) => item.resourceType && item.resourceName);
     const responses = await Promise.all(selectedResources.map((item) =>
@@ -502,7 +502,7 @@ const Reservations = () => {
     return responses.flatMap((response) => response.data?.data || []).filter((slot) =>
       rangesOverlap(formData.startDate, formData.endDate, slot.startDate, slot.endDate)
     );
-  };
+  }
 
   const getFilteredAvailability = () => {
     if (availabilityFilter === 'all') return availability;

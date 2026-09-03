@@ -112,7 +112,7 @@ const SecurityDashboardGraphs = () => {
       .filter((entry) => entry.value > 0);
   };
 
-  const loadGraphData = async () => {
+  async function loadGraphData() {
     try {
       setLoading(true);
 
@@ -171,7 +171,7 @@ const SecurityDashboardGraphs = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const generateAIReport = async () => {
     try {

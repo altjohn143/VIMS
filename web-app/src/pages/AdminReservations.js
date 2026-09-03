@@ -117,7 +117,7 @@ const AdminReservations = () => {
     fetchReservations();
   }, []);
 
-  const fetchReservations = async () => {
+  async function fetchReservations() {
     try {
       const token = sessionStorage.getItem('token');
       const response = await axios.get('/api/reservations', {
@@ -148,7 +148,7 @@ const AdminReservations = () => {
       setSnackbar({ open: true, message: error.response?.data?.error || 'Failed to update reservation status', severity: 'error' });
       return false;
     }
-  };
+  }
 
   const openDenyDialog = (reservation) => {
     setReservationToDeny(reservation);

@@ -597,7 +597,7 @@ const ProfileSettings = () => {
     }
   };
 
-  const calculatePasswordStrength = (password) => {
+  function calculatePasswordStrength(password) {
     let strength = 0;
     
     if (password.length >= 8) strength += 25;
@@ -606,7 +606,7 @@ const ProfileSettings = () => {
     if (/\d/.test(password)) strength += 25;
     
     setPasswordStrength(strength);
-  };
+  }
 
   const getPasswordStrengthColor = () => {
     if (passwordStrength >= 75) return themeColors.success;
@@ -725,7 +725,7 @@ const ProfileSettings = () => {
     setChangePasswordOpen(true);
   };
 
-  const handleClosePasswordDialog = () => {
+  function handleClosePasswordDialog() {
     setChangePasswordOpen(false);
     setPasswordData({
       currentPassword: '',
@@ -736,7 +736,7 @@ const ProfileSettings = () => {
     setPasswordErrors({});
     setPasswordOtp('');
     setPasswordOtpSent(false);
-  };
+  }
 
   const handleBack = () => {
     navigate('/dashboard');

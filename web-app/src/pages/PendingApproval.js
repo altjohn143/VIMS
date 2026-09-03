@@ -104,7 +104,7 @@ const PendingApproval = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email]);
 
-  const fetchStatus = async () => {
+  async function fetchStatus() {
     if (!email) return;
     setStatusError('');
     try {
@@ -115,7 +115,7 @@ const PendingApproval = () => {
     } finally {
       setStatusLoading(false);
     }
-  };
+  }
 
   const handleLogout = () => {
     logout();

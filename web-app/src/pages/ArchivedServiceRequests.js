@@ -64,7 +64,7 @@ const ArchivedServiceRequests = () => {
     loadArchivedServiceRequests();
   }, []);
 
-  const loadArchivedServiceRequests = async () => {
+  async function loadArchivedServiceRequests() {
     try {
       const response = await axios.get('/api/service-requests/archived');
       if (response.data?.success) {
@@ -75,7 +75,7 @@ const ArchivedServiceRequests = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleRestore = async () => {
     if (!restoreDialog.serviceRequest) return;

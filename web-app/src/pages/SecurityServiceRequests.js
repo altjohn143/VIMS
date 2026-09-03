@@ -225,14 +225,14 @@ const SecurityServiceRequests = () => {
     }
   };
 
-  const requiresAssignmentBeforeUpdate = (item) => {
+  function requiresAssignmentBeforeUpdate(item) {
     const assignedId = item.assignedTo?._id || item.assignedTo;
     return Boolean(
       isHeadOfficer &&
       ['security', 'complaint'].includes(item.category) &&
       !assignedId
     );
-  };
+  }
 
   const canHandleRequest = (item) => {
     const assignedId = item.assignedTo?._id || item.assignedTo;
@@ -245,10 +245,10 @@ const SecurityServiceRequests = () => {
     );
   };
 
-  const isTerminalStatus = (item) => {
+  function isTerminalStatus(item) {
     const st = String(item?.status || '').toLowerCase();
     return ['completed', 'cancelled', 'rejected'].includes(st);
-  };
+  }
 
   const getStatusChipColor = (status) => {
     const map = {

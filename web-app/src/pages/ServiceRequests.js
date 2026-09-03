@@ -271,10 +271,10 @@ const ServiceRequests = () => {
   };
 
   // Function to validate title (no numbers)
-  const validateTitle = (title) => {
+  function validateTitle(title) {
     const hasNumbers = /\d/.test(title);
     return !hasNumbers;
-  };
+  }
 
   const handleTitleChange = (e) => {
     const newTitle = e.target.value;
@@ -422,7 +422,7 @@ const ServiceRequests = () => {
     [filteredRequests, page, rowsPerPage]
   );
 
-  const fetchAllRequests = useCallback(async () => {
+  async function fetchAllRequests() {
     if (!user) {
       toast.error('User not found. Please log in again.');
       navigate('/login');
@@ -487,7 +487,7 @@ const ServiceRequests = () => {
     } finally {
       setFetching(false);
     }
-  }, [user, navigate]); 
+  }
 
   const handleBack = () => navigate('/dashboard');
 

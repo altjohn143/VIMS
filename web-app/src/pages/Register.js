@@ -378,13 +378,13 @@ const Register = () => {
     toast.success(`Lot ${lot.lotId} selected!`);
   };
 
-  const isValidEmail = (email) => {
+  function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return false;
     const reputableDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'aol.com', 'protonmail.com', 'zoho.com', 'yandex.com', 'mail.com', 'gmx.com', 'fastmail.com'];
     const domain = email.split('@')[1];
     return reputableDomains.includes(domain.toLowerCase());
-  };
+  }
 
   const validate = () => {
     const newErrors = {};

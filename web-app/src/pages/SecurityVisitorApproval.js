@@ -98,7 +98,7 @@ const SecurityVisitorApproval = () => {
     };
   }, [getCurrentUser, navigate]);
 
-  const fetchPendingVisitors = async () => {
+  async function fetchPendingVisitors() {
     if (!isMounted.current) return;
     
     setFetchLoading(true);
@@ -136,7 +136,7 @@ const SecurityVisitorApproval = () => {
         setFetchLoading(false);
       }
     }
-  };
+  }
 
   const handleRefresh = async () => {
     await fetchPendingVisitors();

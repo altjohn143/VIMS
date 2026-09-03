@@ -68,7 +68,7 @@ const AdminDashboardGraphs = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const loadGraphData = async () => {
+  async function loadGraphData() {
     try {
       setLoading(true);
       const response = await axios.get('/api/payments/admin/dashboard-graphs?months=6');
@@ -117,7 +117,7 @@ const AdminDashboardGraphs = () => {
     } finally {
       setGeneratingReport(false);
     }
-  };
+  }
 
   const exportAIReport = async (format) => {
     try {

@@ -173,23 +173,23 @@ const VisitorManagement = () => {
     };
   }, [visitors]);
 
-  const fetchMyVisitors = async () => {
+  async function fetchMyVisitors() {
     try {
       const response = await axios.get('/api/visitors/my');
       if (response.data.success) setVisitors(response.data.data);
     } catch (error) {
       console.error('Failed to fetch visitors:', error);
     }
-  };
+  }
 
-  const fetchAllVisitors = async () => {
+  async function fetchAllVisitors() {
     try {
       const response = await axios.get('/api/visitors/history');
       if (response.data.success) setAllVisitors(response.data.data);
     } catch (error) {
       console.error('Failed to fetch all visitors:', error);
     }
-  };
+  }
 
   const validateName = (name) => {
     const nameRegex = /^[A-Za-z\s]+$/;

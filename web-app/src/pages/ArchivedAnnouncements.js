@@ -64,7 +64,7 @@ const ArchivedAnnouncements = () => {
     loadArchivedAnnouncements();
   }, []);
 
-  const loadArchivedAnnouncements = async () => {
+  async function loadArchivedAnnouncements() {
     try {
       const response = await axios.get('/api/announcements/archived');
       if (response.data?.success) {
@@ -75,7 +75,7 @@ const ArchivedAnnouncements = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleRestore = async () => {
     if (!restoreDialog.announcement) return;

@@ -895,22 +895,24 @@ const LandingPage = ({ onRoleSelect, onBrowseLots }) => {
   }, [showDeferredContent]);
 
   useEffect(() => {
+    let timerId;
+
     const showCarousel = () => {
       setShowHeroCarousel(true);
       cleanup();
     };
 
-    const cleanup = () => {
+    function cleanup() {
       window.removeEventListener('scroll', showCarousel);
       window.removeEventListener('pointerdown', showCarousel);
       window.removeEventListener('keydown', showCarousel);
       window.clearTimeout(timerId);
-    };
+    }
 
     window.addEventListener('scroll', showCarousel, { passive: true });
     window.addEventListener('pointerdown', showCarousel, { passive: true });
     window.addEventListener('keydown', showCarousel);
-    const timerId = window.setTimeout(showCarousel, 4500);
+    timerId = window.setTimeout(showCarousel, 4500);
 
     return cleanup;
   }, []);
@@ -2018,13 +2020,13 @@ const Login = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const startLockTimer = (s) => {
+  function startLockTimer(s) {
     if (timerRef.current) clearInterval(timerRef.current);
     setLockTimer(s);
     timerRef.current = setInterval(() => {
       setLockTimer(p => { if (p <= 1) { clearInterval(timerRef.current); setIsLocked(false); localStorage.removeItem('loginAttempts'); localStorage.removeItem('lockTime'); return null; } return p - 1; });
     }, 1000);
-  };
+  }
 
   const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: '' }); };
 
@@ -2121,7 +2123,7 @@ const Login = () => {
     setForgotEmailError('');
   };
 
-  const formatTime = (s) => { if (!s) return '0:00'; return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`; };
+  function formatTime(s) { if (!s) return '0:00'; return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`; }
   const roleInfo = ROLES.find(r => r.key === selectedRole);
 
   if (!selectedRole) return <LandingPage onRoleSelect={setSelectedRole} onBrowseLots={() => navigate('/lots')} />;

@@ -232,11 +232,11 @@ const AdminLotMapEditor = () => {
     }));
   };
 
-  const snap = (value) => {
+  function snap(value) {
     if (!snapEnabled) return value;
     const size = Number(snapSize) || 0.5;
     return Math.round(value / size) * size;
-  };
+  }
 
   const getPercentPoint = (event) => {
     const rect = mapRef.current?.getBoundingClientRect();

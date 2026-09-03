@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import villageLogo from '../assets/village-logo.png';
+import villageLogo from '../assets/village-logo-96.webp';
 
 import {
   Container,
@@ -73,8 +73,6 @@ import {
   SupervisorAccount as SupervisorAccountIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import AdminDashboardGraphs from '../components/AdminDashboardGraphs';
-import SecurityDashboardGraphs from '../components/SecurityDashboardGraphs';
 import NotificationPanel from '../components/NotificationPanel';
 import websocketService from '../utils/websocket';
 import AnnouncementImage from '../components/AnnouncementImage';
@@ -106,7 +104,10 @@ import SecurityPatrolSchedule from './SecurityPatrolSchedule';
 import SecurityIncidents from './SecurityIncidents';
 import HeadOfficerTeamManagement from './HeadOfficerTeamManagement';
 import Notifications from './Notifications';
-import Chatbot from './Chatbot';
+
+const AdminDashboardGraphs = lazy(() => import('../components/AdminDashboardGraphs'));
+const SecurityDashboardGraphs = lazy(() => import('../components/SecurityDashboardGraphs'));
+const Chatbot = lazy(() => import('./Chatbot'));
 
 const themeColors = {
   primary: '#007A18',
@@ -1585,6 +1586,7 @@ const Dashboard = () => {
           <IconButton
             edge="start"
             onClick={handleSidebarToggle}
+            aria-label={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
             sx={{
               mr: 1.5,
               color: themeColors.textPrimary,
@@ -1664,6 +1666,7 @@ const Dashboard = () => {
 
           <IconButton
             onClick={(e) => setNotificationAnchor(notificationAnchor ? null : e.currentTarget)}
+            aria-label="Open notifications"
             sx={{ mr: 2, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}
           >
             <Badge badgeContent={unreadCount} color="error">
@@ -1907,7 +1910,7 @@ const Dashboard = () => {
                       sx={{
                         position: 'absolute',
                         inset: 0,
-                        backgroundImage: `url("https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1600&q=80")`,
+                        backgroundImage: 'url("/hero-roof.webp")',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                       }}
@@ -2551,9 +2554,13 @@ const Dashboard = () => {
                     }}
                   >
                     {user.role === 'admin' ? (
-                      <AdminDashboardGraphs />
+                      <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress aria-label="Loading analytics" /></Box>}>
+                        <AdminDashboardGraphs />
+                      </Suspense>
                     ) : (
-                      <SecurityDashboardGraphs />
+                      <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress aria-label="Loading analytics" /></Box>}>
+                        <SecurityDashboardGraphs />
+                      </Suspense>
                     )}
                   </Paper>
                 </Grid>
@@ -2657,7 +2664,9 @@ const Dashboard = () => {
             }
           }}
         >
-          <Chatbot embedded onClose={() => setAssistantOpen(false)} />
+          <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><CircularProgress aria-label="Loading assistant" /></Box>}>
+            <Chatbot embedded onClose={() => setAssistantOpen(false)} />
+          </Suspense>
         </Box>
       )}
 

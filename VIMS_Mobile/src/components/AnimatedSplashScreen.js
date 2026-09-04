@@ -25,17 +25,17 @@ const AnimatedSplashScreen = ({ ready, onFinish, children }) => {
     Animated.sequence([
       Animated.timing(ground, {
         toValue: 1,
-        duration: 160,
+        duration: 320,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(foundation, {
         toValue: 1,
-        duration: 170,
+        duration: 340,
         easing: Easing.inOut(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.stagger(70, [
+      Animated.stagger(130, [
         Animated.spring(walls, {
           toValue: 1,
           friction: 8,
@@ -50,28 +50,28 @@ const AnimatedSplashScreen = ({ ready, onFinish, children }) => {
         }),
         Animated.timing(details, {
           toValue: 1,
-          duration: 180,
+          duration: 360,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
       Animated.timing(community, {
         toValue: 1,
-        duration: 220,
+        duration: 520,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.parallel([
         Animated.timing(brand, {
           toValue: 1,
-          duration: 210,
+          duration: 470,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.sequence([
           Animated.timing(shine, {
             toValue: 1,
-            duration: 260,
+            duration: 650,
             easing: Easing.inOut(Easing.cubic),
             useNativeDriver: true,
           }),
@@ -81,10 +81,10 @@ const AnimatedSplashScreen = ({ ready, onFinish, children }) => {
             tension: 95,
             useNativeDriver: true,
           }),
-          Animated.delay(80),
+          Animated.delay(360),
           Animated.timing(check, {
             toValue: 0,
-            duration: 80,
+            duration: 140,
             useNativeDriver: true,
           }),
         ]),
@@ -99,13 +99,13 @@ const AnimatedSplashScreen = ({ ready, onFinish, children }) => {
     Animated.parallel([
       Animated.timing(appReveal, {
         toValue: 1,
-        duration: 260,
+        duration: 780,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(splashExit, {
         toValue: 1,
-        duration: 280,
+        duration: 820,
         easing: Easing.inOut(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -477,11 +477,10 @@ const StreetLight = ({ progress }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: themeColors.primaryDark,
+    backgroundColor: themeColors.background,
   },
   appLayer: {
     flex: 1,
-    backgroundColor: themeColors.primaryDark,
   },
   splashLayer: {
     ...StyleSheet.absoluteFillObject,

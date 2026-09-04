@@ -51,6 +51,14 @@ const ResetPasswordScreen = ({ navigation }) => {
       const response = await api.post('/auth/forgot-password', {
         email: normalizedEmail,
       });
+
+      if (response.status >= 400 || response.data?.success === false) {
+        const message = response.data?.error || 'No account is registered with this email address.';
+        setEmailError(message);
+        setStep(1);
+        return;
+      }
+
       Alert.alert(
         'Password Reset',
         response.data?.message || 'If your email is registered, you will receive a six-digit reset code.'

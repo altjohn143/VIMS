@@ -2108,6 +2108,12 @@ const Login = () => {
       });
 
       const data = await response.json();
+      if (!response.ok) {
+        const nextError = data.error || 'No account is registered with this email address.';
+        setForgotEmailError(nextError);
+        return;
+      }
+
       alert(data.message || 'If your email is registered, you will receive a verification code.');
       setShowForgotPassword(false);
       navigate(`/reset-password?email=${encodeURIComponent(resetEmail)}`);

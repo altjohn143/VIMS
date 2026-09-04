@@ -86,7 +86,12 @@ const ResetPassword = () => {
         body: JSON.stringify({ email: email.trim().toLowerCase() })
       });
       const data = await response.json();
-      if (!response.ok || data.success === false) throw new Error(data.error || 'Failed to send reset code');
+      if (response.status === 404 || data.success === false) {
+        const nextError = data.error || 'No account is registered with this email address.';
+        setEmailError(nextError);
+        throw new Error(nextError);
+      }
+      if (!response.ok) throw new Error(data.error || 'Failed to send reset code');
       setOtp('');
       setToken('');
       setOtpSent(true);

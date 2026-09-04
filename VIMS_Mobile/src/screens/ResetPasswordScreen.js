@@ -59,7 +59,11 @@ const ResetPasswordScreen = ({ navigation }) => {
       setResetToken('');
       setStep(2);
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to send reset code.');
+      const message = error.response?.data?.error || 'Failed to send reset code.';
+      if (error.response?.status === 404 || /not registered|no account|unregistered/i.test(message)) {
+        setEmailError(message);
+      }
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }

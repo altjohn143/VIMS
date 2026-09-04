@@ -1069,9 +1069,9 @@ router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
     
     if (!user) {
       debugLog('Password reset requested for unregistered email');
-      return res.json({
-        success: true,
-        message: 'If your email is registered, you will receive a verification code.'
+      return res.status(404).json({
+        success: false,
+        error: 'No account is registered with this email address.'
       });
     }
     

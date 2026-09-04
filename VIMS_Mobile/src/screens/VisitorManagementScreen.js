@@ -364,9 +364,25 @@ const VisitorManagementScreen = ({ navigation }) => {
 
   const openResidentScanner = async (mode) => {
     if (!hasCameraPermission) {
+      const shouldRequestPermission = await new Promise((resolve) => {
+        Alert.alert(
+          'Camera Permission',
+          'Allow camera access to scan visitor arrival QR codes?',
+          [
+            { text: 'Deny Permission', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Allow Camera', onPress: () => resolve(true) },
+          ]
+        );
+      });
+      if (!shouldRequestPermission) return;
+
       const result = await requestCameraPermission();
       if (!result.granted) {
-        Alert.alert('Camera Required', 'Please allow camera access to confirm visitor passes.');
+        Alert.alert(
+          'Camera Permission Denied',
+          'Camera permission is denied. Please allow camera access to confirm visitor passes.',
+          [{ text: 'OK' }]
+        );
         return;
       }
       setHasCameraPermission(true);

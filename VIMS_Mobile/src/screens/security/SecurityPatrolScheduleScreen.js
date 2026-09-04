@@ -34,13 +34,23 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const [patrolPickerMode, setPatrolPickerMode] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(0);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [phaseFilter, setPhaseFilter] = useState('all');
   const rowsPerPage = 5;
 
-  const paginatedRows = useMemo(
-    () => rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [page, rows]
+  const displayedRows = useMemo(
+    () => rows.filter((row) => {
+      const statusMatches = statusFilter === 'all' || String(row?.status || 'completed') === statusFilter;
+      const phaseMatches = phaseFilter === 'all' || String(row?.phase || '') === String(phaseFilter);
+      return statusMatches && phaseMatches;
+    }),
+    [phaseFilter, rows, statusFilter]
   );
-  const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  const paginatedRows = useMemo(
+    () => displayedRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [displayedRows, page]
+  );
+  const pageCount = Math.max(1, Math.ceil(displayedRows.length / rowsPerPage));
   const assignedPhases = assignment?.assignedPhases || [];
   const isHeadOfficer = assignment?.securityLevel === 'head-officer';
   const availableLots = useMemo(
@@ -106,6 +116,10 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
     loadLots();
     loadAssignment();
   }, [load, loadLots, loadAssignment]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [phaseFilter, statusFilter]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -295,10 +309,33 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
               {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="walk-outline" size={16} color="white" /><Text style={styles.primaryText}>Submit Patrol Log</Text></>}
             </TouchableOpacity>
             <Text style={styles.sectionTitle}>Patrol Logs</Text>
+            <View style={styles.filterPanel}>
+              <Text style={styles.filterTitle}>Display Filters</Text>
+              <Text style={styles.label}>Status</Text>
+              <View style={styles.pickerContainer}>
+                <Picker selectedValue={statusFilter} onValueChange={setStatusFilter}>
+                  <Picker.Item label="All statuses" value="all" />
+                  <Picker.Item label="Completed" value="completed" />
+                  <Picker.Item label="Issue Found" value="issue_found" />
+                </Picker>
+              </View>
+              <Text style={styles.label}>Phase</Text>
+              <View style={styles.pickerContainer}>
+                <Picker selectedValue={phaseFilter} onValueChange={setPhaseFilter}>
+                  <Picker.Item label="All phases" value="all" />
+                  {phases.map((phase) => (
+                    <Picker.Item key={`filter-${phase}`} label={`Phase ${phase}`} value={String(phase)} />
+                  ))}
+                </Picker>
+              </View>
+              <Text style={styles.filterSummary}>
+                Showing {displayedRows.length} of {rows.length} patrol records
+              </Text>
+            </View>
           </View>
         }
         ListFooterComponent={
-          rows.length > 0 ? (
+          displayedRows.length > 0 ? (
             <View style={styles.paginationRow}>
               <TouchableOpacity style={[styles.pageBtn, page === 0 && styles.disabled]} disabled={page === 0} onPress={() => setPage((p) => Math.max(0, p - 1))}>
                 <Text style={styles.pageText}>Previous</Text>
@@ -314,7 +351,9 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
           <View style={styles.emptyContainer}>
             <Ionicons name="walk-outline" size={64} color={themeColors.textSecondary} />
             <Text style={styles.emptyTitle}>No patrol logs</Text>
-            <Text style={styles.emptyText}>Create a patrol log to start tracking rounds.</Text>
+            <Text style={styles.emptyText}>
+              {rows.length ? 'No patrol logs match the selected filters.' : 'Create a patrol log to start tracking rounds.'}
+            </Text>
           </View>
         }
       />
@@ -463,6 +502,9 @@ const styles = StyleSheet.create({
   dateTimeButton: { flex: 1, minHeight: 46, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc', paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   dateTimeText: { color: themeColors.textPrimary, fontSize: 12, fontWeight: '800' },
   inlinePickerWrap: { marginTop: 8, borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, backgroundColor: 'white', overflow: 'hidden' },
+  filterPanel: { marginTop: 8, marginBottom: 8, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc' },
+  filterTitle: { color: themeColors.textPrimary, fontSize: 14, fontWeight: '900' },
+  filterSummary: { marginTop: 10, color: themeColors.textSecondary, fontSize: 12, fontWeight: '800' },
   input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginTop: 8, backgroundColor: '#f8fafc' },
   textArea: { minHeight: 110 },
   actionsRow: { flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 10 },

@@ -179,6 +179,18 @@ const SecurityQrScannerScreen = ({ route }) => {
 
   const ensurePermission = async () => {
     if (hasPermission) return true;
+    const shouldRequestPermission = await new Promise((resolve) => {
+      Alert.alert(
+        'Camera Permission',
+        'Allow camera access to scan entry QR codes?',
+        [
+          { text: 'Deny Permission', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Allow Camera', onPress: () => resolve(true) },
+        ]
+      );
+    });
+    if (!shouldRequestPermission) return false;
+
     const result = await requestCameraPermission();
     const granted = !!result?.granted;
     setHasPermission(granted);
@@ -334,7 +346,11 @@ const SecurityQrScannerScreen = ({ route }) => {
           onPress={async () => {
             const ok = await ensurePermission();
             if (!ok) {
-              Alert.alert('Camera Required', 'Please allow camera access to scan visitor passes.');
+              Alert.alert(
+                'Camera Permission Denied',
+                'Camera permission is denied. Please allow camera access to scan visitor passes.',
+                [{ text: 'OK' }]
+              );
             }
           }}
         >

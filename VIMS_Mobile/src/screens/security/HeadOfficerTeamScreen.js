@@ -34,6 +34,7 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [routeModalOpen, setRouteModalOpen] = useState(false);
+  const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [routeForm, setRouteForm] = useState({ assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
   const [savingRoute, setSavingRoute] = useState(false);
@@ -66,6 +67,11 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
       patrolSchedule: member.patrolSchedule || '',
     });
     setRouteModalOpen(true);
+  };
+
+  const openPersonnelRecord = (member) => {
+    setSelectedMember(member);
+    setRecordModalOpen(true);
   };
 
   const saveRoute = async () => {
@@ -137,7 +143,7 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
   );
 
   const renderPersonnel = ({ item }) => (
-    <View style={[styles.card, shadows.small]}>
+    <TouchableOpacity style={[styles.card, shadows.small]} onPress={() => openPersonnelRecord(item)} activeOpacity={0.85}>
       <View style={styles.cardHeading}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{`${item.firstName?.[0] || ''}${item.lastName?.[0] || ''}` || 'SO'}</Text>
@@ -154,11 +160,17 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
       <Text style={styles.cardMeta}>Phases: {listText(item.assignedPhases, 'No phases')}</Text>
       <Text style={styles.cardMeta}>Schedule: {item.patrolSchedule || 'No patrol schedule'}</Text>
       {!item.headOfficerId && <Text style={styles.warningText}>Unassigned personnel</Text>}
-      <TouchableOpacity style={styles.routeButton} onPress={() => openRouteModal(item)}>
-        <Ionicons name="map-outline" size={16} color="white" />
-        <Text style={styles.routeButtonText}>Edit Route</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={styles.personnelActions}>
+        <TouchableOpacity style={styles.recordButton} onPress={() => openPersonnelRecord(item)}>
+          <Ionicons name="person-circle-outline" size={16} color={themeColors.primary} />
+          <Text style={styles.recordButtonText}>Open Record</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.routeButton} onPress={() => openRouteModal(item)}>
+          <Ionicons name="map-outline" size={16} color="white" />
+          <Text style={styles.routeButtonText}>Edit Route</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
 
   const renderLog = ({ item }) => (
@@ -331,6 +343,53 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={recordModalOpen} transparent animationType="slide" onRequestClose={() => setRecordModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.routeSheet}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Personnel Record</Text>
+                <Text style={styles.modalSubtitle}>{selectedMember ? officerName(selectedMember) : 'Security personnel'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setRecordModalOpen(false)} style={styles.closeButton}>
+                <Ionicons name="close" size={22} color={themeColors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.recordRow}>
+              <Text style={styles.recordLabel}>Email</Text>
+              <Text style={styles.recordValue}>{selectedMember?.email || 'No email'}</Text>
+            </View>
+            <View style={styles.recordRow}>
+              <Text style={styles.recordLabel}>Status</Text>
+              <Text style={styles.recordValue}>{selectedMember?.isActive ? 'Active' : 'Inactive'}</Text>
+            </View>
+            <View style={styles.recordRow}>
+              <Text style={styles.recordLabel}>Security Level</Text>
+              <Text style={styles.recordValue}>{selectedMember?.securityLevel || 'personnel'}</Text>
+            </View>
+            <View style={styles.recordRow}>
+              <Text style={styles.recordLabel}>Assigned Areas</Text>
+              <Text style={styles.recordValue}>{listText(selectedMember?.assignedAreas, 'No assigned area')}</Text>
+            </View>
+            <View style={styles.recordRow}>
+              <Text style={styles.recordLabel}>Assigned Phases</Text>
+              <Text style={styles.recordValue}>{listText(selectedMember?.assignedPhases, 'No phases')}</Text>
+            </View>
+            <View style={styles.recordRow}>
+              <Text style={styles.recordLabel}>Patrol Schedule</Text>
+              <Text style={styles.recordValue}>{selectedMember?.patrolSchedule || 'No patrol schedule'}</Text>
+            </View>
+            <TouchableOpacity style={[styles.modalButton, styles.saveButton, styles.fullWidthButton]} onPress={() => {
+              setRecordModalOpen(false);
+              if (selectedMember) openRouteModal(selectedMember);
+            }}>
+              <Ionicons name="map-outline" size={16} color="white" />
+              <Text style={styles.saveText}>Edit This Route</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -357,7 +416,10 @@ const styles = StyleSheet.create({
   issueBadge: { backgroundColor: themeColors.warning + '25' },
   badgeText: { color: themeColors.textPrimary, fontSize: 10, fontWeight: '900', textTransform: 'capitalize' },
   warningText: { color: themeColors.warning, fontSize: 12, fontWeight: '800', marginTop: 8 },
-  routeButton: { marginTop: 12, alignSelf: 'flex-start', backgroundColor: themeColors.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  personnelActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  recordButton: { alignSelf: 'flex-start', backgroundColor: themeColors.primary + '12', borderColor: themeColors.primary + '35', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  recordButtonText: { color: themeColors.primary, fontSize: 12, fontWeight: '900' },
+  routeButton: { alignSelf: 'flex-start', backgroundColor: themeColors.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 6 },
   routeButtonText: { color: 'white', fontSize: 12, fontWeight: '900' },
   notes: { color: themeColors.textPrimary, fontSize: 13, lineHeight: 19, marginTop: 9, paddingTop: 9, borderTopWidth: 1, borderTopColor: themeColors.border },
   coverageCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 18, borderWidth: 1, borderColor: themeColors.border },
@@ -375,8 +437,12 @@ const styles = StyleSheet.create({
   inputLabel: { color: themeColors.textPrimary, fontSize: 13, fontWeight: '900', marginTop: 12, marginBottom: 6 },
   input: { borderWidth: 1, borderColor: themeColors.border, backgroundColor: themeColors.surfaceMuted, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, color: themeColors.textPrimary },
   helperText: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '600', marginTop: 5 },
+  recordRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: themeColors.border },
+  recordLabel: { color: themeColors.textSecondary, fontSize: 11, fontWeight: '900', marginBottom: 4 },
+  recordValue: { color: themeColors.textPrimary, fontSize: 14, fontWeight: '800' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
   modalButton: { flex: 1, minHeight: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
+  fullWidthButton: { flex: 0, marginTop: 18 },
   cancelButton: { backgroundColor: themeColors.surfaceMuted, borderWidth: 1, borderColor: themeColors.border },
   saveButton: { backgroundColor: themeColors.primary },
   cancelText: { color: themeColors.textPrimary, fontWeight: '900' },

@@ -23,6 +23,10 @@ const ROLE_SESSION_GRACE_MS = {
   security: 10 * 60 * 1000,
 };
 const DEFAULT_SESSION_GRACE_MS = ROLE_SESSION_GRACE_MS.resident;
+const AUTH_REFRESH_TIMEOUT_MS = 8000;
+const LOGIN_TIMEOUT_MS = 45000;
+const LOGIN_RETRY_TIMEOUT_MS = 30000;
+const BACKEND_WARM_TIMEOUT_MS = 10000;
 
 const getSessionGraceMs = (role) => ROLE_SESSION_GRACE_MS[role] || DEFAULT_SESSION_GRACE_MS;
 const isTransientAuthRefreshError = (error) => (
@@ -130,9 +134,12 @@ export const AuthProvider = ({ children }) => {
 
   const loadStoredData = async () => {
     try {
-      const token = await getAuthToken();
-      const userData = await AsyncStorage.getItem('user');
-      const lastBackgroundedAt = Number(await AsyncStorage.getItem('lastBackgroundedAt') || 0);
+      const [token, userData, lastBackgroundedValue] = await Promise.all([
+        getAuthToken(),
+        AsyncStorage.getItem('user'),
+        AsyncStorage.getItem('lastBackgroundedAt'),
+      ]);
+      const lastBackgroundedAt = Number(lastBackgroundedValue || 0);
       let storedUser = null;
 
       if (userData) {
@@ -152,7 +159,13 @@ export const AuthProvider = ({ children }) => {
       if (token && userData) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        const response = await api.get('/auth/me');
+        if (storedUser) {
+          setUser(storedUser);
+          setIsAuthenticated(true);
+          setIsLoading(false);
+        }
+
+        const response = await api.get('/auth/me', { timeout: AUTH_REFRESH_TIMEOUT_MS });
         if (response.data?.success && response.data?.user) {
           const serverUser = response.data.user;
           const storedId = storedUser?._id || storedUser?.id;
@@ -208,15 +221,15 @@ export const AuthProvider = ({ children }) => {
         expectedRole
       };
 
-      const submitLogin = (timeout = 240000) => api.post('/auth/login', loginPayload, { timeout });
+      const submitLogin = (timeout = LOGIN_TIMEOUT_MS) => api.post('/auth/login', loginPayload, { timeout });
       let response;
       try {
         response = await submitLogin();
       } catch (loginError) {
         if (!isRequestTimeout(loginError)) throw loginError;
-        console.warn('Login timed out; warming backend and retrying once.');
-        await api.get('/health', { timeout: 180000 }).catch(() => null);
-        response = await submitLogin(300000);
+        console.warn('Login timed out; warming backend and retrying once with a shorter timeout.');
+        await api.get('/health', { timeout: BACKEND_WARM_TIMEOUT_MS }).catch(() => null);
+        response = await submitLogin(LOGIN_RETRY_TIMEOUT_MS);
       }
       
       debugLog('Login response status:', response.status);

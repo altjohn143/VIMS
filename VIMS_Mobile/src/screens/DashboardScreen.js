@@ -52,6 +52,9 @@ const DashboardScreen = ({ navigation }) => {
   // Animation States (Senior Developer Micro-Interactions)
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  // The first screen mount also emits a navigation focus event. Without this
+  // guard, both paths load the dashboard and double the initial API burst.
+  const dashboardLoadInFlightRef = useRef(false);
   const modulePalette = {
     primary: themeColors.primary,
     deep: themeColors.primaryDeep,
@@ -246,6 +249,8 @@ const DashboardScreen = ({ navigation }) => {
   }, [user?.role]);
 
   const fetchDashboardData = async (userData) => {
+    if (dashboardLoadInFlightRef.current) return;
+    dashboardLoadInFlightRef.current = true;
     const role = userData?.role;
     const securityLevel = userData?.securityLevel;
     try {
@@ -300,7 +305,7 @@ const DashboardScreen = ({ navigation }) => {
       }
 
       if (role === 'security') {
-        fetchSecurityAnalytics();
+        const analyticsPromise = fetchSecurityAnalytics();
         // Check if head officer (supervisor)
         if (securityLevel === 'head-officer') {
           try {
@@ -312,6 +317,7 @@ const DashboardScreen = ({ navigation }) => {
                 pendingReports: response.data.data?.pendingReports || 0,
                 completedToday: response.data.data?.completedToday || 0,
               });
+              await analyticsPromise;
               return;
             }
           } catch (error) {
@@ -323,10 +329,13 @@ const DashboardScreen = ({ navigation }) => {
         // Regular security officer
         const response = await api.get('/visitors/security/dashboard');
         if (response.data.success) setStats(response.data.data || {});
+        await analyticsPromise;
         return;
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    } finally {
+      dashboardLoadInFlightRef.current = false;
     }
   };
 

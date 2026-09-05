@@ -24,9 +24,7 @@ const ROLE_SESSION_GRACE_MS = {
 };
 const DEFAULT_SESSION_GRACE_MS = ROLE_SESSION_GRACE_MS.resident;
 const AUTH_REFRESH_TIMEOUT_MS = 8000;
-const LOGIN_TIMEOUT_MS = 45000;
-const LOGIN_RETRY_TIMEOUT_MS = 30000;
-const BACKEND_WARM_TIMEOUT_MS = 10000;
+const LOGIN_TIMEOUT_MS = 25000;
 
 const getSessionGraceMs = (role) => ROLE_SESSION_GRACE_MS[role] || DEFAULT_SESSION_GRACE_MS;
 const isTransientAuthRefreshError = (error) => (
@@ -38,15 +36,6 @@ const isTransientAuthRefreshError = (error) => (
     /aborted|timed out|network request failed/i.test(error?.message || '')
   )
 );
-const isRequestTimeout = (error) => (
-  !error?.response &&
-  (
-    error?.code === 'ECONNABORTED' ||
-    error?.name === 'AbortError' ||
-    /aborted|timed out|network request failed/i.test(error?.message || '')
-  )
-);
-
 const parseStoredUserRole = (storedUser) => {
   if (!storedUser) return null;
   try {
@@ -221,16 +210,9 @@ export const AuthProvider = ({ children }) => {
         expectedRole
       };
 
-      const submitLogin = (timeout = LOGIN_TIMEOUT_MS) => api.post('/auth/login', loginPayload, { timeout });
-      let response;
-      try {
-        response = await submitLogin();
-      } catch (loginError) {
-        if (!isRequestTimeout(loginError)) throw loginError;
-        console.warn('Login timed out; warming backend and retrying once with a shorter timeout.');
-        await api.get('/health', { timeout: BACKEND_WARM_TIMEOUT_MS }).catch(() => null);
-        response = await submitLogin(LOGIN_RETRY_TIMEOUT_MS);
-      }
+      // Do not retry a timed-out credential submission: the original request may
+      // still be executing, and duplicating it adds avoidable load at peak times.
+      const response = await api.post('/auth/login', loginPayload, { timeout: LOGIN_TIMEOUT_MS });
       
       debugLog('Login response status:', response.status);
       

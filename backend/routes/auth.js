@@ -36,17 +36,34 @@ const phoneSchema = Joi.string().pattern(/^\+?[\d\s\-\(\)]+$/).max(20);
 
 const LOGIN_LIMIT_WINDOW_MINUTES = Number(process.env.LOGIN_LIMIT_WINDOW_MINUTES || 15);
 const LOGIN_LIMIT_MAX_ATTEMPTS = Number(process.env.LOGIN_LIMIT_MAX_ATTEMPTS || 10);
+const LOGIN_IP_LIMIT_MAX_ATTEMPTS = Number(process.env.LOGIN_IP_LIMIT_MAX_ATTEMPTS || 100);
 const FORGOT_PASSWORD_LIMIT_WINDOW_MINUTES = Number(process.env.FORGOT_PASSWORD_LIMIT_WINDOW_MINUTES || 15);
 const FORGOT_PASSWORD_LIMIT_MAX_ATTEMPTS = Number(process.env.FORGOT_PASSWORD_LIMIT_MAX_ATTEMPTS || 5);
 
-const loginLimiter = rateLimit({
+// Limit one account tightly, without making residents on the same Wi-Fi share
+// a 10-attempt budget. The IP limit still prevents high-volume abuse.
+const loginAccountLimiter = rateLimit({
   windowMs: LOGIN_LIMIT_WINDOW_MINUTES * 60 * 1000,
   limit: LOGIN_LIMIT_MAX_ATTEMPTS,
+  keyGenerator: (req) => `email:${String(req.body?.email || '').trim().toLowerCase() || 'missing'}`,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
     error: `Too many login attempts. Please try again in ${LOGIN_LIMIT_WINDOW_MINUTES} minutes.`
+  }
+});
+
+const loginIpLimiter = rateLimit({
+  windowMs: LOGIN_LIMIT_WINDOW_MINUTES * 60 * 1000,
+  limit: LOGIN_IP_LIMIT_MAX_ATTEMPTS,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many login attempts from this network. Please try again later.'
   }
 });
 
@@ -738,8 +755,9 @@ router.post('/register', registerUpload.fields([
 });
 
 // Login route
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', loginIpLimiter, loginAccountLimiter, async (req, res) => {
   try {
+    const requestStartedAt = Date.now();
     debugLog('\n ===== LOGIN ATTEMPT =====');
     debugLog('Email:', req.body.email);
     
@@ -753,7 +771,9 @@ router.post('/login', loginLimiter, async (req, res) => {
       });
     }
 
+    const databaseStartedAt = Date.now();
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const databaseDurationMs = Date.now() - databaseStartedAt;
     
     if (!user) {
       debugLog('User not found:', email);
@@ -796,7 +816,9 @@ router.post('/login', loginLimiter, async (req, res) => {
       });
     }
 
+    const passwordStartedAt = Date.now();
     const isMatch = await user.comparePassword(password);
+    const passwordDurationMs = Date.now() - passwordStartedAt;
     
     if (!isMatch) {
       debugLog('Password mismatch for:', email);
@@ -827,6 +849,16 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const token = generateToken(user);
     
+    const totalDurationMs = Date.now() - requestStartedAt;
+    res.set('Server-Timing', `db;dur=${databaseDurationMs}, password;dur=${passwordDurationMs}, total;dur=${totalDurationMs}`);
+    console.info('auth.login.timing', {
+      requestId: req.id || null,
+      databaseDurationMs,
+      passwordDurationMs,
+      totalDurationMs,
+      outcome: 'success'
+    });
+
     res.json({
       success: true,
       message: 'Login successful',

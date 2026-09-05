@@ -129,17 +129,6 @@ setAnnouncementSocket(io);
 // Middleware
 app.use(express.json({ limit: '10mb' })); // SECURITY: Add payload size limit
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 10, // 10 attempts per window
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'Too many authentication attempts. Please try again later.'
-  }
-});
-
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: 300, // 300 requests per window
@@ -181,8 +170,6 @@ app.use('/uploads/pdf-exports', express.static(path.join(__dirname, 'uploads/pdf
 }));
 
 app.use('/api', apiLimiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
 app.use('/api', auditLogger);
 
 // Database connection - USE ENVIRONMENT VARIABLE

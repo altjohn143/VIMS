@@ -151,7 +151,9 @@ export const API_BASE_URL = BASE_URL.replace(/\/api\/?$/, '');
 // Create axios instance with proper React Native adapter
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 180000, // Render hobby/free cold starts can take a while before responding.
+  // Individual operations can opt into a longer timeout. Keeping the default
+  // bounded prevents a stalled connection from holding the login UI for minutes.
+  timeout: 25000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

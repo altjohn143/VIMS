@@ -13,8 +13,12 @@ import {
   FlatList,
   Linking,
   Image,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -32,6 +36,8 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showProcessModal, setShowProcessModal] = useState(false);
+  const [showActionOptions, setShowActionOptions] = useState(false);
+  const [showEstimatedDatePicker, setShowEstimatedDatePicker] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -54,6 +60,17 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
     assignedTo: '',
     estimatedCompletion: '',
   });
+
+  const processActions = [
+    { label: 'Under Review', value: 'under-review' },
+    { label: 'Assign to Staff', value: 'assigned' },
+    { label: 'Reject', value: 'rejected' },
+    { label: 'Cancel', value: 'cancelled' },
+  ];
+  const selectedActionLabel = processActions.find((action) => action.value === processForm.status)?.label || 'Select action';
+  const estimatedDateValue = processForm.estimatedCompletion
+    ? new Date(`${processForm.estimatedCompletion}T12:00:00`)
+    : new Date();
 
   const categories = [
     { value: 'plumbing', label: 'Plumbing', icon: 'water' },
@@ -515,6 +532,8 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
                   estimatedCompletion: item.estimatedCompletion ? 
                     format(new Date(item.estimatedCompletion), 'yyyy-MM-dd') : '',
                 });
+                setShowActionOptions(false);
+                setShowEstimatedDatePicker(false);
                 setShowProcessModal(true);
               }}
             >
@@ -610,7 +629,11 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
         transparent={true}
         onRequestClose={() => setShowProcessModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Process Request</Text>
@@ -619,7 +642,12 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.processFormContent}
+            >
               {selectedRequest && (
                 <View>
                   <Text style={styles.modalSubtitle}>{selectedRequest.title}</Text>
@@ -635,19 +663,35 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
 
                   <View style={styles.formGroup}>
                     <Text style={styles.label}>Action</Text>
-                    <View style={styles.pickerContainer}>
-                      <Picker
-                        selectedValue={processForm.status}
-                        onValueChange={(value) => setProcessForm(prev => ({ ...prev, status: value }))}
-                        style={styles.picker}
-                      >
-                        <Picker.Item label="Select action" value="" />
-                        <Picker.Item label="Under Review" value="under-review" />
-                        <Picker.Item label="Assign to Staff" value="assigned" />
-                        <Picker.Item label="Reject" value="rejected" />
-                        <Picker.Item label="Cancel" value="cancelled" />
-                      </Picker>
-                    </View>
+                    <TouchableOpacity
+                      style={styles.selectControl}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setShowActionOptions((visible) => !visible);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Select action"
+                    >
+                      <Text style={[styles.selectControlText, !processForm.status && styles.selectPlaceholder]}>{selectedActionLabel}</Text>
+                      <Ionicons name={showActionOptions ? 'chevron-up' : 'chevron-down'} size={20} color={themeColors.textSecondary} />
+                    </TouchableOpacity>
+                    {showActionOptions && (
+                      <View style={styles.actionOptions}>
+                        {processActions.map((action) => (
+                          <TouchableOpacity
+                            key={action.value}
+                            style={[styles.actionOption, processForm.status === action.value && styles.actionOptionSelected]}
+                            onPress={() => {
+                              setProcessForm((previous) => ({ ...previous, status: action.value }));
+                              setShowActionOptions(false);
+                            }}
+                          >
+                            <Text style={[styles.actionOptionText, processForm.status === action.value && styles.actionOptionTextSelected]}>{action.label}</Text>
+                            {processForm.status === action.value && <Ionicons name="checkmark" size={18} color={themeColors.primary} />}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
                   </View>
 
                   {processForm.status === 'assigned' && !isEmergency(selectedRequest) && (
@@ -687,12 +731,36 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
 
                   <View style={styles.formGroup}>
                     <Text style={styles.label}>Estimated Completion Date</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={processForm.estimatedCompletion}
-                      onChangeText={(text) => setProcessForm(prev => ({ ...prev, estimatedCompletion: text }))}
-                      placeholder="YYYY-MM-DD"
-                    />
+                    <TouchableOpacity
+                      style={styles.selectControl}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setShowEstimatedDatePicker((visible) => !visible);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Select estimated completion date"
+                    >
+                      <Text style={[styles.selectControlText, !processForm.estimatedCompletion && styles.selectPlaceholder]}>
+                        {processForm.estimatedCompletion || 'Select a date'}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={20} color={themeColors.textSecondary} />
+                    </TouchableOpacity>
+                    {showEstimatedDatePicker && (
+                      <View style={styles.inlineDatePicker}>
+                        <DateTimePicker
+                          value={estimatedDateValue}
+                          mode="date"
+                          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                          minimumDate={new Date()}
+                          onChange={(_event, selectedDate) => {
+                            if (Platform.OS !== 'ios') setShowEstimatedDatePicker(false);
+                            if (selectedDate) {
+                              setProcessForm((previous) => ({ ...previous, estimatedCompletion: format(selectedDate, 'yyyy-MM-dd') }));
+                            }
+                          }}
+                        />
+                      </View>
+                    )}
                   </View>
 
                   <View style={styles.modalActions}>
@@ -714,7 +782,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
               )}
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Details Modal */}
@@ -1230,6 +1298,9 @@ const styles = StyleSheet.create({
     maxHeight: '92%',
     paddingBottom: 28,
   },
+  processFormContent: {
+    paddingBottom: 8,
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1293,6 +1364,61 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+  },
+  selectControl: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectControlText: {
+    flex: 1,
+    fontSize: 16,
+    color: themeColors.textPrimary,
+  },
+  selectPlaceholder: {
+    color: themeColors.textSecondary,
+  },
+  actionOptions: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: themeColors.cardBackground,
+  },
+  actionOption: {
+    minHeight: 48,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border,
+  },
+  actionOptionSelected: {
+    backgroundColor: themeColors.primarySoft,
+  },
+  actionOptionText: {
+    fontSize: 16,
+    color: themeColors.textPrimary,
+  },
+  actionOptionTextSelected: {
+    color: themeColors.primaryDeep,
+    fontWeight: '700',
+  },
+  inlineDatePicker: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: themeColors.cardBackground,
   },
   modalActions: {
     flexDirection: 'row',

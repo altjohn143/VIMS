@@ -674,7 +674,6 @@ const PublicLotMap = () => {
   const [isPanning, setIsPanning] = useState(false);
   const [hoverPreview, setHoverPreview] = useState(null);
   const [highlightedLotId, setHighlightedLotId] = useState('');
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPhase, setSelectedPhase] = useState('all');
   const mapCanvasRef = useRef(null);
@@ -684,7 +683,6 @@ const PublicLotMap = () => {
   useEffect(() => {
     const fetchLots = async () => {
       try {
-        setLoading(true);
         setError(null);
         const response = await axios.get('/api/lots');
         if (response.data.success) {
@@ -697,7 +695,8 @@ const PublicLotMap = () => {
         console.error('Error fetching lots:', error);
         setError(error.response?.data?.error || 'Failed to connect to server');
       } finally {
-        setLoading(false);
+        // Data is loaded asynchronously; the already-visible map remains
+        // usable while its lot overlays are prepared.
       }
     };
     
@@ -842,15 +841,6 @@ const PublicLotMap = () => {
   const vacantLots = allLots.filter(l => l.status === 'vacant');
   const featuredLots = vacantLots.slice(0, 3);
 
-  if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', background: PUBLIC_MAP_PAGE_BG, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
-        <CircularProgress sx={{ color: '#007A18' }} />
-        <Typography sx={{ color: '#17221C', fontWeight: 700 }}>Loading village map...</Typography>
-      </Box>
-    );
-  }
-
   if (error) {
     return (
       <Box sx={{ minHeight: '100vh', background: PUBLIC_MAP_PAGE_BG, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
@@ -926,7 +916,7 @@ const PublicLotMap = () => {
           </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-          <TextField size="small" placeholder="Search (e.g. A-3)" value={search}
+          <TextField size="small" label="Search lots" placeholder="Search (e.g. A-3)" value={search}
             onChange={e => setSearch(e.target.value)}
             InputProps={{
               startAdornment: <InputAdornment position="start">
@@ -1058,17 +1048,17 @@ const PublicLotMap = () => {
           Available only
         </Button>
         <Box sx={{ ml: 'auto', display: 'flex', gap: 0.8 }}>
-          <IconButton size="small"
+          <IconButton size="small" aria-label="Zoom in on the lot map"
             onClick={() => setMapZoom(z => Math.min(19, z + 1))}
             sx={{ color: '#007A18', border: '1px solid rgba(0,122,24,0.18)', borderRadius: 1.5, backgroundColor: '#FFFFFF' }}>
             <ZoomInIcon fontSize="small" />
           </IconButton>
-          <IconButton size="small"
+          <IconButton size="small" aria-label="Zoom out on the lot map"
             onClick={() => setMapZoom(z => Math.max(14, z - 1))}
             sx={{ color: '#007A18', border: '1px solid rgba(0,122,24,0.18)', borderRadius: 1.5, backgroundColor: '#FFFFFF' }}>
             <ZoomOutIcon fontSize="small" />
           </IconButton>
-          <IconButton size="small"
+          <IconButton size="small" aria-label="Reset the lot map view"
             onClick={resetMapView}
             sx={{ color: '#007A18', border: '1px solid rgba(0,122,24,0.18)', borderRadius: 1.5, backgroundColor: '#FFFFFF' }}>
             <ResetViewIcon fontSize="small" />
@@ -1164,6 +1154,10 @@ const PublicLotMap = () => {
               <Box component="img"
                 src={mapImage}
                 alt="Casimiro Westville Homes map"
+                width="1536"
+                height="1024"
+                loading="eager"
+                fetchPriority="high"
                 sx={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
               />
 
@@ -1184,6 +1178,9 @@ const PublicLotMap = () => {
                   <Box
                     key={`abs-${lot.id}`}
                     data-lot-overlay="true"
+                    role={isAmenity ? 'img' : 'button'}
+                    aria-label={`Phase ${lot.phase}, Block ${lot.phaseBlock}, Lot ${lot.lotNumber}: ${cfg.label}${isAmenity ? '' : '. View lot details'}`}
+                    tabIndex={isAmenity ? -1 : 0}
                     onClick={(event) => {
                       event.stopPropagation();
                       if (isAmenity) return;
@@ -1193,6 +1190,13 @@ const PublicLotMap = () => {
                     onMouseEnter={showHoverPreview}
                     onMouseMove={showHoverPreview}
                     onMouseLeave={() => setHoverPreview(null)}
+                    onKeyDown={(event) => {
+                      if (!isAmenity && (event.key === 'Enter' || event.key === ' ')) {
+                        event.preventDefault();
+                        setSelectedLot(lot);
+                        setHighlightedLotId(lot.id);
+                      }
+                    }}
                     title={`Phase ${lot.phase} · Block ${lot.phaseBlock} · Lot ${lot.lotNumber} · ${cfg.label}`}
                     sx={{
                       position: 'absolute',

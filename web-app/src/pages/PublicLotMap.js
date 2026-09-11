@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Box, Typography, Button, Chip, IconButton,
-  TextField, InputAdornment, Alert, CircularProgress
+  TextField, InputAdornment, Alert
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -42,31 +42,25 @@ const INSIDE_PHOTOS = [
   { url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1400&q=85', caption: 'Second Bedroom' },
 ];
 
-const SURROUNDINGS_PHOTOS = [
-  { url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1400&q=85', caption: 'Village Street View' },
-  { url: 'https://images.unsplash.com/photo-1590012314607-cda9d9b699ae?w=1400&q=85', caption: 'Neighborhood Park' },
-  { url: 'https://images.unsplash.com/photo-1604014237800-1c9102c219da?w=1400&q=85', caption: 'Community Amenities' },
-  { url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1400&q=85', caption: 'Aerial Overview' },
-  { url: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1400&q=85', caption: 'Nearby Commercial Area' },
-  { url: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1400&q=85', caption: 'Green Spaces' },
-];
-
 // Curated images supplied for individual lots.  Keep these separate from the
 // generic sample gallery so a lot never falls back to stock house photos once
 // it has an actual property image.
 const LOT_PHOTOS = {
-  'P1-B1-L1': [
-    {
+  'P1-B1-L1': {
+    outside: [{
       url: 'https://drive.google.com/thumbnail?id=1Ma7ksj628olwr1r9F2z02kYDBwsEtbKC&sz=w2000',
-      caption: 'P1-B1-L1'
-    }
-  ]
+      caption: 'P1-B1-L1 Exterior'
+    }],
+    inside: [{
+      url: 'https://drive.google.com/thumbnail?id=1Cny2CcOdUy5ZiYQdOPUyJzyXxXV8J9Ir&sz=w2000',
+      caption: 'P1-B1-L1 Interior'
+    }]
+  }
 };
 
 const VIEW_TABS = [
   { key: 'outside',      label: 'Outside',      emoji: '🏠', photos: OUTSIDE_PHOTOS,      color: '#00D084', desc: 'Exterior & garden views' },
   { key: 'inside',       label: 'Inside',       emoji: '🛋️', photos: INSIDE_PHOTOS,       color: '#00D084', desc: 'Interior rooms & layout' },
-  { key: 'surroundings', label: 'Surroundings', emoji: '🌳', photos: SURROUNDINGS_PHOTOS, color: '#fbbf24', desc: 'Neighborhood & amenities' },
 ];
 
 const STATUS_CONFIG = {
@@ -158,8 +152,8 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
 
   // Use real, lot-specific imagery whenever it is available. Generic sample
   // imagery remains only for lots that do not yet have photos assigned.
-  const photos = lot.photos?.length
-    ? lot.photos
+  const photos = lot.photos?.[activeTab]?.length
+    ? lot.photos[activeTab]
     : tabData.photos.map((_, i) =>
       tabData.photos[(i + (lot.photoSeed || 0)) % tabData.photos.length]
     );
@@ -529,8 +523,8 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
       {/* Preview image */}
       <Box sx={{ height: 200, flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
         <Box component="img"
-          src={lot.photos?.[0]?.url || 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=700&q=80'}
-          alt={lot.photos?.[0]?.caption || 'House'}
+          src={lot.photos?.outside?.[0]?.url || 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=700&q=80'}
+          alt={lot.photos?.outside?.[0]?.caption || 'House'}
           sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
         <Box sx={{

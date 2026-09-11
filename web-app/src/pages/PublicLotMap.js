@@ -1391,7 +1391,7 @@ const PublicLotMap = () => {
                         <Typography sx={{ color: '#007A18', fontWeight: 700, fontSize: '0.75rem' }}>
                           ₱{(lot.price / 1000000).toFixed(1)}M
                         </Typography>
-                        <Typography sx={{ color: '#89958E', fontSize: '0.58rem' }}>from</Typography>
+                        <Typography sx={{ color: '#89958E', fontSize: '0.58rem' }}>PRICE</Typography>
                       </Box>
                     </Box>
                   ))}

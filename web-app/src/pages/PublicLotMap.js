@@ -156,37 +156,41 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
     ? lot.photos[activeTab]
     : tabData.photos.map((_, i) =>
       tabData.photos[(i + (lot.photoSeed || 0)) % tabData.photos.length]
-    );
+  );
   const currentPhoto = photos[photoIndex] || photos[0];
+  const hasMultiplePhotos = photos.length > 1;
 
   const changePhoto = useCallback((newIndex) => {
-    if (transitioning) return;
+    if (transitioning || !hasMultiplePhotos || newIndex === photoIndex) return;
     setTransitioning(true);
     setImageLoaded(false);
     setTimeout(() => { 
       setPhotoIndex(newIndex); 
       setTransitioning(false); 
     }, 200);
-  }, [transitioning]);
+  }, [hasMultiplePhotos, photoIndex, transitioning]);
 
   const goNext = useCallback(() => {
+    if (!hasMultiplePhotos) return;
     changePhoto((photoIndex + 1) % photos.length);
-  }, [changePhoto, photoIndex, photos.length]);
+  }, [changePhoto, hasMultiplePhotos, photoIndex, photos.length]);
 
   const goPrev = useCallback(() => {
+    if (!hasMultiplePhotos) return;
     changePhoto((photoIndex - 1 + photos.length) % photos.length);
-  }, [changePhoto, photoIndex, photos.length]);
+  }, [changePhoto, hasMultiplePhotos, photoIndex, photos.length]);
 
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlaying && hasMultiplePhotos) {
       intervalRef.current = setInterval(goNext, 3200);
     } else {
+      if (isPlaying) setIsPlaying(false);
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isPlaying, goNext]);
+  }, [hasMultiplePhotos, isPlaying, goNext]);
 
   const handleTabChange = useCallback((key) => {
     setActiveTab(key);
@@ -301,7 +305,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.45) 100%)',
         }} />
 
-        <IconButton onClick={goPrev} sx={{
+        {hasMultiplePhotos && <IconButton onClick={goPrev} sx={{
           position: 'absolute', left: { xs: 8, md: 24 }, top: '50%',
           transform: 'translateY(-50%)',
           backgroundColor: 'rgba(0,0,0,0.5)', color: 'white',
@@ -311,9 +315,9 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           transition: 'all 0.18s',
         }}>
           <PrevIcon sx={{ fontSize: { xs: 22, md: 30 } }} />
-        </IconButton>
+        </IconButton>}
 
-        <IconButton onClick={goNext} sx={{
+        {hasMultiplePhotos && <IconButton onClick={goNext} sx={{
           position: 'absolute', right: { xs: 8, md: 24 }, top: '50%',
           transform: 'translateY(-50%)',
           backgroundColor: 'rgba(0,0,0,0.5)', color: 'white',
@@ -323,7 +327,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           transition: 'all 0.18s',
         }}>
           <NextIcon sx={{ fontSize: { xs: 22, md: 30 } }} />
-        </IconButton>
+        </IconButton>}
 
         {/* Bottom info bar */}
         <Box sx={{
@@ -371,7 +375,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-            <IconButton onClick={() => setIsPlaying(p => !p)} size="small" sx={{
+            {hasMultiplePhotos && <IconButton onClick={() => setIsPlaying(p => !p)} size="small" sx={{
               backgroundColor: isPlaying ? tabData.color : 'rgba(255,255,255,0.12)',
               color: isPlaying ? '#002F05' : 'white',
               border: `1px solid ${isPlaying ? tabData.color : 'rgba(255,255,255,0.18)'}`,
@@ -379,7 +383,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
               transition: 'all 0.2s',
             }}>
               {isPlaying ? <PauseIcon fontSize="small" /> : <PlayIcon fontSize="small" />}
-            </IconButton>
+            </IconButton>}
             <IconButton onClick={() => setIsFullscreen(f => !f)} size="small" sx={{
               backgroundColor: 'rgba(255,255,255,0.12)', color: 'white',
               border: '1px solid rgba(255,255,255,0.18)',

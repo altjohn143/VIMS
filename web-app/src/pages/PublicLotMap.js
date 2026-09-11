@@ -55,13 +55,24 @@ const LOT_PHOTOS = {
       url: 'https://drive.google.com/thumbnail?id=1Cny2CcOdUy5ZiYQdOPUyJzyXxXV8J9Ir&sz=w2000',
       caption: 'P1-B1-L1 Interior'
     }]
+  },
+  'P1-B1-L2': {
+    outside: [{
+      url: 'https://drive.google.com/thumbnail?id=1Hb47HWAbzUJ6wAOCwdo8GriKUii2MZ94&sz=w2000',
+      caption: 'P1-B1-L2 Exterior'
+    }],
+    inside: [{
+      url: 'https://drive.google.com/thumbnail?id=1h5WiGIDIswCrOoWDJYIal4AnJnVOyy7r&sz=w2000',
+      caption: 'P1-B1-L2 Interior'
+    }]
   }
 };
 
 // Public-facing details confirmed for individual lots. These take precedence
 // while the map is rendered so its card, detail panel, and virtual tour agree.
 const LOT_DETAILS = {
-  'P1-B1-L1': { sqm: 70, type: 'Townhouse', price: 2900000 }
+  'P1-B1-L1': { sqm: 70, type: 'Townhouse', price: 2900000 },
+  'P1-B1-L2': { sqm: 75, type: 'Townhouse', price: 2530000 }
 };
 
 const VIEW_TABS = [

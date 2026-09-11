@@ -58,6 +58,12 @@ const LOT_PHOTOS = {
   }
 };
 
+// Public-facing details confirmed for individual lots. These take precedence
+// while the map is rendered so its card, detail panel, and virtual tour agree.
+const LOT_DETAILS = {
+  'P1-B1-L1': { sqm: 70, type: 'Townhouse', price: 2900000 }
+};
+
 const VIEW_TABS = [
   { key: 'outside',      label: 'Outside',      emoji: '🏠', photos: OUTSIDE_PHOTOS,      color: '#00D084', desc: 'Exterior & garden views' },
   { key: 'inside',       label: 'Inside',       emoji: '🛋️', photos: INSIDE_PHOTOS,       color: '#00D084', desc: 'Interior rooms & layout' },
@@ -117,6 +123,7 @@ const generateLotsFromAPI = (apiLots) => {
   
   return apiLots.map(lot => {
     const rawBlock = Number(lot.block);
+    const details = LOT_DETAILS[lot.lotId] || {};
     return {
       id: lot.lotId,
       lotId: lot.lotId,
@@ -125,9 +132,9 @@ const generateLotsFromAPI = (apiLots) => {
       phaseBlock: getPhaseBlock(rawBlock),
       lotNumber: lot.lotNumber,
       status: lot.status,
-      type: lot.type,
-      sqm: lot.sqm,
-      price: lot.price,
+      type: details.type ?? lot.type,
+      sqm: details.sqm ?? lot.sqm,
+      price: details.price ?? lot.price,
       address: lot.address,
       features: lot.features || [],
       photoSeed: lot.photoSeed || 0,
@@ -270,6 +277,20 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
 
       {/* Main Photo Area */}
       <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        {/* Fill the wide tour stage gracefully when a supplied photo is
+            portrait-shaped, while the foreground image remains uncropped. */}
+        <Box
+          component="img"
+          src={currentPhoto.url}
+          alt=""
+          aria-hidden="true"
+          sx={{
+            position: 'absolute', inset: -24,
+            width: 'calc(100% + 48px)', height: 'calc(100% + 48px)',
+            objectFit: 'cover', filter: 'blur(18px)', opacity: 0.38,
+            transform: 'scale(1.04)', pointerEvents: 'none',
+          }}
+        />
         <Box component="img"
           src={currentPhoto.url}
           alt={currentPhoto.caption}
@@ -283,7 +304,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
             opacity: transitioning || !imageLoaded ? 0 : 1,
             transition: 'opacity 0.3s ease',
             position: 'absolute', inset: 0,
-            backgroundColor: '#050d02',
+            backgroundColor: 'transparent',
           }}
         />
 
@@ -468,7 +489,7 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           {[
             { l: 'Area',  v: `${lot.sqm} sqm` },
             { l: 'Type',  v: lot.type },
-            ...(lot.price ? [{ l: 'From', v: `₱${(lot.price / 1000000).toFixed(1)}M` }] : []),
+            ...(lot.price ? [{ l: 'Price', v: `₱${(lot.price / 1000000).toFixed(1)}M` }] : []),
           ].map(({ l, v }) => (
             <Box key={l} sx={{ textAlign: 'center' }}>
               <Typography sx={{ color: 'rgba(255,255,255,0.28)', fontSize: '0.58rem', letterSpacing: '0.1em' }}>

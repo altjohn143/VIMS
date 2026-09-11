@@ -51,6 +51,18 @@ const SURROUNDINGS_PHOTOS = [
   { url: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1400&q=85', caption: 'Green Spaces' },
 ];
 
+// Curated images supplied for individual lots.  Keep these separate from the
+// generic sample gallery so a lot never falls back to stock house photos once
+// it has an actual property image.
+const LOT_PHOTOS = {
+  'P1-B1-L1': [
+    {
+      url: 'https://drive.google.com/thumbnail?id=1Ma7ksj628olwr1r9F2z02kYDBwsEtbKC&sz=w2000',
+      caption: 'P1-B1-L1'
+    }
+  ]
+};
+
 const VIEW_TABS = [
   { key: 'outside',      label: 'Outside',      emoji: '🏠', photos: OUTSIDE_PHOTOS,      color: '#00D084', desc: 'Exterior & garden views' },
   { key: 'inside',       label: 'Inside',       emoji: '🛋️', photos: INSIDE_PHOTOS,       color: '#00D084', desc: 'Interior rooms & layout' },
@@ -125,6 +137,7 @@ const generateLotsFromAPI = (apiLots) => {
       address: lot.address,
       features: lot.features || [],
       photoSeed: lot.photoSeed || 0,
+      photos: LOT_PHOTOS[lot.lotId] || [],
       occupiedBy: lot.occupiedBy,
       mapPosition: lot.mapPosition || null,
     };
@@ -143,10 +156,13 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
 
   const tabData = VIEW_TABS.find(t => t.key === activeTab) || VIEW_TABS[0];
 
-  // Offset by lot seed so photos vary per lot
-  const photos = tabData.photos.map((_, i) =>
-    tabData.photos[(i + (lot.photoSeed || 0)) % tabData.photos.length]
-  );
+  // Use real, lot-specific imagery whenever it is available. Generic sample
+  // imagery remains only for lots that do not yet have photos assigned.
+  const photos = lot.photos?.length
+    ? lot.photos
+    : tabData.photos.map((_, i) =>
+      tabData.photos[(i + (lot.photoSeed || 0)) % tabData.photos.length]
+    );
   const currentPhoto = photos[photoIndex] || photos[0];
 
   const changePhoto = useCallback((newIndex) => {
@@ -513,8 +529,8 @@ const LotDetailPanel = ({ lot, onClose, onRegister, onTour }) => {
       {/* Preview image */}
       <Box sx={{ height: 200, flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
         <Box component="img"
-          src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=700&q=80"
-          alt="House"
+          src={lot.photos?.[0]?.url || 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=700&q=80'}
+          alt={lot.photos?.[0]?.caption || 'House'}
           sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
         <Box sx={{

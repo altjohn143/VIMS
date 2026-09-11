@@ -272,7 +272,10 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
           onLoad={() => setImageLoaded(true)}
           sx={{
             width: '100%', height: '100%',
-            objectFit: isFullscreen ? 'contain' : 'cover',
+            // Preserve the complete property photo in the regular tour as
+            // well as fullscreen. `cover` enlarged and cropped the supplied
+            // images to fill this wide panel.
+            objectFit: 'contain',
             opacity: transitioning || !imageLoaded ? 0 : 1,
             transition: 'opacity 0.3s ease',
             position: 'absolute', inset: 0,

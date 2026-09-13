@@ -45,6 +45,11 @@ const INSIDE_PHOTOS = [
 // Curated images supplied for individual lots.  Keep these separate from the
 // generic sample gallery so a lot never falls back to stock house photos once
 // it has an actual property image.
+const drivePhoto = (id, caption) => ({
+  url: `https://drive.google.com/thumbnail?id=${id}&sz=w2000`,
+  caption
+});
+
 const LOT_PHOTOS = {
   'P1-B1-L1': {
     outside: [{
@@ -65,7 +70,61 @@ const LOT_PHOTOS = {
       url: 'https://drive.google.com/thumbnail?id=1h5WiGIDIswCrOoWDJYIal4AnJnVOyy7r&sz=w2000',
       caption: 'P1-B1-L2 Interior'
     }]
-  }
+  },
+  'P1-B1-L3': { outside: [drivePhoto('1NJxE-o-ayjVjvU10Z7ongnG3QJyjpga3', 'P1-B1-L3 Exterior')] },
+  'P1-B1-L4': { outside: [drivePhoto('1Fl0piLsJ2wYEarh8pJ6oxARTPUH7fsZZ', 'P1-B1-L4 Exterior')] },
+  'P1-B1-L5': { outside: [drivePhoto('1UkWbu5X2E99Kme7FKwytaJ72OkFDhIge', 'P1-B1-L5 Exterior')] },
+  'P1-B1-L6': { outside: [drivePhoto('1dkvdizeNKsXk3_pbTEzcWuhHjzqdrTcz', 'P1-B1-L6 Exterior')] },
+  'P1-B1-L7': { outside: [drivePhoto('1sl1sS5feKni0rnq7nWea6wJEiJP3LG-H', 'P1-B1-L7 Exterior')] },
+  'P1-B1-L8': { outside: [drivePhoto('1KDaQhWrM55-DxcpHMku1hbFDMGxLMwqC', 'P1-B1-L8 Exterior')] },
+  'P1-B1-L9': { outside: [drivePhoto('1Ca2j_Ogu-9abFtYLljES5dno7iadeq_c', 'P1-B1-L9 Exterior')] },
+  'P1-B1-L10': { outside: [drivePhoto('16sFrR2cFQuJt24jEgCWxlcqiAXeVZaGd', 'P1-B1-L10 Exterior')] },
+  'P1-B1-L11': { outside: [drivePhoto('1qLr9Y0gC4kIsN3niD43JenzEBWshr1wu', 'P1-B1-L11 Exterior')] },
+  'P1-B1-L12': { outside: [drivePhoto('1zROfSddx1HyjBVz5Ypu_3VLn0qc_PZjn', 'P1-B1-L12 Exterior')] },
+  'P1-B1-L13': { outside: [drivePhoto('1nB26Y4ZHDQ_7-LZW4y8mPtGC_SyO6CvF', 'P1-B1-L13 Exterior')] },
+  'P1-B1-L14': { outside: [drivePhoto('184SF97nanjsIbIv7hG97_ocRzvj04Tj1', 'P1-B1-L14 Exterior')] },
+  'P1-B1-L15': { outside: [drivePhoto('1bwxt6u6uQIwoROgMkEYGUyATN4KejdL2', 'P1-B1-L15 Exterior')] },
+  'P1-B1-L16': { outside: [drivePhoto('1o1Mxk2LNcV1sDa1NmzVFJ4Gx7RkCtpzc', 'P1-B1-L16 Exterior')] },
+  'P1-B1-L17': { outside: [drivePhoto('13vnOAii9OtyiKMmC-jYJL1vYmfXGV07v', 'P1-B1-L17 Exterior')] },
+  'P1-B1-L18': { outside: [drivePhoto('1dFfIDMBz3TLB01po6F60hHA1qcU5iUo_', 'P1-B1-L18 Exterior')] },
+  'P1-B1-L19': { outside: [drivePhoto('14-4Peg92nAZbDHxeHlCtjR19rJva_26q', 'P1-B1-L19 Exterior')] },
+  'P1-B1-L20': { outside: [drivePhoto('1qN5FRnwv12BIEg4rGUEbUxOq644wwIgS', 'P1-B1-L20 Exterior')] },
+  'P1-B2-L2': { outside: [
+    drivePhoto('1KG77gcIbgRMwq8OsWoCEQjSu6Wou-nqp', 'P1-B2-L2 Exterior 1'),
+    drivePhoto('10yixSypNGJOoe235N6Nl4gVfclOaAlIX', 'P1-B2-L2 Exterior 2')
+  ] },
+  'P1-B2-L3': { outside: [drivePhoto('1lsE_BX757GwTm5puFe0zmQTfcnDA8ys5', 'P1-B2-L3 Exterior')] },
+  'P1-B2-L4': { outside: [drivePhoto('1RQUCFy21XtZ5qnOhkV1_c2b4vS9uftH1', 'P1-B2-L4 Exterior')] },
+  'P1-B2-L5': { outside: [drivePhoto('1KroI_Sib7c0VZbAj8AVCG4szk0Ahtwr6', 'P1-B2-L5 Exterior')] },
+  'P1-B2-L6': { outside: [drivePhoto('1eZZ-A4mT8wqG7mQeC3-G9O6pGPl6NJHq', 'P1-B2-L6 Exterior')] },
+  'P1-B2-L7': { outside: [drivePhoto('1AHR21WKKD33dmAkwzLLuiZS5_Lzh_lFu', 'P1-B2-L7 Exterior')] },
+  'P1-B2-L8': { outside: [drivePhoto('1kuMKko6mlufdThWhM0dvVOgff21fvv4H', 'P1-B2-L8 Exterior')] },
+  'P1-B2-L9': { outside: [drivePhoto('1U51kmN7NQ0RDb4wr3mZS2LO70YaSqvaR', 'P1-B2-L9 Exterior')] },
+  'P1-B2-L10': { outside: [drivePhoto('1vZHM5J2JvWTsKepv3zBoKUwNkHOGqrGH', 'P1-B2-L10 Exterior')] },
+  'P1-B2-L11': { outside: [drivePhoto('1RdM7axEOMsr_fJ4XRlnkyYZZiUIjGzXe', 'P1-B2-L11 Exterior')] },
+  'P1-B2-L12': { outside: [drivePhoto('1DjP5U-FPJYG5hqZlew1R3jNrMyqj3cBA', 'P1-B2-L12 Exterior')] },
+  'P1-B2-L13': { outside: [drivePhoto('1fwNwWNVOy2YL2_0tIu5wOoCEaO06Wzos', 'P1-B2-L13 Exterior')] },
+  'P1-B2-L14': { outside: [drivePhoto('1RqaRow6EBIzFNHaRt_9b6z28By_gSuPi', 'P1-B2-L14 Exterior')] },
+  'P3-B12-L11': { outside: [drivePhoto('1HVTdd4toG48ApHp-IDe4sQWCAnueZYEr', 'P3-B12-L11 Exterior')] },
+  'P3-B12-L12': { outside: [drivePhoto('12HWjeE2eAthOLgFansaDsC6XagM0jVv4', 'P3-B12-L12 Exterior')] },
+  'P3-B12-L13': { outside: [drivePhoto('1-Z_tNkJFgY0HCdWUFM7GljWcZXt7NdVf', 'P3-B12-L13 Exterior')] },
+  'P3-B12-L14': { outside: [drivePhoto('1CQqz6ViyJ1HDKpEsbGTHto7-m5ACu7mw', 'P3-B12-L14 Exterior')] },
+  'P3-B12-L15': { outside: [drivePhoto('1ffTOvYwq4uSukeVw0FiMEvf4sR4ybQEB', 'P3-B12-L15 Exterior')] },
+  'P3-B12-L16': { outside: [drivePhoto('1LgPQuscTVPbmUa1Uwiral4Rl15cKJ4g6', 'P3-B12-L16 Exterior')] },
+  'P3-B12-L19': { outside: [drivePhoto('1m3p3lXkeIl2hZCOfIrOTbJuseSh1l84L', 'P3-B12-L19 Exterior')] },
+  'P3-B12-L20': { outside: [drivePhoto('1SGIrI0TikCdn7TWnqWTvs91lVgjn0EEX', 'P3-B12-L20 Exterior')] },
+  'P3-B13-L1': { outside: [
+    drivePhoto('1P87uJpGsuOkI06uLaJpCcIfuI63Vc2Jd', 'P3-B13-L1 Exterior 1'),
+    drivePhoto('1xvs52YHWILrDVp61og4HjM1gDUgRvCD0', 'P3-B13-L1 Exterior 2')
+  ] },
+  'P3-B13-L2': { outside: [drivePhoto('13JAjio6f8FSRDMAGJMG3DiDRQ0WVdAT2', 'P3-B13-L2 Exterior')] },
+  'P3-B13-L15': { outside: [drivePhoto('1f6l803-03L6X_l2YSFJgXCiPREWMGVb0', 'P3-B13-L15 Exterior')] },
+  'P3-B13-L16': { outside: [drivePhoto('1q-Ra-25lRnz0lNBQVdW8wXUvYN025jry', 'P3-B13-L16 Exterior')] },
+  'P3-B13-L17': { outside: [drivePhoto('1XOByP4yLmNfWMvuysW6TACMMdYSboLlZ', 'P3-B13-L17 Exterior')] },
+  'P3-B13-L18': { outside: [drivePhoto('13W8X3v3PrTzcyi8gFYoHq2wb8COwyLjt', 'P3-B13-L18 Exterior')] },
+  'P3-B13-L19': { outside: [drivePhoto('1ZZREMfLDWrhYAUP_2k31B2rYATR6D7Lf', 'P3-B13-L19 Exterior')] },
+  'P3-B14-L19': { outside: [drivePhoto('1P9absbZ89Hzu52ps6bXai4n_GFGj_kj7', 'P3-B14-L19 Exterior')] },
+  'P3-B14-L20': { outside: [drivePhoto('1eBqIYvR1beUbjyavXnUgzQvRDuJVYqSx', 'P3-B14-L20 Exterior')] }
 };
 
 // Public-facing details confirmed for individual lots. These take precedence
@@ -166,12 +225,17 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
   const [transitioning, setTransitioning] = useState(false);
   const intervalRef = useRef(null);
 
-  const tabData = VIEW_TABS.find(t => t.key === activeTab) || VIEW_TABS[0];
+  // Lots with supplied photos show only their available views. This prevents
+  // a missing interior from falling back to generic stock imagery.
+  const availableViewTabs = lot.photos && Object.keys(lot.photos).length > 0
+    ? VIEW_TABS.filter((tab) => lot.photos?.[tab.key]?.length)
+    : VIEW_TABS;
+  const tabData = availableViewTabs.find(t => t.key === activeTab) || availableViewTabs[0] || VIEW_TABS[0];
 
   // Use real, lot-specific imagery whenever it is available. Generic sample
   // imagery remains only for lots that do not yet have photos assigned.
-  const photos = lot.photos?.[activeTab]?.length
-    ? lot.photos[activeTab]
+  const photos = lot.photos && Object.keys(lot.photos).length > 0
+    ? (lot.photos[tabData.key] || [])
     : tabData.photos.map((_, i) =>
       tabData.photos[(i + (lot.photoSeed || 0)) % tabData.photos.length]
   );
@@ -461,13 +525,13 @@ const VirtualTourViewer = ({ lot, onClose, onRegister }) => {
         borderTop: '1px solid rgba(255,255,255,0.07)',
         display: 'flex',
       }}>
-        {VIEW_TABS.map((tab) => (
+        {availableViewTabs.map((tab) => (
           <Box key={tab.key} onClick={() => handleTabChange(tab.key)} sx={{
             flex: 1, py: { xs: 1.4, md: 2 },
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3,
             cursor: 'pointer', position: 'relative',
-            borderTop: activeTab === tab.key ? `3px solid ${tab.color}` : '3px solid transparent',
-            backgroundColor: activeTab === tab.key ? 'rgba(255,255,255,0.04)' : 'transparent',
+            borderTop: tabData.key === tab.key ? `3px solid ${tab.color}` : '3px solid transparent',
+            backgroundColor: tabData.key === tab.key ? 'rgba(255,255,255,0.04)' : 'transparent',
             transition: 'all 0.2s',
             '&:hover': { backgroundColor: 'rgba(255,255,255,0.03)' },
           }}>

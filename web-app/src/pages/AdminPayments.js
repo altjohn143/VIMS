@@ -843,8 +843,8 @@ const AdminPayments = () => {
             boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)'
           }}
         >
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 1500 }}>
               <TableHead sx={{ bgcolor: 'rgba(0, 208, 132, 0.08)' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 600 }}>Invoice #</TableCell>
@@ -858,14 +858,27 @@ const AdminPayments = () => {
                   <TableCell sx={{ fontWeight: 600 }}>Payment Method</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Reference #</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>AI Receipt Risk</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      fontWeight: 600,
+                      minWidth: 145,
+                      position: 'sticky',
+                      right: 0,
+                      zIndex: 3,
+                      bgcolor: 'rgba(234, 250, 243, 1)',
+                      boxShadow: '-8px 0 14px rgba(15, 23, 42, 0.07)'
+                    }}
+                  >
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={11} align="center"><CircularProgress /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={12} align="center"><CircularProgress /></TableCell></TableRow>
                 ) : payments.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} align="center">No payments found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={12} align="center">No payments found</TableCell></TableRow>
                 ) : (
                   payments.map((payment) => (
                     <TableRow
@@ -962,7 +975,17 @@ const AdminPayments = () => {
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell
+                        align="center"
+                        sx={{
+                          minWidth: 145,
+                          position: 'sticky',
+                          right: 0,
+                          zIndex: 2,
+                          bgcolor: '#fff',
+                          boxShadow: '-8px 0 14px rgba(15, 23, 42, 0.07)'
+                        }}
+                      >
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
                           {/* Cash Payment Confirmation */}
                           {payment.status === 'pending' && payment.paymentMethod === 'cash' && (

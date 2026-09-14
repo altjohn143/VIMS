@@ -11,6 +11,7 @@
     "cleanup:orphan-verifications": "node scripts/delete-orphan-verifications.js",
     "images:migrate:check": "node scripts/migrate-images-to-cloudinary.js",
     "images:migrate": "node scripts/migrate-images-to-cloudinary.js --apply",
+    "payments:repair-penalties": "node scripts/repair-overcharged-payment-penalties.js",
     "smoke": "node ../scripts/smoke-test.js",
     "start": "node server.js"
   },

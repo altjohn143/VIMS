@@ -634,7 +634,9 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
                   ? `This request is already ${getStatusLabel(selected?.status).toLowerCase()}. No further status changes are allowed.`
                   : isHeadOfficer
                     ? (selected?.assignedTo
-                      ? 'The assigned officer is displayed below. Once assigned, the assignment cannot be changed.'
+                      ? (String(selected?.status || '').toLowerCase() === 'assigned'
+                        ? 'Start this request before marking it completed. Once assigned, the assignment cannot be changed.'
+                        : 'The assigned officer is displayed below. Once assigned, the assignment cannot be changed.')
                       : (requiresAssignmentBeforeUpdate(selected)
                         ? 'Assign this request to a security officer before marking it in progress or completed.'
                         : 'Select a security officer to assign this request. The assignment will be locked once set.'))
@@ -727,6 +729,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
                     processing ||
                     !selected?._id ||
                     !canUpdate(selected) ||
+                    String(selected?.status || '').toLowerCase() !== 'in-progress' ||
                     ['completed', 'cancelled', 'rejected'].includes(String(selected?.status || '').toLowerCase())
                   }
                   onPress={() => updateStatus(selected._id, 'completed')}
@@ -736,6 +739,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
                     (
                       processing ||
                       !canUpdate(selected) ||
+                      String(selected?.status || '').toLowerCase() !== 'in-progress' ||
                       ['completed', 'cancelled', 'rejected'].includes(String(selected?.status || '').toLowerCase())
                     ) && styles.disabled
                   ]}

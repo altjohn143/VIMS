@@ -278,6 +278,7 @@ const SecurityServiceRequests = () => {
     if (requiresAssignmentBeforeUpdate(item)) return 'Assign security staff before changing status';
     if (isTerminalStatus(item)) return `Request already ${String(item?.status || '').replace(/-/g, ' ')}`;
     if (String(item?.status || '').toLowerCase() === 'in-progress') return 'Already in progress';
+    if (String(item?.status || '').toLowerCase() === 'assigned') return 'Start this request before marking it completed';
     return '';
   };
 
@@ -560,7 +561,7 @@ const SecurityServiceRequests = () => {
                     </Button>
                     <Button
                       size="small"
-                      disabled={!canHandleRequest(item) || isTerminalStatus(item)}
+                      disabled={!canHandleRequest(item) || isTerminalStatus(item) || item.status !== 'in-progress'}
                       onClick={() => updateStatus(item, 'completed')}
                       sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}
                     >

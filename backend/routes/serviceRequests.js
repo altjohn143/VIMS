@@ -419,6 +419,20 @@ router.put('/:id/status', protect, async (req, res) => {
           error: 'Not assigned to this request'
         });
       }
+
+      if (status === 'in-progress' && request.status !== 'assigned') {
+        return res.status(400).json({
+          success: false,
+          error: 'Only assigned service requests can be started'
+        });
+      }
+
+      if (status === 'completed' && request.status !== 'in-progress') {
+        return res.status(400).json({
+          success: false,
+          error: 'A service request must be started before it can be completed'
+        });
+      }
       
       if (['in-progress', 'completed'].includes(status)) {
         request.status = status;

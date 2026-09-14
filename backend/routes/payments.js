@@ -546,7 +546,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     if (endDate) filter.createdAt = { ...filter.createdAt, $lte: new Date(endDate + 'T23:59:59.999') };
 
 let payments = await Payment.find(filter)
-      .select('residentId amount originalAmount paidAmount submittedAmount penaltyAmount lastPenaltyCalculatedAt paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber receiptImage receiptAi paymentHistory description notes rejectionReason rejectedAt')
+      .select('residentId amount originalAmount paidAmount submittedAmount penaltyAmount lastPenaltyCalculatedAt paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber transactionId receiptNumber receiptImage receiptAi paymentHistory description notes rejectionReason rejectedAt')
       .populate('residentId', 'firstName lastName houseNumber paymentCreditBalance')
       .sort({ createdAt: -1 });
     await applyDailyPenalties(payments);

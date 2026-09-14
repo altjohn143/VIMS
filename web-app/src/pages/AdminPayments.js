@@ -994,7 +994,7 @@ const AdminPayments = () => {
                       >
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
                           {/* Cash Payment Confirmation */}
-                          {payment.status === 'pending' && payment.paymentMethod === 'cash' && (
+                          {payment.status === 'pending' && getDisplayedPaymentMethod(payment) === 'cash' && (
                             <Button
                               size="small"
                               variant="contained"
@@ -1010,7 +1010,7 @@ const AdminPayments = () => {
                           )}
                           
                           {/* QRPh Payment Verification */}
-                          {payment.status === 'pending' && payment.paymentMethod === 'qrph' && (
+                          {payment.status === 'pending' && getDisplayedPaymentMethod(payment) === 'qrph' && (
                             <Button
                               size="small"
                               variant="contained"
@@ -1027,7 +1027,7 @@ const AdminPayments = () => {
                             </Button>
                           )}
 
-                          {payment.status === 'pending' && (payment.paymentMethod || payment.referenceNumber || payment.transactionId) && (
+                          {payment.status === 'pending' && (getDisplayedPaymentMethod(payment) || getDisplayedReferenceNumber(payment) || payment.transactionId) && (
                             <Button
                               size="small"
                               variant="outlined"

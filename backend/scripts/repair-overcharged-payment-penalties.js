@@ -4,12 +4,18 @@ require('dotenv').config();
 const Payment = require('../models/Payment');
 
 const DAILY_OVERDUE_PENALTY = 10;
+const PAYMENT_TIME_ZONE = 'Asia/Manila';
 const APPLY_CHANGES = process.argv.includes('--apply');
 
 function startOfDay(date) {
-  const value = new Date(date);
-  value.setHours(0, 0, 0, 0);
-  return value;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: PAYMENT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date(date));
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return new Date(Date.UTC(values.year, Number(values.month) - 1, values.day));
 }
 
 function expectedPenalty(payment, today) {

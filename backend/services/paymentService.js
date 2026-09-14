@@ -5,11 +5,17 @@ const { createInAppNotification } = require('./inAppNotificationService');
 
 const MONTHLY_DUES_AMOUNT_KEY = 'monthly_dues_amount';
 const DAILY_OVERDUE_PENALTY = 10;
+const PAYMENT_TIME_ZONE = 'Asia/Manila';
 
 function startOfDay(date) {
-  const value = new Date(date);
-  value.setHours(0, 0, 0, 0);
-  return value;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: PAYMENT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date(date));
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return new Date(Date.UTC(values.year, Number(values.month) - 1, values.day));
 }
 
 function parsePesoAmount(value) {

@@ -514,6 +514,12 @@ const AdminPayments = () => {
     payment?.paymentMethod || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.paymentMethod)?.paymentMethod || null
   );
 
+  const getDisplayedReferenceNumber = (payment) => (
+    payment?.referenceNumber
+    || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.referenceNumber)?.referenceNumber
+    || null
+  );
+
   const getReceiptAiChip = (receiptAi) => {
     if (!receiptAi) return <Chip label="Not analyzed" size="small" variant="outlined" />;
     const recommendation = receiptAi.recommendation || 'needs_review';
@@ -961,9 +967,9 @@ const AdminPayments = () => {
                       <TableCell>{getStatusChip(payment.status, payment.dueDate)}</TableCell>
                       <TableCell>{getPaymentMethodChip(getDisplayedPaymentMethod(payment))}</TableCell>
                       <TableCell>
-                        {payment.referenceNumber ? (
+                        {getDisplayedReferenceNumber(payment) ? (
                           <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
-                            {payment.referenceNumber}
+                            {getDisplayedReferenceNumber(payment)}
                           </Typography>
                         ) : '-'}
                       </TableCell>
@@ -1239,7 +1245,7 @@ const AdminPayments = () => {
                 <Paper sx={{ p: 2, mb: 2, bgcolor: themeColors.background, borderRadius: 2 }}>
                   <Typography><strong>Invoice:</strong> {selectedRejectPayment.invoiceNumber}</Typography>
                   <Typography><strong>Resident:</strong> {selectedRejectPayment.residentId?.firstName} {selectedRejectPayment.residentId?.lastName}</Typography>
-                  <Typography><strong>Reference:</strong> {selectedRejectPayment.referenceNumber || 'N/A'}</Typography>
+                  <Typography><strong>Reference:</strong> {getDisplayedReferenceNumber(selectedRejectPayment) || 'N/A'}</Typography>
                   <Typography><strong>Balance:</strong> {formatCurrency(selectedRejectPayment.amount)}</Typography>
                 </Paper>
                 <TextField
@@ -1348,7 +1354,7 @@ const AdminPayments = () => {
                     </Grid>
                     <Grid item xs={8}>
                       <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        {selectedQRPhPayment.referenceNumber || 'N/A'}
+                        {getDisplayedReferenceNumber(selectedQRPhPayment) || 'N/A'}
                       </Typography>
                     </Grid>
                     <Grid item xs={4}>
@@ -1522,7 +1528,7 @@ const AdminPayments = () => {
                     </Grid>
                     <Grid item xs={8}>
                       <Typography variant="body2" fontFamily="monospace">
-                        {selectedImagePayment?.referenceNumber}
+                        {getDisplayedReferenceNumber(selectedImagePayment) || 'N/A'}
                       </Typography>
                     </Grid>
                   </Grid>

@@ -548,8 +548,7 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
 let payments = await Payment.find(filter)
       .select('residentId amount originalAmount paidAmount submittedAmount penaltyAmount paymentType paymentMethod status dueDate createdAt invoiceNumber referenceNumber receiptNumber receiptImage receiptAi paymentHistory description notes rejectionReason rejectedAt')
       .populate('residentId', 'firstName lastName houseNumber paymentCreditBalance')
-      .sort({ createdAt: -1 })
-      .lean();
+      .sort({ createdAt: -1 });
     await applyDailyPenalties(payments);
 
     const searchText = String(search || '').trim().toLowerCase();
@@ -642,6 +641,7 @@ let payments = await Payment.find(filter)
       pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) }
     });
   } catch (error) {
+    console.error('Get admin payments error:', error);
     res.status(500).json({ success: false, error: 'Failed to get payments' });
   }
 });

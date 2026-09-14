@@ -11,7 +11,6 @@ import {
   Modal,
   TextInput,
   ScrollView,
-  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -172,11 +171,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
     if (!value) return;
     const current = form.loggedAt || new Date();
     const next = new Date(current);
-    if (patrolPickerMode === 'date') {
-      next.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
-    } else {
-      next.setHours(value.getHours(), value.getMinutes(), 0, 0);
-    }
+    next.setHours(value.getHours(), value.getMinutes(), 0, 0);
     setForm((previous) => ({ ...previous, loggedAt: next }));
   };
 
@@ -277,10 +272,10 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
             </View>
             <Text style={styles.label}>Patrol date and time</Text>
             <View style={styles.dateTimeRow}>
-              <TouchableOpacity style={styles.dateTimeButton} onPress={() => setPatrolPickerMode('date')}>
+              <View style={[styles.dateTimeButton, styles.dateTimeButtonDisabled]}>
                 <Ionicons name="calendar-outline" size={16} color={themeColors.primary} />
                 <Text style={styles.dateTimeText}>{format(form.loggedAt || new Date(), 'MMM dd, yyyy')}</Text>
-              </TouchableOpacity>
+              </View>
               <TouchableOpacity style={styles.dateTimeButton} onPress={() => setPatrolPickerMode('time')}>
                 <Ionicons name="time-outline" size={16} color={themeColors.primary} />
                 <Text style={styles.dateTimeText}>{format(form.loggedAt || new Date(), 'hh:mm a')}</Text>
@@ -291,7 +286,8 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
                 <DateTimePicker
                   value={form.loggedAt || new Date()}
                   mode={patrolPickerMode}
-                  display={patrolPickerMode === 'date' ? (Platform.OS === 'ios' ? 'inline' : 'calendar') : 'spinner'}
+                  display="spinner"
+                  maximumDate={new Date()}
                   onChange={updatePatrolDateTime}
                 />
               </View>
@@ -413,10 +409,10 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
               </View>
               <Text style={styles.label}>Patrol date and time</Text>
               <View style={styles.dateTimeRow}>
-                <TouchableOpacity style={styles.dateTimeButton} onPress={() => setPatrolPickerMode('date')}>
+                <View style={[styles.dateTimeButton, styles.dateTimeButtonDisabled]}>
                   <Ionicons name="calendar-outline" size={16} color={themeColors.primary} />
                   <Text style={styles.dateTimeText}>{format(form.loggedAt || new Date(), 'MMM dd, yyyy')}</Text>
-                </TouchableOpacity>
+                </View>
                 <TouchableOpacity style={styles.dateTimeButton} onPress={() => setPatrolPickerMode('time')}>
                   <Ionicons name="time-outline" size={16} color={themeColors.primary} />
                   <Text style={styles.dateTimeText}>{format(form.loggedAt || new Date(), 'hh:mm a')}</Text>
@@ -427,7 +423,8 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
                   <DateTimePicker
                     value={form.loggedAt || new Date()}
                     mode={patrolPickerMode}
-                    display={patrolPickerMode === 'date' ? (Platform.OS === 'ios' ? 'inline' : 'calendar') : 'spinner'}
+                    maximumDate={patrolPickerMode === 'time' ? new Date() : undefined}
+                    display="spinner"
                     onChange={updatePatrolDateTime}
                   />
                 </View>
@@ -500,6 +497,7 @@ const styles = StyleSheet.create({
   pickerDisabled: { opacity: 0.6 },
   dateTimeRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   dateTimeButton: { flex: 1, minHeight: 46, borderRadius: 10, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc', paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  dateTimeButtonDisabled: { backgroundColor: '#f1f5f9', opacity: 0.75 },
   dateTimeText: { color: themeColors.textPrimary, fontSize: 12, fontWeight: '800' },
   inlinePickerWrap: { marginTop: 8, borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, backgroundColor: 'white', overflow: 'hidden' },
   filterPanel: { marginTop: 8, marginBottom: 8, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: themeColors.border, backgroundColor: '#f8fafc' },

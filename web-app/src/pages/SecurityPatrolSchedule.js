@@ -23,7 +23,6 @@ import {
   IconButton
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Shield as ShieldIcon } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -264,22 +263,19 @@ const SecurityPatrolSchedule = () => {
                 </TextField>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                    <DatePicker
+                    <TextField
                       label="Patrol date"
-                      value={form.loggedAt || new Date()}
-                      onChange={(date) => {
-                        if (!date) return;
-                        const next = new Date(form.loggedAt || new Date());
-                        next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-                        setForm((p) => ({ ...p, loggedAt: next }));
-                      }}
-                      slotProps={{ textField: { fullWidth: true } }}
+                      value={new Date().toLocaleDateString()}
+                      fullWidth
+                      disabled
+                      helperText="Patrol logs can only be recorded today"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <TimePicker
                       label="Patrol time"
                       value={form.loggedAt || new Date()}
+                      maxTime={new Date()}
                       onChange={(time) => {
                         if (!time) return;
                         const next = new Date(form.loggedAt || new Date());

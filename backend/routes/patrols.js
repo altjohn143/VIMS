@@ -8,6 +8,18 @@ const { createInAppNotification } = require('../services/inAppNotificationServic
 const router = express.Router();
 
 const PRIMARY_SECURITY_HEAD_EMAIL = 'security@vims.com';
+const PATROL_TIME_ZONE = 'Asia/Manila';
+
+const getPatrolDateKey = (date) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: PATROL_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+};
 
 const isHeadOfficer = (user) =>
   user?.role === 'security' && (
@@ -228,9 +240,29 @@ router.get('/', protect, authorize('security', 'admin'), async (req, res) => {
 router.post('/log', protect, authorize('security', 'admin'), async (req, res) => {
   try {
     const { phase, area, checkpoint, notes = '', status = 'completed', findings = [], loggedAt = null } = req.body;
+    const patrolTime = loggedAt ? new Date(loggedAt) : new Date();
     
     if (!phase || !area || !checkpoint) {
       return res.status(400).json({ success: false, error: 'Phase, area and checkpoint are required' });
+    }
+
+    if (Number.isNaN(patrolTime.getTime())) {
+      return res.status(400).json({ success: false, error: 'A valid patrol date and time is required' });
+    }
+
+    const now = new Date();
+    if (getPatrolDateKey(patrolTime) !== getPatrolDateKey(now)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Patrol logs can only be recorded for today (Philippine time)'
+      });
+    }
+
+    if (patrolTime > now) {
+      return res.status(400).json({
+        success: false,
+        error: 'A patrol log cannot be recorded before the patrol is completed'
+      });
     }
     
     // Validate that the security officer is assigned to this phase
@@ -254,7 +286,7 @@ router.post('/log', protect, authorize('security', 'admin'), async (req, res) =>
         description: String(f.description || '').trim(),
         severity: f.severity || 'low'
       })),
-      loggedAt: loggedAt ? new Date(loggedAt) : new Date()
+      loggedAt: patrolTime
     });
     if (status === 'issue_found' || findings.some((finding) => finding.severity === 'high')) {
       const headOfficers = await User.find({

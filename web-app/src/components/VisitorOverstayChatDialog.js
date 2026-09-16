@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 export default function VisitorOverstayChatDialog({ visitor, open, onClose }) {
+  const { getCurrentUser } = useAuth();
+  const currentUser = getCurrentUser();
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,8 +25,18 @@ export default function VisitorOverstayChatDialog({ visitor, open, onClose }) {
     <DialogTitle>Overstay chat — {visitor?.visitorName}</DialogTitle>
     <DialogContent>
       <Alert severity="warning" sx={{ mb: 2 }}>This conversation is only for the resident and security, and is linked to this visitor overstay.</Alert>
-      <Box sx={{ minHeight: 220, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {loading ? <Typography>Loading messages…</Typography> : messages.length ? messages.map((row) => <Box key={row._id} sx={{ p: 1.25, borderRadius: 2, bgcolor: '#f1f5f9' }}><Typography variant="body2">{row.body}</Typography><Typography variant="caption" color="text.secondary">{new Date(row.createdAt).toLocaleString()}</Typography></Box>) : <Typography color="text.secondary">No messages yet.</Typography>}
+      <Box sx={{ minHeight: 220, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.25, p: 0.5, bgcolor: '#f8fafc', borderRadius: 2 }}>
+        {loading ? <Typography>Loading messages…</Typography> : messages.length ? messages.map((row) => {
+          const securityId = row.securityId?._id || row.securityId;
+          const isSecurityMessage = String(securityId) === String(currentUser?._id || currentUser?.id);
+          const isMine = currentUser?.role === 'security' ? isSecurityMessage : !isSecurityMessage;
+          const sender = isSecurityMessage ? `Security${row.securityId?.firstName ? ` • ${row.securityId.firstName} ${row.securityId.lastName || ''}` : ''}` : 'Resident';
+          return <Box key={row._id} sx={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '82%', p: 1.25, borderRadius: 2.5, bgcolor: isSecurityMessage ? '#fff3e0' : '#e8f5e9', border: `1px solid ${isSecurityMessage ? '#fdba74' : '#86efac'}` }}>
+            <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, color: isSecurityMessage ? '#c2410c' : '#15803d', mb: 0.35 }}>{sender}</Typography>
+            <Typography variant="body2">{row.body}</Typography>
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>{new Date(row.createdAt).toLocaleString()}</Typography>
+          </Box>;
+        }) : <Typography color="text.secondary">No messages yet.</Typography>}
       </Box>
       <TextField fullWidth multiline minRows={3} label="Message" value={message} onChange={(e) => setMessage(e.target.value)} sx={{ mt: 2 }} inputProps={{ maxLength: 1500 }} />
     </DialogContent>

@@ -48,7 +48,6 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -123,6 +122,7 @@ const Reservations = () => {
   const [availability, setAvailability] = useState([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   const [formData, setFormData] = useState({
     description: '',
@@ -175,6 +175,8 @@ const Reservations = () => {
   };
 
   const handleOpenDialog = (resourceType = 'venue') => {
+    const today = new Date();
+    setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1));
     setFormData({
       description: '',
       startDate: new Date(),
@@ -517,7 +519,7 @@ const Reservations = () => {
   });
 
   const getCalendarDays = () => {
-    const baseDate = formData.startDate || new Date();
+    const baseDate = calendarMonth || formData.startDate || new Date();
     const firstOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
     const firstGridDate = new Date(firstOfMonth);
     firstGridDate.setDate(firstGridDate.getDate() - firstGridDate.getDay());
@@ -535,6 +537,19 @@ const Reservations = () => {
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
     return getFilteredAvailability().some((slot) => rangesOverlap(dayStart, dayEnd, slot.startDate, slot.endDate));
+  };
+
+  const selectCalendarDate = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) return;
+
+    const startDate = new Date(date);
+    startDate.setHours(formData.startDate.getHours(), formData.startDate.getMinutes(), 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(formData.endDate.getHours(), formData.endDate.getMinutes(), 0, 0);
+    if (endDate <= startDate) endDate.setHours(startDate.getHours() + 1);
+    setFormData((previous) => ({ ...previous, startDate, endDate }));
   };
 
   const isDateInSelectedRange = (date) => {
@@ -1418,7 +1433,7 @@ const Reservations = () => {
                         Availability Calendar
                       </Typography>
                       <Typography sx={{ color: themeColors.textSecondary, fontSize: '0.84rem', fontWeight: 600 }}>
-                        Red dates already have reservations for the selected resource.
+                        Click an available date to set your reservation date. Red dates have existing reservations for the selected resource.
                       </Typography>
                     </Box>
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
@@ -1452,6 +1467,11 @@ const Reservations = () => {
                   ) : (
                     <Grid container spacing={2}>
                       <Grid item xs={12} md={7}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Button size="small" onClick={() => setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() - 1, 1))}>Previous</Button>
+                          <Typography sx={{ fontWeight: 900 }}>{calendarMonth.toLocaleDateString([], { month: 'long', year: 'numeric' })}</Typography>
+                          <Button size="small" onClick={() => setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() + 1, 1))}>Next</Button>
+                        </Box>
                         <Box sx={{
                           display: 'grid',
                           gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
@@ -1465,10 +1485,15 @@ const Reservations = () => {
                           {getCalendarDays().map((day) => {
                             const blocked = isDateBlocked(day);
                             const selected = isDateInSelectedRange(day);
-                            const outsideMonth = day.getMonth() !== formData.startDate.getMonth();
+                            const outsideMonth = day.getMonth() !== calendarMonth.getMonth();
+                            const isPast = day < new Date(new Date().setHours(0, 0, 0, 0));
                             return (
                               <Box
                                 key={day.toISOString()}
+                                component="button"
+                                type="button"
+                                disabled={isPast}
+                                onClick={() => selectCalendarDate(day)}
                                 sx={{
                                   minHeight: 42,
                                   borderRadius: '10px',
@@ -1479,7 +1504,11 @@ const Reservations = () => {
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   fontWeight: 900,
-                                  position: 'relative'
+                                  position: 'relative',
+                                  cursor: isPast ? 'not-allowed' : 'pointer',
+                                  opacity: isPast ? 0.4 : 1,
+                                  font: 'inherit',
+                                  '&:hover': isPast ? {} : { borderColor: themeColors.primary, transform: 'translateY(-1px)' }
                                 }}
                               >
                                 {day.getDate()}
@@ -1585,13 +1614,7 @@ const Reservations = () => {
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <DatePicker
-                  label="Start Date"
-                  value={formData.startDate}
-                  onChange={(date) => setFormData({ ...formData, startDate: date })}
-                  renderInput={(params) => <TextField {...params} fullWidth sx={fieldSx} />}
-                  minDate={new Date()}
-                />
+                <TextField label="Reservation Date" value={formData.startDate.toLocaleDateString()} fullWidth InputProps={{ readOnly: true }} helperText="Choose a date from the availability calendar above." sx={fieldSx} />
               </Grid>
 
               <Grid item xs={12} sm={6}>
@@ -1607,15 +1630,6 @@ const Reservations = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6}>
-                <DatePicker
-                  label="End Date"
-                  value={formData.endDate}
-                  onChange={(date) => setFormData({ ...formData, endDate: date })}
-                  renderInput={(params) => <TextField {...params} fullWidth sx={fieldSx} />}
-                  minDate={formData.startDate}
-                />
-              </Grid>
               <Grid item xs={12} sm={6}>
                 <TimePicker
                   label="End Time"

@@ -34,6 +34,7 @@ const ReservationsScreen = ({ navigation }) => {
   const [availability, setAvailability] = useState([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [cancellingReservationId, setCancellingReservationId] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -185,6 +186,39 @@ const ReservationsScreen = ({ navigation }) => {
     const dayEnd = new Date(selectedStart);
     dayEnd.setHours(23, 59, 59, 999);
     return new Date(slotStart) <= dayEnd && new Date(slotEnd) >= dayStart;
+  };
+
+  const getCalendarDays = () => {
+    const firstOfMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    const firstGridDate = new Date(firstOfMonth);
+    firstGridDate.setDate(firstGridDate.getDate() - firstGridDate.getDay());
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(firstGridDate);
+      date.setDate(firstGridDate.getDate() + index);
+      return date;
+    });
+  };
+
+  const isDateBlocked = (date) => {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+    return availability
+      .filter((slot) => availabilityFilter === 'all' || slot.resourceType === availabilityFilter)
+      .some((slot) => rangesOverlap(start, end, slot.startDate, slot.endDate));
+  };
+
+  const selectCalendarDate = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) return;
+    const startDate = new Date(date);
+    startDate.setHours(formData.startDate.getHours(), formData.startDate.getMinutes(), 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(formData.endDate.getHours(), formData.endDate.getMinutes(), 0, 0);
+    if (endDate <= startDate) endDate.setHours(startDate.getHours() + 1);
+    setFormData((previous) => ({ ...previous, startDate, endDate }));
   };
 
   const getSelectedScheduleConflicts = () => {
@@ -614,7 +648,7 @@ const ReservationsScreen = ({ navigation }) => {
         eyebrow="PLAN YOUR TIME"
         title="My Reservations"
         subtitle="Venues and community equipment"
-        actions={[{ label: 'New', icon: 'add', onPress: () => setModalVisible(true), primary: true }]}
+        actions={[{ label: 'New', icon: 'add', onPress: () => { setCalendarMonth(new Date()); setModalVisible(true); }, primary: true }]}
       />
 
       <ScrollView
@@ -655,6 +689,7 @@ const ReservationsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.quickActionButton, { backgroundColor: '#007A18' }]}
             onPress={() => {
+              setCalendarMonth(new Date());
               setFormData({
                 description: '',
                 startDate: new Date(),
@@ -673,6 +708,7 @@ const ReservationsScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.quickActionButton, { backgroundColor: '#d97706' }]}
             onPress={() => {
+              setCalendarMonth(new Date());
               setFormData({
                 description: '',
                 startDate: new Date(),
@@ -940,12 +976,40 @@ const ReservationsScreen = ({ navigation }) => {
               )}
 
               <Text style={styles.sectionTitle}>Availability Calendar</Text>
+              <Text style={styles.calendarInstruction}>Tap an available date to set your reservation date. Dates with existing reservations are marked in red.</Text>
               <View style={styles.availabilityFilters}>
                 {[['all', 'All'], ['venue', 'Venues'], ['equipment', 'Equipment']].map(([value, label]) => (
                   <TouchableOpacity key={value} style={[styles.availabilityFilterChip, availabilityFilter === value && styles.availabilityFilterChipActive]} onPress={() => setAvailabilityFilter(value)}>
                     <Text style={[styles.availabilityFilterText, availabilityFilter === value && styles.availabilityFilterTextActive]}>{label}</Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+              <View style={styles.calendarHeader}>
+                <TouchableOpacity onPress={() => setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() - 1, 1))} style={styles.calendarMonthButton}>
+                  <Ionicons name="chevron-back" size={18} color={themeColors.primary} />
+                </TouchableOpacity>
+                <Text style={styles.calendarMonthLabel}>{calendarMonth.toLocaleDateString([], { month: 'long', year: 'numeric' })}</Text>
+                <TouchableOpacity onPress={() => setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() + 1, 1))} style={styles.calendarMonthButton}>
+                  <Ionicons name="chevron-forward" size={18} color={themeColors.primary} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.calendarWeekRow}>
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, index) => <Text key={`${label}-${index}`} style={styles.calendarWeekday}>{label}</Text>)}
+              </View>
+              <View style={styles.calendarGrid}>
+                {getCalendarDays().map((day) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const isPast = day < today;
+                  const isSelected = day.toDateString() === formData.startDate.toDateString();
+                  const blocked = isDateBlocked(day);
+                  const outsideMonth = day.getMonth() !== calendarMonth.getMonth();
+                  return (
+                    <TouchableOpacity key={day.toISOString()} disabled={isPast} onPress={() => selectCalendarDate(day)} style={[styles.calendarDay, isSelected && styles.calendarDaySelected, blocked && styles.calendarDayBlocked, outsideMonth && styles.calendarDayOutside, isPast && styles.calendarDayPast]}>
+                      <Text style={[styles.calendarDayText, isSelected && styles.calendarDayTextSelected, blocked && !isSelected && styles.calendarDayTextBlocked]}>{day.getDate()}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
               <View style={styles.availabilityPanel}>
                 {getAvailabilityResources().length === 0 ? (
@@ -991,21 +1055,13 @@ const ReservationsScreen = ({ navigation }) => {
                 numberOfLines={2}
               />
 
-              {/* Start Date & Time */}
-              <Text style={styles.label}>Start Date & Time</Text>
+              {/* Date is selected from the availability calendar; only times are picked here. */}
+              <Text style={styles.label}>Reservation Date</Text>
+              <View style={styles.selectedCalendarDate}><Ionicons name="calendar-outline" size={16} color="#64748b" /><Text style={styles.dateButtonText}>{formData.startDate.toLocaleDateString()}</Text></View>
+              <Text style={styles.label}>Start Time</Text>
               <View style={styles.dateTimeRow}>
                 <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowStartDatePicker(true)}
-                >
-                  <Ionicons name="calendar-outline" size={16} color="#64748b" />
-                  <Text style={styles.dateButtonText}>
-                    {formData.startDate.toLocaleDateString()}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.timeButton}
+                  style={[styles.timeButton, { flex: 1 }]}
                   onPress={() => setShowStartTimePicker(true)}
                 >
                   <Ionicons name="time-outline" size={16} color="#64748b" />
@@ -1015,21 +1071,10 @@ const ReservationsScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              {/* End Date & Time */}
-              <Text style={styles.label}>End Date & Time</Text>
+              <Text style={styles.label}>End Time</Text>
               <View style={styles.dateTimeRow}>
                 <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowEndDatePicker(true)}
-                >
-                  <Ionicons name="calendar-outline" size={16} color="#64748b" />
-                  <Text style={styles.dateButtonText}>
-                    {formData.endDate.toLocaleDateString()}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.timeButton}
+                  style={[styles.timeButton, { flex: 1 }]}
                   onPress={() => setShowEndTimePicker(true)}
                 >
                   <Ionicons name="time-outline" size={16} color="#64748b" />
@@ -1186,6 +1231,21 @@ const styles = StyleSheet.create({
   availabilityFilterChipActive: { backgroundColor: '#007A18' },
   availabilityFilterText: { color: '#64748b', fontSize: 11, fontWeight: '800' },
   availabilityFilterTextActive: { color: 'white' },
+  calendarInstruction: { fontSize: 12, color: '#64748b', lineHeight: 18, marginTop: -10, marginBottom: 10 },
+  calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  calendarMonthButton: { padding: 7, borderRadius: 8, backgroundColor: '#f1f5f9' },
+  calendarMonthLabel: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
+  calendarWeekRow: { flexDirection: 'row', marginBottom: 4 },
+  calendarWeekday: { width: '14.2857%', textAlign: 'center', fontSize: 11, fontWeight: '800', color: '#64748b' },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 },
+  calendarDay: { width: '14.2857%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#f8fafc' },
+  calendarDaySelected: { backgroundColor: '#dcfce7', borderColor: themeColors.primary },
+  calendarDayBlocked: { backgroundColor: '#fef2f2', borderColor: '#fecaca' },
+  calendarDayOutside: { opacity: 0.5 },
+  calendarDayPast: { opacity: 0.35 },
+  calendarDayText: { fontSize: 12, fontWeight: '800', color: '#1e293b' },
+  calendarDayTextSelected: { color: themeColors.primaryDeep },
+  calendarDayTextBlocked: { color: '#991b1b' },
   container: roleLayouts.resident.screen,
   loadingContainer: {
     flex: 1,

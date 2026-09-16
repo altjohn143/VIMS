@@ -366,6 +366,7 @@ const SecurityVisitorLogs = () => {
       entered: { label: 'ENTERED', color: themeColors.info, icon: <ActiveIcon /> },
       arrived: { label: 'ARRIVED', color: themeColors.success, icon: <CheckCircleIcon /> },
       departed: { label: 'DEPARTED', color: themeColors.warning, icon: <ScheduleIcon /> },
+      overstayed: { label: 'OVERSTAYED', color: themeColors.error, icon: <ExpiredIcon /> },
       exited: { label: 'EXITED', color: themeColors.textSecondary, icon: <CheckCircleIcon /> },
     };
 
@@ -593,6 +594,17 @@ const SecurityVisitorLogs = () => {
   const handleViewDetails = (visitor) => {
     setSelectedVisitor(visitor);
     setViewDialogOpen(true);
+  };
+
+  const handleOverstayFollowUp = async (visitor) => {
+    const message = window.prompt('Message to the resident (sent in-app and by email when email delivery is configured):', `Security is following up because ${visitor.visitorName} has exceeded the expected departure time. Please confirm the visitor’s status and arrange gate exit.`);
+    if (!message?.trim()) return;
+    try {
+      await axios.post(`/api/visitors/${visitor._id}/overstay-follow-up`, { message: message.trim() });
+      toast.success('Resident alerted. The overstay chat has been opened.');
+    } catch (requestError) {
+      toast.error(requestError.response?.data?.error || 'Unable to send the overstay follow-up.');
+    }
   };
 
 
@@ -1680,6 +1692,11 @@ const SecurityVisitorLogs = () => {
             )}
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
+            {selectedVisitor?.expectedDeparture && !selectedVisitor?.actualExit && new Date(selectedVisitor.expectedDeparture) < new Date() && (
+              <Button variant="contained" color="warning" onClick={() => handleOverstayFollowUp(selectedVisitor)} sx={{ mr: 'auto', textTransform: 'none', fontWeight: 700 }}>
+                Alert resident & start chat
+              </Button>
+            )}
             <Button 
               onClick={() => setViewDialogOpen(false)}
               sx={{

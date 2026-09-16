@@ -131,6 +131,12 @@ const userSchema = new mongoose.Schema({
     default: false
   },
 
+  // Updated only after a successful, approved account login.
+  lastLogin: {
+    type: Date,
+    default: null
+  },
+
   approvalStatus: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
@@ -160,6 +166,16 @@ const userSchema = new mongoose.Schema({
   profileComplete: {
     type: Boolean,
     default: false
+  },
+
+  // Consent captured at resident registration before handling government ID images.
+  dataPrivacyConsent: {
+    type: Boolean,
+    default: false
+  },
+  dataPrivacyConsentAt: {
+    type: Date,
+    default: null
   },
 
   emergencyContact: {

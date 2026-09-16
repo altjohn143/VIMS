@@ -578,8 +578,8 @@ router.get('/export', protect, async (req, res) => {
       });
     }
 
-    const data = reservations.map(reservation => ({
-      ID: reservation._id.toString(),
+    const data = reservations.map((reservation, index) => ({
+      ID: index + 1,
       'Resource Type': reservation.resourceType,
       'Resource Name': reservation.resourceName,
       Description: reservation.description || 'N/A',

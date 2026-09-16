@@ -152,6 +152,17 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     ]);
   };
 
+  const alertResidentAboutOverstay = async (visitor) => {
+    try {
+      await api.post(`/visitors/${visitor._id}/overstay-follow-up`, {
+        message: `Security is following up because ${visitor.visitorName} has exceeded the expected departure time. Please confirm the visitor's status and arrange gate exit.`
+      });
+      Alert.alert('Resident alerted', 'The resident received an in-app notification and email follow-up when email delivery is configured.');
+    } catch (error) {
+      Alert.alert('Unable to alert resident', error.response?.data?.error || 'Please try again.');
+    }
+  };
+
 
   const getStatusChip = (status, visitor = null) => {
     const displayStatus = String(visitor?.qrStatus || status || 'pending').toLowerCase();
@@ -163,6 +174,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       entered: { label: 'Entered', color: themeColors.info, icon: 'log-in', bg: themeColors.info + '20' },
       arrived: { label: 'Arrived', color: themeColors.success, icon: 'home', bg: themeColors.success + '20' },
       departed: { label: 'Departed', color: themeColors.warning, icon: 'arrow-forward-circle', bg: themeColors.warning + '20' },
+      overstayed: { label: 'Overstayed', color: themeColors.error, icon: 'alert-circle', bg: themeColors.error + '20' },
       active: { label: 'Active', color: themeColors.info, icon: 'radio-button-on', bg: themeColors.info + '20' },
       exited: { label: 'Exited', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
       completed: { label: 'Exited', color: themeColors.textSecondary, icon: 'checkmark-done', bg: themeColors.textSecondary + '20' },
@@ -604,6 +616,13 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
                   )}
                 </View>
 
+                {selectedVisitor.expectedDeparture && !selectedVisitor.actualExit && new Date(selectedVisitor.expectedDeparture) < new Date() && (
+                  <TouchableOpacity style={styles.overstayFollowUpButton} onPress={() => alertResidentAboutOverstay(selectedVisitor)}>
+                    <Ionicons name="alert-circle" size={18} color="#fff" />
+                    <Text style={styles.overstayFollowUpText}>Alert Resident & Start Chat</Text>
+                  </TouchableOpacity>
+                )}
+
                 {selectedVisitor.securityNotes && (
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Security Notes</Text>
@@ -961,6 +980,8 @@ const styles = StyleSheet.create({
     color: themeColors.textPrimary,
     marginLeft: 8,
   },
+  overstayFollowUpButton: { marginHorizontal: 16, marginBottom: 14, backgroundColor: themeColors.warning, borderRadius: 10, padding: 13, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  overstayFollowUpText: { color: '#fff', fontWeight: '800' },
   paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginHorizontal: 16 },
   pageButton: { backgroundColor: themeColors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
   pageButtonDisabled: { opacity: 0.45 },

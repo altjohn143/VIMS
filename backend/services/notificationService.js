@@ -111,6 +111,14 @@ async function sendReservationStatusNotification(reservation, resident, options 
   return { emailResult, smsResult };
 }
 
+async function sendVisitorOverstayEmail(visitor, resident, message) {
+  return postWebhook(process.env.EMAIL_WEBHOOK_URL, {
+    to: resident.email,
+    subject: 'VIMS: Visitor overstay follow-up required',
+    body: message || `${visitor.visitorName} exceeded the expected departure time. Please coordinate with security immediately.`
+  });
+}
+
 async function sendPaymentReminderEmail(payments, resident, options = {}) {
   if (!resident?.email) {
     return { sent: false, reason: 'missing_email' };
@@ -264,6 +272,7 @@ async function sendPaymentConfirmationEmail(payment, resident) {
 module.exports = {
   sendOnboardingNotification,
   sendVisitorReminderNotification,
+  sendVisitorOverstayEmail,
   sendServiceRequestStatusNotification,
   sendReservationStatusNotification,
   sendPaymentReminderEmail,

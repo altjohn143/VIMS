@@ -153,6 +153,7 @@ const Register = () => {
   const [manualStep, setManualStep] = useState(0);
   const [ocrDialogOpen, setOcrDialogOpen] = useState(false);
   const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
 
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -417,6 +418,7 @@ const Register = () => {
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     
     if (registrationMode === 'ocr' && !formData.idNumber.trim()) newErrors.idNumber = 'ID number is required';
+    if (!privacyConsent) newErrors.privacyConsent = 'You must agree to the Data Privacy Agreement to register.';
     if (!idDocs.frontImage) newErrors.frontImage = 'ID Front image is required';
     if (!idDocs.backImage) newErrors.backImage = 'ID Back image is required';
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot from the map or dropdown';
@@ -487,7 +489,7 @@ const Register = () => {
       vehicles: Object.keys(validationErrors).filter((key) => key.startsWith('vehicle_')),
       family: Object.keys(validationErrors).filter((key) => key.startsWith('family')),
       id: ['idNumber', 'frontImage', 'backImage'],
-      photo: []
+      photo: ['privacyConsent']
     };
     const activeKey = REGISTRATION_STEPS[manualStep].key;
     const allowedKeys = stepKeys[activeKey] || [];
@@ -640,6 +642,7 @@ const Register = () => {
     formDataToSend.append('countryCode', formData.countryCode);
     formDataToSend.append('noVehicles', formData.noVehicles.toString());
     formDataToSend.append('soloResident', formData.soloResident.toString());
+    formDataToSend.append('privacyConsent', 'true');
     if (ocrIdNumber.trim()) {
       formDataToSend.append('idNumber', ocrIdNumber.trim());
     }
@@ -800,6 +803,7 @@ const Register = () => {
       multipart.append('frontImage', nextFront);
       multipart.append('backImage', nextBack);
       multipart.append('documentType', formData.documentType);
+      multipart.append('privacyConsent', privacyConsent ? 'true' : 'false');
 
       const res = await axios.post('/api/verifications/ocr-id', multipart);
 
@@ -976,6 +980,17 @@ const Register = () => {
               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
                 Registration method
               </Typography>
+              <FormControlLabel
+                sx={{ alignItems: 'flex-start', mb: 2, mr: 0 }}
+                control={<Checkbox checked={privacyConsent} onChange={(e) => {
+                  setPrivacyConsent(e.target.checked);
+                  setErrors((prev) => ({ ...prev, privacyConsent: '' }));
+                }} />}
+                label={<Typography variant="body2" sx={{ pt: 0.8, color: themeColors.textSecondary }}>
+                  I consent to VIMS collecting, using, storing, and processing my registration details and government-issued ID for resident registration, identity verification, and community administration, in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
+                </Typography>}
+              />
+              {errors.privacyConsent && <FormHelperText error sx={{ mt: -1, mb: 1 }}>{errors.privacyConsent}</FormHelperText>}
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <Paper
@@ -993,6 +1008,7 @@ const Register = () => {
                     </Typography>
                     <Button
                       variant="contained"
+                      disabled={!privacyConsent}
                       onClick={() => {
                         setRegistrationMode('manual');
                         setManualStep(0);
@@ -1020,6 +1036,7 @@ const Register = () => {
                     </Typography>
                     <Button
                       variant="contained"
+                      disabled={!privacyConsent}
                       onClick={() => {
                         setRegistrationMode('ocr');
                         setOcrDialogOpen(true);

@@ -458,8 +458,8 @@ router.get('/export', protect, authorize('security', 'admin'), async (req, res) 
       });
     }
 
-    const data = patrolLogs.map(log => ({
-      ID: log._id.toString(),
+    const data = patrolLogs.map((log, index) => ({
+      ID: index + 1,
       'Officer Name': log.officerId ? `${log.officerId.firstName} ${log.officerId.lastName}` : 'Unknown',
       Phase: `Phase ${log.phase}`,
       Area: log.area,

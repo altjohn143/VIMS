@@ -3,10 +3,11 @@ const router = express.Router();
 const { getCached } = require('../utils/cache');
 const Visitor = require('../models/Visitor');
 const User = require('../models/User');
+const VisitorOverstayMessage = require('../models/VisitorOverstayMessage');
 const { protect, authorize } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
-const { sendVisitorReminderNotification } = require('../services/notificationService');
+const { sendVisitorReminderNotification, sendVisitorOverstayEmail } = require('../services/notificationService');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { paginateQuery } = require('../utils/pagination');
 const debugLog = (...args) => {
@@ -93,6 +94,7 @@ const getVisitorProgress = (visitor) => {
 
 const getVisitorQrStatus = (visitor) => {
   if (!visitor) return 'Unknown';
+  if (['approved', 'active'].includes(visitor.status) && !visitor.actualExit && isVisitorPassExpired(visitor)) return 'Overstayed';
   const progress = getVisitorProgress(visitor);
   if (visitor.status === 'pending') return 'Pending';
   if (visitor.status === 'approved') return 'Approved';
@@ -224,6 +226,7 @@ const notifyResidentOverstays = async (filter = {}) => {
   if (overdueVisitors.length === 0) return;
 
   for (const visitor of overdueVisitors) {
+    const resident = await User.findById(visitor.residentId).select('firstName lastName houseNumber email');
     await createInAppNotification({
       userId: visitor.residentId,
       type: 'visitor_overstay',
@@ -233,8 +236,51 @@ const notifyResidentOverstays = async (filter = {}) => {
     });
     visitor.overstayNotifiedAt = now;
     await visitor.save();
+    const officers = await User.find({ role: 'security', isActive: true }).select('_id');
+    await Promise.allSettled(officers.map((officer) => createInAppNotification({
+      userId: officer._id,
+      type: 'visitor_overstay',
+      title: 'Visitor overstay requires follow-up',
+      body: `${visitor.visitorName} exceeded departure time${resident?.houseNumber ? ` at ${resident.houseNumber}` : ''}. Contact the resident and record the follow-up.`,
+      metadata: { visitorId: visitor._id, residentId: visitor.residentId, event: 'visitor_overstay' }
+    })));
   }
 };
+
+router.post('/:id/overstay-follow-up', protect, authorize('security'), async (req, res) => {
+  const visitor = await Visitor.findById(req.params.id).populate('residentId', 'firstName lastName email');
+  if (!visitor || !visitor.expectedDeparture || visitor.actualExit || new Date(visitor.expectedDeparture) >= new Date()) {
+    return res.status(400).json({ success: false, error: 'This visitor is not currently overstaying.' });
+  }
+  const body = String(req.body?.message || `Security is following up because ${visitor.visitorName} has exceeded the expected departure time. Please confirm the visitor's status and arrange gate exit.`).trim();
+  if (!body || body.length > 1500) return res.status(400).json({ success: false, error: 'Follow-up message must be 1 to 1500 characters.' });
+  const message = await VisitorOverstayMessage.create({ visitorId: visitor._id, residentId: visitor.residentId._id, securityId: req.user._id, body });
+  await createInAppNotification({ userId: visitor.residentId._id, type: 'visitor_overstay', title: 'Security follow-up: visitor overstay', body, metadata: { visitorId: visitor._id, messageId: message._id, event: 'security_overstay_follow_up' } });
+  const emailResult = await sendVisitorOverstayEmail(visitor, visitor.residentId, body);
+  return res.json({ success: true, data: message, emailSent: Boolean(emailResult?.sent) });
+});
+
+router.get('/:id/overstay-chat', protect, authorize('resident', 'security'), async (req, res) => {
+  const visitor = await Visitor.findById(req.params.id).select('residentId expectedDeparture actualExit');
+  if (!visitor || !visitor.expectedDeparture || new Date(visitor.expectedDeparture) >= new Date()) return res.status(404).json({ success: false, error: 'Overstay conversation not found.' });
+  if (req.user.role === 'resident' && String(visitor.residentId) !== String(req.user._id)) return res.status(403).json({ success: false, error: 'Not allowed to view this conversation.' });
+  const messages = await VisitorOverstayMessage.find({ visitorId: visitor._id }).populate('securityId', 'firstName lastName').sort({ createdAt: 1 });
+  return res.json({ success: true, data: messages });
+});
+
+router.post('/:id/overstay-chat', protect, authorize('resident', 'security'), async (req, res) => {
+  const visitor = await Visitor.findById(req.params.id).select('residentId expectedDeparture actualExit');
+  const body = String(req.body?.message || '').trim();
+  if (!visitor || !visitor.expectedDeparture || new Date(visitor.expectedDeparture) >= new Date()) return res.status(404).json({ success: false, error: 'Overstay conversation not found.' });
+  if (!body || body.length > 1500) return res.status(400).json({ success: false, error: 'Message must be 1 to 1500 characters.' });
+  if (req.user.role === 'resident' && String(visitor.residentId) !== String(req.user._id)) return res.status(403).json({ success: false, error: 'Not allowed to send in this conversation.' });
+  const securityId = req.user.role === 'security' ? req.user._id : (await VisitorOverstayMessage.findOne({ visitorId: visitor._id }).sort({ createdAt: -1 }))?.securityId;
+  if (!securityId) return res.status(400).json({ success: false, error: 'Security must start the overstay conversation.' });
+  const message = await VisitorOverstayMessage.create({ visitorId: visitor._id, residentId: visitor.residentId, securityId, body });
+  const recipientId = req.user.role === 'security' ? visitor.residentId : securityId;
+  await createInAppNotification({ userId: recipientId, type: 'visitor_overstay', title: 'New overstay chat message', body, metadata: { visitorId: visitor._id, messageId: message._id, event: 'visitor_overstay_chat' } });
+  return res.status(201).json({ success: true, data: message });
+});
 
 // Get visitor history (all visitors for a resident)
 router.get('/history', protect, authorize('resident'), async (req, res) => {
@@ -1889,8 +1935,8 @@ router.get('/admin/export', protect, authorize('admin'), async (req, res) => {
     const formatPersonName = (person) => (
       person ? `${person.firstName || ''} ${person.lastName || ''}`.trim() || 'N/A' : 'N/A'
     );
-    const exportRows = visitors.map((visitor) => ({
-      'Visitor ID': visitor._id.toString(),
+    const exportRows = visitors.map((visitor, index) => ({
+      'Visitor ID': index + 1,
       'Visitor Name': visitor.visitorName || 'N/A',
       'Phone': visitor.visitorPhone || 'N/A',
       'Vehicle': visitor.vehicleNumber || 'N/A',

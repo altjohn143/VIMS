@@ -148,6 +148,9 @@ router.post(
       const user = req.user;
 
       if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+      if (!user.dataPrivacyConsent) {
+        return res.status(403).json({ success: false, error: 'Data Privacy Agreement consent is required before uploading an ID.' });
+      }
 
       const snapEmail = user.email || '';
       const snapName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
@@ -366,6 +369,12 @@ router.post(
   ]),
   async (req, res) => {
     try {
+      if (String(req.body.privacyConsent).toLowerCase() !== 'true') {
+        return res.status(400).json({
+          success: false,
+          error: 'Data Privacy Agreement consent is required before processing an ID with OCR.'
+        });
+      }
       const frontFile = req.files?.frontImage?.[0] || null;
       const backFile = req.files?.backImage?.[0] || null;
       if (!frontFile || !backFile) {

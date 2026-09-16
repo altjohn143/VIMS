@@ -705,7 +705,14 @@ const AdminUserManagement = () => {
   const handleExportFile = async (fileFormat = 'pdf') => {
     try {
       const timezoneOffset = new Date().getTimezoneOffset();
-      const response = await fetch(getBackendApiUrl(`/api/users/export?format=${fileFormat}&timezoneOffset=${timezoneOffset}`), {
+      const params = new URLSearchParams({ format: fileFormat, timezoneOffset: String(timezoneOffset) });
+      if (roleFilter !== 'all') params.set('role', roleFilter);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (approvalFilter !== 'all') params.set('approval', approvalFilter);
+      if (searchQuery.trim()) params.set('search', searchQuery.trim());
+      const views = ['all', 'residents', 'pending', 'moveout', 'staff', 'inactive'];
+      if (views[activeTab] && views[activeTab] !== 'all') params.set('view', views[activeTab]);
+      const response = await fetch(getBackendApiUrl(`/api/users/export?${params.toString()}`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${sessionStorage.getItem('token')}`

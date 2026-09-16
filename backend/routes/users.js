@@ -1280,6 +1280,7 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
         filter.moveOutStatus = 'pending';
       }
       if (view === 'staff') filter.role = { $in: ['admin', 'security'] };
+      if (view === 'inactive') filter.isActive = false;
     }
     if (search) {
       const rx = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -1294,8 +1295,16 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
 
     if (startDate || endDate) {
       filter.createdAt = {};
-      if (startDate) filter.createdAt.$gte = new Date(startDate);
-      if (endDate) filter.createdAt.$lte = new Date(endDate);
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = end;
+      }
     }
 
     const users = await User.find(filter).sort({ createdAt: -1 });
@@ -1307,8 +1316,8 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
       });
     }
 
-    const data = users.map(user => ({
-      ID: user._id.toString(),
+    const data = users.map((user, index) => ({
+      ID: index + 1,
       'First Name': user.firstName,
       'Last Name': user.lastName,
       Email: user.email,

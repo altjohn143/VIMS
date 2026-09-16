@@ -451,6 +451,13 @@ router.post('/register', registerUpload.fields([
     const familyMembers = parseJsonArrayField(familyMembersRaw);
     const noVehicles = parseBooleanField(noVehiclesRaw);
 
+    if (!parseBooleanField(req.body.privacyConsent)) {
+      return res.status(400).json({
+        success: false,
+        error: 'You must agree to the Data Privacy Agreement before registering.'
+      });
+    }
+
     // Validation
     if (!firstName || !lastName || !email || !phone || !password) {
       debugLog('Missing required fields');
@@ -517,6 +524,8 @@ router.post('/register', registerUpload.fields([
       password,
       role: userRole,
       isApproved: isApproved,
+      dataPrivacyConsent: true,
+      dataPrivacyConsentAt: new Date(),
     };
 
     // Debug: show received profile photo upload details
@@ -844,6 +853,9 @@ router.post('/login', loginIpLimiter, loginAccountLimiter, async (req, res) => {
     }
     
     debugLog('Login successful for:', email);
+
+    user.lastLogin = new Date();
+    await user.save();
 
     user.password = undefined;
 

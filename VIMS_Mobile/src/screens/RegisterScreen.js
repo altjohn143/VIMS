@@ -168,6 +168,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [showIdUploadStep, setShowIdUploadStep] = useState(false);
   const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
 
   // DOB picker
   const [dobPickerOpen, setDobPickerOpen] = useState(false);
@@ -535,6 +536,7 @@ const RegisterScreen = ({ navigation, route }) => {
         fd.append('backImage', await mkFileAsync(backUri, 'back.jpg'));
       }
       fd.append('documentType', formData.documentType || 'national_id');
+      fd.append('privacyConsent', privacyConsent ? 'true' : 'false');
 
       // RN note: Axios multipart uploads can fail with "Network Error" even when the
       // server is reachable. Use fetch for this endpoint to reliably send FormData.
@@ -740,6 +742,7 @@ const RegisterScreen = ({ navigation, route }) => {
 
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot';
     if (registrationMode === 'ocr' && !formData.idNumber.trim()) newErrors.idNumber = 'ID number is required';
+    if (!privacyConsent) newErrors.privacyConsent = 'You must agree to the Data Privacy Agreement to register.';
     if (!idDocs.frontUri) newErrors.frontImage = 'Please upload the front side of your ID';
     if (!idDocs.backUri) newErrors.backImage = 'Please upload the back side of your ID';
 
@@ -790,6 +793,7 @@ const RegisterScreen = ({ navigation, route }) => {
     if (String(field).startsWith('vehicle_')) return 3;
     if (String(field).startsWith('family')) return 4;
     if (['idNumber', 'frontImage', 'backImage'].includes(field)) return 5;
+    if (field === 'privacyConsent') return 6;
     return currentStepIndex;
   };
 
@@ -866,6 +870,7 @@ const RegisterScreen = ({ navigation, route }) => {
       formDataToSend.append('countryCode', formData.countryCode);
       formDataToSend.append('noVehicles', formData.noVehicles.toString());
       formDataToSend.append('soloResident', formData.soloResident.toString());
+      formDataToSend.append('privacyConsent', 'true');
       
       // Handle vehicles with car images
       const vehiclesWithoutImages = formData.noVehicles
@@ -1116,10 +1121,25 @@ const RegisterScreen = ({ navigation, route }) => {
           <Text style={styles.registrationIntroSubtitle}>
             Select manual entry or upload ID for OCR before completing the registration form.
           </Text>
+          <TouchableOpacity
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: privacyConsent }}
+            style={styles.privacyConsentRow}
+            onPress={() => {
+              setPrivacyConsent((value) => !value);
+              setErrors((previous) => ({ ...previous, privacyConsent: '' }));
+            }}
+          >
+            <Ionicons name={privacyConsent ? 'checkbox' : 'square-outline'} size={23} color={privacyConsent ? themeColors.primary : themeColors.textSecondary} />
+            <Text style={styles.privacyConsentText}>
+              I consent to VIMS collecting, using, storing, and processing my registration details and government-issued ID for resident registration, identity verification, and community administration, in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
+            </Text>
+          </TouchableOpacity>
+          {errors.privacyConsent ? <Text style={styles.errorText}>{errors.privacyConsent}</Text> : null}
 
           {!registrationMode ? (
             <View>
-              <TouchableOpacity style={styles.modeCard} onPress={() => selectRegistrationMethod('manual')}>
+              <TouchableOpacity style={[styles.modeCard, !privacyConsent && styles.modeCardDisabled]} onPress={() => selectRegistrationMethod('manual')} disabled={!privacyConsent}>
                 <Text style={styles.modeTitle}>Manual entry</Text>
                 <Text style={styles.modeDescription}>
                   Enter your details manually and upload your ID. The ID upload will be used for verification only and will not trigger OCR automatically.
@@ -1129,7 +1149,7 @@ const RegisterScreen = ({ navigation, route }) => {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.modeCard} onPress={() => selectRegistrationMethod('ocr')}>
+              <TouchableOpacity style={[styles.modeCard, !privacyConsent && styles.modeCardDisabled]} onPress={() => selectRegistrationMethod('ocr')} disabled={!privacyConsent}>
                 <Text style={styles.modeTitle}>ID upload + OCR autofill</Text>
                 <Text style={styles.modeDescription}>
                   Upload your ID and let the OCR attempt to populate your name, date of birth, and ID number automatically.

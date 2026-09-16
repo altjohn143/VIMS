@@ -4,6 +4,7 @@ const visitorOverstayMessageSchema = new mongoose.Schema({
   visitorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Visitor', required: true, index: true },
   residentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   securityId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  senderRole: { type: String, enum: ['resident', 'security'], required: true },
   body: { type: String, required: true, trim: true, maxlength: 1500 }
 }, { timestamps: true });
 

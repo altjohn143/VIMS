@@ -254,7 +254,7 @@ router.post('/:id/overstay-follow-up', protect, authorize('security'), async (re
   }
   const body = String(req.body?.message || `Security is following up because ${visitor.visitorName} has exceeded the expected departure time. Please confirm the visitor's status and arrange gate exit.`).trim();
   if (!body || body.length > 1500) return res.status(400).json({ success: false, error: 'Follow-up message must be 1 to 1500 characters.' });
-  const message = await VisitorOverstayMessage.create({ visitorId: visitor._id, residentId: visitor.residentId._id, securityId: req.user._id, body });
+  const message = await VisitorOverstayMessage.create({ visitorId: visitor._id, residentId: visitor.residentId._id, securityId: req.user._id, senderRole: 'security', body });
   await createInAppNotification({ userId: visitor.residentId._id, type: 'visitor_overstay', title: 'Security follow-up: visitor overstay', body, metadata: { visitorId: visitor._id, messageId: message._id, event: 'security_overstay_follow_up' } });
   const emailResult = await sendVisitorOverstayEmail(visitor, visitor.residentId, body).catch((error) => ({ sent: false, reason: error.message }));
   return res.json({ success: true, data: message, emailSent: Boolean(emailResult?.sent) });
@@ -276,7 +276,7 @@ router.post('/:id/overstay-chat', protect, authorize('resident', 'security'), as
   if (req.user.role === 'resident' && String(visitor.residentId) !== String(req.user._id)) return res.status(403).json({ success: false, error: 'Not allowed to send in this conversation.' });
   const securityId = req.user.role === 'security' ? req.user._id : (await VisitorOverstayMessage.findOne({ visitorId: visitor._id }).sort({ createdAt: -1 }))?.securityId;
   if (!securityId) return res.status(400).json({ success: false, error: 'Security must start the overstay conversation.' });
-  const message = await VisitorOverstayMessage.create({ visitorId: visitor._id, residentId: visitor.residentId, securityId, body });
+  const message = await VisitorOverstayMessage.create({ visitorId: visitor._id, residentId: visitor.residentId, securityId, senderRole: req.user.role, body });
   const recipientId = req.user.role === 'security' ? visitor.residentId : securityId;
   await createInAppNotification({ userId: recipientId, type: 'visitor_overstay', title: 'New overstay chat message', body, metadata: { visitorId: visitor._id, messageId: message._id, event: 'visitor_overstay_chat' } });
   return res.status(201).json({ success: true, data: message });

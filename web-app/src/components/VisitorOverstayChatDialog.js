@@ -28,8 +28,10 @@ export default function VisitorOverstayChatDialog({ visitor, open, onClose }) {
       <Box sx={{ minHeight: 220, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.25, p: 0.5, bgcolor: '#f8fafc', borderRadius: 2 }}>
         {loading ? <Typography>Loading messages…</Typography> : messages.length ? messages.map((row) => {
           const securityId = row.securityId?._id || row.securityId;
-          const isSecurityMessage = String(securityId) === String(currentUser?._id || currentUser?.id);
-          const isMine = currentUser?.role === 'security' ? isSecurityMessage : !isSecurityMessage;
+          const isSecurityMessage = Boolean(securityId);
+          const isMine = currentUser?.role === 'security'
+            ? String(securityId) === String(currentUser?._id || currentUser?.id)
+            : !isSecurityMessage;
           const sender = isSecurityMessage ? `Security${row.securityId?.firstName ? ` • ${row.securityId.firstName} ${row.securityId.lastName || ''}` : ''}` : 'Resident';
           return <Box key={row._id} sx={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '82%', p: 1.25, borderRadius: 2.5, bgcolor: isSecurityMessage ? '#fff3e0' : '#e8f5e9', border: `1px solid ${isSecurityMessage ? '#fdba74' : '#86efac'}` }}>
             <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, color: isSecurityMessage ? '#c2410c' : '#15803d', mb: 0.35 }}>{sender}</Typography>

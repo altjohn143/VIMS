@@ -62,7 +62,8 @@ import {
   Error as ErrorIcon,
   Settings as SettingsIcon,
   QrCodeScanner as QrCodeScannerIcon,
-  ExitToApp as ExitToAppIcon
+  ExitToApp as ExitToAppIcon,
+  ChatOutlined as ChatOutlinedIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -1487,7 +1488,7 @@ const SecurityVisitorLogs = () => {
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         {String(visitor.qrStatus || '').toLowerCase() === 'overstayed' && (
-                          <Button size="small" variant="contained" color="warning" onClick={() => { setSelectedVisitor(visitor); setOverstayChatOpen(true); }} sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}>
+                          <Button size="small" variant="outlined" startIcon={<ChatOutlinedIcon fontSize="small" />} color="warning" onClick={() => { setSelectedVisitor(visitor); setOverstayChatOpen(true); }} sx={{ textTransform: 'none', whiteSpace: 'nowrap', minWidth: 'auto', px: 1.25, py: 0.6, borderRadius: 2, fontWeight: 700, boxShadow: 'none' }}>
                             Chat resident
                           </Button>
                         )}

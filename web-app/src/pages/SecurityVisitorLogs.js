@@ -97,6 +97,9 @@ const SecurityVisitorLogs = () => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [overstayDialogOpen, setOverstayDialogOpen] = useState(false);
+  const [overstayMessage, setOverstayMessage] = useState('');
+  const [sendingOverstayAlert, setSendingOverstayAlert] = useState(false);
   const [scanInProgress, setScanInProgress] = useState(false);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
@@ -596,14 +599,22 @@ const SecurityVisitorLogs = () => {
     setViewDialogOpen(true);
   };
 
-  const handleOverstayFollowUp = async (visitor) => {
-    const message = window.prompt('Message to the resident (sent in-app and by email when email delivery is configured):', `Security is following up because ${visitor.visitorName} has exceeded the expected departure time. Please confirm the visitor’s status and arrange gate exit.`);
-    if (!message?.trim()) return;
+  const openOverstayFollowUp = (visitor) => {
+    setOverstayMessage(`Security is following up because ${visitor.visitorName} has exceeded the expected departure time. Please confirm the visitor’s status and arrange gate exit.`);
+    setOverstayDialogOpen(true);
+  };
+
+  const handleOverstayFollowUp = async () => {
+    if (!selectedVisitor || !overstayMessage.trim()) return;
+    setSendingOverstayAlert(true);
     try {
-      await axios.post(`/api/visitors/${visitor._id}/overstay-follow-up`, { message: message.trim() });
+      await axios.post(`/api/visitors/${selectedVisitor._id}/overstay-follow-up`, { message: overstayMessage.trim() });
+      setOverstayDialogOpen(false);
       toast.success('Resident alerted. The overstay chat has been opened.');
     } catch (requestError) {
       toast.error(requestError.response?.data?.error || 'Unable to send the overstay follow-up.');
+    } finally {
+      setSendingOverstayAlert(false);
     }
   };
 
@@ -1693,7 +1704,7 @@ const SecurityVisitorLogs = () => {
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
             {selectedVisitor?.expectedDeparture && !selectedVisitor?.actualExit && new Date(selectedVisitor.expectedDeparture) < new Date() && (
-              <Button variant="contained" color="warning" onClick={() => handleOverstayFollowUp(selectedVisitor)} sx={{ mr: 'auto', textTransform: 'none', fontWeight: 700 }}>
+              <Button variant="contained" color="warning" onClick={() => openOverstayFollowUp(selectedVisitor)} sx={{ mr: 'auto', textTransform: 'none', fontWeight: 700 }}>
                 Alert resident & start chat
               </Button>
             )}
@@ -1711,6 +1722,23 @@ const SecurityVisitorLogs = () => {
             >
               Close
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog open={overstayDialogOpen} onClose={() => !sendingOverstayAlert && setOverstayDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 800 }}>Alert resident about visitor overstay</DialogTitle>
+          <DialogContent>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              This sends an in-app notification immediately and sends an email if email delivery is configured. It also starts the visitor-specific security chat.
+            </Alert>
+            <Typography variant="body2" sx={{ mb: 1, color: themeColors.textSecondary }}>
+              Resident: {selectedVisitor?.residentId?.firstName} {selectedVisitor?.residentId?.lastName} {selectedVisitor?.residentId?.houseNumber ? `• ${selectedVisitor.residentId.houseNumber}` : ''}
+            </Typography>
+            <TextField autoFocus fullWidth multiline minRows={4} label="Follow-up message" value={overstayMessage} onChange={(event) => setOverstayMessage(event.target.value)} inputProps={{ maxLength: 1500 }} />
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={() => setOverstayDialogOpen(false)} disabled={sendingOverstayAlert}>Cancel</Button>
+            <Button variant="contained" color="warning" onClick={handleOverstayFollowUp} disabled={sendingOverstayAlert || !overstayMessage.trim()}>{sendingOverstayAlert ? 'Sending…' : 'Send alert & start chat'}</Button>
           </DialogActions>
         </Dialog>
 

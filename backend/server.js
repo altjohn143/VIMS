@@ -14,6 +14,8 @@ const errorHandler = require('./middleware/errorHandler');
 const User = require('./models/User');
 const { setNotificationSocket } = require('./services/inAppNotificationService');
 const { setAnnouncementSocket } = require('./services/announcementRealtimeService');
+const { setRealtimeSocket } = require('./services/realtimeService');
+const realtimeDataSync = require('./middleware/realtimeDataSync');
 
 console.log('\n📂 Starting VIMS Server...');
 
@@ -120,11 +122,14 @@ io.use(async (socket, next) => {
 io.on('connection', (socket) => {
   if (socket.user) {
     socket.join(`user:${socket.user._id.toString()}`);
+    socket.join('authenticated');
+    socket.join(`role:${socket.user.role}`);
   }
 });
 
 setNotificationSocket(io);
 setAnnouncementSocket(io);
+setRealtimeSocket(io);
 
 // Middleware
 app.use(express.json({ limit: '10mb' })); // SECURITY: Add payload size limit
@@ -171,6 +176,7 @@ app.use('/uploads/pdf-exports', express.static(path.join(__dirname, 'uploads/pdf
 
 app.use('/api', apiLimiter);
 app.use('/api', auditLogger);
+app.use('/api', realtimeDataSync);
 
 // Database connection - USE ENVIRONMENT VARIABLE
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vims_system';

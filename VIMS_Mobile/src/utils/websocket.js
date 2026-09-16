@@ -4,6 +4,7 @@ import { getAuthToken } from './secureSession';
 
 const notificationListeners = new Set();
 const countListeners = new Set();
+const dataListeners = new Set();
 let socket = null;
 
 const connect = async () => {
@@ -26,6 +27,10 @@ const connect = async () => {
     countListeners.forEach((callback) => callback(delta));
   });
 
+  socket.on('data:changed', (change) => {
+    dataListeners.forEach((callback) => callback(change));
+  });
+
   return socket;
 };
 
@@ -40,6 +45,12 @@ const websocketService = {
     countListeners.add(callback);
     connect().catch(() => {});
     return () => countListeners.delete(callback);
+  },
+
+  onDataChanged: (callback) => {
+    dataListeners.add(callback);
+    connect().catch(() => {});
+    return () => dataListeners.delete(callback);
   },
 
   markNotificationRead: () => {

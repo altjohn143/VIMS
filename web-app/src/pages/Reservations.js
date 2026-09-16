@@ -51,6 +51,7 @@ import axios from 'axios';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import websocketService from '../utils/websocket';
 
 const themeColors = {
   primary: '#007A18',
@@ -510,6 +511,13 @@ const Reservations = () => {
     if (availabilityFilter === 'all') return availability;
     return availability.filter((slot) => slot.resourceType === availabilityFilter);
   };
+
+  useEffect(() => websocketService.onDataChanged((change) => {
+    if (change?.resource === 'reservations') {
+      fetchReservations();
+      fetchResources();
+    }
+  }), []);
 
   const formatDateTime = (date) => new Date(date).toLocaleString([], {
     month: 'short',

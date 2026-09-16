@@ -56,6 +56,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import villageLogo from '../assets/village-logo.png';
 import VisitorOverstayChatDialog from '../components/VisitorOverstayChatDialog';
+import websocketService from '../utils/websocket';
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -192,6 +193,13 @@ const VisitorManagement = () => {
       console.error('Failed to fetch all visitors:', error);
     }
   }
+
+  useEffect(() => websocketService.onDataChanged((change) => {
+    if (change?.resource === 'visitors') {
+      fetchMyVisitors();
+      fetchAllVisitors();
+    }
+  }), []);
 
   const validateName = (name) => {
     const nameRegex = /^[A-Za-z\s]+$/;

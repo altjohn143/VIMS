@@ -386,6 +386,11 @@ const DashboardScreen = ({ navigation }) => {
     };
   }, [navigation, userToShow?.id, userToShow?.role, userToShow?.securityLevel]);
 
+  useEffect(() => {
+    if (!userToShow?.role) return undefined;
+    return websocketService.onDataChanged(() => fetchDashboardData(userToShow));
+  }, [userToShow?.id, userToShow?.role, userToShow?.securityLevel]);
+
   const fetchRecentNotifications = async () => {
     try {
       const res = await api.get('/notifications');

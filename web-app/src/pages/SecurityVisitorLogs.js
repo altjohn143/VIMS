@@ -71,6 +71,7 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import VisitorOverstayChatDialog from '../components/VisitorOverstayChatDialog';
+import websocketService from '../utils/websocket';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -251,6 +252,10 @@ const SecurityVisitorLogs = () => {
       }
     }
   }, [page, rowsPerPage, searchTerm, statusFilter, dateFilter, selectedTab, currentUser, logout, navigate]);
+
+  useEffect(() => websocketService.onDataChanged((change) => {
+    if (change?.resource === 'visitors') fetchVisitors(true);
+  }), [fetchVisitors]);
 
   // Effect for initial load
   useEffect(() => {

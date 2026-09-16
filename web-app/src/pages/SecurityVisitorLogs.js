@@ -1486,6 +1486,11 @@ const SecurityVisitorLogs = () => {
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
+                        {String(visitor.qrStatus || '').toLowerCase() === 'overstayed' && (
+                          <Button size="small" variant="contained" color="warning" onClick={() => { setSelectedVisitor(visitor); setOverstayChatOpen(true); }} sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}>
+                            Chat resident
+                          </Button>
+                        )}
                         <IconButton
                           size="small"
                           onClick={() => handleViewDetails(visitor)}

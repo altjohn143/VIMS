@@ -55,6 +55,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import villageLogo from '../assets/village-logo.png';
+import VisitorOverstayChatDialog from '../components/VisitorOverstayChatDialog';
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -102,6 +103,7 @@ const VisitorManagement = () => {
     visitorPhone: ''
   });
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const [overstayChatVisitor, setOverstayChatVisitor] = useState(null);
   const { getCurrentUser, logout } = useAuth();
   const user = getCurrentUser();
   const navigate = useNavigate();
@@ -1328,6 +1330,11 @@ const VisitorManagement = () => {
                                 <QrCodeIcon />
                               </IconButton>
                             )}
+                            {expired && !visitor.actualExit && (
+                              <Button size="small" variant="outlined" color="warning" onClick={() => setOverstayChatVisitor(visitor)} sx={{ textTransform: 'none' }}>
+                                Security chat
+                              </Button>
+                            )}
                             
                             {canConfirmArrival && (
                               <Button
@@ -1779,6 +1786,7 @@ const VisitorManagement = () => {
             </DialogActions>
           </form>
         </Dialog>
+        <VisitorOverstayChatDialog visitor={overstayChatVisitor} open={Boolean(overstayChatVisitor)} onClose={() => setOverstayChatVisitor(null)} />
       </Container>
     </Box>
   );

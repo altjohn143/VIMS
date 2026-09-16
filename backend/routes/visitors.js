@@ -256,7 +256,7 @@ router.post('/:id/overstay-follow-up', protect, authorize('security'), async (re
   if (!body || body.length > 1500) return res.status(400).json({ success: false, error: 'Follow-up message must be 1 to 1500 characters.' });
   const message = await VisitorOverstayMessage.create({ visitorId: visitor._id, residentId: visitor.residentId._id, securityId: req.user._id, body });
   await createInAppNotification({ userId: visitor.residentId._id, type: 'visitor_overstay', title: 'Security follow-up: visitor overstay', body, metadata: { visitorId: visitor._id, messageId: message._id, event: 'security_overstay_follow_up' } });
-  const emailResult = await sendVisitorOverstayEmail(visitor, visitor.residentId, body);
+  const emailResult = await sendVisitorOverstayEmail(visitor, visitor.residentId, body).catch((error) => ({ sent: false, reason: error.message }));
   return res.json({ success: true, data: message, emailSent: Boolean(emailResult?.sent) });
 });
 

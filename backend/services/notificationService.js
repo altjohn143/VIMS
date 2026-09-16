@@ -112,11 +112,19 @@ async function sendReservationStatusNotification(reservation, resident, options 
 }
 
 async function sendVisitorOverstayEmail(visitor, resident, message) {
-  return postWebhook(process.env.EMAIL_WEBHOOK_URL, {
+  if (!resident?.email) return { sent: false, reason: 'missing_email' };
+  if (!process.env.RESEND_API_KEY) return { sent: false, reason: 'resend_not_configured' };
+  const firstName = escapeHtml(resident.firstName || 'Resident');
+  const body = message || `${visitor.visitorName} exceeded the expected departure time. Please coordinate with security immediately.`;
+  const result = await resend.emails.send({
+    from: RESEND_FROM_EMAIL,
     to: resident.email,
     subject: 'VIMS: Visitor overstay follow-up required',
-    body: message || `${visitor.visitorName} exceeded the expected departure time. Please coordinate with security immediately.`
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1e293b"><h2 style="color:#b45309">Visitor overstay follow-up</h2><p>Hello ${firstName},</p><p>${escapeHtml(body)}</p><p>Please open VIMS to reply directly to security and confirm the visitor's departure status.</p></div>`,
+    text: `Hello ${resident.firstName || 'Resident'},\n\n${body}\n\nPlease open VIMS to reply directly to security and confirm the visitor's departure status.`
   });
+  if (result?.error) throw new Error(result.error.message || 'Resend rejected the email');
+  return { sent: true, id: result?.data?.id };
 }
 
 async function sendPaymentReminderEmail(payments, resident, options = {}) {

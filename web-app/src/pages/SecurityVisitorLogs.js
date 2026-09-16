@@ -68,6 +68,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import VisitorOverstayChatDialog from '../components/VisitorOverstayChatDialog';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -100,6 +101,7 @@ const SecurityVisitorLogs = () => {
   const [overstayDialogOpen, setOverstayDialogOpen] = useState(false);
   const [overstayMessage, setOverstayMessage] = useState('');
   const [sendingOverstayAlert, setSendingOverstayAlert] = useState(false);
+  const [overstayChatOpen, setOverstayChatOpen] = useState(false);
   const [scanInProgress, setScanInProgress] = useState(false);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
@@ -610,6 +612,7 @@ const SecurityVisitorLogs = () => {
     try {
       await axios.post(`/api/visitors/${selectedVisitor._id}/overstay-follow-up`, { message: overstayMessage.trim() });
       setOverstayDialogOpen(false);
+      setOverstayChatOpen(true);
       toast.success('Resident alerted. The overstay chat has been opened.');
     } catch (requestError) {
       toast.error(requestError.response?.data?.error || 'Unable to send the overstay follow-up.');
@@ -1724,6 +1727,7 @@ const SecurityVisitorLogs = () => {
             </Button>
           </DialogActions>
         </Dialog>
+        <VisitorOverstayChatDialog visitor={selectedVisitor} open={overstayChatOpen} onClose={() => setOverstayChatOpen(false)} />
 
         <Dialog open={overstayDialogOpen} onClose={() => !sendingOverstayAlert && setOverstayDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle sx={{ fontWeight: 800 }}>Alert resident about visitor overstay</DialogTitle>

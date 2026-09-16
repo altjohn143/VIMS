@@ -29,11 +29,8 @@ export default function VisitorOverstayChatDialog({ visitor, open, onClose }) {
         {loading ? <Typography>Loading messages…</Typography> : messages.length ? messages.map((row) => {
           const securityId = row.securityId?._id || row.securityId;
           const isSecurityMessage = row.senderRole === 'security';
-          const isMine = currentUser?.role === 'security'
-            ? String(securityId) === String(currentUser?._id || currentUser?.id)
-            : !isSecurityMessage;
           const sender = isSecurityMessage ? `Security${row.securityId?.firstName ? ` • ${row.securityId.firstName} ${row.securityId.lastName || ''}` : ''}` : 'Resident';
-          return <Box key={row._id} sx={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '82%', p: 1.25, borderRadius: 2.5, bgcolor: isSecurityMessage ? '#fff3e0' : '#e8f5e9', border: `1px solid ${isSecurityMessage ? '#fdba74' : '#86efac'}` }}>
+          return <Box key={row._id} sx={{ alignSelf: isSecurityMessage ? 'flex-start' : 'flex-end', maxWidth: '82%', p: 1.25, borderRadius: 2.5, bgcolor: isSecurityMessage ? '#fff3e0' : '#e8f5e9', border: `1px solid ${isSecurityMessage ? '#fdba74' : '#86efac'}` }}>
             <Typography variant="caption" sx={{ display: 'block', fontWeight: 800, color: isSecurityMessage ? '#c2410c' : '#15803d', mb: 0.35 }}>{sender}</Typography>
             <Typography variant="body2">{row.body}</Typography>
             <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>{new Date(row.createdAt).toLocaleString()}</Typography>

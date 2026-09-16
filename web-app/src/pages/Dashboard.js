@@ -482,6 +482,7 @@ const Dashboard = () => {
   const [notificationAnchor, setNotificationAnchor] = useState(null);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [lotMapEditorNavVisible, setLotMapEditorNavVisible] = useState(false);
+  const [liveDataVersion, setLiveDataVersion] = useState(0);
   const lotMapEditorSequenceRef = useRef('');
   const { logout, getCurrentUser } = useAuth();
 
@@ -502,7 +503,7 @@ const Dashboard = () => {
         setCollectionError('Failed to load collection');
         setCollectionLoading(false);
       });
-  }, [user?.role]);
+  }, [user?.role, liveDataVersion]);
 
   // Removed unused renderResidentCollectionCard function
 
@@ -665,7 +666,7 @@ const Dashboard = () => {
       }
     };
     loadNotifications();
-  }, [user?.role]);
+  }, [user?.role, liveDataVersion]);
 
   useEffect(() => {
     const unsubscribeCount = websocketService.onUnreadCountDelta((delta) => {
@@ -694,6 +695,18 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
+    let timer = null;
+    const unsubscribe = websocketService.onDataChanged(() => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setLiveDataVersion((version) => version + 1), 250);
+    });
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     const loadResidentAnnouncements = async () => {
       if (user?.role !== 'resident') return;
       try {
@@ -707,7 +720,7 @@ const Dashboard = () => {
     };
 
     loadResidentAnnouncements();
-  }, [user?.role]);
+  }, [user?.role, liveDataVersion]);
 
   useEffect(() => {
     const loadPendingApprovals = async () => {
@@ -729,7 +742,7 @@ const Dashboard = () => {
     };
 
     loadPendingApprovals();
-  }, [user?.role]);
+  }, [user?.role, liveDataVersion]);
 
   useEffect(() => {
     const formatCompactPeso = (amount) => {
@@ -826,7 +839,7 @@ const Dashboard = () => {
     };
 
     loadRoleStats();
-  }, [user?.role, user?.securityLevel, unreadCount]);
+  }, [user?.role, user?.securityLevel, unreadCount, liveDataVersion]);
 
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
@@ -1889,7 +1902,7 @@ const Dashboard = () => {
                   </Button>
                 </Box>
 
-                {activePageContent}
+                {React.cloneElement(activePageContent, { key: `${activePageKey}-${liveDataVersion}` })}
               </Box>
             ) : (
               <Grid container spacing={2.25}>

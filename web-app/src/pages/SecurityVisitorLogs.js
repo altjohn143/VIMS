@@ -1488,9 +1488,11 @@ const SecurityVisitorLogs = () => {
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         {String(visitor.qrStatus || '').toLowerCase() === 'overstayed' && (
-                          <Button size="small" variant="outlined" startIcon={<ChatOutlinedIcon fontSize="small" />} color="warning" onClick={() => { setSelectedVisitor(visitor); setOverstayChatOpen(true); }} sx={{ textTransform: 'none', whiteSpace: 'nowrap', minWidth: 'auto', px: 1.25, py: 0.6, borderRadius: 2, fontWeight: 700, boxShadow: 'none' }}>
-                            Chat resident
-                          </Button>
+                          <Tooltip title="Chat with resident about this overstay">
+                            <IconButton size="small" color="warning" onClick={() => { setSelectedVisitor(visitor); setOverstayChatOpen(true); }} sx={{ border: '1px solid', borderColor: 'warning.light', borderRadius: 2, bgcolor: '#fffaf0', '&:hover': { bgcolor: '#fff3e0' } }}>
+                              <ChatOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         )}
                         <IconButton
                           size="small"

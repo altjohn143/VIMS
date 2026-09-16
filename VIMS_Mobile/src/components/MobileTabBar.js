@@ -126,8 +126,11 @@ const MobileTabBar = ({ state, descriptors, navigation }) => {
   const visibleRoutes = state.routes
     .map((route, index) => ({ route, index }))
     .filter(({ route }) => !descriptors[route.key]?.options?.tabBarButton);
+  const isAdminTabs = visibleRoutes.some(({ route }) => (
+    route.name === 'AdminAnnouncements' || route.name === 'AdminLotManagement'
+  ));
   const qrRouteIndex = visibleRoutes.findIndex(({ route }) => (
-    route.name === 'VisitorsTab' || route.name === 'ScannerTab'
+    route.name === 'ScannerTab' || (!isAdminTabs && route.name === 'VisitorsTab')
   ));
   const qrRoute = qrRouteIndex >= 0 ? visibleRoutes[qrRouteIndex] : null;
   const leftRoutes = qrRoute ? visibleRoutes.slice(0, qrRouteIndex) : [];

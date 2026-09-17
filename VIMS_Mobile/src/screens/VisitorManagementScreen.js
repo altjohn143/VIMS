@@ -24,6 +24,7 @@ import { Camera, CameraView } from 'expo-camera';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
+import VisitorOverstayChatModal from '../components/VisitorOverstayChatModal';
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 
@@ -107,6 +108,7 @@ const VisitorManagementScreen = ({ navigation }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [cancellingVisitorId, setCancellingVisitorId] = useState(null);
+  const [overstayChatVisitor, setOverstayChatVisitor] = useState(null);
 
   const [formData, setFormData] = useState({
     visitorFirstName: '',
@@ -691,6 +693,12 @@ const VisitorManagementScreen = ({ navigation }) => {
           <View style={styles.visitorFooter}>
             <Text style={styles.createdText}>Created: {formatDate(item.createdAt)}</Text>
             <View style={styles.actionButtons}>
+              {item.expectedDeparture && !item.actualExit && new Date(item.expectedDeparture) < new Date() && (
+                <TouchableOpacity style={styles.overstayChatButton} onPress={() => setOverstayChatVisitor(item)}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={18} color={themeColors.warning} />
+                  <Text style={styles.overstayChatButtonText}>Security chat</Text>
+                </TouchableOpacity>
+              )}
               {isQRValid && (
                 <TouchableOpacity style={styles.iconButton} onPress={() => handleViewQR(item)}>
                   <Ionicons name="qr-code" size={20} color={themeColors.primary} />
@@ -1140,6 +1148,11 @@ const VisitorManagementScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+      <VisitorOverstayChatModal
+        visible={Boolean(overstayChatVisitor)}
+        visitor={overstayChatVisitor}
+        onClose={() => setOverstayChatVisitor(null)}
+      />
     </View>
   );
 };
@@ -1409,6 +1422,22 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
+  },
+  overstayChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 1,
+    borderColor: themeColors.warning,
+    borderRadius: 18,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    backgroundColor: themeColors.warning + '10',
+  },
+  overstayChatButtonText: {
+    color: themeColors.warning,
+    fontSize: 11,
+    fontWeight: '800',
   },
   iconButton: {
     padding: 8,

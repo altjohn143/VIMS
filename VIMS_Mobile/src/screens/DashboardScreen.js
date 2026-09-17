@@ -25,6 +25,7 @@ import { startUnreadCountPolling } from '../utils/notifications';
 import websocketService from '../utils/websocket';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationModal from '../components/NotificationModal';
+import OverstayChatInboxModal from '../components/OverstayChatInboxModal';
 import { radii, shadows, themeColors } from '../utils/theme';
 import ChatbotScreen from './ChatbotScreen';
 
@@ -41,6 +42,7 @@ const DashboardScreen = ({ navigation }) => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [overstayInboxVisible, setOverstayInboxVisible] = useState(false);
   const [assistantVisible, setAssistantVisible] = useState(false);
   const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
   const [residentOverview, setResidentOverview] = useState({ announcements: [], upcomingSchedules: [], pendingDues: 0, openServices: 0 });
@@ -634,6 +636,11 @@ const DashboardScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.topBarRight}>
+          {(userToShow?.role === 'resident' || userToShow?.role === 'security') && (
+            <TouchableOpacity style={styles.bellBtn} onPress={() => setOverstayInboxVisible(true)} accessibilityLabel="Open overstay messages">
+              <Ionicons name="chatbubble-ellipses-outline" size={21} color={themeColors.textPrimary} />
+            </TouchableOpacity>
+          )}
           {/* Bell */}
           <TouchableOpacity 
             style={styles.bellBtn}
@@ -1036,6 +1043,7 @@ const DashboardScreen = ({ navigation }) => {
           navigation={navigation}
           onViewAll={openAllNotifications}
         />
+        <OverstayChatInboxModal visible={overstayInboxVisible} onClose={() => setOverstayInboxVisible(false)} />
       </View>
     </ScrollView>
 

@@ -619,8 +619,7 @@ const SecurityVisitorLogs = () => {
     try {
       await axios.post(`/api/visitors/${selectedVisitor._id}/overstay-follow-up`, { message: overstayMessage.trim() });
       setOverstayDialogOpen(false);
-      setOverstayChatOpen(true);
-      toast.success('Resident alerted. The overstay chat has been opened.');
+      toast.success('Resident alerted. Use the chat action to continue the conversation.');
     } catch (requestError) {
       toast.error(requestError.response?.data?.error || 'Unable to send the overstay follow-up.');
     } finally {

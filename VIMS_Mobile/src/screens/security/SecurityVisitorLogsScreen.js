@@ -20,6 +20,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 import { getAuthToken } from '../../utils/secureSession';
+import VisitorOverstayChatModal from '../../components/VisitorOverstayChatModal';
 
 const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
@@ -28,6 +29,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [overstayChatVisitor, setOverstayChatVisitor] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(0);
@@ -157,7 +159,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       await api.post(`/visitors/${visitor._id}/overstay-follow-up`, {
         message: `Security is following up because ${visitor.visitorName} has exceeded the expected departure time. Please confirm the visitor's status and arrange gate exit.`
       });
-      Alert.alert('Resident alerted', 'The resident received an in-app notification and email follow-up when email delivery is configured.');
+      Alert.alert('Resident alerted', 'The resident received an in-app notification and email follow-up. Use Open chat to continue the conversation.');
     } catch (error) {
       Alert.alert('Unable to alert resident', error.response?.data?.error || 'Please try again.');
     }
@@ -617,10 +619,16 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
                 </View>
 
                 {selectedVisitor.expectedDeparture && !selectedVisitor.actualExit && new Date(selectedVisitor.expectedDeparture) < new Date() && (
-                  <TouchableOpacity style={styles.overstayFollowUpButton} onPress={() => alertResidentAboutOverstay(selectedVisitor)}>
-                    <Ionicons name="alert-circle" size={18} color="#fff" />
-                    <Text style={styles.overstayFollowUpText}>Alert Resident & Start Chat</Text>
-                  </TouchableOpacity>
+                  <View style={styles.overstayActions}>
+                    <TouchableOpacity style={styles.overstayFollowUpButton} onPress={() => alertResidentAboutOverstay(selectedVisitor)}>
+                      <Ionicons name="alert-circle" size={18} color="#fff" />
+                      <Text style={styles.overstayFollowUpText}>Alert resident</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.overstayOpenChatButton} onPress={() => setOverstayChatVisitor(selectedVisitor)}>
+                      <Ionicons name="chatbubble-ellipses-outline" size={18} color={themeColors.warning} />
+                      <Text style={styles.overstayOpenChatText}>Open chat</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
 
                 {selectedVisitor.securityNotes && (
@@ -634,6 +642,11 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+      <VisitorOverstayChatModal
+        visible={Boolean(overstayChatVisitor)}
+        visitor={overstayChatVisitor}
+        onClose={() => setOverstayChatVisitor(null)}
+      />
 
     </View>
   );
@@ -980,8 +993,11 @@ const styles = StyleSheet.create({
     color: themeColors.textPrimary,
     marginLeft: 8,
   },
-  overstayFollowUpButton: { marginHorizontal: 16, marginBottom: 14, backgroundColor: themeColors.warning, borderRadius: 10, padding: 13, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  overstayActions: { flexDirection: 'row', gap: 10, marginHorizontal: 16, marginBottom: 14 },
+  overstayFollowUpButton: { flex: 1, backgroundColor: themeColors.warning, borderRadius: 10, padding: 13, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   overstayFollowUpText: { color: '#fff', fontWeight: '800' },
+  overstayOpenChatButton: { flex: 1, borderWidth: 1, borderColor: themeColors.warning, borderRadius: 10, padding: 13, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, backgroundColor: '#fffaf0' },
+  overstayOpenChatText: { color: themeColors.warning, fontWeight: '800' },
   paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginHorizontal: 16 },
   pageButton: { backgroundColor: themeColors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
   pageButtonDisabled: { opacity: 0.45 },

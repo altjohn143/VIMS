@@ -43,6 +43,7 @@ import {
   Security as SecurityIcon,
   AdminPanelSettings as AdminIcon,
   NotificationsNone as NotificationsIcon,
+  ChatOutlined as ChatOutlinedIcon,
   QrCode as QrCodeIcon,
   Payment as PaymentIcon,
   Build as BuildIcon,
@@ -74,6 +75,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import NotificationPanel from '../components/NotificationPanel';
+import OverstayChatInboxDialog from '../components/OverstayChatInboxDialog';
 import websocketService from '../utils/websocket';
 import AnnouncementImage from '../components/AnnouncementImage';
 import VisitorManagement from './VisitorManagement';
@@ -480,6 +482,7 @@ const Dashboard = () => {
   const [residentAnnouncements, setResidentAnnouncements] = useState([]);
   const [liveStats, setLiveStats] = useState({});
   const [notificationAnchor, setNotificationAnchor] = useState(null);
+  const [overstayInboxOpen, setOverstayInboxOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [lotMapEditorNavVisible, setLotMapEditorNavVisible] = useState(false);
   const [liveDataVersion, setLiveDataVersion] = useState(0);
@@ -1613,6 +1616,7 @@ const Dashboard = () => {
           >
             {sidebarOpen ? <CloseIcon /> : <MenuIcon />}
           </IconButton>
+          <OverstayChatInboxDialog open={overstayInboxOpen} onClose={() => setOverstayInboxOpen(false)} />
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexGrow: 1, minWidth: 0 }}>
             <Box
@@ -1679,6 +1683,14 @@ const Dashboard = () => {
               )}
             </Box>
           </Box>
+
+          {(user?.role === 'resident' || user?.role === 'security') && <IconButton
+            onClick={() => setOverstayInboxOpen(true)}
+            aria-label="Open overstay messages"
+            sx={{ mr: 1, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}
+          >
+            <ChatOutlinedIcon />
+          </IconButton>}
 
           <IconButton
             onClick={(e) => setNotificationAnchor(notificationAnchor ? null : e.currentTarget)}

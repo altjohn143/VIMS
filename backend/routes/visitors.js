@@ -260,6 +260,29 @@ router.post('/:id/overstay-follow-up', protect, authorize('security'), async (re
   return res.json({ success: true, data: message, emailSent: Boolean(emailResult?.sent) });
 });
 
+// Inbox for the resident/security conversations that were actually started.
+// A resident only sees their own visitors; a security officer only sees chats
+// assigned to them, so this is safe to expose as a direct chat shortcut.
+router.get('/overstay-chats', protect, authorize('resident', 'security'), async (req, res) => {
+  const filter = req.user.role === 'resident'
+    ? { residentId: req.user._id }
+    : { securityId: req.user._id };
+  const rows = await VisitorOverstayMessage.find(filter)
+    .sort({ createdAt: -1 })
+    .populate({ path: 'visitorId', select: 'visitorName visitorPhone expectedDeparture actualExit residentId' })
+    .populate('residentId', 'firstName lastName houseNumber')
+    .populate('securityId', 'firstName lastName')
+    .lean();
+  const seen = new Set();
+  const data = rows.filter((row) => row.visitorId && !seen.has(String(row.visitorId._id)) && seen.add(String(row.visitorId._id))).map((row) => ({
+    visitor: row.visitorId,
+    lastMessage: { body: row.body, createdAt: row.createdAt, senderRole: row.senderRole },
+    resident: row.residentId,
+    security: row.securityId
+  }));
+  return res.json({ success: true, data });
+});
+
 router.get('/:id/overstay-chat', protect, authorize('resident', 'security'), async (req, res) => {
   const visitor = await Visitor.findById(req.params.id).select('residentId expectedDeparture actualExit');
   if (!visitor || !visitor.expectedDeparture || new Date(visitor.expectedDeparture) >= new Date()) return res.status(404).json({ success: false, error: 'Overstay conversation not found.' });

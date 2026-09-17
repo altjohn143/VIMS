@@ -477,6 +477,9 @@ const AdminPayments = () => {
     if (status === 'paid') {
       return <Chip icon={<CheckCircleIcon />} label="Paid" color="success" size="small" />;
     }
+    if (status === 'rejected') {
+      return <Chip icon={<CloseIcon />} label="Rejected — resubmission needed" color="error" size="small" />;
+    }
     if (dueDate && new Date() > new Date(dueDate)) {
       return <Chip icon={<WarningIcon />} label="Overdue" color="error" size="small" />;
     }
@@ -512,13 +515,17 @@ const AdminPayments = () => {
   };
 
   const getDisplayedPaymentMethod = (payment) => (
-    payment?.paymentMethod || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.paymentMethod)?.paymentMethod || null
+    payment?.status === 'rejected'
+      ? null
+      : payment?.paymentMethod || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.paymentMethod)?.paymentMethod || null
   );
 
   const getDisplayedReferenceNumber = (payment) => (
-    payment?.referenceNumber
-    || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.referenceNumber)?.referenceNumber
-    || null
+    payment?.status === 'rejected'
+      ? null
+      : payment?.referenceNumber
+        || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.referenceNumber)?.referenceNumber
+        || null
   );
 
   const getReceiptAiChip = (receiptAi) => {
@@ -796,6 +803,7 @@ const AdminPayments = () => {
                 <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status">
                   <MenuItem value="all">All</MenuItem>
                   <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
                   <MenuItem value="paid">Paid</MenuItem>
                   <MenuItem value="overdue">Overdue</MenuItem>
                 </Select>
@@ -995,7 +1003,7 @@ const AdminPayments = () => {
                       >
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
                           {/* Cash Payment Confirmation */}
-                          {payment.status === 'pending' && getDisplayedPaymentMethod(payment) === 'cash' && (
+                          {payment.status === 'pending' && payment.paymentMethod === 'cash' && (
                             <Button
                               size="small"
                               variant="contained"
@@ -1011,7 +1019,7 @@ const AdminPayments = () => {
                           )}
                           
                           {/* QRPh Payment Verification */}
-                          {payment.status === 'pending' && getDisplayedPaymentMethod(payment) === 'qrph' && (
+                          {payment.status === 'pending' && payment.paymentMethod === 'qrph' && (
                             <Button
                               size="small"
                               variant="contained"
@@ -1028,7 +1036,7 @@ const AdminPayments = () => {
                             </Button>
                           )}
 
-                          {payment.status === 'pending' && (getDisplayedPaymentMethod(payment) || getDisplayedReferenceNumber(payment) || payment.transactionId) && (
+                          {payment.status === 'pending' && (payment.paymentMethod || payment.referenceNumber || payment.transactionId) && (
                             <Button
                               size="small"
                               variant="outlined"

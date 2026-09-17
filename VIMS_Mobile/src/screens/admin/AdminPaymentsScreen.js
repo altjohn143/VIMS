@@ -377,6 +377,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
     if (status === 'paid') {
       return { label: 'Paid', color: themeColors.success, icon: 'checkmark-circle' };
     }
+    if (status === 'rejected') {
+      return { label: 'Rejected — resubmission needed', color: themeColors.error, icon: 'close-circle' };
+    }
     if (status === 'failed') {
       return { label: 'Failed', color: themeColors.error, icon: 'close-circle' };
     }
@@ -400,7 +403,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
   };
 
   const getDisplayedPaymentMethod = (payment) => (
-    payment?.paymentMethod || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.paymentMethod)?.paymentMethod || null
+    payment?.status === 'rejected'
+      ? null
+      : payment?.paymentMethod || payment?.paymentHistory?.slice().reverse().find((transaction) => transaction.paymentMethod)?.paymentMethod || null
   );
 
   const getReceiptAiMeta = (receiptAi) => {
@@ -670,7 +675,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
             </View>
             <Text style={styles.filterGroupLabel}>STATUS</Text>
             <View style={styles.wrappedFilters}>
-              {[['all', 'All statuses'], ['pending', 'Pending'], ['paid', 'Paid'], ['overdue', 'Overdue'], ['failed', 'Failed'], ['refunded', 'Refunded']].map(([value, label]) => (
+              {[['all', 'All statuses'], ['pending', 'Pending'], ['rejected', 'Rejected'], ['paid', 'Paid'], ['overdue', 'Overdue'], ['failed', 'Failed'], ['refunded', 'Refunded']].map(([value, label]) => (
                 <TouchableOpacity key={value} style={[styles.filterChip, statusFilter === value && styles.filterChipActive]} onPress={() => setStatusFilter(value)}>
                   <Text style={[styles.filterChipText, statusFilter === value && styles.filterChipTextActive]}>{label}</Text>
                 </TouchableOpacity>

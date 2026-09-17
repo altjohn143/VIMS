@@ -159,7 +159,7 @@ const Payments = () => {
   useEffect(() => {
     const visibleCount = activeTab === 0
       ? payments.length
-      : payments.filter(p => p.status === (activeTab === 1 ? 'pending' : 'paid')).length;
+      : payments.filter(p => activeTab === 1 ? ['pending', 'rejected'].includes(p.status) : p.status === 'paid').length;
 
     if (page > 0 && page * rowsPerPage >= visibleCount) {
       setPage(Math.max(0, Math.ceil(visibleCount / rowsPerPage) - 1));
@@ -412,6 +412,9 @@ const Payments = () => {
     if (status === 'paid') {
       return <Chip icon={<CheckCircleIcon />} label="Paid" color="success" size="small" />;
     }
+    if (status === 'rejected') {
+      return <Chip icon={<WarningIcon />} label="Rejected — submit again" color="error" size="small" />;
+    }
     if (dueDate && new Date() > new Date(dueDate)) {
       return <Chip icon={<WarningIcon />} label="Overdue" color="error" size="small" />;
     }
@@ -433,7 +436,7 @@ const Payments = () => {
 
   const filteredPayments = activeTab === 0 
     ? payments 
-    : payments.filter(p => p.status === (activeTab === 1 ? 'pending' : 'paid'));
+    : payments.filter(p => activeTab === 1 ? ['pending', 'rejected'].includes(p.status) : p.status === 'paid');
   const paginatedPayments = filteredPayments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
@@ -691,7 +694,7 @@ const Payments = () => {
 
           <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ mb: 2 }}>
             <Tab label={`All (${payments.length})`} />
-            <Tab label={`Pending (${payments.filter(p => p.status === 'pending').length})`} />
+            <Tab label={`Pending / Rejected (${payments.filter(p => ['pending', 'rejected'].includes(p.status)).length})`} />
             <Tab label={`Paid (${payments.filter(p => p.status === 'paid').length})`} />
           </Tabs>
 
@@ -848,7 +851,7 @@ const Payments = () => {
                           </Alert>
                         )}
                         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          {payment.status === 'pending' && (
+                          {['pending', 'rejected'].includes(payment.status) && (
                             <Button
                               size="small"
                               variant="contained"

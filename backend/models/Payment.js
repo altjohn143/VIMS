@@ -12,7 +12,7 @@ const paymentSchema = new mongoose.Schema({
   lastPenaltyCalculatedAt: { type: Date, default: null },
   paymentType: { type: String, enum: ['monthly_dues', 'special_assessment', 'service_fee', 'penalty', 'other'], default: 'monthly_dues' },
   paymentMethod: { type: String, enum: ['gcash', 'paymaya', 'qrph', 'cash', 'bank_transfer', 'check'], default: null },
-  status: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'paid', 'rejected', 'failed', 'refunded'], default: 'pending' },
   referenceNumber: { type: String, unique: true, sparse: true },
   transactionId: { type: String, sparse: true },
   paymentDate: { type: Date },

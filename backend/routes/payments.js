@@ -6,7 +6,7 @@ const { protect, authorize } = require('../middleware/auth');
 const { createInAppNotification } = require('../services/inAppNotificationService');
 const { sendPaymentReminderEmail, sendPaymentConfirmationEmail } = require('../services/notificationService');
 const { analyzeReceiptFraud } = require('../services/openaiReceiptFraudService');
-const { uploadImageBuffer } = require('../services/cloudinaryService');
+const { uploadImageBuffer, deleteImage } = require('../services/cloudinaryService');
 const { paginateQuery } = require('../utils/pagination');
 const {
   applyDailyPenalty,
@@ -717,6 +717,9 @@ router.put('/:id/confirm', protect, authorize('admin'), async (req, res) => {
     if (payment.status === 'paid') {
       return res.status(400).json({ success: false, error: 'Payment is already confirmed' });
     }
+    if (payment.status === 'rejected' || !hasSubmittedPaymentForReview(payment)) {
+      return res.status(400).json({ success: false, error: 'No current payment submission is awaiting review' });
+    }
 
     await applyDailyPenalty(payment);
     const outstandingBeforePayment = getOutstandingAmount(payment);
@@ -841,23 +844,23 @@ router.put('/:id/reject', protect, authorize('admin'), async (req, res) => {
 
     await applyDailyPenalty(payment);
 
-    const rejectedReferenceNumber = payment.referenceNumber || '';
-    const rejectedReceiptImage = payment.receiptImage || '';
-    const rejectedMethod = payment.paymentMethod || '';
-    const rejectedAmount = Number(payment.submittedAmount || 0);
+    const rejectedReceiptPublicId = payment.receiptImagePublicId;
 
+    // Keep a decision audit entry but do not retain the rejected receipt,
+    // reference number, or payment method on the invoice. A resubmission is a
+    // fresh payment attempt.
     payment.paymentHistory.push({
-      amount: rejectedAmount,
+      amount: 0,
       creditedAmount: 0,
-      paymentMethod: rejectedMethod,
-      referenceNumber: rejectedReferenceNumber,
+      paymentMethod: '',
+      referenceNumber: '',
       receiptNumber: '',
-      receiptImage: rejectedReceiptImage,
+      receiptImage: '',
       verifiedBy: req.user.id,
       notes: `Rejected: ${rejectionReason}`
     });
 
-    payment.status = 'pending';
+    payment.status = 'rejected';
     payment.paymentMethod = null;
     payment.referenceNumber = undefined;
     payment.transactionId = undefined;
@@ -874,6 +877,12 @@ router.put('/:id/reject', protect, authorize('admin'), async (req, res) => {
 
     syncPaymentAmounts(payment);
     await payment.save();
+
+    if (rejectedReceiptPublicId) {
+      deleteImage(rejectedReceiptPublicId).catch((error) => {
+        console.error(`Unable to remove rejected receipt for ${payment.invoiceNumber}:`, error.message);
+      });
+    }
 
     await createInAppNotification({
       userId: payment.residentId,

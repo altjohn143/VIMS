@@ -283,6 +283,9 @@ const PaymentsScreen = ({ navigation }) => {
     if (status === 'paid') {
       return { label: 'Paid', color: themeColors.success, icon: 'checkmark-circle' };
     }
+    if (status === 'rejected') {
+      return { label: 'Rejected — submit again', color: themeColors.error, icon: 'alert-circle' };
+    }
     if (dueDate && new Date() > new Date(dueDate)) {
       return { label: 'Overdue', color: themeColors.error, icon: 'warning' };
     }
@@ -291,7 +294,7 @@ const PaymentsScreen = ({ navigation }) => {
 
   const filteredPayments = activeTab === 0 
     ? payments 
-    : payments.filter(p => p.status === (activeTab === 1 ? 'pending' : 'paid'));
+    : payments.filter(p => activeTab === 1 ? ['pending', 'rejected'].includes(p.status) : p.status === 'paid');
   const paginatedPayments = filteredPayments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   useEffect(() => {
@@ -424,7 +427,7 @@ const PaymentsScreen = ({ navigation }) => {
           >
             <Ionicons name="time-outline" size={15} color={activeTab === 1 ? 'white' : themeColors.textSecondary} />
             <Text style={[styles.tabText, activeTab === 1 && styles.activeTabText]}>
-              Pending ({payments.filter(p => p.status === 'pending').length})
+              Pending / Rejected ({payments.filter(p => ['pending', 'rejected'].includes(p.status)).length})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -533,7 +536,7 @@ const PaymentsScreen = ({ navigation }) => {
                   </View>
                 )}
                 
-                {payment.status === 'pending' && (
+                {['pending', 'rejected'].includes(payment.status) && (
                   <TouchableOpacity
                     style={styles.payButton}
                     onPress={() => handlePayClick(payment)}

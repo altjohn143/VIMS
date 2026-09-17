@@ -102,7 +102,17 @@ const LoginScreen = ({ navigation }) => {
       const result = await login(email, password, selectedRole);
 
       if (!result.success) {
-        if (result.error?.includes('pending admin approval') || result.requiresApproval) {
+        if (result.errorType === 'timeout') {
+          Alert.alert(
+            'Connecting to VIMS',
+            'The VIMS server is taking longer than usual to respond. Please wait a moment and try again. Your password was not rejected.'
+          );
+        } else if (result.errorType === 'network') {
+          Alert.alert(
+            'Connection Problem',
+            'VIMS could not reach the server. Check your internet connection and try again. Your password was not rejected.'
+          );
+        } else if (result.error?.includes('pending admin approval') || result.requiresApproval) {
           Alert.alert(
             'Account Pending Approval',
             'Your account is waiting for admin approval. You will be notified once approved.',

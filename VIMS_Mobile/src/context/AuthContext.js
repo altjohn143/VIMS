@@ -24,7 +24,10 @@ const ROLE_SESSION_GRACE_MS = {
 };
 const DEFAULT_SESSION_GRACE_MS = ROLE_SESSION_GRACE_MS.resident;
 const AUTH_REFRESH_TIMEOUT_MS = 8000;
-const LOGIN_TIMEOUT_MS = 25000;
+// Render can take longer than 25 seconds to wake after inactivity. Login is
+// never retried automatically, so a longer single attempt avoids reporting a
+// healthy account as an invalid credential during a cold start.
+const LOGIN_TIMEOUT_MS = 60000;
 
 const getSessionGraceMs = (role) => ROLE_SESSION_GRACE_MS[role] || DEFAULT_SESSION_GRACE_MS;
 const isTransientAuthRefreshError = (error) => (
@@ -253,7 +256,11 @@ export const AuthProvider = ({ children }) => {
         };
       }
       
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error.message,
+        errorType: error.code === 'ECONNABORTED' || error.isTimeout ? 'timeout' : 'network'
+      };
     }
   };
 

@@ -696,7 +696,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     let timer = null;
-    const unsubscribe = websocketService.onDataChanged(() => {
+    const unsubscribe = websocketService.onDataChanged((change) => {
+      // Visitor pages and the overstay chat revalidate themselves. Remounting
+      // the entire page here would close an active resident/security chat.
+      if (change?.resource === 'visitors') return;
       clearTimeout(timer);
       timer = setTimeout(() => setLiveDataVersion((version) => version + 1), 250);
     });

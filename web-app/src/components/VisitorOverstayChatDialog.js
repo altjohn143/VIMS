@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import websocketService from '../utils/websocket';
 
 export default function VisitorOverstayChatDialog({ visitor, open, onClose }) {
   const { getCurrentUser } = useAuth();
@@ -10,12 +11,25 @@ export default function VisitorOverstayChatDialog({ visitor, open, onClose }) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const messageListRef = useRef(null);
   const load = async () => {
     if (!visitor?._id) return;
     setLoading(true);
     try { const response = await axios.get(`/api/visitors/${visitor._id}/overstay-chat`); setMessages(response.data?.data || []); } finally { setLoading(false); }
   };
   useEffect(() => { if (open) load(); }, [open, visitor?._id]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    return websocketService.onDataChanged((change) => {
+      if (change?.resource === 'visitors') load();
+    });
+  }, [open, visitor?._id]);
+
+  useEffect(() => {
+    const element = messageListRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [messages]);
   const send = async () => {
     if (!message.trim()) return;
     setSending(true);
@@ -25,7 +39,7 @@ export default function VisitorOverstayChatDialog({ visitor, open, onClose }) {
     <DialogTitle>Overstay chat — {visitor?.visitorName}</DialogTitle>
     <DialogContent>
       <Alert severity="warning" sx={{ mb: 2 }}>This conversation is only for the resident and security, and is linked to this visitor overstay.</Alert>
-      <Box sx={{ minHeight: 220, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.25, p: 0.5, bgcolor: '#f8fafc', borderRadius: 2 }}>
+      <Box ref={messageListRef} sx={{ minHeight: 220, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.25, p: 0.5, bgcolor: '#f8fafc', borderRadius: 2 }}>
         {loading ? <Typography>Loading messages…</Typography> : messages.length ? messages.map((row) => {
           const securityId = row.securityId?._id || row.securityId;
           const isSecurityMessage = row.senderRole === 'security';

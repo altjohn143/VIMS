@@ -360,7 +360,7 @@ api.interceptors.response.use(
     
     // Handle connection errors
     else if (error.code === 'ECONNABORTED') {
-      if (url !== '/auth/me') {
+      if (!['/auth/me', '/auth/login'].includes(url)) {
         Alert.alert('Timeout', 'Request took too long. Please check your connection.');
       }
     }
@@ -378,6 +378,10 @@ api.interceptors.response.use(
       });
       
       // Provide helpful error message based on URL
+      // Login provides a clearer, role-screen-specific connection message.
+      if (url === '/auth/login') {
+        return Promise.reject(error);
+      }
       if (BASE_URL.includes('localhost') || BASE_URL.includes('192.168')) {
         Alert.alert(
           'Connection Error', 

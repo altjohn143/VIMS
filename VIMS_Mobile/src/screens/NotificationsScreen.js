@@ -17,6 +17,7 @@ import api from '../utils/api';
 import { themeColors, shadows, roleLayouts } from '../utils/theme';
 import SecurityUtilityHeader from '../components/SecurityUtilityHeader';
 import { useAuth } from '../context/AuthContext';
+import websocketService from '../utils/websocket';
 
 const NotificationsScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -85,9 +86,10 @@ const NotificationsScreen = ({ navigation }) => {
     setProcessingAll(true);
     try {
       const res = await api.put('/notifications/read-all');
-      if (res.data?.success) {
+      if (res.data?.success && res.data?.count === 0) {
         const nowIso = new Date().toISOString();
         setRows((prev) => prev.map((n) => (n.readAt ? n : { ...n, readAt: nowIso })));
+        websocketService.markAllNotificationsRead();
       } else {
         Alert.alert('Error', res.data?.error || 'Failed to mark all as read');
       }

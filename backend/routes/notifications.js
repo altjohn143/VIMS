@@ -24,6 +24,25 @@ router.get('/unread-count', protect, async (req, res) => {
   }
 });
 
+// This must be registered before /:id/read. Otherwise Express treats
+// "read-all" as an ID, acknowledges the request, and leaves every record
+// unread in MongoDB. That caused the badge to return after the next login.
+router.put('/read-all', protect, async (req, res) => {
+  try {
+    const unreadCount = await Notification.countDocuments({ userId: req.user._id, readAt: null });
+    if (unreadCount > 0) {
+      await Notification.updateMany({ userId: req.user._id, readAt: null }, { $set: { readAt: new Date() } });
+      emitUnreadCountDelta(req.user._id, -unreadCount);
+    }
+    // Return an authoritative post-update value. Clients must never restore a
+    // badge from a previous local count after the user signs in again.
+    const remainingUnreadCount = await Notification.countDocuments({ userId: req.user._id, readAt: null });
+    res.json({ success: true, count: remainingUnreadCount, markedRead: unreadCount });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to mark all read' });
+  }
+});
+
 router.put('/:id/read', protect, async (req, res) => {
   try {
     const result = await Notification.updateOne({ _id: req.params.id, userId: req.user._id, readAt: null }, { $set: { readAt: new Date() } });
@@ -31,17 +50,6 @@ router.put('/:id/read', protect, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to mark read' });
-  }
-});
-
-router.put('/read-all', protect, async (req, res) => {
-  try {
-    const unreadCount = await Notification.countDocuments({ userId: req.user._id, readAt: null });
-    await Notification.updateMany({ userId: req.user._id, readAt: null }, { $set: { readAt: new Date() } });
-    if (unreadCount > 0) emitUnreadCountDelta(req.user._id, -unreadCount);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to mark all read' });
   }
 });
 

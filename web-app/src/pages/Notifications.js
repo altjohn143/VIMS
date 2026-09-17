@@ -22,6 +22,7 @@ import { ArrowBack as ArrowBackIcon, Notifications as NotificationsIcon } from '
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import websocketService from '../utils/websocket';
 
 const Notifications = () => {
   const themeColors = {
@@ -51,9 +52,17 @@ const Notifications = () => {
   useEffect(() => { load(); }, []);
 
   const markAll = async () => {
-    await axios.put('/api/notifications/read-all');
-    toast.success('Marked all as read');
-    load();
+    try {
+      const response = await axios.put('/api/notifications/read-all');
+      if (!response.data?.success || response.data.count !== 0) {
+        throw new Error(response.data?.error || 'Unable to verify all notifications were marked as read');
+      }
+      websocketService.markAllNotificationsRead();
+      toast.success('Marked all as read');
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.message || 'Failed to mark notifications as read');
+    }
   };
 
   const markRead = async (notification) => {

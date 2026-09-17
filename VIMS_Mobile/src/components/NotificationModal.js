@@ -80,7 +80,8 @@ const NotificationModal = ({ visible, onClose, navigation, onViewAll }) => {
     if (unreadCount === 0) return;
 
     try {
-      await api.put('/notifications/read-all');
+      const response = await api.put('/notifications/read-all');
+      if (!response.data?.success || response.data.count !== 0) throw new Error('Unable to verify all notifications were marked as read');
       setNotifications((prev) => prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() })));
       websocketService.markAllNotificationsRead();
     } catch (error) {

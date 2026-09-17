@@ -64,7 +64,8 @@ const websocketService = {
   },
 
   markAllNotificationsRead: () => {
-    if (socket?.connected) return;
+    // The API has already persisted the change. Reset this browser immediately
+    // as well; a delayed socket event must not leave a stale badge visible.
     countListeners.forEach((callback) => callback('reset'));
   },
 

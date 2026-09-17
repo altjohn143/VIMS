@@ -291,10 +291,19 @@ router.get('/overstay-chats', protect, authorize('resident', 'security'), async 
   return res.json({ success: true, data });
 });
 
+router.get('/overstay-chats/unread-count', protect, authorize('resident', 'security'), async (req, res) => {
+  const filter = req.user.role === 'resident'
+    ? { residentId: req.user._id, senderRole: 'security', readAt: null }
+    : { securityId: req.user._id, senderRole: 'resident', readAt: null };
+  const rows = await VisitorOverstayMessage.find(filter).populate({ path: 'visitorId', select: 'status expectedDeparture actualExit' }).lean();
+  return res.json({ success: true, count: rows.filter((row) => isVisitorCurrentlyOverstaying(row.visitorId)).length });
+});
+
 router.get('/:id/overstay-chat', protect, authorize('resident', 'security'), async (req, res) => {
   const visitor = await Visitor.findById(req.params.id).select('residentId status expectedDeparture actualExit');
   if (!isVisitorCurrentlyOverstaying(visitor)) return res.status(404).json({ success: false, error: 'Overstay conversation not found.' });
   if (req.user.role === 'resident' && String(visitor.residentId) !== String(req.user._id)) return res.status(403).json({ success: false, error: 'Not allowed to view this conversation.' });
+  await VisitorOverstayMessage.updateMany({ visitorId: visitor._id, senderRole: { $ne: req.user.role }, readAt: null }, { $set: { readAt: new Date() } });
   const messages = await VisitorOverstayMessage.find({ visitorId: visitor._id }).populate('securityId', 'firstName lastName').sort({ createdAt: 1 });
   return res.json({ success: true, data: messages });
 });

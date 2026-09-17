@@ -483,6 +483,7 @@ const Dashboard = () => {
   const [liveStats, setLiveStats] = useState({});
   const [notificationAnchor, setNotificationAnchor] = useState(null);
   const [overstayInboxOpen, setOverstayInboxOpen] = useState(false);
+  const [overstayUnreadCount, setOverstayUnreadCount] = useState(0);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [lotMapEditorNavVisible, setLotMapEditorNavVisible] = useState(false);
   const [liveDataVersion, setLiveDataVersion] = useState(0);
@@ -670,6 +671,13 @@ const Dashboard = () => {
     };
     loadNotifications();
   }, [user?.role, liveDataVersion]);
+
+  useEffect(() => {
+    if (!['resident', 'security'].includes(user?.role)) return;
+    const load = () => axios.get('/api/visitors/overstay-chats/unread-count').then((res) => setOverstayUnreadCount(res.data?.count || 0)).catch(() => setOverstayUnreadCount(0));
+    load();
+    return websocketService.onDataChanged((change) => { if (change?.resource === 'visitors') load(); });
+  }, [user?.role]);
 
   useEffect(() => {
     const unsubscribeCount = websocketService.onUnreadCountDelta((delta) => {
@@ -1689,7 +1697,7 @@ const Dashboard = () => {
             aria-label="Open overstay messages"
             sx={{ mr: 1, color: themeColors.textPrimary, '&:hover': { bgcolor: themeColors.primary + '10' } }}
           >
-            <ChatOutlinedIcon />
+            <Badge badgeContent={overstayUnreadCount} color="error"><ChatOutlinedIcon /></Badge>
           </IconButton>}
 
           <IconButton

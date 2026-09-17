@@ -2,7 +2,7 @@
   "expo": {
     "name": "VIMS Mobile",
     "slug": "vims-mobile-7euufkub27o94cpv6tbz",
-    "version": "1.0.0",
+    "version": "3.0.0",
     "icon": "./assets/app-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",

@@ -89,6 +89,14 @@ const PendingApproval = () => {
   }, [pendingStatus, registrationFromNav, email, user]);
 
   useEffect(() => {
+    const redirectTimer = window.setTimeout(async () => {
+      await logout();
+      navigate('/login', { replace: true });
+    }, 3000);
+    return () => window.clearTimeout(redirectTimer);
+  }, [logout, navigate]);
+
+  useEffect(() => {
     // Poll quickly so UI updates within seconds after ID upload/admin action.
     let stopped = false;
     const run = async () => {
@@ -337,6 +345,9 @@ const PendingApproval = () => {
           </Box>
 
           {/* Action Buttons */}
+          <Typography variant="caption" sx={{ display: 'block', color: themeColors.textSecondary, fontWeight: 700, mb: 2 }}>
+            Returning to resident login in 3 seconds…
+          </Typography>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
@@ -358,24 +369,6 @@ const PendingApproval = () => {
               Logout
             </Button>
             
-            <Button
-              variant="contained"
-              onClick={handleCheckStatus}
-              startIcon={<VerifiedIcon />}
-              sx={{
-                bgcolor: themeColors.primary,
-                borderRadius: 2,
-                textTransform: 'none',
-                px: 3,
-                py: 1,
-                '&:hover': {
-                  bgcolor: themeColors.primary + 'dd'
-                }
-              }}
-            >
-              Check Status
-            </Button>
-
             {pendingStatus?.isApproved && (
               <Button
                 variant="contained"

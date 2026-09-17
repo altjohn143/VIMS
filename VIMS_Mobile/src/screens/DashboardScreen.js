@@ -43,6 +43,7 @@ const DashboardScreen = ({ navigation }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [notificationModalVisible, setNotificationModalVisible] = useState(false);
   const [overstayInboxVisible, setOverstayInboxVisible] = useState(false);
+  const [overstayUnreadCount, setOverstayUnreadCount] = useState(0);
   const [assistantVisible, setAssistantVisible] = useState(false);
   const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
   const [residentOverview, setResidentOverview] = useState({ announcements: [], upcomingSchedules: [], pendingDues: 0, openServices: 0 });
@@ -219,6 +220,13 @@ const DashboardScreen = ({ navigation }) => {
       onCount: (count) => setUnreadCount(count),
     });
     return stop;
+  }, [user?.role]);
+
+  useEffect(() => {
+    if (!['resident', 'security'].includes(user?.role)) return;
+    const load = () => api.get('/visitors/overstay-chats/unread-count').then((res) => setOverstayUnreadCount(res.data?.count || 0)).catch(() => setOverstayUnreadCount(0));
+    load();
+    return websocketService.onDataChanged((change) => { if (change?.resource === 'visitors') load(); });
   }, [user?.role]);
 
   useEffect(() => {
@@ -639,6 +647,7 @@ const DashboardScreen = ({ navigation }) => {
           {(userToShow?.role === 'resident' || userToShow?.role === 'security') && (
             <TouchableOpacity style={styles.bellBtn} onPress={() => setOverstayInboxVisible(true)} accessibilityLabel="Open overstay messages">
               <Ionicons name="chatbubble-ellipses-outline" size={21} color={themeColors.textPrimary} />
+              {overstayUnreadCount > 0 && (<View style={styles.notificationBadge}><Text style={styles.notificationBadgeText}>{overstayUnreadCount > 9 ? '9+' : overstayUnreadCount}</Text></View>)}
             </TouchableOpacity>
           )}
           {/* Bell */}

@@ -11,7 +11,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { themeColors } from '../utils/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LogoutButton from '../components/LogoutButton';
 
 const PendingApprovalScreen = ({ navigation, route }) => {
   const { logout } = useAuth();
@@ -22,6 +21,14 @@ const PendingApprovalScreen = ({ navigation, route }) => {
   useEffect(() => {
     loadUser();
   }, []);
+
+  useEffect(() => {
+    const redirectTimer = setTimeout(async () => {
+      await logout();
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    }, 3000);
+    return () => clearTimeout(redirectTimer);
+  }, [logout, navigation]);
 
   const loadUser = async () => {
     try {
@@ -122,17 +129,7 @@ const PendingApprovalScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-<View style={styles.buttonContainer}>
-  <LogoutButton 
-    navigation={navigation} 
-    color={themeColors.textSecondary} 
-    size={20} 
-  />
-  <TouchableOpacity style={styles.checkButton} onPress={handleCheckStatus}>
-    <Ionicons name="checkmark-circle" size={20} color="white" />
-    <Text style={styles.checkButtonText}>Check Status</Text>
-  </TouchableOpacity>
-</View>
+        <Text style={styles.redirectText}>Returning to resident login in 3 seconds…</Text>
 
         <TouchableOpacity style={styles.contactLink} onPress={handleContactAdmin}>
           <Text style={styles.contactLinkText}>Need help? Contact admin</Text>
@@ -251,12 +248,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     flex: 1,
   },
-buttonContainer: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginBottom: 16,
-},
+  redirectText: { color: themeColors.warning, fontSize: 13, fontWeight: '700', textAlign: 'center', marginBottom: 16 },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -270,21 +262,6 @@ buttonContainer: {
   },
   logoutButtonText: {
     color: themeColors.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  checkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: themeColors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-  checkButtonText: {
-    color: 'white',
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,

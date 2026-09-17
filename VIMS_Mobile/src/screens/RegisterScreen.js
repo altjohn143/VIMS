@@ -1123,16 +1123,20 @@ const RegisterScreen = ({ navigation, route }) => {
           </Text>
           <TouchableOpacity
             accessibilityRole="checkbox"
-            accessibilityState={{ checked: privacyConsent }}
-            style={styles.privacyConsentRow}
+            accessibilityState={{ checked: privacyConsent, disabled: Boolean(registrationMode) }}
+            style={[styles.privacyConsentRow, registrationMode && styles.privacyConsentLocked]}
             onPress={() => {
+              if (registrationMode) return;
               setPrivacyConsent((value) => !value);
               setErrors((previous) => ({ ...previous, privacyConsent: '' }));
             }}
+            disabled={Boolean(registrationMode)}
           >
             <Ionicons name={privacyConsent ? 'checkbox' : 'square-outline'} size={23} color={privacyConsent ? themeColors.primary : themeColors.textSecondary} />
             <Text style={styles.privacyConsentText}>
-              I consent to VIMS collecting, using, storing, and processing my registration details and government-issued ID for resident registration, identity verification, and community administration, in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
+              {registrationMode
+                ? 'Data Privacy Agreement accepted and recorded for this registration.'
+                : 'I consent to VIMS collecting, using, storing, and processing my registration details and government-issued ID for resident registration, identity verification, and community administration, in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).'}
             </Text>
           </TouchableOpacity>
           {errors.privacyConsent ? <Text style={styles.errorText}>{errors.privacyConsent}</Text> : null}

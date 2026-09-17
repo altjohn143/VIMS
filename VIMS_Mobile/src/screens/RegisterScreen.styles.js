@@ -226,6 +226,7 @@ export const styles = StyleSheet.create({
   registrationIntroTitle: { fontSize: 18, fontWeight: '700', color: themeColors.textPrimary, marginBottom: 8 },
   registrationIntroSubtitle: { fontSize: 13, color: themeColors.textSecondary, lineHeight: 20, marginBottom: 14 },
   privacyConsentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
+  privacyConsentLocked: { opacity: 0.76 },
   privacyConsentText: { flex: 1, fontSize: 12, color: themeColors.textSecondary, lineHeight: 18 },
   modeCard: { backgroundColor: 'white', borderRadius: 14, borderWidth: 1, borderColor: themeColors.border, padding: 16, marginBottom: 12 },
   modeCardDisabled: { opacity: 0.55 },

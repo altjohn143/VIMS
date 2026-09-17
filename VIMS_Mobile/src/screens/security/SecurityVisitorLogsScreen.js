@@ -22,6 +22,10 @@ import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 import { getAuthToken } from '../../utils/secureSession';
 import VisitorOverstayChatModal from '../../components/VisitorOverstayChatModal';
 
+const isCurrentlyOverstaying = (visitor) => String(visitor?.qrStatus || '').toLowerCase() === 'overstayed' || (
+  ['approved', 'active'].includes(visitor?.status) && visitor?.expectedDeparture && !visitor?.actualExit && new Date(visitor.expectedDeparture) < new Date()
+);
+
 const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
   const [filteredVisitors, setFilteredVisitors] = useState([]);
@@ -618,7 +622,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
                   )}
                 </View>
 
-                {selectedVisitor.expectedDeparture && !selectedVisitor.actualExit && new Date(selectedVisitor.expectedDeparture) < new Date() && (
+                {isCurrentlyOverstaying(selectedVisitor) && (
                   <View style={styles.overstayActions}>
                     <TouchableOpacity style={styles.overstayFollowUpButton} onPress={() => alertResidentAboutOverstay(selectedVisitor)}>
                       <Ionicons name="alert-circle" size={18} color="#fff" />

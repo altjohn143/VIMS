@@ -1344,7 +1344,7 @@ const VisitorManagement = () => {
                                 <QrCodeIcon />
                               </IconButton>
                             )}
-                            {expired && !visitor.actualExit && (
+                            {(String(visitor.qrStatus || '').toLowerCase() === 'overstayed' || (['approved', 'active'].includes(visitor.status) && expired && !visitor.actualExit)) && (
                               <Button size="small" variant="outlined" color="warning" onClick={() => setOverstayChatVisitor(visitor)} sx={{ textTransform: 'none' }}>
                                 Security chat
                               </Button>

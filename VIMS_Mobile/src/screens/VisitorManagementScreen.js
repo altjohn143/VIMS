@@ -27,6 +27,9 @@ import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 import VisitorOverstayChatModal from '../components/VisitorOverstayChatModal';
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
+const isCurrentlyOverstaying = (visitor) => String(visitor?.qrStatus || '').toLowerCase() === 'overstayed' || (
+  ['approved', 'active'].includes(visitor?.status) && visitor?.expectedDeparture && !visitor?.actualExit && new Date(visitor.expectedDeparture) < new Date()
+);
 
 const getQrScanErrorMessage = (error) => {
   const serverMessage = error?.response?.data?.error;
@@ -693,7 +696,7 @@ const VisitorManagementScreen = ({ navigation }) => {
           <View style={styles.visitorFooter}>
             <Text style={styles.createdText}>Created: {formatDate(item.createdAt)}</Text>
             <View style={styles.actionButtons}>
-              {item.expectedDeparture && !item.actualExit && new Date(item.expectedDeparture) < new Date() && (
+              {isCurrentlyOverstaying(item) && (
                 <TouchableOpacity style={styles.overstayChatButton} onPress={() => setOverstayChatVisitor(item)}>
                   <Ionicons name="chatbubble-ellipses-outline" size={18} color={themeColors.warning} />
                   <Text style={styles.overstayChatButtonText}>Security chat</Text>

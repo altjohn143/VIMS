@@ -247,9 +247,17 @@ const notifyResidentOverstays = async (filter = {}) => {
   }
 };
 
+const isVisitorCurrentlyOverstaying = (visitor) => Boolean(
+  visitor &&
+  ['approved', 'active'].includes(visitor.status) &&
+  visitor.expectedDeparture &&
+  !visitor.actualExit &&
+  new Date(visitor.expectedDeparture) < new Date()
+);
+
 router.post('/:id/overstay-follow-up', protect, authorize('security'), async (req, res) => {
   const visitor = await Visitor.findById(req.params.id).populate('residentId', 'firstName lastName email');
-  if (!visitor || !visitor.expectedDeparture || visitor.actualExit || new Date(visitor.expectedDeparture) >= new Date()) {
+  if (!isVisitorCurrentlyOverstaying(visitor)) {
     return res.status(400).json({ success: false, error: 'This visitor is not currently overstaying.' });
   }
   const body = String(req.body?.message || `Security is following up because ${visitor.visitorName} has exceeded the expected departure time. Please confirm the visitor's status and arrange gate exit.`).trim();
@@ -269,12 +277,12 @@ router.get('/overstay-chats', protect, authorize('resident', 'security'), async 
     : { securityId: req.user._id };
   const rows = await VisitorOverstayMessage.find(filter)
     .sort({ createdAt: -1 })
-    .populate({ path: 'visitorId', select: 'visitorName visitorPhone expectedDeparture actualExit residentId' })
+    .populate({ path: 'visitorId', select: 'visitorName visitorPhone status expectedDeparture actualExit residentId' })
     .populate('residentId', 'firstName lastName houseNumber')
     .populate('securityId', 'firstName lastName')
     .lean();
   const seen = new Set();
-  const data = rows.filter((row) => row.visitorId && !seen.has(String(row.visitorId._id)) && seen.add(String(row.visitorId._id))).map((row) => ({
+  const data = rows.filter((row) => isVisitorCurrentlyOverstaying(row.visitorId) && !seen.has(String(row.visitorId._id)) && seen.add(String(row.visitorId._id))).map((row) => ({
     visitor: row.visitorId,
     lastMessage: { body: row.body, createdAt: row.createdAt, senderRole: row.senderRole },
     resident: row.residentId,
@@ -284,17 +292,17 @@ router.get('/overstay-chats', protect, authorize('resident', 'security'), async 
 });
 
 router.get('/:id/overstay-chat', protect, authorize('resident', 'security'), async (req, res) => {
-  const visitor = await Visitor.findById(req.params.id).select('residentId expectedDeparture actualExit');
-  if (!visitor || !visitor.expectedDeparture || new Date(visitor.expectedDeparture) >= new Date()) return res.status(404).json({ success: false, error: 'Overstay conversation not found.' });
+  const visitor = await Visitor.findById(req.params.id).select('residentId status expectedDeparture actualExit');
+  if (!isVisitorCurrentlyOverstaying(visitor)) return res.status(404).json({ success: false, error: 'Overstay conversation not found.' });
   if (req.user.role === 'resident' && String(visitor.residentId) !== String(req.user._id)) return res.status(403).json({ success: false, error: 'Not allowed to view this conversation.' });
   const messages = await VisitorOverstayMessage.find({ visitorId: visitor._id }).populate('securityId', 'firstName lastName').sort({ createdAt: 1 });
   return res.json({ success: true, data: messages });
 });
 
 router.post('/:id/overstay-chat', protect, authorize('resident', 'security'), async (req, res) => {
-  const visitor = await Visitor.findById(req.params.id).select('residentId expectedDeparture actualExit');
+  const visitor = await Visitor.findById(req.params.id).select('residentId status expectedDeparture actualExit');
   const body = String(req.body?.message || '').trim();
-  if (!visitor || !visitor.expectedDeparture || new Date(visitor.expectedDeparture) >= new Date()) return res.status(404).json({ success: false, error: 'Overstay conversation not found.' });
+  if (!isVisitorCurrentlyOverstaying(visitor)) return res.status(404).json({ success: false, error: 'Overstay conversation not found.' });
   if (!body || body.length > 1500) return res.status(400).json({ success: false, error: 'Message must be 1 to 1500 characters.' });
   if (req.user.role === 'resident' && String(visitor.residentId) !== String(req.user._id)) return res.status(403).json({ success: false, error: 'Not allowed to send in this conversation.' });
   const securityId = req.user.role === 'security' ? req.user._id : (await VisitorOverstayMessage.findOne({ visitorId: visitor._id }).sort({ createdAt: -1 }))?.securityId;

@@ -1719,11 +1719,14 @@ const SecurityVisitorLogs = () => {
             )}
           </DialogContent>
           <DialogActions sx={{ p: 3, borderTop: `1px solid ${themeColors.border}` }}>
-            {selectedVisitor?.expectedDeparture && !selectedVisitor?.actualExit && new Date(selectedVisitor.expectedDeparture) < new Date() && (
-              <Button variant="contained" color="warning" onClick={() => openOverstayFollowUp(selectedVisitor)} sx={{ mr: 'auto', textTransform: 'none', fontWeight: 700 }}>
-                Alert resident & start chat
+            {String(selectedVisitor?.qrStatus || '').toLowerCase() === 'overstayed' && <>
+              <Button variant="contained" color="warning" onClick={() => openOverstayFollowUp(selectedVisitor)} sx={{ mr: 1, textTransform: 'none', fontWeight: 700 }}>
+                Alert resident
               </Button>
-            )}
+              <Button variant="outlined" color="warning" onClick={() => setOverstayChatOpen(true)} sx={{ mr: 'auto', textTransform: 'none', fontWeight: 700 }}>
+                Open chat
+              </Button>
+            </>}
             <Button 
               onClick={() => setViewDialogOpen(false)}
               sx={{

@@ -338,6 +338,7 @@ const AdminPayments = () => {
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (paymentTypeFilter !== 'all') params.set('paymentType', paymentTypeFilter);
       if (paymentMethodFilter !== 'all') params.set('paymentMethod', paymentMethodFilter);
+      if (searchTerm.trim()) params.set('search', searchTerm.trim());
 
       const response = await fetch(getBackendApiUrl(`/api/payments?${params.toString()}`), {
         method: 'GET',

@@ -156,7 +156,6 @@ router.post('/generate', async (req, res) => {
 // Get all available (vacant) lots
 router.get('/available', async (req, res) => {
   try {
-    await cleanupUnassignedOccupiedLots();
     const filter = {
       status: 'vacant',
       lotId: { $nin: Object.keys(AMENITY_LOTS) },
@@ -187,7 +186,6 @@ router.get('/available', async (req, res) => {
 // Get all lots (for admin/map)
 router.get('/', async (req, res) => {
   try {
-    await cleanupUnassignedOccupiedLots();
     const filter = {};
     const { data: lots, pagination } = await paginateQuery(
       Lot.find(filter)
@@ -198,9 +196,10 @@ router.get('/', async (req, res) => {
       { defaultLimit: 1000, maxLimit: 1000 }
     );
 
-    for (const lot of lots) {
-      await normalizeUnassignedOccupiedLot(lot, true);
-    }
+    // A list endpoint must stay read-only. Normalize legacy amenity and
+    // unassigned-occupancy values in the response without issuing writes for
+    // every request (which is especially costly while a hosted database wakes).
+    await Promise.all(lots.map((lot) => normalizeUnassignedOccupiedLot(lot)));
     
     res.json({
       success: true,

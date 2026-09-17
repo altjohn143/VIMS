@@ -9,6 +9,12 @@ const debugLog = (...args) => {
   if (__DEV__) console.log(...args);
 };
 
+// Render may need a little time to wake after inactivity. These values apply
+// only to safe reads; requests that change data are never automatically retried.
+const DEFAULT_REQUEST_TIMEOUT_MS = 25000;
+const MOBILE_READ_TIMEOUT_MS = 60000;
+const MAX_SAFE_GET_RETRIES = 1;
+
 // ============================================
 // BACKEND CONFIGURATION
 // ============================================
@@ -151,9 +157,9 @@ export const API_BASE_URL = BASE_URL.replace(/\/api\/?$/, '');
 // Create axios instance with proper React Native adapter
 const api = axios.create({
   baseURL: BASE_URL,
-  // Individual operations can opt into a longer timeout. Keeping the default
-  // bounded prevents a stalled connection from holding the login UI for minutes.
-  timeout: 25000,
+  // Writes remain bounded; the request interceptor below gives default GET
+  // requests additional time for a deployed service to wake up.
+  timeout: DEFAULT_REQUEST_TIMEOUT_MS,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -259,6 +265,11 @@ if (Platform.OS !== 'web') {
 
 api.interceptors.request.use(
   async (config) => {
+    const method = String(config.method || 'get').toLowerCase();
+    if (method === 'get' && config.timeout === DEFAULT_REQUEST_TIMEOUT_MS) {
+      config.timeout = MOBILE_READ_TIMEOUT_MS;
+    }
+
     // If we're sending FormData, do NOT force JSON content-type.
     // Let the adapter handle multipart boundary
     const isFormData =
@@ -317,6 +328,22 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const url = error.config?.url;
     const message = error.response?.data?.error || error.message;
+    const method = String(error.config?.method || 'get').toLowerCase();
+    const retryCount = Number(error.config?._safeGetRetryCount || 0);
+    const isTransientReadFailure =
+      method === 'get' &&
+      !error.response &&
+      (error.code === 'ECONNABORTED' || error.isTimeout || !error.code);
+
+    // Retrying a GET is safe. Do this before showing an alert so an initial
+    // Render cold start does not surface as a failure to the user.
+    if (isTransientReadFailure && retryCount < MAX_SAFE_GET_RETRIES) {
+      error.config._safeGetRetryCount = retryCount + 1;
+      const retryDelayMs = 1500 * (retryCount + 1);
+      debugLog(`Retrying GET ${url} after ${retryDelayMs}ms (${retryCount + 1}/${MAX_SAFE_GET_RETRIES})`);
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      return api.request(error.config);
+    }
     
     console.error(`❌ API Error ${status || 'No Response'} ${url || 'Unknown URL'}`);
     console.error(`   Message: ${message}`);

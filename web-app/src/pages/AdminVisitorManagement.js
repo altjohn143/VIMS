@@ -261,6 +261,8 @@ const AdminVisitorManagement = () => {
 
       if (exportStartDate) params.set('startDate', exportStartDate);
       if (exportEndDate) params.set('endDate', exportEndDate);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (searchTerm.trim()) params.set('search', searchTerm.trim());
 
       const response = await fetch(getBackendApiUrl(`/api/visitors/admin/export?${params.toString()}`), {
         method: 'GET',

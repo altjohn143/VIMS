@@ -48,6 +48,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [approvalFilter, setApprovalFilter] = useState('all');
+  const [exportAccountStatus, setExportAccountStatus] = useState('active');
   const [viewFilter, setViewFilter] = useState('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -415,11 +416,9 @@ const AdminUserManagementScreen = ({ navigation }) => {
       const params = new URLSearchParams({
         format: fileFormat,
         timezoneOffset: String(new Date().getTimezoneOffset()),
+        accountStatus: exportAccountStatus,
       });
       if (roleFilter !== 'all') params.append('role', roleFilter);
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (approvalFilter !== 'all') params.append('approval', approvalFilter);
-      if (viewFilter !== 'all') params.append('view', viewFilter);
       if (searchQuery.trim()) params.append('search', searchQuery.trim());
       const download = await FileSystem.downloadAsync(
         `${baseUrl}/users/export?${params.toString()}`,
@@ -741,7 +740,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
         <View style={styles.directorySummaryItem}>
           <Text style={styles.directorySummaryValue}>{stats.residents}</Text>
           <Text style={styles.directorySummaryLabel}>Residents</Text>
-        </View>
+      </View>
         <View style={styles.directorySummaryDivider} />
         <View style={styles.directorySummaryItem}>
           <Text style={styles.directorySummaryValue}>{stats.admin + stats.security}</Text>
@@ -752,7 +751,23 @@ const AdminUserManagementScreen = ({ navigation }) => {
           <Text style={[styles.directorySummaryValue, { color: themeColors.warning }]}>{stats.pending}</Text>
           <Text style={styles.directorySummaryLabel}>Pending</Text>
         </View>
-      </View>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.exportStatusScroll}>
+          {[
+            ['active', 'Export active'],
+            ['pending', 'Export pending'],
+            ['deactivated', 'Export deactivated'],
+          ].map(([value, label]) => (
+            <TouchableOpacity
+              key={value}
+              style={[styles.filterChip, exportAccountStatus === value && styles.activeFilter]}
+              onPress={() => setExportAccountStatus(value)}
+            >
+              <Text style={[styles.filterText, exportAccountStatus === value && styles.activeFilterText]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
       <View style={styles.filterContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.viewFilterScroll}>
@@ -1718,6 +1733,7 @@ const styles = StyleSheet.create({
   directorySummaryValue: { color: themeColors.primaryDeep, fontSize: 18, fontWeight: '900' },
   directorySummaryLabel: { color: themeColors.textSecondary, fontSize: 10, fontWeight: '800', marginTop: 2 },
   directorySummaryDivider: { width: 1, height: 28, backgroundColor: themeColors.border },
+  exportStatusScroll: { marginBottom: 8 },
   viewFilterScroll: { marginBottom: 8 },
   viewChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, marginRight: 7, backgroundColor: themeColors.surfaceMuted, borderWidth: 1, borderColor: themeColors.border },
   viewChipActive: { backgroundColor: themeColors.primaryDeep, borderColor: themeColors.primaryDeep },

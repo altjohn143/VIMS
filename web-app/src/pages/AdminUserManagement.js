@@ -102,6 +102,7 @@ const AdminUserManagement = () => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [approvalFilter, setApprovalFilter] = useState('all');
+  const [exportAccountStatus, setExportAccountStatus] = useState('active');
   const [activeTab, setActiveTab] = useState(0);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -705,13 +706,13 @@ const AdminUserManagement = () => {
   const handleExportFile = async (fileFormat = 'pdf') => {
     try {
       const timezoneOffset = new Date().getTimezoneOffset();
-      const params = new URLSearchParams({ format: fileFormat, timezoneOffset: String(timezoneOffset) });
+      const params = new URLSearchParams({
+        format: fileFormat,
+        timezoneOffset: String(timezoneOffset),
+        accountStatus: exportAccountStatus
+      });
       if (roleFilter !== 'all') params.set('role', roleFilter);
-      if (statusFilter !== 'all') params.set('status', statusFilter);
-      if (approvalFilter !== 'all') params.set('approval', approvalFilter);
       if (searchQuery.trim()) params.set('search', searchQuery.trim());
-      const views = ['all', 'residents', 'pending', 'moveout', 'staff', 'inactive'];
-      if (views[activeTab] && views[activeTab] !== 'all') params.set('view', views[activeTab]);
       const response = await fetch(getBackendApiUrl(`/api/users/export?${params.toString()}`), {
         method: 'GET',
         headers: {
@@ -1154,7 +1155,21 @@ const AdminUserManagement = () => {
         </Paper>
 
         {/* Export Toolbar */}
-        <Box sx={{ mt: 2, mb: 2 }}>
+        <Box sx={{ mt: 2, mb: 2, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          <FormControl size="small" sx={{ minWidth: 210 }}>
+            <InputLabel id="export-account-status-label">Export accounts</InputLabel>
+            <Select
+              labelId="export-account-status-label"
+              value={exportAccountStatus}
+              onChange={(event) => setExportAccountStatus(event.target.value)}
+              label="Export accounts"
+              sx={{ borderRadius: 2 }}
+            >
+              <MenuItem value="active">Active accounts</MenuItem>
+              <MenuItem value="pending">Pending approval</MenuItem>
+              <MenuItem value="deactivated">Deactivated accounts</MenuItem>
+            </Select>
+          </FormControl>
           <ReportToolbar onExportPdf={() => handleExportFile('pdf')} onExportCsv={() => handleExportFile('csv')} />
         </Box>
 

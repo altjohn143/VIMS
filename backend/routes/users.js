@@ -1247,6 +1247,7 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
       status,
       approval,
       view,
+      accountStatus = 'active',
       search,
       startDate,
       endDate,
@@ -1305,6 +1306,23 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
         end.setHours(23, 59, 59, 999);
         filter.createdAt.$lte = end;
       }
+    }
+
+    // Account-status selection is deliberately applied last so an export is
+    // never widened by a conflicting page tab or filter.
+    delete filter.isActive;
+    delete filter.isApproved;
+    delete filter.approvalStatus;
+    if (accountStatus === 'pending') {
+      filter.isApproved = false;
+      filter.approvalStatus = 'pending';
+    } else if (accountStatus === 'deactivated') {
+      filter.isActive = false;
+      filter.isApproved = true;
+    } else {
+      // Default to the active directory when the endpoint is called directly.
+      filter.isActive = true;
+      filter.isApproved = true;
     }
 
     const users = await User.find(filter).sort({ createdAt: -1 });

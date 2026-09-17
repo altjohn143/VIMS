@@ -316,25 +316,50 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
         Monitor assigned personnel, patrol coverage, and reports under your supervision.
       </Typography>
 
-      <Grid container spacing={2} sx={{ mb: 2.5 }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(5, minmax(0, 1fr))' },
+          gap: 1.5
+        }}
+      >
         {stats.map((stat) => (
-          <Grid item xs={12} sm={6} md={2.4} key={stat.label}>
-            <Paper sx={{ p: 2, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                <Avatar sx={{ bgcolor: `${stat.color}20`, color: stat.color }}>{stat.icon}</Avatar>
-                <Box>
-                  <Typography sx={{ fontSize: '1.45rem', fontWeight: 900, color: themeColors.textPrimary }}>
-                    {stat.value}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.8rem', color: themeColors.textSecondary, fontWeight: 700 }}>
-                    {stat.label}
-                  </Typography>
-                </Box>
-              </Box>
-            </Paper>
-          </Grid>
+          <Paper
+            key={stat.label}
+            elevation={0}
+            sx={{
+              minHeight: 118,
+              height: '100%',
+              p: 1.65,
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: 2.5,
+              border: `1px solid ${stat.color}30`,
+              background: `linear-gradient(145deg, #ffffff 0%, ${stat.color}0c 100%)`,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              transition: 'transform .18s ease, box-shadow .18s ease',
+              '&:hover': { transform: 'translateY(-3px)', boxShadow: `0 10px 24px ${stat.color}20` },
+              '&::after': { content: '""', position: 'absolute', width: 70, height: 70, right: -24, bottom: -30, borderRadius: '50%', bgcolor: `${stat.color}14` }
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
+              <Avatar sx={{ width: 38, height: 38, bgcolor: `${stat.color}18`, color: stat.color, border: `1px solid ${stat.color}30` }}>
+                {stat.icon}
+              </Avatar>
+              <Typography sx={{ fontSize: '1.7rem', lineHeight: 1, fontWeight: 900, color: themeColors.textPrimary }}>
+                {stat.value}
+              </Typography>
+            </Box>
+            <Box sx={{ zIndex: 1 }}>
+              <Typography sx={{ fontSize: '.78rem', color: themeColors.textPrimary, fontWeight: 900 }}>{stat.label}</Typography>
+              <Typography sx={{ fontSize: '.65rem', color: themeColors.textSecondary, fontWeight: 700, mt: .2 }}>Live team overview</Typography>
+            </Box>
+          </Paper>
         ))}
-      </Grid>
+      </Box>
 
       {renderView()}
 

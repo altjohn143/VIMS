@@ -7,6 +7,20 @@ const visitorSchema = new mongoose.Schema({
     required: true
   },
 
+  // Stored separately so visitor records retain the structured name entered
+  // during pass creation. `visitorName` remains the display/search name.
+  visitorFirstName: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+
+  visitorLastName: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+
   visitorName: {
     type: String,
     required: [true, 'Visitor name is required'],

@@ -90,7 +90,8 @@ const VisitorManagement = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [cancellingVisitorId, setCancellingVisitorId] = useState(null);
   const [formData, setFormData] = useState({
-    visitorName: '',
+    visitorFirstName: '',
+    visitorLastName: '',
     visitorPhone: '',
     vehicleNumber: '',
     purpose: '',
@@ -100,7 +101,8 @@ const VisitorManagement = () => {
     specialNotes: ''
   });
   const [formErrors, setFormErrors] = useState({
-    visitorName: '',
+    visitorFirstName: '',
+    visitorLastName: '',
     visitorPhone: ''
   });
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
@@ -249,7 +251,7 @@ const VisitorManagement = () => {
     const { name, value } = e.target;
     
     let error = '';
-    if (name === 'visitorName') {
+    if (name === 'visitorFirstName' || name === 'visitorLastName') {
       const filteredValue = value.replace(/[^A-Za-z\s]/g, '');
       setFormData(prev => ({ ...prev, [name]: filteredValue }));
       error = validateName(filteredValue);
@@ -267,15 +269,17 @@ const VisitorManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const nameError = validateName(formData.visitorName);
+    const firstNameError = validateName(formData.visitorFirstName);
+    const lastNameError = validateName(formData.visitorLastName);
     const phoneError = validatePhone(formData.visitorPhone);
     
     setFormErrors({
-      visitorName: nameError,
+      visitorFirstName: firstNameError,
+      visitorLastName: lastNameError,
       visitorPhone: phoneError
     });
     
-    if (nameError || phoneError) {
+    if (firstNameError || lastNameError || phoneError) {
       toast.error('Please fix the form errors before submitting');
       return;
     }
@@ -299,7 +303,8 @@ const VisitorManagement = () => {
         toast.success('Visitor pass created successfully!');
         setOpenDialog(false);
         setFormData({
-          visitorName: '',
+          visitorFirstName: '',
+          visitorLastName: '',
           visitorPhone: '',
           vehicleNumber: '',
           purpose: '',
@@ -309,7 +314,8 @@ const VisitorManagement = () => {
           specialNotes: ''
         });
         setFormErrors({
-          visitorName: '',
+          visitorFirstName: '',
+          visitorLastName: '',
           visitorPhone: ''
         });
         fetchMyVisitors();
@@ -1500,14 +1506,14 @@ const VisitorManagement = () => {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Visitor Name"
-                    name="visitorName"
-                    value={formData.visitorName}
+                    label="Visitor First Name"
+                    name="visitorFirstName"
+                    value={formData.visitorFirstName}
                     onChange={handleInputChange}
                     required
                     margin="normal"
-                    error={!!formErrors.visitorName}
-                    helperText={formErrors.visitorName || "Letters and spaces only"}
+                    error={!!formErrors.visitorFirstName}
+                    helperText={formErrors.visitorFirstName || "Letters and spaces only"}
                     inputProps={{
                       pattern: "[A-Za-z\\s]+",
                       title: "Only letters and spaces are allowed"
@@ -1533,6 +1539,45 @@ const VisitorManagement = () => {
                         '&.Mui-focused': {
                           color: themeColors.primary
                         }
+                      }
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Visitor Last Name"
+                    name="visitorLastName"
+                    value={formData.visitorLastName}
+                    onChange={handleInputChange}
+                    required
+                    margin="normal"
+                    error={!!formErrors.visitorLastName}
+                    helperText={formErrors.visitorLastName || "Letters and spaces only"}
+                    inputProps={{
+                      pattern: "[A-Za-z\\s]+",
+                      title: "Only letters and spaces are allowed"
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PersonIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        borderRadius: 2,
+                        backgroundColor: '#f8fafc',
+                        '&.Mui-focused': {
+                          borderColor: themeColors.primary,
+                          boxShadow: `0 0 0 3px ${themeColors.primary}20`
+                        }
+                      }
+                    }}
+                    InputLabelProps={{
+                      sx: {
+                        color: themeColors.textSecondary,
+                        '&.Mui-focused': { color: themeColors.primary }
                       }
                     }}
                   />

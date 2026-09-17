@@ -383,7 +383,8 @@ router.get('/security/dashboard', protect, authorize('security'), async (req, re
 router.post('/', protect, authorize('resident'), async (req, res) => {
   try {
     const {
-      visitorName,
+      visitorFirstName,
+      visitorLastName,
       visitorPhone,
       vehicleNumber,
       purpose,
@@ -392,10 +393,21 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
       numberOfCompanions = 0
     } = req.body;
 
-    if (!visitorName || !visitorPhone || !purpose || !expectedArrival || !expectedDeparture) {
+    const normalizedFirstName = String(visitorFirstName || '').trim().replace(/\s+/g, ' ');
+    const normalizedLastName = String(visitorLastName || '').trim().replace(/\s+/g, ' ');
+    const visitorName = `${normalizedFirstName} ${normalizedLastName}`.trim();
+
+    if (!normalizedFirstName || !normalizedLastName || !visitorPhone || !purpose || !expectedArrival || !expectedDeparture) {
       return res.status(400).json({
         success: false,
-        error: 'All required fields must be provided'
+        error: 'Visitor first name, last name, phone, purpose, and visit schedule are required'
+      });
+    }
+
+    if (!/^[A-Za-z\s]+$/.test(normalizedFirstName) || !/^[A-Za-z\s]+$/.test(normalizedLastName)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Visitor first and last names can only contain letters and spaces'
       });
     }
 
@@ -436,6 +448,8 @@ router.post('/', protect, authorize('resident'), async (req, res) => {
     
      const visitor = await Visitor.create({
       residentId: req.user.id,
+      visitorFirstName: normalizedFirstName,
+      visitorLastName: normalizedLastName,
       visitorName,
       visitorPhone,
       vehicleNumber: vehicleNumber || '',

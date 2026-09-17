@@ -24,10 +24,10 @@ const ROLE_SESSION_GRACE_MS = {
 };
 const DEFAULT_SESSION_GRACE_MS = ROLE_SESSION_GRACE_MS.resident;
 const AUTH_REFRESH_TIMEOUT_MS = 8000;
-// Render can take longer than 25 seconds to wake after inactivity. Login is
-// never retried automatically, so a longer single attempt avoids reporting a
-// healthy account as an invalid credential during a cold start.
-const LOGIN_TIMEOUT_MS = 60000;
+// A Render service can take more than a minute to wake after inactivity. The
+// health check below wakes it without submitting credentials; the login itself
+// then receives the same bounded response window.
+const LOGIN_TIMEOUT_MS = 90000;
 
 const getSessionGraceMs = (role) => ROLE_SESSION_GRACE_MS[role] || DEFAULT_SESSION_GRACE_MS;
 const isTransientAuthRefreshError = (error) => (
@@ -212,6 +212,12 @@ export const AuthProvider = ({ children }) => {
         password: password,
         expectedRole
       };
+
+      // Wake the deployed API before sending a password. This prevents a
+      // Render cold start from aborting a credential request on Android or iOS.
+      // It is deliberately not retried: the login request below is sent once.
+      debugLog('Checking VIMS server readiness before login');
+      await api.get('/health', { timeout: LOGIN_TIMEOUT_MS });
 
       // Do not retry a timed-out credential submission: the original request may
       // still be executing, and duplicating it adds avoidable load at peak times.

@@ -109,7 +109,8 @@ const VisitorManagementScreen = ({ navigation }) => {
   const [cancellingVisitorId, setCancellingVisitorId] = useState(null);
 
   const [formData, setFormData] = useState({
-    visitorName: '',
+    visitorFirstName: '',
+    visitorLastName: '',
     visitorPhone: '',
     vehicleNumber: '',
     purpose: '',
@@ -185,7 +186,7 @@ const VisitorManagementScreen = ({ navigation }) => {
   };
 
   const handleInputChange = (field, value) => {
-    if (field === 'visitorName') {
+    if (field === 'visitorFirstName' || field === 'visitorLastName') {
       const filtered = value.replace(/[^A-Za-z\s]/g, '');
       setFormData(prev => ({ ...prev, [field]: filtered }));
       setFormErrors(prev => ({ ...prev, [field]: validateName(filtered) }));
@@ -260,11 +261,12 @@ const VisitorManagementScreen = ({ navigation }) => {
   };
 
   const handleCreateVisitor = async () => {
-    const nameError = validateName(formData.visitorName);
+    const firstNameError = validateName(formData.visitorFirstName);
+    const lastNameError = validateName(formData.visitorLastName);
     const phoneError = validatePhone(formData.visitorPhone);
 
-    if (nameError || phoneError) {
-      setFormErrors({ visitorName: nameError, visitorPhone: phoneError });
+    if (firstNameError || lastNameError || phoneError) {
+      setFormErrors({ visitorFirstName: firstNameError, visitorLastName: lastNameError, visitorPhone: phoneError });
       Alert.alert('Error', 'Please fix the form errors');
       return;
     }
@@ -297,7 +299,8 @@ const VisitorManagementScreen = ({ navigation }) => {
 
   const resetForm = () => {
     setFormData({
-      visitorName: '',
+      visitorFirstName: '',
+      visitorLastName: '',
       visitorPhone: '',
       vehicleNumber: '',
       purpose: '',
@@ -810,17 +813,31 @@ const VisitorManagementScreen = ({ navigation }) => {
 
           <ScrollView style={styles.modalContent}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Visitor Name *</Text>
-              <View style={[styles.inputContainer, formErrors.visitorName && styles.inputError]}>
+              <Text style={styles.label}>Visitor First Name *</Text>
+              <View style={[styles.inputContainer, formErrors.visitorFirstName && styles.inputError]}>
                 <Ionicons name="person" size={20} color={themeColors.textSecondary} />
                 <TextInput
                   style={styles.input}
-                  value={formData.visitorName}
-                  onChangeText={(text) => handleInputChange('visitorName', text)}
-                  placeholder="Enter visitor's full name"
+                  value={formData.visitorFirstName}
+                  onChangeText={(text) => handleInputChange('visitorFirstName', text)}
+                  placeholder="Enter first name"
                 />
               </View>
-              {formErrors.visitorName ? <Text style={styles.errorText}>{formErrors.visitorName}</Text> : null}
+              {formErrors.visitorFirstName ? <Text style={styles.errorText}>{formErrors.visitorFirstName}</Text> : null}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Visitor Last Name *</Text>
+              <View style={[styles.inputContainer, formErrors.visitorLastName && styles.inputError]}>
+                <Ionicons name="person" size={20} color={themeColors.textSecondary} />
+                <TextInput
+                  style={styles.input}
+                  value={formData.visitorLastName}
+                  onChangeText={(text) => handleInputChange('visitorLastName', text)}
+                  placeholder="Enter last name"
+                />
+              </View>
+              {formErrors.visitorLastName ? <Text style={styles.errorText}>{formErrors.visitorLastName}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>

@@ -54,7 +54,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
   };
   const [processing, setProcessing] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all');
+  // Finance opens on completed collections so pending invoices do not appear
+  // until an administrator explicitly changes the status filter.
+  const [statusFilter, setStatusFilter] = useState('paid');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [paymentStartDate, setPaymentStartDate] = useState('');
@@ -332,7 +334,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const clearPaymentFilters = () => {
     setSearchDraft('');
     setSearchQuery('');
-    setStatusFilter('all');
+    setStatusFilter('paid');
     setPaymentTypeFilter('all');
     setPaymentMethodFilter('all');
     setPaymentStartDate('');

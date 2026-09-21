@@ -88,7 +88,9 @@ const AdminPayments = () => {
   const [summary, setSummary] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  // Finance opens on completed collections so pending invoices do not appear
+  // until an administrator explicitly changes the status filter.
+  const [statusFilter, setStatusFilter] = useState('paid');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState(null);

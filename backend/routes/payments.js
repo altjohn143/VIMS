@@ -566,6 +566,16 @@ let payments = await Payment.find(filter)
       .sort({ createdAt: -1 });
     await applyDailyPenalties(payments);
 
+    // In the default finance view, put submissions needing an admin decision
+    // before completed invoices. This makes Approve/Reject work immediately visible.
+    if (status === 'paid_or_action_required') {
+      payments.sort((first, second) => {
+        const firstNeedsAction = first.status === 'pending' && hasSubmittedPaymentForReview(first);
+        const secondNeedsAction = second.status === 'pending' && hasSubmittedPaymentForReview(second);
+        return Number(secondNeedsAction) - Number(firstNeedsAction);
+      });
+    }
+
     const searchText = String(search || '').trim().toLowerCase();
     if (searchText) {
       payments = payments.filter((payment) => {

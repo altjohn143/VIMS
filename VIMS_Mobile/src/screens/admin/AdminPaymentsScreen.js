@@ -54,9 +54,9 @@ const AdminPaymentsScreen = ({ navigation }) => {
   };
   const [processing, setProcessing] = useState(false);
   const [exporting, setExporting] = useState(false);
-  // Finance opens on completed collections so pending invoices do not appear
-  // until an administrator explicitly changes the status filter.
-  const [statusFilter, setStatusFilter] = useState('paid');
+  // Finance opens on completed collections plus payment submissions awaiting
+  // an administrator's approval or rejection.
+  const [statusFilter, setStatusFilter] = useState('paid_or_action_required');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [paymentStartDate, setPaymentStartDate] = useState('');
@@ -334,7 +334,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const clearPaymentFilters = () => {
     setSearchDraft('');
     setSearchQuery('');
-    setStatusFilter('paid');
+    setStatusFilter('paid_or_action_required');
     setPaymentTypeFilter('all');
     setPaymentMethodFilter('all');
     setPaymentStartDate('');
@@ -677,7 +677,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
             </View>
             <Text style={styles.filterGroupLabel}>STATUS</Text>
             <View style={styles.wrappedFilters}>
-              {[['all', 'All statuses'], ['pending', 'Pending'], ['rejected', 'Rejected'], ['paid', 'Paid'], ['overdue', 'Overdue'], ['failed', 'Failed'], ['refunded', 'Refunded']].map(([value, label]) => (
+              {[['paid_or_action_required', 'Paid & action required'], ['all', 'All statuses'], ['pending', 'Pending'], ['rejected', 'Rejected'], ['paid', 'Paid'], ['overdue', 'Overdue'], ['failed', 'Failed'], ['refunded', 'Refunded']].map(([value, label]) => (
                 <TouchableOpacity key={value} style={[styles.filterChip, statusFilter === value && styles.filterChipActive]} onPress={() => setStatusFilter(value)}>
                   <Text style={[styles.filterChipText, statusFilter === value && styles.filterChipTextActive]}>{label}</Text>
                 </TouchableOpacity>

@@ -534,7 +534,22 @@ router.get('/', protect, authorize('admin'), async (req, res) => {
     } = req.query;
     const timezoneOffsetMinutes = Number.parseInt(timezoneOffset, 10) || 0;
     let filter = {};
-    if (status === 'overdue') {
+    if (status === 'paid_or_action_required') {
+      // The finance default shows completed invoices and payment submissions
+      // that an administrator can approve or reject, not ordinary unpaid dues.
+      filter.$or = [
+        { status: 'paid' },
+        {
+          status: 'pending',
+          $or: [
+            { referenceNumber: { $exists: true, $ne: '' } },
+            { transactionId: { $exists: true, $ne: '' } },
+            { paymongoSessionId: { $exists: true, $ne: '' } },
+            { paymongoSourceId: { $exists: true, $ne: '' } }
+          ]
+        }
+      ];
+    } else if (status === 'overdue') {
       filter.status = 'pending';
       filter.dueDate = { $lt: new Date() };
     } else if (status) {

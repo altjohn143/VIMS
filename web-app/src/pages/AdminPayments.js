@@ -88,9 +88,9 @@ const AdminPayments = () => {
   const [summary, setSummary] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
-  // Finance opens on completed collections so pending invoices do not appear
-  // until an administrator explicitly changes the status filter.
-  const [statusFilter, setStatusFilter] = useState('paid');
+  // Finance opens on completed collections plus payment submissions awaiting
+  // an administrator's approval or rejection.
+  const [statusFilter, setStatusFilter] = useState('paid_or_action_required');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState(null);
@@ -803,6 +803,7 @@ const AdminPayments = () => {
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
                 <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status">
+                  <MenuItem value="paid_or_action_required">Paid & Action Required</MenuItem>
                   <MenuItem value="all">All</MenuItem>
                   <MenuItem value="pending">Pending</MenuItem>
                   <MenuItem value="rejected">Rejected</MenuItem>

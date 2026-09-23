@@ -490,6 +490,12 @@ const Dashboard = () => {
   const lotMapEditorSequenceRef = useRef('');
   const { logout, getCurrentUser } = useAuth();
 
+  // A temporary drawer must never reserve desktop sidebar space. Keeping the
+  // old margin on phones/tablets compressed content and left controls offset.
+  useEffect(() => {
+    setSidebarOpen(!isMobile);
+  }, [isMobile]);
+
   // Live Monthly Collection state and logic for resident dashboard
   const [monthlyCollection, setMonthlyCollection] = useState(null);
   const [collectionLoading, setCollectionLoading] = useState(false);
@@ -1863,7 +1869,7 @@ const Dashboard = () => {
           ...screenFade,
           flexGrow: 1,
           minHeight: '100vh',
-          ml: sidebarOpen ? `${SIDEBAR_WIDTH}px` : `${MINI_SIDEBAR_WIDTH}px`,
+          ml: isMobile ? 0 : (sidebarOpen ? `${SIDEBAR_WIDTH}px` : `${MINI_SIDEBAR_WIDTH}px`),
           transition: theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen

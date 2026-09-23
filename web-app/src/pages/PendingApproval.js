@@ -104,6 +104,14 @@ const PendingApproval = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email]);
 
+  // Identity verification and resident approval are separate. Only send the
+  // resident to sign in after an administrator has approved the account.
+  useEffect(() => {
+    if (!pendingStatus?.isApproved) return;
+    logout();
+    navigate('/login', { replace: true });
+  }, [pendingStatus?.isApproved, logout, navigate]);
+
   async function fetchStatus() {
     if (!email) return;
     setStatusError('');
@@ -337,9 +345,6 @@ const PendingApproval = () => {
           </Box>
 
           {/* Action Buttons */}
-          <Typography variant="caption" sx={{ display: 'block', color: themeColors.textSecondary, fontWeight: 700, mb: 2 }}>
-            Returning to resident login in 3 seconds…
-          </Typography>
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button
               variant="outlined"

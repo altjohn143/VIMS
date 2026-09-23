@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,16 +11,44 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { themeColors } from '../utils/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../utils/api';
 
 const PendingApprovalScreen = ({ navigation, route }) => {
   const { logout } = useAuth();
   const [user, setUser] = useState(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const approvalAlertShown = useRef(false);
 
   const registration = route?.params?.registration;
 
   useEffect(() => {
     loadUser();
   }, []);
+
+  useEffect(() => {
+    const checkApproval = async () => {
+      const email = registration?.email || user?.email;
+      if (!email) return;
+      try {
+        const response = await api.post('/auth/pending-status', { email });
+        if (response.data?.success && response.data?.data?.isApproved && !approvalAlertShown.current) {
+          approvalAlertShown.current = true;
+          Alert.alert('Account approved', 'Your resident account is approved. Please sign in to continue.', [{
+            text: 'Go to Resident Login',
+            onPress: async () => {
+              await logout();
+              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            }
+          }]);
+        }
+      } catch (error) {
+        console.warn('Unable to check pending approval status:', error?.message);
+      }
+    };
+    checkApproval();
+    const intervalId = setInterval(checkApproval, 8000);
+    return () => clearInterval(intervalId);
+  }, [registration?.email, user?.email, logout, navigation]);
 
   const loadUser = async () => {
     try {
@@ -34,24 +62,24 @@ const PendingApprovalScreen = ({ navigation, route }) => {
   const displayUser = registration || user;
   const idUploadError = route?.params?.idUploadError;
 
-  const handleCheckStatus = () => {
-    Alert.alert(
-      'Check Status',
-      'To refresh your approval status, please log out then log in again.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          onPress: async () => {
-            await logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          },
-        },
-      ]
-    );
+  const handleCheckStatus = async () => {
+    const email = registration?.email || user?.email;
+    if (!email) return;
+    setCheckingStatus(true);
+    try {
+      const response = await api.post('/auth/pending-status', { email });
+      const documents = response.data?.data?.documents;
+      if (response.data?.data?.isApproved) {
+        await logout();
+        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      } else {
+        Alert.alert('Still pending', documents?.verified ? 'Your ID is verified. Your resident account is waiting for admin approval.' : 'Your registration is still waiting for review.');
+      }
+    } catch (error) {
+      Alert.alert('Status unavailable', error?.response?.data?.error || 'Unable to refresh your approval status.');
+    } finally {
+      setCheckingStatus(false);
+    }
   };
 
   const handleContactAdmin = () => {
@@ -126,6 +154,10 @@ const PendingApprovalScreen = ({ navigation, route }) => {
 
         <TouchableOpacity style={styles.contactLink} onPress={handleContactAdmin}>
           <Text style={styles.contactLinkText}>Need help? Contact admin</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.contactLink} onPress={handleCheckStatus} disabled={checkingStatus}>
+          <Text style={styles.contactLinkText}>{checkingStatus ? 'Checking status…' : 'Refresh approval status'}</Text>
         </TouchableOpacity>
 
         <Text style={styles.footer}>VIMS • Resident Registration System</Text>

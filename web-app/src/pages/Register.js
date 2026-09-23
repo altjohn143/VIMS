@@ -702,10 +702,33 @@ const Register = () => {
           axios.defaults.headers.common.Authorization = `Bearer ${response.data.token}`;
         }
 
+        // Wait for the protected ID upload before navigating. Previously it ran
+        // after navigation, which could hide a failed upload from the resident.
+        let idUploadError = '';
+        if (idDocs.frontImage && idDocs.backImage) {
+          try {
+            const multipart = new FormData();
+            multipart.append('documentType', formData.documentType);
+            multipart.append('frontImage', idDocs.frontImage);
+            multipart.append('backImage', idDocs.backImage);
+            const uploadResponse = await axios.post('/api/verifications/upload-id', multipart);
+            toast.success(uploadResponse.data?.message || 'ID uploaded successfully.');
+          } catch (uploadError) {
+            const status = uploadError?.response?.status;
+            const serverMessage =
+              uploadError?.response?.data?.error ||
+              uploadError?.response?.data?.message ||
+              uploadError?.message;
+            idUploadError = `ID upload failed${status ? ` (${status})` : ''}${serverMessage ? `: ${serverMessage}` : '.'}`;
+            toast.error(idUploadError);
+          }
+        }
+
         localStorage.setItem('pendingApprovalEmail', emailLower);
         navigate('/pending-approval', {
           state: {
             email: emailLower,
+            idUploadError,
             registration: {
               firstName: formData.firstName,
               lastName: formData.lastName,
@@ -715,31 +738,6 @@ const Register = () => {
             },
           },
         });
-
-        // ID upload after redirect so the user lands on Pending Approval immediately
-        if (idDocs.frontImage && idDocs.backImage) {
-          (async () => {
-            try {
-              const multipart = new FormData();
-              multipart.append('email', emailLower);
-              multipart.append('documentType', formData.documentType);
-              multipart.append('frontImage', idDocs.frontImage);
-              multipart.append('backImage', idDocs.backImage);
-              await axios.post('/api/verifications/upload-id', multipart);
-            } catch (uploadError) {
-              const status = uploadError?.response?.status;
-              const serverMessage =
-                uploadError?.response?.data?.error ||
-                uploadError?.response?.data?.message ||
-                uploadError?.message;
-              toast.error(
-                `Registration succeeded, but ID upload failed${status ? ` (${status})` : ''}${
-                  serverMessage ? `: ${serverMessage}` : '.'
-                }`
-              );
-            }
-          })();
-        }
     } else {
       setErrors(prev => ({ ...prev, submit: response.data.error || 'Registration failed' }));
     }

@@ -22,14 +22,6 @@ const PendingApprovalScreen = ({ navigation, route }) => {
     loadUser();
   }, []);
 
-  useEffect(() => {
-    const redirectTimer = setTimeout(async () => {
-      await logout();
-      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-    }, 3000);
-    return () => clearTimeout(redirectTimer);
-  }, [logout, navigation]);
-
   const loadUser = async () => {
     try {
       const userStr = await AsyncStorage.getItem('user');
@@ -40,6 +32,7 @@ const PendingApprovalScreen = ({ navigation, route }) => {
   };
 
   const displayUser = registration || user;
+  const idUploadError = route?.params?.idUploadError;
 
   const handleCheckStatus = () => {
     Alert.alert(
@@ -86,6 +79,8 @@ const PendingApprovalScreen = ({ navigation, route }) => {
           an administrator reviews and approves your registration.
         </Text>
 
+        {idUploadError ? <Text style={styles.errorText}>{idUploadError}</Text> : null}
+
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
             <Ionicons name="checkmark-circle" size={18} color={themeColors.warning} />
@@ -128,8 +123,6 @@ const PendingApprovalScreen = ({ navigation, route }) => {
             <Text style={styles.stepText}>This usually takes 1-2 business days</Text>
           </View>
         </View>
-
-        <Text style={styles.redirectText}>Returning to resident login in 3 seconds…</Text>
 
         <TouchableOpacity style={styles.contactLink} onPress={handleContactAdmin}>
           <Text style={styles.contactLinkText}>Need help? Contact admin</Text>
@@ -188,6 +181,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
+    paddingHorizontal: 10,
+  },
+  errorText: {
+    color: '#fecaca',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
     paddingHorizontal: 10,
   },
   infoCard: {

@@ -187,6 +187,39 @@ router.post(
         uploadIdDocument(backMeta)
       ]);
 
+      // Link the uploaded assets immediately. OCR is best-effort and must not
+      // make a successful Cloudinary upload disappear from VIMS.
+      let verification = await IdentityVerification.findOne({ userId: user._id });
+      const previousFrontPublicId = verification?.frontImagePublicId;
+      const previousBackPublicId = verification?.backImagePublicId;
+      if (!verification) verification = new IdentityVerification({ userId: user._id });
+      verification.residentEmail = snapEmail;
+      verification.residentDisplayName = snapName;
+      verification.documentType = req.body.documentType || verification.documentType || 'valid_id';
+      verification.frontImage = frontImage;
+      verification.frontImageUrl = frontCloudinary?.secure_url || null;
+      verification.frontImagePublicId = frontCloudinary?.public_id || null;
+      verification.frontImageData = null;
+      verification.frontImageMimeType = frontMeta.mimetype;
+      verification.backImage = backImage;
+      verification.backImageUrl = backCloudinary?.secure_url || null;
+      verification.backImagePublicId = backCloudinary?.public_id || null;
+      verification.backImageData = null;
+      verification.backImageMimeType = backMeta.mimetype;
+      verification.documentsVerified = false;
+      verification.status = 'queued_ai';
+      verification.rejectReason = '';
+      verification.reviewNotes = '';
+      await verification.save();
+      debugLog('✅ ID images saved to Cloudinary and linked to verification:', { verificationId: verification._id.toString() });
+
+      if (previousFrontPublicId && previousFrontPublicId !== verification.frontImagePublicId) {
+        deleteImage(previousFrontPublicId).catch((error) => console.warn('Unable to delete previous ID front:', error.message));
+      }
+      if (previousBackPublicId && previousBackPublicId !== verification.backImagePublicId) {
+        deleteImage(previousBackPublicId).catch((error) => console.warn('Unable to delete previous ID back:', error.message));
+      }
+
       const frontPath = path.join(idsDir, frontMeta.filename);
       const backPath = path.join(idsDir, backMeta.filename);
       if (process.env.NODE_ENV !== 'production') {
@@ -209,15 +242,18 @@ router.post(
 
         // Validate document type match
         if (req.body.documentType && !ocr.documentTypeMatch) {
-          return res.status(400).json({
-            success: false,
-            error: `Document type mismatch. You selected "${req.body.documentType}" but the uploaded ID appears to be a "${ocr.detectedDocumentType}". Please verify and select the correct document type.`
+          verification.status = 'manual_review';
+          verification.reviewNotes = `Selected document type "${req.body.documentType}" differs from OCR detection "${ocr.detectedDocumentType}". Admin review required.`;
+          await verification.save();
+          return res.json({
+            success: true,
+            message: 'ID uploaded successfully and routed to manual review because the document type could not be confirmed automatically.',
+            data: verification
           });
         }
       } catch (ocrError) {
         console.error('OCR extraction failed, saving verification for manual review:', ocrError?.response?.data || ocrError.message || ocrError);
 
-        let verification = await IdentityVerification.findOne({ userId: user._id });
         if (!verification) {
           verification = await IdentityVerification.create({
             userId: user._id,
@@ -267,15 +303,19 @@ router.post(
 
       const duplicate = await detectDuplicateIdentity({ ocr, excludeUserId: user._id });
       if (duplicate.found) {
-        // SECURITY: Clean up uploaded files on duplicate detection
+        verification.status = 'rejected';
+        verification.rejectReason = duplicate.reason || 'This identity document is already linked to another resident account.';
+        verification.reviewNotes = verification.rejectReason;
+        await verification.save();
         return res.status(409).json({
           success: false,
-          error: duplicate.reason || 'Duplicate identity detected. This ID is already linked to another resident account.'
+          error: verification.rejectReason,
+          data: verification
         });
       }
 
       const ocrFullName = `${ocr.firstName || ''} ${ocr.middleName || ''} ${ocr.lastName || ''}`.trim();
-      let verification = await IdentityVerification.findOne({ userId: user._id });
+      verification = await IdentityVerification.findOne({ userId: user._id });
       if (!verification) {
         verification = await IdentityVerification.create({
           userId: user._id,

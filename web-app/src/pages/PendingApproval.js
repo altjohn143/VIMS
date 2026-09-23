@@ -89,14 +89,6 @@ const PendingApproval = () => {
   }, [pendingStatus, registrationFromNav, email, user]);
 
   useEffect(() => {
-    const redirectTimer = window.setTimeout(async () => {
-      await logout();
-      navigate('/login', { replace: true });
-    }, 3000);
-    return () => window.clearTimeout(redirectTimer);
-  }, [logout, navigate]);
-
-  useEffect(() => {
     // Poll quickly so UI updates within seconds after ID upload/admin action.
     let stopped = false;
     const run = async () => {
@@ -226,9 +218,9 @@ const PendingApproval = () => {
                   Checking status…
                 </Typography>
               </Box>
-            ) : statusError ? (
+            ) : (statusError || location.state?.idUploadError) ? (
               <Typography variant="caption" sx={{ color: '#ef4444' }}>
-                {statusError}
+                {statusError || location.state?.idUploadError}
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>

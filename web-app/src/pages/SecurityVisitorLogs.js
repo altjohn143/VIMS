@@ -530,36 +530,11 @@ const SecurityVisitorLogs = () => {
   const getScanStatus = (visitor) => {
     if (visitor.actualEntry) {
       return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CheckCircleIcon sx={{ color: themeColors.success }} fontSize="small" />
-            <Typography variant="body2" sx={{ color: themeColors.success }}>
-              Scanned at {formatDate(visitor.actualEntry)}
-            </Typography>
-          </Box>
-          {visitor.residentEntryConfirmedAt && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircleIcon sx={{ color: themeColors.info }} fontSize="small" />
-              <Typography variant="body2" sx={{ color: themeColors.info }}>
-                Resident confirmed at {formatDate(visitor.residentEntryConfirmedAt)}
-              </Typography>
-            </Box>
-          )}
-          {visitor.residentDepartureConfirmedAt ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircleIcon sx={{ color: themeColors.warning }} fontSize="small" />
-              <Typography variant="body2" sx={{ color: themeColors.warning }}>
-                Departure confirmed at {formatDate(visitor.residentDepartureConfirmedAt)}
-              </Typography>
-            </Box>
-          ) : visitor.status === 'active' ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <ScheduleIcon sx={{ color: themeColors.warning }} fontSize="small" />
-              <Typography variant="body2" sx={{ color: themeColors.warning }}>
-                Awaiting resident departure confirmation
-              </Typography>
-            </Box>
-          ) : null}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CheckCircleIcon sx={{ color: themeColors.success }} fontSize="small" />
+          <Typography variant="body2" sx={{ color: themeColors.success, fontWeight: 600 }}>
+            Scanned
+          </Typography>
         </Box>
       );
     } else if (visitor.status === 'approved') {
@@ -1436,15 +1411,7 @@ const SecurityVisitorLogs = () => {
                       {getStatusChip(visitor)}
                     </TableCell>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}>
-                        <Button
-                          size="small"
-                          variant="text"
-                          onClick={() => handleViewDetails(visitor)}
-                          sx={{ minWidth: 0, px: 1, textTransform: 'none', fontWeight: 700 }}
-                        >
-                          Scan Status
-                        </Button>
+                      <Box sx={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                         <Button
                           size="small"
                           variant="text"
@@ -1588,6 +1555,16 @@ const SecurityVisitorLogs = () => {
                     </Typography>
                     <Typography variant="body1" gutterBottom sx={{ color: themeColors.textPrimary }}>
                       {formatDate(selectedVisitor.residentEntryConfirmedAt)}
+                    </Typography>
+                  </Grid>
+                )}
+                {selectedVisitor.residentDepartureConfirmedAt && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" sx={{ color: themeColors.textSecondary }}>
+                      Departure Confirmation
+                    </Typography>
+                    <Typography variant="body1" gutterBottom sx={{ color: themeColors.textPrimary }}>
+                      {formatDate(selectedVisitor.residentDepartureConfirmedAt)}
                     </Typography>
                   </Grid>
                 )}

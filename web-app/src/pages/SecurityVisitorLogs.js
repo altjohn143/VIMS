@@ -1502,26 +1502,32 @@ const SecurityVisitorLogs = () => {
                       {getStatusChip(visitor)}
                     </TableCell>
                     <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap' }}>
                         {String(visitor.qrStatus || '').toLowerCase() === 'overstayed' && (
                           <Tooltip title="Chat with resident about this overstay">
-                            <IconButton size="small" color="warning" onClick={() => { setSelectedVisitor(visitor); setOverstayChatOpen(true); }} sx={{ border: '1px solid', borderColor: 'warning.light', borderRadius: 2, bgcolor: '#fffaf0', '&:hover': { bgcolor: '#fff3e0' } }}>
+                            <IconButton size="small" color="warning" onClick={() => { setSelectedVisitor(visitor); setOverstayChatOpen(true); }} sx={{ width: 34, height: 34, border: '1px solid', borderColor: 'warning.light', borderRadius: 1.5, bgcolor: '#fffaf0', '&:hover': { bgcolor: '#fff3e0' } }}>
                               <ChatOutlinedIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         )}
-                        <IconButton size="small" onClick={() => handleViewDetails(visitor)} title="View Details" sx={{ color: themeColors.textSecondary, '&:hover': { color: themeColors.primary, bgcolor: themeColors.primary + '10' } }}>
-                          <ViewIcon />
-                        </IconButton>
+                        <Tooltip title="View details">
+                          <IconButton size="small" onClick={() => handleViewDetails(visitor)} sx={{ width: 34, height: 34, color: themeColors.textSecondary, '&:hover': { color: themeColors.primary, bgcolor: themeColors.primary + '10' } }}>
+                            <ViewIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                         {canCheckIn && (
-                          <Button size="small" variant="outlined" color="primary" startIcon={<CheckCircleIcon />} onClick={() => handleLogEntry(visitor)} title="Check In Visitor" disabled={scanInProgress} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>
-                            Check In {securityProgress.entered}/{securityProgress.total}
-                          </Button>
+                          <Tooltip title="Check in visitor">
+                            <Button size="small" variant="outlined" color="primary" startIcon={<CheckCircleIcon fontSize="small" />} onClick={() => handleLogEntry(visitor)} disabled={scanInProgress} sx={{ minWidth: 0, height: 34, px: 1, borderRadius: 1.5, textTransform: 'none', fontWeight: 700 }}>
+                              In {securityProgress.entered}/{securityProgress.total}
+                            </Button>
+                          </Tooltip>
                         )}
                         {canCheckOut && (
-                          <Button size="small" variant="outlined" color="success" startIcon={<ExitToAppIcon />} onClick={() => handleLogExit(visitor)} title="Check Out Visitor" disabled={scanInProgress} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>
-                            Check Out {securityProgress.exited}/{securityProgress.total}
-                          </Button>
+                          <Tooltip title="Check out visitor">
+                            <Button size="small" variant="outlined" color="success" startIcon={<ExitToAppIcon fontSize="small" />} onClick={() => handleLogExit(visitor)} disabled={scanInProgress} sx={{ minWidth: 0, height: 34, px: 1, borderRadius: 1.5, textTransform: 'none', fontWeight: 700 }}>
+                              Out {securityProgress.exited}/{securityProgress.total}
+                            </Button>
+                          </Tooltip>
                         )}
                       </Box>
                     </TableCell>

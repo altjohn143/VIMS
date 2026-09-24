@@ -282,7 +282,10 @@ const AdminUserManagement = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
       
-      const response = await axios.get('/api/users', {
+      // User Management filters and summary cards operate on the complete active-user list.
+      // The API defaults to 50 records, which made the resident count incorrect once the
+      // community had more than 50 active accounts.
+      const response = await axios.get('/api/users?limit=100', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

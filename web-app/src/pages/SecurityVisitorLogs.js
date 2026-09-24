@@ -42,7 +42,8 @@ import {
   InputAdornment,
   Alert,
   Menu,
-  ListItemIcon
+  ListItemIcon,
+  Tooltip
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -60,7 +61,10 @@ import {
   TimerOff as ExpiredIcon,
   Error as ErrorIcon,
   Settings as SettingsIcon,
-  QrCodeScanner as QrCodeScannerIcon
+  QrCodeScanner as QrCodeScannerIcon,
+  Visibility as ViewIcon,
+  ExitToApp as ExitToAppIcon,
+  ChatOutlined as ChatOutlinedIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -101,6 +105,8 @@ const SecurityVisitorLogs = () => {
   const [overstayMessage, setOverstayMessage] = useState('');
   const [sendingOverstayAlert, setSendingOverstayAlert] = useState(false);
   const [overstayChatOpen, setOverstayChatOpen] = useState(false);
+  const [scanInProgress, setScanInProgress] = useState(false);
+  const [expandedScanStatusId, setExpandedScanStatusId] = useState(null);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
@@ -528,13 +534,50 @@ const SecurityVisitorLogs = () => {
 
   // Get scan status
   const getScanStatus = (visitor) => {
+    const visitorId = visitor._id || visitor.id;
+    const isExpanded = expandedScanStatusId === visitorId;
     if (visitor.actualEntry) {
       return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CheckCircleIcon sx={{ color: themeColors.success }} fontSize="small" />
-          <Typography variant="body2" sx={{ color: themeColors.success, fontWeight: 600 }}>
-            Scanned
-          </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CheckCircleIcon sx={{ color: themeColors.success }} fontSize="small" />
+            <Typography variant="body2" sx={{ color: themeColors.success }}>
+              Scanned at {formatDate(visitor.actualEntry)}
+            </Typography>
+          </Box>
+          {isExpanded && visitor.residentEntryConfirmedAt && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CheckCircleIcon sx={{ color: themeColors.info }} fontSize="small" />
+              <Typography variant="body2" sx={{ color: themeColors.info }}>
+                Resident confirmed at {formatDate(visitor.residentEntryConfirmedAt)}
+              </Typography>
+            </Box>
+          )}
+          {isExpanded && (visitor.residentDepartureConfirmedAt ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CheckCircleIcon sx={{ color: themeColors.warning }} fontSize="small" />
+              <Typography variant="body2" sx={{ color: themeColors.warning }}>
+                Departure confirmed at {formatDate(visitor.residentDepartureConfirmedAt)}
+              </Typography>
+            </Box>
+          ) : visitor.status === 'active' ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ScheduleIcon sx={{ color: themeColors.warning }} fontSize="small" />
+              <Typography variant="body2" sx={{ color: themeColors.warning }}>
+                Awaiting resident departure confirmation
+              </Typography>
+            </Box>
+          ) : null)}
+          {(visitor.residentEntryConfirmedAt || visitor.residentDepartureConfirmedAt || visitor.status === 'active') && (
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => setExpandedScanStatusId(isExpanded ? null : visitorId)}
+              sx={{ minWidth: 0, px: 0, py: 0, textTransform: 'none', fontWeight: 700 }}
+            >
+              {isExpanded ? 'See less' : 'See more'}
+            </Button>
+          )}
         </Box>
       );
     } else if (visitor.status === 'approved') {
@@ -631,6 +674,50 @@ const SecurityVisitorLogs = () => {
     setVisitors((current) => current.map((visitor) => (
       visitor._id === updatedVisitor._id ? { ...visitor, ...updatedVisitor } : visitor
     )));
+  };
+
+  const getSecurityProgress = (visitor) => {
+    const progress = visitor?.scanProgress || {};
+    const total = Math.max(1, Number(progress.groupSize || visitor?.numberOfCompanions || 0));
+    return {
+      total,
+      entered: Number(progress.entryScanCount ?? visitor?.entryScanCount ?? 0),
+      exited: Number(progress.exitScanCount ?? visitor?.exitScanCount ?? 0)
+    };
+  };
+
+  const handleLogEntry = async (visitor) => {
+    if (!visitor?._id) return;
+    setScanInProgress(true);
+    try {
+      const response = await axios.put(`/api/visitors/${visitor._id}/entry`, {});
+      if (response.data.success) {
+        toast.success(response.data.message || 'Visitor checked in successfully');
+        replaceVisitorRow(response.data.data);
+        fetchVisitors();
+      }
+    } catch (requestError) {
+      toast.error(requestError.response?.data?.error || 'Failed to check in visitor');
+    } finally {
+      setScanInProgress(false);
+    }
+  };
+
+  const handleLogExit = async (visitor) => {
+    if (!visitor?._id) return;
+    setScanInProgress(true);
+    try {
+      const response = await axios.put(`/api/visitors/${visitor._id}/exit`, {});
+      if (response.data.success) {
+        toast.success(response.data.message || 'Visitor checked out successfully');
+        replaceVisitorRow(response.data.data);
+        fetchVisitors();
+      }
+    } catch (requestError) {
+      toast.error(requestError.response?.data?.error || 'Failed to check out visitor');
+    } finally {
+      setScanInProgress(false);
+    }
   };
 
   const recentActivities = useMemo(() => {
@@ -1324,6 +1411,10 @@ const SecurityVisitorLogs = () => {
                 </TableRow>
               ) : (
                 visitors.map((visitor) => {
+                  const securityProgress = getSecurityProgress(visitor);
+                  const canCheckIn = ['approved', 'active'].includes(visitor.status) && securityProgress.entered < securityProgress.total;
+                  const canCheckOut = visitor.status === 'active' && securityProgress.exited < securityProgress.total;
+
                   return (
                   <TableRow 
                     key={visitor._id || visitor.id} 
@@ -1411,15 +1502,27 @@ const SecurityVisitorLogs = () => {
                       {getStatusChip(visitor)}
                     </TableCell>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-                        <Button
-                          size="small"
-                          variant="text"
-                          onClick={() => handleViewDetails(visitor)}
-                          sx={{ minWidth: 0, px: 1, textTransform: 'none', fontWeight: 700 }}
-                        >
-                          Show Details
-                        </Button>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        {String(visitor.qrStatus || '').toLowerCase() === 'overstayed' && (
+                          <Tooltip title="Chat with resident about this overstay">
+                            <IconButton size="small" color="warning" onClick={() => { setSelectedVisitor(visitor); setOverstayChatOpen(true); }} sx={{ border: '1px solid', borderColor: 'warning.light', borderRadius: 2, bgcolor: '#fffaf0', '&:hover': { bgcolor: '#fff3e0' } }}>
+                              <ChatOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        <IconButton size="small" onClick={() => handleViewDetails(visitor)} title="View Details" sx={{ color: themeColors.textSecondary, '&:hover': { color: themeColors.primary, bgcolor: themeColors.primary + '10' } }}>
+                          <ViewIcon />
+                        </IconButton>
+                        {canCheckIn && (
+                          <Button size="small" variant="outlined" color="primary" startIcon={<CheckCircleIcon />} onClick={() => handleLogEntry(visitor)} title="Check In Visitor" disabled={scanInProgress} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>
+                            Check In {securityProgress.entered}/{securityProgress.total}
+                          </Button>
+                        )}
+                        {canCheckOut && (
+                          <Button size="small" variant="outlined" color="success" startIcon={<ExitToAppIcon />} onClick={() => handleLogExit(visitor)} title="Check Out Visitor" disabled={scanInProgress} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}>
+                            Check Out {securityProgress.exited}/{securityProgress.total}
+                          </Button>
+                        )}
                       </Box>
                     </TableCell>
                   </TableRow>

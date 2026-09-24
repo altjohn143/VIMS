@@ -1388,7 +1388,8 @@ router.get('/export', protect, authorize('admin'), async (req, res) => {
         table: {
           headerFontSize: 8,
           bodyFontSize: 7.5,
-          cellPadding: 3
+          cellPadding: 3,
+          maxRows: 120
         }
       });
       res.setHeader('Content-Type', 'application/pdf');

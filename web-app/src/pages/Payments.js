@@ -55,8 +55,8 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 
-// QRPh QR code image - place your downloaded QR code in src/assets/qrph.png
-import qrphImage from '../assets/qrph.jpg';
+// QRPh QR code image
+import qrphImage from '../assets/qrph.png';
 
 const Payments = () => {
   const themeColors = {

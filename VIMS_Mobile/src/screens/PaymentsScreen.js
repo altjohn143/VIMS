@@ -652,7 +652,7 @@ const PaymentsScreen = ({ navigation }) => {
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.qrCodeContainer}>
                 <Image
-                  source={require('../../assets/qrph.jpg')}
+                  source={require('../../assets/qrph.png')}
                   style={styles.qrCodeImage}
                   resizeMode="contain"
                 />

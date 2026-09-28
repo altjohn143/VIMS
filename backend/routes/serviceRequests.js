@@ -744,6 +744,7 @@ router.get('/admin/dashboard', protect, authorize('admin'), async (req, res) => 
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const activeFilter = { isArchived: false };
     
     const [
       totalRequests,
@@ -755,17 +756,18 @@ router.get('/admin/dashboard', protect, authorize('admin'), async (req, res) => 
       completedRequests,
       urgentRequests
     ] = await Promise.all([
-      ServiceRequest.countDocuments(),
-      ServiceRequest.countDocuments({ createdAt: { $gte: today } }),
-      ServiceRequest.countDocuments({ status: 'pending' }),
-      ServiceRequest.countDocuments({ status: 'under-review' }),
-      ServiceRequest.countDocuments({ status: 'assigned' }),
-      ServiceRequest.countDocuments({ status: 'in-progress' }),
-      ServiceRequest.countDocuments({ status: 'completed' }),
-      ServiceRequest.countDocuments({ priority: 'urgent' })
+      ServiceRequest.countDocuments(activeFilter),
+      ServiceRequest.countDocuments({ ...activeFilter, createdAt: { $gte: today } }),
+      ServiceRequest.countDocuments({ ...activeFilter, status: 'pending' }),
+      ServiceRequest.countDocuments({ ...activeFilter, status: 'under-review' }),
+      ServiceRequest.countDocuments({ ...activeFilter, status: 'assigned' }),
+      ServiceRequest.countDocuments({ ...activeFilter, status: 'in-progress' }),
+      ServiceRequest.countDocuments({ ...activeFilter, status: 'completed' }),
+      ServiceRequest.countDocuments({ ...activeFilter, priority: 'urgent' })
     ]);
 
     const categoryStats = await ServiceRequest.aggregate([
+      { $match: activeFilter },
       { $group: { _id: '$category', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
@@ -781,6 +783,7 @@ router.get('/admin/dashboard', protect, authorize('admin'), async (req, res) => 
         inProgressRequests,
         completedRequests,
         urgentRequests,
+        activeRequests: pendingRequests + underReviewRequests + assignedRequests + inProgressRequests,
         categoryStats
       }
     });

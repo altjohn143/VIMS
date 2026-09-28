@@ -212,22 +212,27 @@ const AdminUserManagementScreen = ({ navigation }) => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/users');
+      const [response, summaryResponse] = await Promise.all([
+        api.get('/users?limit=100'),
+        api.get('/users/stats/summary'),
+      ]);
       if (response.data.success) {
         const allUsers = response.data.data;
         setUsers(allUsers);
         
-        // Calculate stats
+        // The list is paginated; use database totals for cards so they keep
+        // matching the web dashboard as the community grows.
+        const summary = summaryResponse.data?.success ? summaryResponse.data.data : {};
         setStats({
-          total: allUsers.length,
-          residents: allUsers.filter(u => u.role === 'resident').length,
-          admin: allUsers.filter(u => u.role === 'admin').length,
-          security: allUsers.filter(u => u.role === 'security').length,
-          approved: allUsers.filter(u => u.isApproved).length,
-          pending: allUsers.filter(u => !u.isApproved && u.role === 'resident').length,
-          active: allUsers.filter(u => u.isActive).length,
-          inactive: allUsers.filter(u => !u.isActive).length,
-          moveOut: allUsers.filter(u => u.role === 'resident' && u.moveOutStatus === 'pending').length,
+          total: summary.totalUsers ?? allUsers.length,
+          residents: summary.residents ?? allUsers.filter(u => u.role === 'resident').length,
+          admin: summary.admin ?? allUsers.filter(u => u.role === 'admin').length,
+          security: summary.security ?? allUsers.filter(u => u.role === 'security').length,
+          approved: summary.approved ?? allUsers.filter(u => u.isApproved).length,
+          pending: summary.pendingApproval ?? allUsers.filter(u => !u.isApproved && u.role === 'resident').length,
+          active: summary.active ?? allUsers.filter(u => u.isActive).length,
+          inactive: summary.inactive ?? allUsers.filter(u => !u.isActive).length,
+          moveOut: summary.moveOut ?? allUsers.filter(u => u.role === 'resident' && u.moveOutStatus === 'pending').length,
         });
       }
     } catch (error) {

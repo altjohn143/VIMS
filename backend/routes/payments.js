@@ -1128,9 +1128,21 @@ router.get('/admin/stats', protect, authorize('admin'), async (req, res) => {
     const totalInvoices = allPayments.length;
     const paidInvoices = allPayments.filter(payment => payment.status === 'paid').length;
     const totalCollected = allPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
-    const monthlyPayments = allPayments.filter(payment => payment.createdAt >= startDate && payment.createdAt <= endDate);
-    const monthlyCollected = monthlyPayments.reduce((sum, payment) => sum + Number(payment.paidAmount || (payment.status === 'paid' ? payment.amount : 0)), 0);
-    const paymentCount = monthlyPayments.filter(payment => Number(payment.paidAmount || 0) > 0 || payment.status === 'paid').length;
+    // Collection is cash actually verified during the selected month, not invoices
+    // generated during it. An invoice can be created in one month and paid in another.
+    const monthlyTransactions = await Payment.aggregate([
+      { $unwind: '$paymentHistory' },
+      { $match: { 'paymentHistory.verifiedAt': { $gte: startDate, $lte: endDate } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $add: [{ $ifNull: ['$paymentHistory.amount', 0] }, { $ifNull: ['$paymentHistory.creditedAmount', 0] }] } },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    const monthlyCollected = Number(monthlyTransactions[0]?.total || 0);
+    const paymentCount = Number(monthlyTransactions[0]?.count || 0);
     const pendingTotal = allPayments
       .filter(payment => payment.status === 'pending')
       .reduce((sum, payment) => sum + getOutstandingAmount(payment), 0);
@@ -1219,8 +1231,15 @@ router.get('/public/monthly-collection', async (req, res) => {
     const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
 
     const result = await Payment.aggregate([
-      { $match: { createdAt: { $gte: startDate, $lte: endDate }, $or: [{ status: 'paid' }, { paidAmount: { $gt: 0 } }] } },
-      { $group: { _id: null, total: { $sum: { $cond: [{ $gt: ['$paidAmount', 0] }, '$paidAmount', '$amount'] } }, count: { $sum: 1 } } }
+      { $unwind: '$paymentHistory' },
+      { $match: { 'paymentHistory.verifiedAt': { $gte: startDate, $lte: endDate } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $add: [{ $ifNull: ['$paymentHistory.amount', 0] }, { $ifNull: ['$paymentHistory.creditedAmount', 0] }] } },
+          count: { $sum: 1 }
+        }
+      }
     ]);
 
     res.json({

@@ -776,20 +776,18 @@ const Dashboard = () => {
       try {
         if (user.role === 'admin') {
           const [usersRes, paymentsRes, serviceRes] = await Promise.all([
-            axios.get('/api/users'),
+            axios.get('/api/users/stats/summary'),
             axios.get('/api/payments/admin/stats'),
             axios.get('/api/service-requests/admin/dashboard')
           ]);
 
-          const totalResidents = usersRes.data?.count ?? (usersRes.data?.data || []).length ?? 0;
+          const totalResidents = usersRes.data?.data?.residents ?? 0;
           const monthlyCollected = paymentsRes.data?.data?.monthlyCollected || 0;
-          const activeIssues =
-            (serviceRes.data?.data?.pendingRequests || 0) +
-            (serviceRes.data?.data?.underReviewRequests || 0) +
-            (serviceRes.data?.data?.urgentRequests || 0);
+          const activeIssues = serviceRes.data?.data?.activeRequests || 0;
 
           setLiveStats({
             totalResidents,
+            pendingApprovals: usersRes.data?.data?.pendingApproval ?? 0,
             monthlyCollection: formatCompactPeso(monthlyCollected),
             activeIssues
           });
@@ -957,7 +955,7 @@ const Dashboard = () => {
       },
       stats: [
         { label: 'Total Residents', value: liveStats.totalResidents?.toString() || '0', helper: 'registered users' },
-        { label: 'Pending Approvals', value: pendingApprovals.length.toString(), helper: 'awaiting review' },
+        { label: 'Pending Approvals', value: String(liveStats.pendingApprovals ?? 0), helper: 'awaiting review' },
         { label: 'Monthly Collection', value: liveStats.monthlyCollection || '₱0', helper: 'this month' },
         { label: 'Active Issues', value: liveStats.activeIssues?.toString() || '0', helper: 'needs attention' }
       ]
@@ -1176,20 +1174,20 @@ const Dashboard = () => {
     (() => {
       if (user.role === 'admin') {
         if (stat.label === 'Total Residents') {
-          return { ...stat, value: String(liveStats.totalResidents ?? stat.value), helper: 'live from users' };
+          return { ...stat, value: String(liveStats.totalResidents ?? stat.value), helper: 'all active resident accounts' };
         }
         if (stat.label === 'Pending Approvals') {
           return {
             ...stat,
-            value: String(pendingApprovals.length),
-            helper: pendingApprovals.length > 0 ? 'awaiting admin review' : 'no pending approvals'
+            value: String(liveStats.pendingApprovals ?? 0),
+            helper: liveStats.pendingApprovals > 0 ? 'awaiting admin review' : 'no pending approvals'
           };
         }
         if (stat.label === 'Monthly Collection') {
           return { ...stat, value: liveStats.monthlyCollection ?? stat.value, helper: 'live this month' };
         }
         if (stat.label === 'Active Issues') {
-          return { ...stat, value: String(liveStats.activeIssues ?? stat.value), helper: 'pending + under review + urgent' };
+          return { ...stat, value: String(liveStats.activeIssues ?? stat.value), helper: 'open service requests' };
         }
       }
 

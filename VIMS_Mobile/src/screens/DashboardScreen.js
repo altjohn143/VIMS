@@ -300,11 +300,7 @@ const DashboardScreen = ({ navigation }) => {
         const u = usersRes.data?.success ? usersRes.data.data : {};
         const p = payRes.data?.success ? payRes.data.data : {};
         const s = svcRes.data?.success ? svcRes.data.data : {};
-        const activeIssues =
-          (s.pendingRequests || 0) +
-          (s.underReviewRequests || 0) +
-          (s.assignedRequests || 0) +
-          (s.inProgressRequests || 0);
+        const activeIssues = s.activeRequests || 0;
         setStats({
           totalUsers: u.residents ?? 0,
           pendingApprovals: u.pendingApproval ?? 0,

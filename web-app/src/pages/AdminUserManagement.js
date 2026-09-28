@@ -282,31 +282,30 @@ const AdminUserManagement = () => {
       setLoading(true);
       const token = sessionStorage.getItem('token');
       
-      // User Management filters and summary cards operate on the complete active-user list.
-      // The API defaults to 50 records, which made the resident count incorrect once the
-      // community had more than 50 active accounts.
-      const response = await axios.get('/api/users?limit=100', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const headers = { 'Authorization': `Bearer ${token}` };
+      // The directory remains paginated, but its summary cards must use database
+      // totals rather than whichever page of users happens to be loaded.
+      const [response, summaryResponse] = await Promise.all([
+        axios.get('/api/users?limit=100', { headers }),
+        axios.get('/api/users/stats/summary', { headers })
+      ]);
       
       if (response.data.success) {
         const allUsers = response.data.data || [];
         setUsers(allUsers);
         filterUsers(allUsers, searchQuery, roleFilter, statusFilter, approvalFilter, activeTab);
         
-        // Calculate stats
+        const summary = summaryResponse.data?.success ? summaryResponse.data.data : {};
         const newStats = {
-          total: allUsers.length,
-          residents: allUsers.filter(u => u.role === 'resident').length,
-          admin: allUsers.filter(u => u.role === 'admin').length,
-          security: allUsers.filter(u => u.role === 'security').length,
-          approved: allUsers.filter(u => u.isApproved).length,
-          pending: allUsers.filter(u => !u.isApproved).length,
-          moveOut: allUsers.filter(u => u.role === 'resident' && u.moveOutStatus === 'pending').length,
-          active: allUsers.filter(u => u.isActive).length,
-          inactive: allUsers.filter(u => !u.isActive).length
+          total: summary.totalUsers ?? allUsers.length,
+          residents: summary.residents ?? allUsers.filter(u => u.role === 'resident').length,
+          admin: summary.admin ?? allUsers.filter(u => u.role === 'admin').length,
+          security: summary.security ?? allUsers.filter(u => u.role === 'security').length,
+          approved: summary.approved ?? allUsers.filter(u => u.isApproved).length,
+          pending: summary.pendingApproval ?? allUsers.filter(u => !u.isApproved && u.role === 'resident').length,
+          moveOut: summary.moveOut ?? allUsers.filter(u => u.role === 'resident' && u.moveOutStatus === 'pending').length,
+          active: summary.active ?? allUsers.filter(u => u.isActive).length,
+          inactive: summary.inactive ?? allUsers.filter(u => !u.isActive).length
         };
         setStats(newStats);
       }

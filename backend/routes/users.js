@@ -591,26 +591,50 @@ router.get('/archived', protect, authorize('admin'), async (req, res) => {
 // Get user stats summary
 router.get('/stats/summary', protect, authorize('admin'), async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ isArchived: false });
-    const residents = await User.countDocuments({ role: 'resident', isArchived: false });
-    const approvedResidents = await User.countDocuments({ 
-      role: 'resident', 
-      isApproved: true,
-      isArchived: false
-    });
-    const pendingResidents = await User.countDocuments({
-      role: 'resident',
+    const activeUserFilter = { isArchived: false };
+    const residentFilter = { ...activeUserFilter, role: 'resident' };
+    const pendingResidentFilter = {
+      ...residentFilter,
       isApproved: false,
-      isArchived: false
-    });
+      approvalStatus: { $ne: 'rejected' }
+    };
+    const [
+      totalUsers,
+      residents,
+      admin,
+      security,
+      approved,
+      approvedResidents,
+      pendingResidents,
+      active,
+      inactive,
+      moveOut
+    ] = await Promise.all([
+      User.countDocuments(activeUserFilter),
+      User.countDocuments(residentFilter),
+      User.countDocuments({ ...activeUserFilter, role: 'admin' }),
+      User.countDocuments({ ...activeUserFilter, role: 'security' }),
+      User.countDocuments({ ...activeUserFilter, isApproved: true }),
+      User.countDocuments({ ...residentFilter, isApproved: true }),
+      User.countDocuments(pendingResidentFilter),
+      User.countDocuments({ ...activeUserFilter, isActive: true }),
+      User.countDocuments({ ...activeUserFilter, isActive: false }),
+      User.countDocuments({ ...residentFilter, moveOutStatus: 'pending' })
+    ]);
     
     res.json({
       success: true,
       data: {
         totalUsers,
         residents,
+        admin,
+        security,
+        approved,
         approvedResidents,
-        pendingApproval: pendingResidents
+        pendingApproval: pendingResidents,
+        active,
+        inactive,
+        moveOut
       }
     });
     

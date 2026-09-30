@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -95,6 +96,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
     setRefreshing(true);
     fetchVisitors();
   };
+  useRealtimeRefresh('visitors', fetchVisitors);
 
   const filterVisitors = () => {
     let filtered = [...visitors];

@@ -19,6 +19,7 @@ import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
 import { format } from 'date-fns';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
+import websocketService from '../../utils/websocket';
 
 const SecurityVisitorApprovalScreen = ({ navigation }) => {
   const [pendingVisitors, setPendingVisitors] = useState([]);
@@ -36,8 +37,8 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
     fetchPendingVisitors();
   }, []);
 
-  const fetchPendingVisitors = async () => {
-    setLoading(true);
+  const fetchPendingVisitors = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const response = await api.get('/visitors/pending');
       if (response.data.success) {
@@ -46,10 +47,16 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch pending visitors');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
+
+  useEffect(() => websocketService.onDataChanged((change) => {
+    if (change?.resource === 'visitors') fetchPendingVisitors({ silent: true });
+  }), []);
 
   const onRefresh = () => {
     setRefreshing(true);

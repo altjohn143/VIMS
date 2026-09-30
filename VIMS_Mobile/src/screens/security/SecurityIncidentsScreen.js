@@ -16,6 +16,7 @@ import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 
@@ -215,6 +216,7 @@ const SecurityIncidentsScreen = ({ navigation }) => {
       </View>
     );
   };
+  useRealtimeRefresh('incidents', onRefresh);
 
   if (loading) {
     return (

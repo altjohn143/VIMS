@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import api from '../utils/api';
+import useRealtimeRefresh from '../utils/useRealtimeRefresh';
 import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -66,9 +67,9 @@ const PaymentsScreen = ({ navigation }) => {
     );
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       
       // Fetch current dues
       const duesResponse = await api.get('/payments/current-dues');
@@ -86,8 +87,10 @@ const PaymentsScreen = ({ navigation }) => {
       console.error('Error fetching payments:', error);
       Alert.alert('Error', error.response?.data?.error || 'Failed to load payment data');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
@@ -95,10 +98,11 @@ const PaymentsScreen = ({ navigation }) => {
     fetchData();
   }, [fetchData]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+  const onRefresh = ({ silent = false } = {}) => {
+    if (!silent) setRefreshing(true);
+    fetchData({ silent });
   };
+  useRealtimeRefresh('payments', onRefresh);
 
   const handlePayClick = (payment) => {
     if (hasActivePaymentAttempt(payment)) {

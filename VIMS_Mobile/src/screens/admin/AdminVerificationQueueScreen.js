@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
 import { safeGoBack } from '../../utils/navigation';
@@ -59,6 +60,7 @@ const AdminVerificationQueueScreen = ({ navigation }) => {
     setRefreshing(true);
     load();
   };
+  useRealtimeRefresh(['verifications', 'users'], onRefresh);
 
   const formatWhen = (d) => {
     if (!d) return 'N/A';

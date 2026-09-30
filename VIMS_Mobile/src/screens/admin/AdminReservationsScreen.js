@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, roleLayouts } from '../../utils/theme';
 
 const AdminReservationsScreen = ({ navigation }) => {
@@ -321,6 +322,7 @@ const AdminReservationsScreen = ({ navigation }) => {
       default: return '#6b7280';
     }
   };
+  useRealtimeRefresh('reservations', () => { fetchReservations(); fetchResources(); });
 
   const getStatusIcon = (status) => {
     switch (status) {

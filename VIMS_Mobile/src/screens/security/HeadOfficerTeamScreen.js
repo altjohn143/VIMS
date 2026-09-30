@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 
@@ -58,6 +59,7 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
   useEffect(() => {
     load();
   }, [load]);
+  useRealtimeRefresh(['patrols', 'users'], load);
 
   const openRouteModal = (member) => {
     setSelectedMember(member);

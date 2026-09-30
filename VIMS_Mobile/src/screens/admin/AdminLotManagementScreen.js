@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { safeGoBack } from '../../utils/navigation';
 
 const STATUS_OPTIONS = ['all', 'vacant', 'occupied', 'reserved', 'amenity'];
@@ -67,6 +68,7 @@ const AdminLotManagementScreen = ({ navigation }) => {
       setRefreshing(false);
     }
   };
+  useRealtimeRefresh('lots', loadLots);
 
   useEffect(() => {
     loadLots();

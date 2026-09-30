@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import api from '../utils/api';
+import useRealtimeRefresh from '../utils/useRealtimeRefresh';
 import { format } from 'date-fns';
 import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
@@ -71,8 +72,8 @@ const ServiceRequestsScreen = ({ navigation }) => {
     fetchRequests();
   }, []);
 
-  const fetchRequests = async () => {
-    setLoading(true);
+  const fetchRequests = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const response = await api.get('/service-requests/my');
       if (response.data.success) {
@@ -81,14 +82,17 @@ const ServiceRequestsScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch service requests');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
+  useRealtimeRefresh('service-requests', fetchRequests);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchRequests();
+  const onRefresh = ({ silent = false } = {}) => {
+    if (!silent) setRefreshing(true);
+    fetchRequests({ silent });
   };
 
   const handleInputChange = (field, value) => {

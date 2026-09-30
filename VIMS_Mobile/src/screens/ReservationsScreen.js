@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { themeColors, radii, shadows, roleLayouts } from '../utils/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../utils/api';
+import useRealtimeRefresh from '../utils/useRealtimeRefresh';
 import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
 const parseReservationQuantity = (value) => {
@@ -119,6 +120,7 @@ const ReservationsScreen = ({ navigation }) => {
       }));
     return [...unique.values()];
   };
+  useRealtimeRefresh('reservations', () => { fetchReservations(); fetchResources(); });
 
   const resourceKey = (item) =>
     `${String(item?.resourceType || '').trim().toLowerCase()}:${String(item?.resourceName || '').trim().toLowerCase()}`;

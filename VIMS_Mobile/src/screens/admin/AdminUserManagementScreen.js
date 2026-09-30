@@ -21,6 +21,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
 import { getAuthToken } from '../../utils/secureSession';
@@ -290,6 +291,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
     setFilteredUsers(filtered);
   };
+  useRealtimeRefresh(['users', 'lots'], () => { fetchUsers(); loadLots(); loadSecurityAssignments(); });
 
   const handleApproveResident = async (user) => {
     if (!user || user.role !== 'resident' || user.isApproved) return;

@@ -54,6 +54,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import websocketService from '../utils/websocket';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { getBackendApiUrl } from '../utils/api';
@@ -123,8 +124,8 @@ const AdminVisitorManagement = () => {
     return filters;
   }, [searchTerm, statusFilter, dateFilter]);
 
-  const fetchVisitors = useCallback(async (filters = {}) => {
-    setLoading(true);
+  const fetchVisitors = useCallback(async (filters = {}, { silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const params = {
         page: page + 1,
@@ -142,7 +143,7 @@ const AdminVisitorManagement = () => {
       toast.error('Failed to fetch visitors');
       console.error('Error fetching visitors:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [page, rowsPerPage]);
 
@@ -167,6 +168,13 @@ const AdminVisitorManagement = () => {
     fetchVisitors();
     fetchStats();
   }, [fetchVisitors, fetchStats, getCurrentUser, navigate]);
+
+  useEffect(() => websocketService.onDataChanged((change) => {
+    if (change?.resource === 'visitors') {
+      fetchVisitors(buildActiveFilters(), { silent: true });
+      fetchStats();
+    }
+  }), [fetchVisitors, fetchStats]);
 
   const handleSearch = () => {
     setPage(0);

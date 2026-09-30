@@ -21,6 +21,7 @@ import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api, { getProtectedImageDataUrl } from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAuthToken } from '../../utils/secureSession';
@@ -244,6 +245,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
       setProcessing(false);
     }
   };
+  useRealtimeRefresh('payments', onRefresh);
 
   const handleRejectPayment = async () => {
     if (!selectedPayment) return;

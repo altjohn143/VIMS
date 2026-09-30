@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 import { useAuth } from '../../context/AuthContext';
@@ -134,6 +135,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
     setRefreshing(true);
     load();
   };
+  useRealtimeRefresh('service-requests', onRefresh);
 
   const formatWhen = (d) => {
     if (!d) return 'N/A';

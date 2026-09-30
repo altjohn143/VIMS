@@ -2,6 +2,7 @@ const { emitDataChanged } = require('../services/realtimeService');
 
 const RESOURCE_BY_PATH = {
   announcements: 'announcements',
+  complaints: 'complaints',
   incidents: 'incidents',
   lots: 'lots',
   notifications: 'notifications',

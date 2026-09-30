@@ -18,6 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -61,6 +62,7 @@ const AdminApprovalsScreen = ({ navigation }) => {
       setRefreshing(false);
     }
   };
+  useRealtimeRefresh(['users', 'verifications'], fetchPendingApprovals);
 
   const onRefresh = () => {
     setRefreshing(true);

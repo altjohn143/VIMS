@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../utils/api';
+import useRealtimeRefresh from '../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../utils/theme';
 import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 
@@ -26,7 +27,7 @@ const AnnouncementsScreen = ({ navigation }) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     try {
       setError('');
       const res = await api.get('/announcements');
@@ -38,8 +39,10 @@ const AnnouncementsScreen = ({ navigation }) => {
     } catch (e) {
       setError(e?.response?.data?.error || 'Failed to load announcements');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
@@ -47,10 +50,11 @@ const AnnouncementsScreen = ({ navigation }) => {
     load();
   }, [load]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    load();
+  const onRefresh = ({ silent = false } = {}) => {
+    if (!silent) setRefreshing(true);
+    load({ silent });
   };
+  useRealtimeRefresh('announcements', onRefresh);
 
   const formatWhen = useCallback((dateValue) => {
     if (!dateValue) return 'N/A';

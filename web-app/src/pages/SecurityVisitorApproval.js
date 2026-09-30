@@ -38,6 +38,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import websocketService from '../utils/websocket';
 
 const SecurityVisitorApproval = () => {
   // Dashboard Theme Colors from Login
@@ -98,10 +99,10 @@ const SecurityVisitorApproval = () => {
     };
   }, [getCurrentUser, navigate]);
 
-  async function fetchPendingVisitors() {
+  async function fetchPendingVisitors({ silent = false } = {}) {
     if (!isMounted.current) return;
     
-    setFetchLoading(true);
+    if (!silent) setFetchLoading(true);
     setError(null);
     
     try {
@@ -133,10 +134,14 @@ const SecurityVisitorApproval = () => {
       setPendingVisitors([]);
     } finally {
       if (isMounted.current) {
-        setFetchLoading(false);
+        if (!silent) setFetchLoading(false);
       }
     }
   }
+
+  useEffect(() => websocketService.onDataChanged((change) => {
+    if (change?.resource === 'visitors') fetchPendingVisitors({ silent: true });
+  }), []);
 
   const handleRefresh = async () => {
     await fetchPendingVisitors();

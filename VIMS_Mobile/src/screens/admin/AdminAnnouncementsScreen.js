@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { format } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import LogoutButton from '../../components/LogoutButton';
 import { safeGoBack } from '../../utils/navigation';
@@ -61,6 +62,7 @@ const AdminAnnouncementsScreen = ({ navigation }) => {
     setRefreshing(true);
     load();
   };
+  useRealtimeRefresh('announcements', onRefresh);
 
   const closeCreateModal = () => {
     setCreateOpen(false);

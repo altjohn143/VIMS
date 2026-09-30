@@ -18,6 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import api from '../../utils/api';
+import websocketService from '../../utils/websocket';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -84,8 +85,8 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     };
   }, [showOverrideModal]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const [visitorsRes, statsRes] = await Promise.all([
         api.get('/visitors/admin/all'),
@@ -109,8 +110,10 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch data');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -149,6 +152,10 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
 
     setFilteredVisitors(filtered);
   };
+
+  useEffect(() => websocketService.onDataChanged((change) => {
+    if (change?.resource === 'visitors') fetchData({ silent: true });
+  }), []);
 
   const canChangeVisitorStatus = (visitor) => visitor?.status === 'pending';
 

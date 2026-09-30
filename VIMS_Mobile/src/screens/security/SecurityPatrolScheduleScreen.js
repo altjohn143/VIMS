@@ -17,6 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import api from '../../utils/api';
+import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 
@@ -162,6 +163,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
       setProcessing(false);
     }
   };
+  useRealtimeRefresh('patrols', onRefresh);
 
   const updatePatrolDateTime = (event, value) => {
     if (event?.type === 'dismissed') {

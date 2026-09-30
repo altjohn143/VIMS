@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import api from '../utils/api';
+import useRealtimeRefresh from '../utils/useRealtimeRefresh';
 import { themeColors, roleLayouts } from '../utils/theme';
 import { safeGoBack } from '../utils/navigation';
 
@@ -82,6 +83,7 @@ const ComplaintsScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
+  useRealtimeRefresh('complaints', loadComplaints);
 
   useEffect(() => {
     loadComplaints();

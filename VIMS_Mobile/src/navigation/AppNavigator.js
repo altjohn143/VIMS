@@ -9,7 +9,6 @@ import MobileTabBar from '../components/MobileTabBar';
 import LoginScreen from '../screens/LoginScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import RegisterScreen from '../screens/RegisterScreen';
-import TermsAndConditionsScreen from '../screens/TermsAndConditionsScreen';
 import PendingApprovalScreen from '../screens/PendingApprovalScreen';
 import PublicLotMapScreen from '../screens/PublicLotMapScreen';
 
@@ -167,7 +166,6 @@ const AppNavigator = () => {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
-          <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
           <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
         </>
       ) : !user.isApproved ? (

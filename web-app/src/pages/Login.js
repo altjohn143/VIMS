@@ -112,7 +112,9 @@ const PageHero = ({ title, subtitle, onClose }) => (
 );
 
 // ─── SHARED FOOTER ────────────────────────────────────────────────────────────
-const PageFooter = () => (
+const PageFooter = () => {
+  const [termsOpen, setTermsOpen] = useState(false);
+  return <>
   <Box sx={{ background: 'linear-gradient(180deg, #0b3d1f 0%, #04170b 100%)', py: { xs: 4.5, md: 6.5 }, px: { xs: 3, md: 8 }, borderTop: '1px solid rgba(118, 223, 104, 0.18)' }}>
     <Grid container spacing={4.5}>
       {[
@@ -130,11 +132,21 @@ const PageFooter = () => (
     <Box sx={{ mt: 4.5, pt: 3, borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 1.5 }}>
       <Typography sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', fontWeight: 700 }}>© {new Date().getFullYear()} Westville Casimiro Homes. All rights reserved.</Typography>
       <Box sx={{ display: 'flex', gap: { xs: 1.4, md: 3 }, flexWrap: 'wrap' }}>
-        {['Privacy Policy', 'Terms and Conditions', 'Sitemap'].map((i) => <Typography key={i} component={i === 'Terms and Conditions' ? 'a' : 'span'} href={i === 'Terms and Conditions' ? '/terms-and-conditions' : undefined} sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700, textDecoration: 'none', '&:hover': { color: '#9af084' } }}>{i}</Typography>)}
+        {['Privacy Policy', 'Terms and Conditions', 'Sitemap'].map((i) => <Typography key={i} onClick={i === 'Terms and Conditions' ? () => setTermsOpen(true) : undefined} sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700, '&:hover': { color: '#9af084' } }}>{i}</Typography>)}
       </Box>
     </Box>
   </Box>
-);
+  <Dialog open={termsOpen} onClose={() => setTermsOpen(false)} maxWidth="sm" fullWidth>
+    <DialogTitle>Terms and Conditions</DialogTitle>
+    <DialogContent dividers>
+      <Typography color="text.secondary" sx={{ mb: 2 }}>VIMS is for Westville Casimiro Homes residents and authorized community personnel. Keep your account secure and provide accurate registration information.</Typography>
+      <Typography color="text.secondary" sx={{ mb: 2 }}>VIMS does not replace HOA rules, notices, payment obligations, reservation requirements, or decisions of authorized administrators. Do not interfere with the service, attempt unauthorized access, or upload harmful or misleading content.</Typography>
+      <Typography color="text.secondary">The community may review registration information to verify residency and administer services. These Terms may be updated for operational, legal, or security reasons; continued use means acceptance of the updated Terms.</Typography>
+    </DialogContent>
+    <DialogActions><Button variant="contained" onClick={() => setTermsOpen(false)}>Close</Button></DialogActions>
+  </Dialog>
+  </>;
+};
 
 // ─── SCROLL REVEAL ─────────────────────────────────────────────────────────────
 const Reveal = ({ children, sx = {}, delayMs = 0 }) => {

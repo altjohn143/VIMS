@@ -170,6 +170,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   // DOB picker
   const [dobPickerOpen, setDobPickerOpen] = useState(false);
@@ -1167,7 +1168,7 @@ const RegisterScreen = ({ navigation, route }) => {
             </Text>
           </TouchableOpacity>
           {errors.termsAccepted ? <Text style={styles.errorText}>{errors.termsAccepted}</Text> : null}
-          <TouchableOpacity onPress={() => navigation.navigate('TermsAndConditions')} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginTop: -8, marginBottom: 14 }}>
+          <TouchableOpacity onPress={() => setShowTerms(true)} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginTop: -8, marginBottom: 14 }}>
             <Text style={{ color: themeColors.primary, fontWeight: '700', textDecorationLine: 'underline' }}>View Terms and Conditions</Text>
           </TouchableOpacity>
 
@@ -1964,6 +1965,28 @@ const RegisterScreen = ({ navigation, route }) => {
           </View>
         )}
       </ScrollView>
+
+      <Modal visible={showTerms} animationType="slide" transparent onRequestClose={() => setShowTerms(false)}>
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
+          <View style={[styles.dropdownModal, { maxHeight: '88%', borderTopLeftRadius: 24, borderTopRightRadius: 24 }]}>
+            <View style={styles.dropdownModalHeader}>
+              <Text style={styles.dropdownModalTitle}>Terms and Conditions</Text>
+              <TouchableOpacity onPress={() => setShowTerms(false)} accessibilityLabel="Close terms and conditions"><Ionicons name="close" size={24} color={themeColors.textPrimary} /></TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 28 }}>
+              <Text style={{ color: themeColors.textSecondary, lineHeight: 21, marginBottom: 18 }}>These Terms govern your use of VIMS for Westville Casimiro Homes.</Text>
+              {[
+                ['Use of VIMS', 'VIMS is for residents and authorized community personnel to access community services and administration.'],
+                ['Account responsibility', 'Keep your account secure and provide accurate, current registration information. Do not share your account or impersonate another person.'],
+                ['Community rules and acceptable use', 'VIMS does not replace HOA rules, notices, payment obligations, reservation requirements, or authorized administrative decisions. Do not interfere with VIMS, attempt unauthorized access, or upload harmful or misleading content.'],
+                ['Verification and privacy', 'The community may review registration details and documents to verify residency and administer services. Personal information is handled under the VIMS Privacy Policy and applicable Philippine data privacy law.'],
+                ['Changes and questions', 'The community may update these Terms for operational, legal, or security reasons. Continued use after an update means you accept the updated Terms. Contact the HOA administration with questions.'],
+              ].map(([title, content]) => <View key={title} style={{ marginBottom: 18 }}><Text style={{ color: themeColors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 5 }}>{title}</Text><Text style={{ color: themeColors.textSecondary, lineHeight: 21 }}>{content}</Text></View>)}
+              <TouchableOpacity style={styles.submitButton} onPress={() => setShowTerms(false)}><Text style={styles.submitButtonText}>Close</Text></TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Country Code Dropdown Modal */}
       <Modal visible={emailOtpOpen} animationType="fade" transparent onRequestClose={() => setEmailOtpOpen(false)}>

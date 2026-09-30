@@ -155,6 +155,7 @@ const Register = () => {
   const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsDialogOpen, setTermsDialogOpen] = useState(false);
 
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -999,7 +1000,7 @@ const Register = () => {
                   setErrors((prev) => ({ ...prev, termsAccepted: '' }));
                 }} />}
                 label={<Typography variant="body2" sx={{ pt: 0.8, color: themeColors.textSecondary }}>
-                  I agree to the <Link to="/terms-and-conditions" target="_blank" rel="noreferrer">VIMS Terms and Conditions</Link>, including the community rules, account responsibilities, acceptable use requirements, and verification process.
+                  I agree to the <Button variant="text" size="small" onClick={() => setTermsDialogOpen(true)} sx={{ minWidth: 0, p: 0, textTransform: 'none', textDecoration: 'underline', verticalAlign: 'baseline' }}>VIMS Terms and Conditions</Button>, including the community rules, account responsibilities, acceptable use requirements, and verification process.
                 </Typography>}
               />
               {errors.termsAccepted && <FormHelperText error sx={{ mt: -1, mb: 1 }}>{errors.termsAccepted}</FormHelperText>}
@@ -2359,6 +2360,21 @@ const Register = () => {
             {emailOtpLoading ? <CircularProgress size={20} /> : 'Verify'}
           </Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog open={termsDialogOpen} onClose={() => setTermsDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Terms and Conditions</DialogTitle>
+        <DialogContent dividers>
+          <Typography color="text.secondary" sx={{ mb: 2 }}>These Terms govern your use of the Village Information Management System (VIMS) for Westville Casimiro Homes.</Typography>
+          {[
+            ['Use of VIMS', 'VIMS is for residents and authorized community personnel to access community services and administration.'],
+            ['Account responsibility', 'Keep your account secure and provide accurate, current registration information. Do not share your account or impersonate another person.'],
+            ['Community rules and acceptable use', 'VIMS does not replace HOA rules, notices, payment obligations, reservation requirements, or decisions of authorized administrators. Do not interfere with VIMS, attempt unauthorized access, or upload harmful or misleading content.'],
+            ['Verification and privacy', 'The community may review registration details and documents to verify residency and administer services. Personal information is handled under the VIMS Privacy Policy and applicable Philippine data privacy law.'],
+            ['Changes and questions', 'The community may update these Terms for operational, legal, or security reasons. Continued use after an update means you accept the updated Terms. Contact the HOA administration with questions.'],
+          ].map(([title, content]) => <Box key={title} sx={{ mb: 2 }}><Typography fontWeight={700}>{title}</Typography><Typography color="text.secondary">{content}</Typography></Box>)}
+        </DialogContent>
+        <DialogActions><Button variant="contained" onClick={() => setTermsDialogOpen(false)}>Close</Button></DialogActions>
       </Dialog>
 
     </Box>

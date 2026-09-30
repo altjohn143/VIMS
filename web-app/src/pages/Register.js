@@ -154,6 +154,7 @@ const Register = () => {
   const [ocrDialogOpen, setOcrDialogOpen] = useState(false);
   const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -419,6 +420,7 @@ const Register = () => {
     
     if (registrationMode === 'ocr' && !formData.idNumber.trim()) newErrors.idNumber = 'ID number is required';
     if (!privacyConsent) newErrors.privacyConsent = 'You must agree to the Data Privacy Agreement to register.';
+    if (!termsAccepted) newErrors.termsAccepted = 'You must agree to the Terms and Conditions to register.';
     if (!idDocs.frontImage) newErrors.frontImage = 'ID Front image is required';
     if (!idDocs.backImage) newErrors.backImage = 'ID Back image is required';
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot from the map or dropdown';
@@ -489,7 +491,7 @@ const Register = () => {
       vehicles: Object.keys(validationErrors).filter((key) => key.startsWith('vehicle_')),
       family: Object.keys(validationErrors).filter((key) => key.startsWith('family')),
       id: ['idNumber', 'frontImage', 'backImage'],
-      photo: ['privacyConsent']
+      photo: ['privacyConsent', 'termsAccepted']
     };
     const activeKey = REGISTRATION_STEPS[manualStep].key;
     const allowedKeys = stepKeys[activeKey] || [];
@@ -643,6 +645,7 @@ const Register = () => {
     formDataToSend.append('noVehicles', formData.noVehicles.toString());
     formDataToSend.append('soloResident', formData.soloResident.toString());
     formDataToSend.append('privacyConsent', 'true');
+    formDataToSend.append('termsAndConditionsAccepted', 'true');
     if (ocrIdNumber.trim()) {
       formDataToSend.append('idNumber', ocrIdNumber.trim());
     }
@@ -989,6 +992,17 @@ const Register = () => {
                 </Typography>}
               />
               {errors.privacyConsent && <FormHelperText error sx={{ mt: -1, mb: 1 }}>{errors.privacyConsent}</FormHelperText>}
+              <FormControlLabel
+                sx={{ alignItems: 'flex-start', mb: 2, mr: 0 }}
+                control={<Checkbox checked={termsAccepted} onChange={(e) => {
+                  setTermsAccepted(e.target.checked);
+                  setErrors((prev) => ({ ...prev, termsAccepted: '' }));
+                }} />}
+                label={<Typography variant="body2" sx={{ pt: 0.8, color: themeColors.textSecondary }}>
+                  I agree to the <Link to="/terms-and-conditions" target="_blank" rel="noreferrer">VIMS Terms and Conditions</Link>, including the community rules, account responsibilities, acceptable use requirements, and verification process.
+                </Typography>}
+              />
+              {errors.termsAccepted && <FormHelperText error sx={{ mt: -1, mb: 1 }}>{errors.termsAccepted}</FormHelperText>}
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <Paper
@@ -1006,7 +1020,7 @@ const Register = () => {
                     </Typography>
                     <Button
                       variant="contained"
-                      disabled={!privacyConsent}
+                      disabled={!privacyConsent || !termsAccepted}
                       onClick={() => {
                         setRegistrationMode('manual');
                         setManualStep(0);
@@ -1034,7 +1048,7 @@ const Register = () => {
                     </Typography>
                     <Button
                       variant="contained"
-                      disabled={!privacyConsent}
+                      disabled={!privacyConsent || !termsAccepted}
                       onClick={() => {
                         setRegistrationMode('ocr');
                         setOcrDialogOpen(true);

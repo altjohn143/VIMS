@@ -130,7 +130,7 @@ const PageFooter = () => (
     <Box sx={{ mt: 4.5, pt: 3, borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 1.5 }}>
       <Typography sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', fontWeight: 700 }}>© {new Date().getFullYear()} Westville Casimiro Homes. All rights reserved.</Typography>
       <Box sx={{ display: 'flex', gap: { xs: 1.4, md: 3 }, flexWrap: 'wrap' }}>
-        {['Privacy Policy', 'Terms and Conditions', 'Sitemap'].map((i) => <Typography key={i} sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700, '&:hover': { color: '#9af084' } }}>{i}</Typography>)}
+        {['Privacy Policy', 'Terms and Conditions', 'Sitemap'].map((i) => <Typography key={i} component={i === 'Terms and Conditions' ? 'a' : 'span'} href={i === 'Terms and Conditions' ? '/terms-and-conditions' : undefined} sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 700, textDecoration: 'none', '&:hover': { color: '#9af084' } }}>{i}</Typography>)}
       </Box>
     </Box>
   </Box>

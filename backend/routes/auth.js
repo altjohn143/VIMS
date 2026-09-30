@@ -458,6 +458,13 @@ router.post('/register', registerUpload.fields([
       });
     }
 
+    if (!parseBooleanField(req.body.termsAndConditionsAccepted)) {
+      return res.status(400).json({
+        success: false,
+        error: 'You must agree to the Terms and Conditions before registering.'
+      });
+    }
+
     // Validation
     if (!firstName || !lastName || !email || !phone || !password) {
       debugLog('Missing required fields');
@@ -526,6 +533,8 @@ router.post('/register', registerUpload.fields([
       isApproved: isApproved,
       dataPrivacyConsent: true,
       dataPrivacyConsentAt: new Date(),
+      termsAndConditionsAccepted: true,
+      termsAndConditionsAcceptedAt: new Date(),
     };
 
     // Debug: show received profile photo upload details

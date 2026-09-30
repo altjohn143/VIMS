@@ -12,6 +12,7 @@ import ChunkLoadErrorBoundary from './components/ChunkLoadErrorBoundary';
 import { clearChunkReloadMarker, lazyWithRetry } from './utils/lazyWithRetry';
 
 const Register = lazyWithRetry(() => import('./pages/Register'));
+const TermsAndConditions = lazyWithRetry(() => import('./pages/TermsAndConditions'));
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
 const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
 const PublicLotMap = lazyWithRetry(() => import('./pages/PublicLotMap'));
@@ -72,6 +73,7 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/lots" element={<PublicLotMap />} />
             <Route path="/pending-approval" element={<PendingApproval />} />

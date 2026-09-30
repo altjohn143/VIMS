@@ -169,6 +169,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [showIdUploadStep, setShowIdUploadStep] = useState(false);
   const [ocrStepCompleted, setOcrStepCompleted] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // DOB picker
   const [dobPickerOpen, setDobPickerOpen] = useState(false);
@@ -743,6 +744,7 @@ const RegisterScreen = ({ navigation, route }) => {
     if (!formData.selectedLot) newErrors.selectedLot = 'Please select a lot';
     if (registrationMode === 'ocr' && !formData.idNumber.trim()) newErrors.idNumber = 'ID number is required';
     if (!privacyConsent) newErrors.privacyConsent = 'You must agree to the Data Privacy Agreement to register.';
+    if (!termsAccepted) newErrors.termsAccepted = 'You must agree to the Terms and Conditions to register.';
     if (!idDocs.frontUri) newErrors.frontImage = 'Please upload the front side of your ID';
     if (!idDocs.backUri) newErrors.backImage = 'Please upload the back side of your ID';
 
@@ -871,6 +873,7 @@ const RegisterScreen = ({ navigation, route }) => {
       formDataToSend.append('noVehicles', formData.noVehicles.toString());
       formDataToSend.append('soloResident', formData.soloResident.toString());
       formDataToSend.append('privacyConsent', 'true');
+      formDataToSend.append('termsAndConditionsAccepted', 'true');
       
       // Handle vehicles with car images
       const vehiclesWithoutImages = formData.noVehicles
@@ -1145,9 +1148,32 @@ const RegisterScreen = ({ navigation, route }) => {
           </TouchableOpacity>
           {errors.privacyConsent ? <Text style={styles.errorText}>{errors.privacyConsent}</Text> : null}
 
+          <TouchableOpacity
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: termsAccepted, disabled: Boolean(registrationMode) }}
+            style={[styles.privacyConsentRow, registrationMode && styles.privacyConsentLocked]}
+            onPress={() => {
+              if (registrationMode) return;
+              setTermsAccepted((value) => !value);
+              setErrors((previous) => ({ ...previous, termsAccepted: '' }));
+            }}
+            disabled={Boolean(registrationMode)}
+          >
+            <Ionicons name={termsAccepted ? 'checkbox' : 'square-outline'} size={23} color={termsAccepted ? themeColors.primary : themeColors.textSecondary} />
+            <Text style={styles.privacyConsentText}>
+              {registrationMode
+                ? 'Terms and Conditions accepted and recorded for this registration.'
+                : 'I agree to the VIMS Terms and Conditions, including community rules, account responsibilities, acceptable use requirements, and the verification process.'}
+            </Text>
+          </TouchableOpacity>
+          {errors.termsAccepted ? <Text style={styles.errorText}>{errors.termsAccepted}</Text> : null}
+          <TouchableOpacity onPress={() => navigation.navigate('TermsAndConditions')} accessibilityRole="button" style={{ alignSelf: 'flex-start', marginTop: -8, marginBottom: 14 }}>
+            <Text style={{ color: themeColors.primary, fontWeight: '700', textDecorationLine: 'underline' }}>View Terms and Conditions</Text>
+          </TouchableOpacity>
+
           {!registrationMode ? (
             <View>
-              <TouchableOpacity style={[styles.modeCard, !privacyConsent && styles.modeCardDisabled]} onPress={() => selectRegistrationMethod('manual')} disabled={!privacyConsent}>
+              <TouchableOpacity style={[styles.modeCard, (!privacyConsent || !termsAccepted) && styles.modeCardDisabled]} onPress={() => selectRegistrationMethod('manual')} disabled={!privacyConsent || !termsAccepted}>
                 <Text style={styles.modeTitle}>Manual entry</Text>
                 <Text style={styles.modeDescription}>
                   Enter your details manually and upload your ID. The ID upload will be used for verification only and will not trigger OCR automatically.
@@ -1157,7 +1183,7 @@ const RegisterScreen = ({ navigation, route }) => {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.modeCard, !privacyConsent && styles.modeCardDisabled]} onPress={() => selectRegistrationMethod('ocr')} disabled={!privacyConsent}>
+              <TouchableOpacity style={[styles.modeCard, (!privacyConsent || !termsAccepted) && styles.modeCardDisabled]} onPress={() => selectRegistrationMethod('ocr')} disabled={!privacyConsent || !termsAccepted}>
                 <Text style={styles.modeTitle}>ID upload + OCR autofill</Text>
                 <Text style={styles.modeDescription}>
                   Upload your ID and let the OCR attempt to populate your name, date of birth, and ID number automatically.

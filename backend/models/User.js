@@ -177,6 +177,15 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Acceptance captured with privacy consent during resident registration.
+  termsAndConditionsAccepted: {
+    type: Boolean,
+    default: false
+  },
+  termsAndConditionsAcceptedAt: {
+    type: Date,
+    default: null
+  },
 
   emergencyContact: {
     name: String,

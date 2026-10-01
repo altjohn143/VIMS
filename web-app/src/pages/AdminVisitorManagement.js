@@ -693,6 +693,7 @@ const AdminVisitorManagement = () => {
                   >
                     <SelectMenuItem value="all">All Status</SelectMenuItem>
                     <SelectMenuItem value="pending">Pending</SelectMenuItem>
+                    <SelectMenuItem value="overstayed">Overstaying</SelectMenuItem>
                     <SelectMenuItem value="approved">Approved</SelectMenuItem>
                     <SelectMenuItem value="rejected">Rejected</SelectMenuItem>
                     <SelectMenuItem value="active">Active</SelectMenuItem>

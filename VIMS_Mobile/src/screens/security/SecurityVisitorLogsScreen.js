@@ -73,10 +73,17 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       if (response.data.success) {
         const data = response.data.data;
         setVisitors(data);
+        const serverSummary = response.data.summary;
         
         // Calculate stats
         const now = new Date();
-        setStats({
+        setStats(serverSummary ? {
+          total: serverSummary.all,
+          active: serverSummary.active,
+          pending: serverSummary.pending,
+          approved: serverSummary.approved,
+          completed: serverSummary.completed,
+        } : {
           total: data.length,
           active: data.filter(v => v.status === 'active').length,
           pending: data.filter(v => v.status === 'pending').length,
@@ -111,7 +118,9 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       );
     }
 
-    if (statusFilter !== 'all') {
+    if (statusFilter === 'overstayed') {
+      filtered = filtered.filter(isCurrentlyOverstaying);
+    } else if (statusFilter !== 'all') {
       filtered = filtered.filter(v => v.status === statusFilter);
     }
 
@@ -413,6 +422,9 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
             onPress={() => setStatusFilter('completed')}
           >
             <Text style={[styles.filterText, statusFilter === 'completed' && styles.activeFilterText]}>Completed</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.filterChip, statusFilter === 'overstayed' && styles.activeFilter]} onPress={() => setStatusFilter('overstayed')}>
+            <Text style={[styles.filterText, statusFilter === 'overstayed' && styles.activeFilterText]}>Overstaying</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.filterChip, statusFilter === 'rejected' && styles.activeFilter]}

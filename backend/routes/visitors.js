@@ -1078,7 +1078,13 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
     
     let filter = {};
     
-    if (status) filter.status = status;
+    if (status === 'overstayed') {
+      filter.status = { $in: ['approved', 'active'] };
+      filter.actualExit = null;
+      filter.expectedDeparture = { $lt: new Date() };
+    } else if (status) {
+      filter.status = status;
+    }
     if (date) {
       const startDate = new Date(date);
       startDate.setHours(0, 0, 0, 0);
@@ -1096,6 +1102,15 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
       ? { data: await visitorQuery, pagination: null }
       : await paginateQuery(visitorQuery, Visitor.countDocuments(filter), req.query);
     const visitors = paginationResult.data;
+    // These badges must represent the entire visitor collection, never just
+    // the current paginated result page.
+    const statusCounts = await Visitor.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+    const summary = statusCounts.reduce((counts, item) => {
+      counts[item._id] = item.count;
+      return counts;
+    }, {});
 
     visitors.forEach(attachQrStatus);
 
@@ -1176,6 +1191,13 @@ router.get('/', protect, authorize('admin', 'security'), async (req, res) => {
       count: visitors.length,
       total: paginationResult.pagination?.total ?? visitors.length,
       pagination: paginationResult.pagination,
+      summary: {
+        all: statusCounts.reduce((total, item) => total + item.count, 0),
+        pending: summary.pending || 0,
+        approved: summary.approved || 0,
+        active: summary.active || 0,
+        completed: summary.completed || 0
+      },
       data: visitors
     });
     
@@ -1509,7 +1531,13 @@ router.get('/admin/all', protect, authorize('admin'), async (req, res) => {
     let filter = {};
     
     // Filter by status
-    if (status && status !== 'all') filter.status = status;
+    if (status === 'overstayed') {
+      filter.status = { $in: ['approved', 'active'] };
+      filter.actualExit = null;
+      filter.expectedDeparture = { $lt: new Date() };
+    } else if (status && status !== 'all') {
+      filter.status = status;
+    }
 
     if (visitorName) {
       filter.visitorName = { $regex: visitorName.trim(), $options: 'i' };

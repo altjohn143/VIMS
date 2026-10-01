@@ -641,7 +641,13 @@ const DashboardScreen = ({ navigation }) => {
 
         <View style={styles.topBarRight}>
           {(userToShow?.role === 'resident' || userToShow?.role === 'security') && (
-            <TouchableOpacity style={styles.bellBtn} onPress={() => setOverstayInboxVisible(true)} accessibilityLabel="Open overstay messages">
+            <TouchableOpacity
+              style={[styles.bellBtn, styles.overstayInboxButton]}
+              onPress={() => setOverstayInboxVisible(true)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Open overstay messages"
+            >
               <Ionicons name="chatbubble-ellipses-outline" size={21} color={themeColors.textPrimary} />
               {overstayUnreadCount > 0 && (<View style={styles.notificationBadge}><Text style={styles.notificationBadgeText}>{overstayUnreadCount > 9 ? '9+' : overstayUnreadCount}</Text></View>)}
             </TouchableOpacity>
@@ -1146,13 +1152,14 @@ const styles = StyleSheet.create({
   topTextWrap: { flexShrink: 1, minWidth: 0 },
   topBarTitle: { color: themeColors.textPrimary, fontSize: 19, fontWeight: '900', letterSpacing: -0.4, marginTop: 1 },
   topBarSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600', marginTop: 1 },
-  topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  topBarRight: { flexDirection: 'row', alignItems: 'center', gap: 6, zIndex: 10, elevation: 10 },
   bellBtn: {
     width: 40, height: 40, borderRadius: 14,
     backgroundColor: themeColors.cardBackground,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: themeColors.border,
   },
+  overstayInboxButton: { zIndex: 11, elevation: 11 },
   notificationBadge: {
     position: 'absolute',
     top: -4,

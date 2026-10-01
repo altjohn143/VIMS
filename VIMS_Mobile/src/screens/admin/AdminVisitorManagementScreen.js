@@ -136,7 +136,9 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
       );
     }
 
-    if (statusFilter !== 'all') {
+    if (statusFilter === 'overstayed') {
+      filtered = filtered.filter(v => ['approved', 'active'].includes(v.status) && !v.actualExit && v.expectedDeparture && new Date(v.expectedDeparture) < new Date());
+    } else if (statusFilter !== 'all') {
       filtered = filtered.filter(v => v.status === statusFilter);
     }
 
@@ -412,14 +414,14 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          {['all', 'pending', 'approved', 'active', 'completed', 'rejected'].map((status) => (
+          {['all', 'pending', 'approved', 'active', 'overstayed', 'completed', 'rejected'].map((status) => (
             <TouchableOpacity
               key={status}
               style={[styles.filterChip, statusFilter === status && styles.activeFilter]}
               onPress={() => setStatusFilter(status)}
             >
               <Text style={[styles.filterText, statusFilter === status && styles.activeFilterText]}>
-                {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+                {status === 'all' ? 'All' : status === 'overstayed' ? 'Overstaying' : status.charAt(0).toUpperCase() + status.slice(1)}
               </Text>
             </TouchableOpacity>
           ))}

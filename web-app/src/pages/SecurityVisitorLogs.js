@@ -186,7 +186,8 @@ const SecurityVisitorLogs = () => {
         if (response.data.success) {
           const visitorsData = response.data.data || [];
           setVisitors(visitorsData);
-          setTotal(response.data.count || visitorsData.length);
+          setTotal(response.data.total ?? response.data.count ?? visitorsData.length);
+          const serverSummary = response.data.summary;
           
           // Calculate stats
           const now = new Date();
@@ -205,7 +206,14 @@ const SecurityVisitorLogs = () => {
               return false;
             }).length
           };
-          setStats(statsData);
+          setStats(serverSummary ? {
+            ...statsData,
+            total: serverSummary.all,
+            pending: serverSummary.pending,
+            approved: serverSummary.approved,
+            active: serverSummary.active,
+            completed: serverSummary.completed
+          } : statsData);
         } else {
           throw new Error(response.data.error || 'Failed to fetch visitors');
         }
@@ -1137,6 +1145,7 @@ const SecurityVisitorLogs = () => {
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="approved">Approved</MenuItem>
                     <MenuItem value="pending">Pending</MenuItem>
+                    <MenuItem value="overstayed">Overstaying</MenuItem>
                     <MenuItem value="completed">Completed</MenuItem>
                   </Select>
                 </FormControl>

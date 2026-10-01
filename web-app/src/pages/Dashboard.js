@@ -1723,6 +1723,8 @@ const Dashboard = () => {
               px: 1,
               py: 0.5,
               minWidth: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
               border: `1px solid ${themeColors.border}`,
               bgcolor: 'rgba(255,255,255,0.75)',
               '&:hover': {
@@ -1748,16 +1750,18 @@ const Dashboard = () => {
             </Avatar>
 
             {!isMobile && (
-              <Box sx={{ textAlign: 'left', mr: 0.5 }}>
-                <Typography sx={{ fontSize: '0.92rem', fontWeight: 800, lineHeight: 1.1 }}>
+              <Box sx={{ minWidth: 0, height: 38, display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left', mr: 0.5 }}>
+                <Typography noWrap sx={{ fontSize: '0.92rem', fontWeight: 800, lineHeight: 1.1 }}>
                   {user.firstName} {user.lastName}
                 </Typography>
                 <Typography
+                  noWrap
                   sx={{
                     fontSize: '0.73rem',
                     color: user.isApproved ? themeColors.success : themeColors.warning,
                     fontWeight: 700,
-                    lineHeight: 1.1
+                    lineHeight: 1.1,
+                    mt: 0.2
                   }}
                 >
                   ● {user.isApproved ? 'Approved' : 'Pending Approval'}
@@ -1765,7 +1769,7 @@ const Dashboard = () => {
               </Box>
             )}
 
-            {!isMobile && <ExpandMoreIcon sx={{ color: themeColors.textSecondary }} />}
+            {!isMobile && <ExpandMoreIcon sx={{ ml: 0.25, color: themeColors.textSecondary }} />}
           </Button>
 
           <Menu

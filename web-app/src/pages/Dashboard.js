@@ -1785,18 +1785,18 @@ const Dashboard = () => {
             transformOrigin={{ horizontal: 'right', vertical: 'top' }}
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
-            <MenuItem disabled sx={{ opacity: 1, py: 1.75 }}>
-              <ListItemIcon>
+            <MenuItem disabled sx={{ opacity: 1, py: 1.75, alignItems: 'center' }}>
+              <ListItemIcon sx={{ minWidth: 46, alignSelf: 'center' }}>
                 <Avatar src={avatarSrc} sx={{ width: 36, height: 36, bgcolor: themeColors.primary }}>
                   {user.firstName?.charAt(0)}
                   {user.lastName?.charAt(0)}
                 </Avatar>
               </ListItemIcon>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 800, color: themeColors.textPrimary }}>
+              <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Typography variant="body2" noWrap sx={{ fontWeight: 800, color: themeColors.textPrimary, lineHeight: 1.25 }}>
                   {user.firstName} {user.lastName}
                 </Typography>
-                <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 600 }}>
+                <Typography variant="caption" noWrap sx={{ color: themeColors.textSecondary, fontWeight: 600, lineHeight: 1.25, mt: 0.25 }}>
                   {user.role} • {user.houseNumber || 'No house'}
                 </Typography>
               </Box>

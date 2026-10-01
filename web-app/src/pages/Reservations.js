@@ -124,6 +124,7 @@ const Reservations = () => {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [calendarSelectionMode, setCalendarSelectionMode] = useState('start');
 
   const [formData, setFormData] = useState({
     description: '',
@@ -178,6 +179,7 @@ const Reservations = () => {
   const handleOpenDialog = (resourceType = 'venue') => {
     const today = new Date();
     setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1));
+    setCalendarSelectionMode('start');
     setFormData({
       description: '',
       startDate: new Date(),
@@ -208,6 +210,7 @@ const Reservations = () => {
     });
     setOpen(false);
     setAvailability([]);
+    setCalendarSelectionMode('start');
   };
 
   const getAvailabilityResources = useCallback(() => {
@@ -552,12 +555,25 @@ const Reservations = () => {
     today.setHours(0, 0, 0, 0);
     if (date < today) return;
 
-    const startDate = new Date(date);
-    startDate.setHours(formData.startDate.getHours(), formData.startDate.getMinutes(), 0, 0);
+    if (calendarSelectionMode === 'start') {
+      const startDate = new Date(date);
+      startDate.setHours(formData.startDate.getHours(), formData.startDate.getMinutes(), 0, 0);
+      const endDate = new Date(date);
+      endDate.setHours(formData.endDate.getHours(), formData.endDate.getMinutes(), 0, 0);
+      if (endDate <= startDate) endDate.setHours(startDate.getHours() + 1);
+      setFormData((previous) => ({ ...previous, startDate, endDate }));
+      setCalendarSelectionMode('end');
+      return;
+    }
+
     const endDate = new Date(date);
     endDate.setHours(formData.endDate.getHours(), formData.endDate.getMinutes(), 0, 0);
-    if (endDate <= startDate) endDate.setHours(startDate.getHours() + 1);
-    setFormData((previous) => ({ ...previous, startDate, endDate }));
+    if (endDate < formData.startDate) {
+      setSnackbar({ open: true, message: 'End date cannot be before the start date. Select a date on or after the start date.', severity: 'warning' });
+      return;
+    }
+    setFormData((previous) => ({ ...previous, endDate }));
+    setCalendarSelectionMode('start');
   };
 
   const isDateInSelectedRange = (date) => {
@@ -1441,7 +1457,9 @@ const Reservations = () => {
                         Availability Calendar
                       </Typography>
                       <Typography sx={{ color: themeColors.textSecondary, fontSize: '0.84rem', fontWeight: 600 }}>
-                        Click an available date to set your reservation date. Red dates have existing reservations for the selected resource.
+                        {calendarSelectionMode === 'start'
+                          ? 'Select your start date. Then select your end date. Red dates have existing reservations for the selected resource.'
+                          : 'Now select your end date. It must be on or after the selected start date.'}
                       </Typography>
                     </Box>
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
@@ -1622,7 +1640,25 @@ const Reservations = () => {
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <TextField label="Reservation Date" value={formData.startDate.toLocaleDateString()} fullWidth InputProps={{ readOnly: true }} helperText="Choose a date from the availability calendar above." sx={fieldSx} />
+                <TextField
+                  label="Start Date"
+                  value={formData.startDate.toLocaleDateString()}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                  helperText={calendarSelectionMode === 'end' ? 'Start date selected. Choose an end date from the calendar.' : 'Choose a start date from the availability calendar above.'}
+                  sx={fieldSx}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="End Date"
+                  value={formData.endDate.toLocaleDateString()}
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                  helperText={calendarSelectionMode === 'end' ? 'Select your end date from the calendar above.' : 'Choose a new start date to select another date range.'}
+                  sx={fieldSx}
+                />
               </Grid>
 
               <Grid item xs={12} sm={6}>

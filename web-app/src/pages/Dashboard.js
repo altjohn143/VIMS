@@ -1790,17 +1790,17 @@ const Dashboard = () => {
             anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
           >
             <MenuItem disabled sx={{ opacity: 1, py: 1.75, alignItems: 'center' }}>
-              <ListItemIcon sx={{ minWidth: 46, alignSelf: 'center' }}>
+              <ListItemIcon sx={{ minWidth: 0, mr: 1.5, alignSelf: 'center' }}>
                 <Avatar src={avatarSrc} sx={{ width: 36, height: 36, bgcolor: themeColors.primary }}>
                   {user.firstName?.charAt(0)}
                   {user.lastName?.charAt(0)}
                 </Avatar>
               </ListItemIcon>
               <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <Typography variant="body2" noWrap sx={{ fontWeight: 800, color: themeColors.textPrimary, lineHeight: 1.25 }}>
+                <Typography variant="body2" sx={{ fontSize: '0.78rem', fontWeight: 800, color: themeColors.textPrimary, lineHeight: 1.25, overflowWrap: 'anywhere' }}>
                   {user.firstName} {user.lastName}
                 </Typography>
-                <Typography variant="caption" noWrap sx={{ color: themeColors.textSecondary, fontWeight: 600, lineHeight: 1.25, mt: 0.25 }}>
+                <Typography variant="caption" sx={{ fontSize: '0.70rem', color: themeColors.textSecondary, fontWeight: 600, lineHeight: 1.25, mt: 0.25, overflowWrap: 'anywhere' }}>
                   {user.role} • {user.houseNumber || 'No house'}
                 </Typography>
               </Box>

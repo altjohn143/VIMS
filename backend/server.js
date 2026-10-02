@@ -396,6 +396,8 @@ try {
   console.log('/api/patrols routes imported');
   const aiRoutes = require('./routes/ai');
   console.log('/api/ai routes imported');
+  const customReportRoutes = require('./routes/customReports');
+  console.log('/api/custom-reports routes imported');
 
   // Register routes
   app.use('/api/payments', paymentRoutes);
@@ -435,6 +437,8 @@ try {
   console.log('/api/patrols routes registered');
   app.use('/api/ai', aiRoutes);
   console.log('/api/ai routes registered');
+  app.use('/api/custom-reports', customReportRoutes);
+  console.log('/api/custom-reports routes registered');
 
   console.log('All routes registered successfully!');
   startReportScheduler();

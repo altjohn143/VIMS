@@ -91,6 +91,7 @@ import AdminApprovals from './AdminApprovals';
 import AdminServiceRequests from './AdminServiceRequests';
 import AdminReservations from './AdminReservations';
 import AdminPayments from './AdminPayments';
+import AdminCustomReports from './AdminCustomReports';
 import AdminAnnouncements from './AdminAnnouncements';
 import AdminVisitorReports from './AdminVisitorReports';
 import AdminLotManagement from './AdminLotManagement';
@@ -942,7 +943,8 @@ const Dashboard = () => {
           { title: 'Reservation Requests', icon: <EventAvailableIcon />, link: '/dashboard/admin/reservations' }
         ],
         finance: [
-          { title: 'Payment Management', icon: <ReceiptIcon />, link: '/dashboard/admin/payments' }
+          { title: 'Payment Management', icon: <ReceiptIcon />, link: '/dashboard/admin/payments' },
+          { title: 'Custom Reports', icon: <AnalyticsIcon />, link: '/dashboard/admin/custom-reports' }
         ],
         'lot-management': [
           { title: 'Lot Management', icon: <ApartmentIcon />, link: '/dashboard/admin/lot-management' },
@@ -1054,6 +1056,7 @@ const Dashboard = () => {
       'admin/service-requests': 'Service Requests',
       'admin/reservations': 'Reservation Requests',
       'admin/payments': 'Payment Management',
+      'admin/custom-reports': 'Custom Reports',
       'admin/announcements': 'Announcements',
       'admin/verifications': 'Verification Queue',
       'admin/visitor-reports': 'Visitor Reports',
@@ -1094,6 +1097,7 @@ const Dashboard = () => {
     'admin/service-requests': <AdminServiceRequests />,
     'admin/reservations': <AdminReservations />,
     'admin/payments': <AdminPayments />,
+    'admin/custom-reports': <AdminCustomReports />,
     'admin/announcements': <AdminAnnouncements />,
     'admin/visitor-reports': <AdminVisitorReports />,
     'admin/report-schedules': <AdminReservations />,

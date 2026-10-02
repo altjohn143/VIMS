@@ -1172,6 +1172,13 @@ const AdminUserManagement = () => {
               <MenuItem value="deactivated">Deactivated accounts</MenuItem>
             </Select>
           </FormControl>
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/dashboard/admin/custom-reports')}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 700 }}
+          >
+            Custom resident report
+          </Button>
           <ReportToolbar onExportPdf={() => handleExportFile('pdf')} onExportCsv={() => handleExportFile('csv')} />
         </Box>
 

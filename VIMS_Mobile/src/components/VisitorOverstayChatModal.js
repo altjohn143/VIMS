@@ -97,7 +97,11 @@ export default function VisitorOverstayChatModal({ visible, visitor, onClose }) 
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View>
@@ -120,6 +124,8 @@ export default function VisitorOverstayChatModal({ visible, visitor, onClose }) 
               data={messages}
               keyExtractor={(item) => item._id}
               renderItem={renderMessage}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               contentContainerStyle={messages.length ? styles.messageList : styles.emptyList}
               ListEmptyComponent={<Text style={styles.emptyText}>{error || 'Security has not started this conversation yet.'}</Text>}
             />
@@ -136,6 +142,7 @@ export default function VisitorOverstayChatModal({ visible, visitor, onClose }) 
               multiline
               maxLength={1500}
               editable={!sending && canSend}
+              onFocus={() => setTimeout(() => listRef.current?.scrollToEnd?.({ animated: true }), 120)}
             />
             <TouchableOpacity onPress={send} disabled={!draft.trim() || sending || !canSend} style={[styles.sendButton, (!draft.trim() || sending || !canSend) && styles.sendButtonDisabled]}>
               {sending ? <ActivityIndicator color="#fff" /> : <Ionicons name="send" size={19} color="#fff" />}
@@ -149,7 +156,7 @@ export default function VisitorOverstayChatModal({ visible, visitor, onClose }) 
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15, 23, 42, 0.5)' },
-  sheet: { maxHeight: '88%', minHeight: '65%', backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18 },
+  sheet: { flex: 1, maxHeight: '88%', backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   title: { color: themeColors.textPrimary, fontSize: 21, fontWeight: '800' },
   subtitle: { color: themeColors.textSecondary, fontSize: 12, marginTop: 3 },

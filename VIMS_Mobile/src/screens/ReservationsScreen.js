@@ -223,6 +223,19 @@ const ReservationsScreen = ({ navigation }) => {
     setFormData((previous) => ({ ...previous, startDate, endDate }));
   };
 
+  const updateReservationDate = (field, selectedDate) => {
+    setFormData((previous) => {
+      const next = new Date(previous[field]);
+      next.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+      if (field === 'startDate' && next >= previous.endDate) {
+        const endDate = new Date(next);
+        endDate.setHours(next.getHours() + 1);
+        return { ...previous, startDate: next, endDate };
+      }
+      return { ...previous, [field]: next };
+    });
+  };
+
   const getSelectedScheduleConflicts = () => {
     const selectedKeys = new Set(formData.items.map(resourceKey));
     return availability.filter((slot) =>
@@ -978,7 +991,7 @@ const ReservationsScreen = ({ navigation }) => {
               )}
 
               <Text style={styles.sectionTitle}>Availability Calendar</Text>
-              <Text style={styles.calendarInstruction}>Tap an available date to set your reservation date. Dates with existing reservations are marked in red.</Text>
+              <Text style={styles.calendarInstruction}>Tap an available date to set both dates at once, or use the separate Start Date and End Date pickers below. Dates with existing reservations are marked in red.</Text>
               <View style={styles.availabilityFilters}>
                 {[['all', 'All'], ['venue', 'Venues'], ['equipment', 'Equipment']].map(([value, label]) => (
                   <TouchableOpacity key={value} style={[styles.availabilityFilterChip, availabilityFilter === value && styles.availabilityFilterChipActive]} onPress={() => setAvailabilityFilter(value)}>
@@ -1057,9 +1070,11 @@ const ReservationsScreen = ({ navigation }) => {
                 numberOfLines={2}
               />
 
-              {/* Date is selected from the availability calendar; only times are picked here. */}
-              <Text style={styles.label}>Reservation Date</Text>
-              <View style={styles.selectedCalendarDate}><Ionicons name="calendar-outline" size={16} color="#64748b" /><Text style={styles.dateButtonText}>{formData.startDate.toLocaleDateString()}</Text></View>
+              <Text style={styles.label}>Start Date</Text>
+              <TouchableOpacity style={styles.timeButton} onPress={() => setShowStartDatePicker(true)}>
+                <Ionicons name="calendar-outline" size={16} color="#64748b" />
+                <Text style={styles.timeButtonText}>{formData.startDate.toLocaleDateString()}</Text>
+              </TouchableOpacity>
               <Text style={styles.label}>Start Time</Text>
               <View style={styles.dateTimeRow}>
                 <TouchableOpacity
@@ -1073,6 +1088,11 @@ const ReservationsScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
+              <Text style={styles.label}>End Date</Text>
+              <TouchableOpacity style={styles.timeButton} onPress={() => setShowEndDatePicker(true)}>
+                <Ionicons name="calendar-outline" size={16} color="#64748b" />
+                <Text style={styles.timeButtonText}>{formData.endDate.toLocaleDateString()}</Text>
+              </TouchableOpacity>
               <Text style={styles.label}>End Time</Text>
               <View style={styles.dateTimeRow}>
                 <TouchableOpacity
@@ -1133,7 +1153,7 @@ const ReservationsScreen = ({ navigation }) => {
                   mode: 'date',
                   minimumDate: new Date(),
                   onDismiss: () => setShowStartDatePicker(false),
-                  onChange: (date) => setFormData({ ...formData, startDate: date }),
+                  onChange: (date) => updateReservationDate('startDate', date),
                 })}
 
                 {renderPlatformDateTimePicker({
@@ -1156,7 +1176,7 @@ const ReservationsScreen = ({ navigation }) => {
                   mode: 'date',
                   minimumDate: formData.startDate,
                   onDismiss: () => setShowEndDatePicker(false),
-                  onChange: (date) => setFormData({ ...formData, endDate: date }),
+                  onChange: (date) => updateReservationDate('endDate', date),
                 })}
 
                 {renderPlatformDateTimePicker({
@@ -1185,7 +1205,7 @@ const ReservationsScreen = ({ navigation }) => {
         mode: 'date',
         minimumDate: new Date(),
         onDismiss: () => setShowStartDatePicker(false),
-        onChange: (date) => setFormData({ ...formData, startDate: date }),
+        onChange: (date) => updateReservationDate('startDate', date),
       })}
 
       {Platform.OS === 'android' && renderPlatformDateTimePicker({
@@ -1208,7 +1228,7 @@ const ReservationsScreen = ({ navigation }) => {
         mode: 'date',
         minimumDate: formData.startDate,
         onDismiss: () => setShowEndDatePicker(false),
-        onChange: (date) => setFormData({ ...formData, endDate: date }),
+        onChange: (date) => updateReservationDate('endDate', date),
       })}
 
       {Platform.OS === 'android' && renderPlatformDateTimePicker({

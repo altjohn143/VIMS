@@ -36,6 +36,7 @@ const ReservationsScreen = ({ navigation }) => {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [calendarSelectionMode, setCalendarSelectionMode] = useState('start');
   const [cancellingReservationId, setCancellingReservationId] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -215,12 +216,36 @@ const ReservationsScreen = ({ navigation }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (date < today) return;
-    const startDate = new Date(date);
-    startDate.setHours(formData.startDate.getHours(), formData.startDate.getMinutes(), 0, 0);
+
+    if (calendarSelectionMode === 'start') {
+      const startDate = new Date(date);
+      startDate.setHours(formData.startDate.getHours(), formData.startDate.getMinutes(), 0, 0);
+      const endDate = new Date(date);
+      endDate.setHours(formData.endDate.getHours(), formData.endDate.getMinutes(), 0, 0);
+      if (endDate <= startDate) endDate.setHours(startDate.getHours() + 1);
+      setFormData((previous) => ({ ...previous, startDate, endDate }));
+      setCalendarSelectionMode('end');
+      return;
+    }
+
     const endDate = new Date(date);
     endDate.setHours(formData.endDate.getHours(), formData.endDate.getMinutes(), 0, 0);
-    if (endDate <= startDate) endDate.setHours(startDate.getHours() + 1);
-    setFormData((previous) => ({ ...previous, startDate, endDate }));
+    if (endDate < formData.startDate) {
+      Alert.alert('Invalid End Date', 'End date cannot be before the start date. Select a date on or after the start date.');
+      return;
+    }
+    setFormData((previous) => ({ ...previous, endDate }));
+    setCalendarSelectionMode('start');
+  };
+
+  const isDateInSelectedRange = (date) => {
+    const day = new Date(date);
+    day.setHours(0, 0, 0, 0);
+    const selectedStart = new Date(formData.startDate);
+    selectedStart.setHours(0, 0, 0, 0);
+    const selectedEnd = new Date(formData.endDate);
+    selectedEnd.setHours(0, 0, 0, 0);
+    return day >= selectedStart && day <= selectedEnd;
   };
 
   const updateReservationDate = (field, selectedDate) => {
@@ -482,6 +507,7 @@ const ReservationsScreen = ({ navigation }) => {
       items: [],
     });
     setAvailability([]);
+    setCalendarSelectionMode('start');
     setCurrentItem({
       resourceType: 'venue',
       resourceName: '',
@@ -663,7 +689,7 @@ const ReservationsScreen = ({ navigation }) => {
         eyebrow="PLAN YOUR TIME"
         title="My Reservations"
         subtitle="Venues and community equipment"
-        actions={[{ label: 'New', icon: 'add', onPress: () => { setCalendarMonth(new Date()); setModalVisible(true); }, primary: true }]}
+        actions={[{ label: 'New', icon: 'add', onPress: () => { setCalendarMonth(new Date()); setCalendarSelectionMode('start'); setModalVisible(true); }, primary: true }]}
       />
 
       <ScrollView
@@ -705,6 +731,7 @@ const ReservationsScreen = ({ navigation }) => {
             style={[styles.quickActionButton, { backgroundColor: '#007A18' }]}
             onPress={() => {
               setCalendarMonth(new Date());
+              setCalendarSelectionMode('start');
               setFormData({
                 description: '',
                 startDate: new Date(),
@@ -724,6 +751,7 @@ const ReservationsScreen = ({ navigation }) => {
             style={[styles.quickActionButton, { backgroundColor: '#d97706' }]}
             onPress={() => {
               setCalendarMonth(new Date());
+              setCalendarSelectionMode('start');
               setFormData({
                 description: '',
                 startDate: new Date(),
@@ -991,7 +1019,11 @@ const ReservationsScreen = ({ navigation }) => {
               )}
 
               <Text style={styles.sectionTitle}>Availability Calendar</Text>
-              <Text style={styles.calendarInstruction}>Tap an available date to set both dates at once, or use the separate Start Date and End Date pickers below. Dates with existing reservations are marked in red.</Text>
+              <Text style={styles.calendarInstruction}>
+                {calendarSelectionMode === 'start'
+                  ? 'Select your start date, then tap again to select your end date. Dates with existing reservations are marked in red.'
+                  : 'Now select your end date. It must be on or after the selected start date.'}
+              </Text>
               <View style={styles.availabilityFilters}>
                 {[['all', 'All'], ['venue', 'Venues'], ['equipment', 'Equipment']].map(([value, label]) => (
                   <TouchableOpacity key={value} style={[styles.availabilityFilterChip, availabilityFilter === value && styles.availabilityFilterChipActive]} onPress={() => setAvailabilityFilter(value)}>
@@ -1016,7 +1048,7 @@ const ReservationsScreen = ({ navigation }) => {
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
                   const isPast = day < today;
-                  const isSelected = day.toDateString() === formData.startDate.toDateString();
+                  const isSelected = isDateInSelectedRange(day);
                   const blocked = isDateBlocked(day);
                   const outsideMonth = day.getMonth() !== calendarMonth.getMonth();
                   return (

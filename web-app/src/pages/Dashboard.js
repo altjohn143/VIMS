@@ -1585,7 +1585,6 @@ const Dashboard = () => {
                       <List disablePadding sx={{ mt: 0.5, mb: 0.5 }}>
                         {items.map((item, index) => {
                           const isActive = item.link === location.pathname;
-                          const itemUnreadCount = getNavigationUnreadCount([item]);
                           return (
                             <ListItemButton
                               key={index}
@@ -1619,7 +1618,6 @@ const Dashboard = () => {
                                   fontWeight: 600
                                 }}
                               />
-                              {renderNavigationBadge(itemUnreadCount, <Box component="span" sx={{ width: 1, height: 1 }} />)}
                             </ListItemButton>
                           );
                         })}
@@ -1656,7 +1654,6 @@ const Dashboard = () => {
                         fontWeight: 700
                       }}
                     />
-                    {renderNavigationBadge(sectionUnreadCount, <Box component="span" sx={{ width: 1, height: 1 }} />)}
                   </ListItemButton>
                 )}
               </Box>

@@ -24,6 +24,27 @@ router.get('/unread-count', protect, async (req, res) => {
   }
 });
 
+// Sidebar badges need an authoritative count for each destination, rather
+// than deriving it from the (intentionally capped) notification feed.
+router.get('/unread-counts', protect, async (req, res) => {
+  try {
+    const rows = await Notification.aggregate([
+      { $match: { userId: req.user._id, readAt: null } },
+      { $group: { _id: { $ifNull: ['$type', 'general'] }, count: { $sum: 1 } } }
+    ]);
+
+    const counts = rows.reduce((result, row) => {
+      result[row._id] = row.count;
+      return result;
+    }, {});
+    const count = rows.reduce((total, row) => total + row.count, 0);
+
+    res.json({ success: true, count, counts });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to load unread notification counts' });
+  }
+});
+
 // This must be registered before /:id/read. Otherwise Express treats
 // "read-all" as an ID, acknowledges the request, and leaves every record
 // unread in MongoDB. That caused the badge to return after the next login.

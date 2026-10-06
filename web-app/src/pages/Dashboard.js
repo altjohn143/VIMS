@@ -478,6 +478,7 @@ const Dashboard = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [expandedSections, setExpandedSections] = useState({});
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCountsByType, setUnreadCountsByType] = useState({});
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [residentAnnouncements, setResidentAnnouncements] = useState([]);
@@ -515,6 +516,27 @@ const Dashboard = () => {
         setCollectionLoading(false);
       });
   }, [user?.role, liveDataVersion]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+
+    let active = true;
+    const loadUnreadCountsByType = async () => {
+      try {
+        const response = await axios.get('/api/notifications/unread-counts');
+        if (active && response.data?.success) {
+          setUnreadCountsByType(response.data.counts || {});
+        }
+      } catch (error) {
+        if (active) setUnreadCountsByType({});
+      }
+    };
+
+    loadUnreadCountsByType();
+    return () => {
+      active = false;
+    };
+  }, [user?.id, liveDataVersion]);
 
   // Removed unused renderResidentCollectionCard function
 
@@ -690,13 +712,28 @@ const Dashboard = () => {
     const unsubscribeCount = websocketService.onUnreadCountDelta((delta) => {
       if (delta === 'reset') {
         setUnreadCount(0);
+        setUnreadCountsByType({});
         return;
       }
-      if (delta < 0) setUnreadCount((prev) => Math.max(0, prev + delta));
+      if (delta < 0) {
+        setUnreadCount((prev) => Math.max(0, prev + delta));
+        axios.get('/api/notifications/unread-counts')
+          .then((response) => {
+            if (response.data?.success) setUnreadCountsByType(response.data.counts || {});
+          })
+          .catch(() => {});
+      }
     });
 
     const unsubscribeNotification = websocketService.onNotification((notification) => {
       setUnreadCount((prev) => prev + (notification?.readAt ? 0 : 1));
+      if (!notification?.readAt) {
+        const type = notification?.type || 'general';
+        setUnreadCountsByType((prev) => ({
+          ...prev,
+          [type]: (prev[type] || 0) + 1
+        }));
+      }
       setRecentActivities((prev) => [
         {
           text: notification?.title || 'New notification',
@@ -1039,6 +1076,54 @@ const Dashboard = () => {
   );
   const navConfig = { ...config, features: visibleFeatures };
   const panelLabel = config.panelLabel || 'Panel';
+
+  const getNotificationTypesForNavItem = (item) => {
+    const typesByLink = {
+      '/dashboard/reservations': ['reservation'],
+      '/dashboard/visitors': ['visitor', 'visitor_overstay'],
+      '/dashboard/service-requests': ['service_request'],
+      '/dashboard/payments': ['payment'],
+      '/dashboard/announcements': ['announcement'],
+      '/dashboard/admin/visitor-management': ['visitor', 'visitor_overstay'],
+      '/dashboard/admin/users': ['account'],
+      '/dashboard/admin/approvals': ['account'],
+      '/dashboard/admin/service-requests': ['service_request'],
+      '/dashboard/admin/reservations': ['reservation'],
+      '/dashboard/admin/payments': ['payment'],
+      '/dashboard/admin/announcements': ['announcement'],
+      '/dashboard/security/visitor-approval': ['visitor', 'visitor_overstay'],
+      '/dashboard/security/visitor-logs': ['visitor', 'visitor_overstay'],
+      '/dashboard/security/service-requests': ['service_request'],
+      '/dashboard/notifications': Object.keys(unreadCountsByType),
+      '/dashboard/profile': ['profile']
+    };
+    return typesByLink[item?.link] || [];
+  };
+
+  const getNavigationUnreadCount = (items) => [...new Set(
+    items.flatMap((item) => getNotificationTypesForNavItem(item))
+  )].reduce((total, type) => total + (Number(unreadCountsByType[type]) || 0), 0);
+
+  const renderNavigationBadge = (count, child) => (
+    <Badge
+      badgeContent={count}
+      color="error"
+      max={9999}
+      invisible={!count}
+      aria-label={`${count} unread update${count === 1 ? '' : 's'}`}
+      sx={{
+        '& .MuiBadge-badge': {
+          fontWeight: 800,
+          minWidth: 18,
+          height: 18,
+          fontSize: '0.66rem',
+          boxShadow: '0 0 0 2px #007A18'
+        }
+      }}
+    >
+      {child}
+    </Badge>
+  );
 
   const getPageLabelFromKey = (key) => {
     const pageLabels = {
@@ -1428,6 +1513,7 @@ const Dashboard = () => {
             const currentIcon = getSectionIcon(section, items);
             const sectionLabel = getSectionLabel(section);
             const hasChildren = items.length > 1;
+            const sectionUnreadCount = getNavigationUnreadCount(items);
             const sectionIsActive = items.some((item) => item.link === location.pathname);
             const isSectionExpanded = expandedSections[section] || sectionIsActive;
 
@@ -1458,7 +1544,7 @@ const Dashboard = () => {
                       color: 'inherit'
                     }}
                   >
-                    {currentIcon}
+                    {renderNavigationBadge(sectionUnreadCount, currentIcon)}
                   </ListItemIcon>
                 </ListItemButton>
               );
@@ -1482,7 +1568,9 @@ const Dashboard = () => {
                         }
                       }}
                     >
-                      <ListItemIcon sx={{ minWidth: 38, color: 'inherit' }}>{currentIcon}</ListItemIcon>
+                      <ListItemIcon sx={{ minWidth: 38, color: 'inherit' }}>
+                        {renderNavigationBadge(sectionUnreadCount, currentIcon)}
+                      </ListItemIcon>
                       <ListItemText
                         primary={sectionLabel}
                         primaryTypographyProps={{
@@ -1497,6 +1585,7 @@ const Dashboard = () => {
                       <List disablePadding sx={{ mt: 0.5, mb: 0.5 }}>
                         {items.map((item, index) => {
                           const isActive = item.link === location.pathname;
+                          const itemUnreadCount = getNavigationUnreadCount([item]);
                           return (
                             <ListItemButton
                               key={index}
@@ -1520,7 +1609,9 @@ const Dashboard = () => {
                                 }
                               }}
                             >
-                              <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>{item.icon}</ListItemIcon>
+                              <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>
+                                {item.icon}
+                              </ListItemIcon>
                               <ListItemText
                                 primary={item.title}
                                 primaryTypographyProps={{
@@ -1528,6 +1619,7 @@ const Dashboard = () => {
                                   fontWeight: 600
                                 }}
                               />
+                              {renderNavigationBadge(itemUnreadCount, <Box component="span" sx={{ width: 1, height: 1 }} />)}
                             </ListItemButton>
                           );
                         })}
@@ -1554,7 +1646,9 @@ const Dashboard = () => {
                       }
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 38, color: 'inherit' }}>{currentIcon}</ListItemIcon>
+                    <ListItemIcon sx={{ minWidth: 38, color: 'inherit' }}>
+                      {renderNavigationBadge(sectionUnreadCount, currentIcon)}
+                    </ListItemIcon>
                     <ListItemText
                       primary={sectionLabel}
                       primaryTypographyProps={{
@@ -1562,7 +1656,7 @@ const Dashboard = () => {
                         fontWeight: 700
                       }}
                     />
-                    {/* No chevron for single-link sections */}
+                    {renderNavigationBadge(sectionUnreadCount, <Box component="span" sx={{ width: 1, height: 1 }} />)}
                   </ListItemButton>
                 )}
               </Box>

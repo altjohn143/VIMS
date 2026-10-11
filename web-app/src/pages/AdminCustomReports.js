@@ -83,6 +83,7 @@ export default function AdminCustomReports() {
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setPreviewLoading(true);
+      setPdfPreview(null);
       try {
         const params = new URLSearchParams({ format: 'pdf', reportType, timezoneOffset: String(new Date().getTimezoneOffset()) });
         if (residentId) params.set('residentId', residentId);

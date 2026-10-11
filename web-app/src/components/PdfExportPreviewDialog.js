@@ -11,19 +11,21 @@ function PdfPages({ blob }) {
   useEffect(() => {
     if (!blob || !containerRef.current) return undefined;
     let cancelled = false;
-    let loadingTask;
     const container = containerRef.current;
     container.replaceChildren();
     setError('');
     setRendering(true);
 
-    const render = async () => {
+    const render = async (hasRetried = false) => {
+      if (cancelled) return;
+      setRendering(true);
       try {
-        loadingTask = pdfjsLib.getDocument({ data: await blob.arrayBuffer() });
+        const loadingTask = pdfjsLib.getDocument({ data: await blob.arrayBuffer() });
         const pdf = await loadingTask.promise;
         for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
           if (cancelled) break;
           const page = await pdf.getPage(pageNumber);
+          if (cancelled) break;
           const viewport = page.getViewport({ scale: 1.5 });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d', { alpha: false });
@@ -34,10 +36,17 @@ function PdfPages({ blob }) {
           canvas.style.display = 'block';
           canvas.style.background = '#fff';
           canvas.style.boxShadow = '0 2px 9px rgba(0,0,0,.22)';
+          if (cancelled) break;
           container.appendChild(canvas);
           await page.render({ canvasContext: context, viewport }).promise;
         }
       } catch (renderError) {
+        // PDF.js can lose its newly-created worker during the first report change.
+        // Retry once automatically so users never need to refresh the whole page.
+        if (!cancelled && !hasRetried) {
+          window.setTimeout(() => render(true), 150);
+          return;
+        }
         console.error('PDF preview rendering failed:', renderError);
         if (!cancelled) setError('The PDF preview could not be rendered. You can still download the file.');
       } finally {
@@ -48,7 +57,6 @@ function PdfPages({ blob }) {
 
     return () => {
       cancelled = true;
-      loadingTask?.destroy();
     };
   }, [blob]);
 

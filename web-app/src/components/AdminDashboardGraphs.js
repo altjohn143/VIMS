@@ -32,6 +32,7 @@ import {
 } from 'recharts';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
+import PdfExportPreviewDialog from './PdfExportPreviewDialog';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1'];
 
@@ -58,6 +59,7 @@ const AdminDashboardGraphs = () => {
   const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [exportingReport, setExportingReport] = useState('');
+  const [pdfPreview, setPdfPreview] = useState(null);
   const [aiReport, setAiReport] = useState('');
   const [aiReportWarning, setAiReportWarning] = useState('');
 
@@ -127,10 +129,12 @@ const AdminDashboardGraphs = () => {
       });
       const extension = format === 'pdf' ? 'pdf' : 'csv';
       const monthPart = reportPeriod === 'monthly' ? `_${String(reportMonth).padStart(2, '0')}` : '';
-      downloadBlob(
-        response.data,
-        `VIMS_Admin_Analytics_Report_${reportPeriod}_${reportYear}${monthPart}.${extension}`
-      );
+      const filename = `VIMS_Admin_Analytics_Report_${reportPeriod}_${reportYear}${monthPart}.${extension}`;
+      if (format === 'pdf') {
+        setPdfPreview({ blob: response.data, filename });
+        return;
+      }
+      downloadBlob(response.data, filename);
       toast.success(`${format.toUpperCase()} exported successfully`);
     } catch (error) {
       console.error(`Error exporting ${format} report:`, error);
@@ -347,7 +351,7 @@ const AdminDashboardGraphs = () => {
             variant="outlined"
             disabled={generatingReport || !!exportingReport}
           >
-            {exportingReport === 'pdf' ? 'Exporting...' : 'Export PDF'}
+            {exportingReport === 'pdf' ? 'Preparing preview...' : 'Preview PDF'}
           </Button>
           <Button
             onClick={generateAIReport}
@@ -358,6 +362,7 @@ const AdminDashboardGraphs = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <PdfExportPreviewDialog blob={pdfPreview?.blob} filename={pdfPreview?.filename} onClose={() => setPdfPreview(null)} />
     </Box>
   );
 };

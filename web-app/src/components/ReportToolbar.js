@@ -7,7 +7,7 @@ const ReportToolbar = ({ onExportPdf, onExportCsv, scheduleLink }) => {
     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
       {onExportPdf && (
         <Button variant="outlined" onClick={onExportPdf}>
-          Export PDF
+          Preview PDF
         </Button>
       )}
       {onExportCsv && (

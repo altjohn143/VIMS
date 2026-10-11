@@ -61,6 +61,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from '../config/axios';
+import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
 import toast from 'react-hot-toast';
 import { getBackendApiUrl } from '../utils/api';
 
@@ -107,6 +108,7 @@ const AdminPayments = () => {
   const [duesAmountDialogOpen, setDuesAmountDialogOpen] = useState(false);
   const [duesAmountDraft, setDuesAmountDraft] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [selectedDescriptionPayment, setSelectedDescriptionPayment] = useState(null);
   
@@ -368,11 +370,16 @@ const AdminPayments = () => {
       }
 
       const blob = await response.blob();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('Z')[0];
+      const filename = `VIMS_Payments_Report_${timestamp}.${fileFormat}`;
+      if (fileFormat === 'pdf') {
+        setPdfPreview({ blob, filename });
+        return;
+      }
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('Z')[0];
       a.href = url;
-      a.download = `VIMS_Payments_Report_${timestamp}.${fileFormat}`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -764,7 +771,7 @@ const AdminPayments = () => {
                 Send Reminders
               </Button>
               <Button variant="outlined" onClick={() => handleExportFile('pdf')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
-                Export PDF
+                Preview PDF
               </Button>
               <Button variant="outlined" onClick={() => handleExportFile('csv')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 700 }}>
                 Export CSV
@@ -1633,6 +1640,7 @@ const AdminPayments = () => {
             </Button>
           </DialogActions>
         </Dialog>
+      <PdfExportPreviewDialog blob={pdfPreview?.blob} filename={pdfPreview?.filename} onClose={() => setPdfPreview(null)} />
       </Container>
     </Box>
   );

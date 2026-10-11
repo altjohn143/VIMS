@@ -42,6 +42,7 @@ import {
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
+import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
 import toast from 'react-hot-toast';
 import { getBackendApiUrl } from '../utils/api';
 
@@ -71,6 +72,7 @@ const AdminVisitorReports = () => {
   const [endDate, setEndDate] = useState('');
   const [reportType, setReportType] = useState('all');
   const [exporting, setExporting] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [dateRangeError, setDateRangeError] = useState('');
@@ -188,12 +190,17 @@ const AdminVisitorReports = () => {
       }
 
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
       const exportTime = new Date();
       const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
+      const filename = `VIMS_Visitors_Export_${timestamp}.${fileFormat}`;
+      if (fileFormat === 'pdf') {
+        setPdfPreview({ blob, filename });
+        return;
+      }
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `VIMS_Visitors_Export_${timestamp}.${fileFormat}`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -427,7 +434,7 @@ const AdminVisitorReports = () => {
                     textTransform: 'none'
                   }}
                 >
-                  PDF
+                  Preview PDF
                 </Button>
                 </Box>
               </Grid>
@@ -693,6 +700,7 @@ const AdminVisitorReports = () => {
             )}
           </CardContent>
         </Card>
+      <PdfExportPreviewDialog blob={pdfPreview?.blob} filename={pdfPreview?.filename} onClose={() => setPdfPreview(null)} />
       </Container>
     </Box>
   );

@@ -37,6 +37,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import ReportToolbar from '../components/ReportToolbar';
+import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
 import { getBackendApiUrl } from '../utils/api';
 
 const themeColors = {
@@ -72,6 +73,7 @@ const AdminLotManagement = () => {
   const [blockFilter, setBlockFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [pdfPreview, setPdfPreview] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [stats, setStats] = useState({
@@ -219,12 +221,17 @@ const AdminLotManagement = () => {
         type: blob.type
       });
 
+      const exportTime = new Date();
+      const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
+      const filename = `VIMS_Lots_Export_${timestamp}.${fileFormat}`;
+      if (fileFormat === 'pdf') {
+        setPdfPreview({ blob, filename });
+        return;
+      }
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const exportTime = new Date();
-      const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-      a.download = `VIMS_Lots_Export_${timestamp}.${fileFormat}`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -574,6 +581,7 @@ const AdminLotManagement = () => {
             </Box>
           )}
         </Paper>
+      <PdfExportPreviewDialog blob={pdfPreview?.blob} filename={pdfPreview?.filename} onClose={() => setPdfPreview(null)} />
       </Container>
     </Box>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
 import {
   Container,
   Box,
@@ -90,6 +91,7 @@ const AdminVisitorManagement = () => {
   const [stats, setStats] = useState(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState(null);
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
   const [exportDateError, setExportDateError] = useState('');
@@ -298,12 +300,18 @@ const AdminVisitorManagement = () => {
       }
 
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
       const exportTime = new Date();
       const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
+      const filename = `VIMS_Visitors_Export_${timestamp}.${fileFormat}`;
+      if (fileFormat === 'pdf') {
+        setPdfPreview({ blob, filename });
+        setExportDialogOpen(false);
+        return;
+      }
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `VIMS_Visitors_Export_${timestamp}.${fileFormat}`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -1177,7 +1185,7 @@ const AdminVisitorManagement = () => {
                 textTransform: 'none'
               }}
             >
-              {exportLoading ? 'Exporting...' : 'Export PDF'}
+              {exportLoading ? 'Preparing preview...' : 'Preview PDF'}
             </Button>
           </DialogActions>
         </Dialog>
@@ -1290,6 +1298,7 @@ const AdminVisitorManagement = () => {
             Reject
           </MenuItem>
         </Menu>
+      <PdfExportPreviewDialog blob={pdfPreview?.blob} filename={pdfPreview?.filename} onClose={() => setPdfPreview(null)} />
       </Container>
     </Box>
   );

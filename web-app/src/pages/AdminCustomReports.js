@@ -4,6 +4,7 @@ import { Download as DownloadIcon, PictureAsPdf as PdfIcon, TableChart as CsvIco
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 import { getBackendApiUrl } from '../utils/api';
+import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
 
 const reportOptions = [
   { value: 'activity', label: 'Complete resident activity history', hint: 'Account profile, service requests and complaints, reservations, payments, and visitor passes in one timeline.' },
@@ -23,6 +24,7 @@ export default function AdminCustomReports() {
   const [endDate, setEndDate] = useState('');
   const [exporting, setExporting] = useState('');
   const [loadingResidents, setLoadingResidents] = useState(true);
+  const [pdfPreview, setPdfPreview] = useState(null);
 
   useEffect(() => {
     axios.get('/api/users', { params: { role: 'resident', limit: 1000 } })
@@ -51,10 +53,15 @@ export default function AdminCustomReports() {
         throw new Error(error.error || 'The report could not be exported.');
       }
       const blob = await response.blob();
+      const filename = `VIMS_Custom_${reportType}_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -1)}.${format}`;
+      if (format === 'pdf') {
+        setPdfPreview({ blob, filename });
+        return;
+      }
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `VIMS_Custom_${reportType}_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -1)}.${format}`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -85,9 +92,10 @@ export default function AdminCustomReports() {
             <Grid item xs={12} md={4}><TextField fullWidth label="To date and time" type="datetime-local" value={endDate} onChange={(event) => setEndDate(event.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
           </Grid>
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mt: 4 }}>
-            <Button variant="contained" startIcon={exporting === 'pdf' ? <CircularProgress size={18} color="inherit" /> : <PdfIcon />} disabled={!!exporting} onClick={() => exportReport('pdf')} sx={{ bgcolor: '#007A18', '&:hover': { bgcolor: '#003D07' } }}>{exporting === 'pdf' ? 'Preparing PDF…' : 'Export PDF'}</Button>
+            <Button variant="contained" startIcon={exporting === 'pdf' ? <CircularProgress size={18} color="inherit" /> : <PdfIcon />} disabled={!!exporting} onClick={() => exportReport('pdf')} sx={{ bgcolor: '#007A18', '&:hover': { bgcolor: '#003D07' } }}>{exporting === 'pdf' ? 'Preparing PDF…' : 'Preview PDF'}</Button>
             <Button variant="outlined" startIcon={exporting === 'csv' ? <CircularProgress size={18} /> : <CsvIcon />} disabled={!!exporting} onClick={() => exportReport('csv')}> {exporting === 'csv' ? 'Preparing CSV…' : 'Export CSV'}</Button>
           </Box>
+          <PdfExportPreviewDialog blob={pdfPreview?.blob} filename={pdfPreview?.filename} onClose={() => setPdfPreview(null)} />
         </Paper>
       </Container>
     </Box>

@@ -61,6 +61,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import ReportToolbar from '../components/ReportToolbar';
+import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
 import { getBackendApiUrl } from '../utils/api';
 
 // Dashboard Theme Colors (from Login.js)
@@ -102,6 +103,7 @@ const AdminServiceRequests = () => {
   const [openArchiveDialog, setOpenArchiveDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [pdfPreview, setPdfPreview] = useState(null);
   const [stats, setStats] = useState({});
   const [anchorEl, setAnchorEl] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
@@ -447,12 +449,17 @@ const paginatedRequests = useMemo(
       }
 
       const blob = await response.blob();
+      const exportTime = new Date();
+      const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
+      const filename = `VIMS_Service_Requests_Export_${timestamp}.${fileFormat}`;
+      if (fileFormat === 'pdf') {
+        setPdfPreview({ blob, filename });
+        return;
+      }
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const exportTime = new Date();
-      const timestamp = exportTime.toISOString().replace(/[:.]/g, '-').split('Z')[0];
-      a.download = `VIMS_Service_Requests_Export_${timestamp}.${fileFormat}`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -2134,6 +2141,7 @@ const paginatedRequests = useMemo(
             </Button>
           </DialogActions>
         </Dialog>
+        <PdfExportPreviewDialog blob={pdfPreview?.blob} filename={pdfPreview?.filename} onClose={() => setPdfPreview(null)} />
       </Container>
     </Box>
   );

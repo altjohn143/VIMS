@@ -64,6 +64,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import ReportToolbar from '../components/ReportToolbar';
 import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 import { getBackendApiUrl } from '../utils/api';
 
 const PROTECTED_MAIN_ACCOUNT_EMAILS = ['admin@vims.com', 'security@vims.com'];
@@ -103,6 +104,7 @@ const AdminUserManagement = () => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [approvalFilter, setApprovalFilter] = useState('all');
+  const [dateSortOrder, setDateSortOrder] = useState('date-desc');
   const [exportAccountStatus, setExportAccountStatus] = useState('active');
   const [pdfPreview, setPdfPreview] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
@@ -275,8 +277,8 @@ const AdminUserManagement = () => {
       filtered = filtered.filter(user => !user.isActive);
     }
 
-    setFilteredUsers(filtered);
-  }, []);
+    setFilteredUsers(sortRecords(filtered, dateSortOrder));
+  }, [dateSortOrder]);
 
   // Fetch all users
   const fetchUsers = useCallback(async () => {
@@ -1129,6 +1131,9 @@ const AdminUserManagement = () => {
                   <MenuItem value="pending">Pending</MenuItem>
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <TableDateSort value={dateSortOrder} onChange={setDateSortOrder} options={SORT_OPTIONS.users} sx={{ width: '100%' }} />
             </Grid>
             <Grid item xs={12} md={2}>
               <Button

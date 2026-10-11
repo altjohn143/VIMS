@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Container, FormControl, Grid, InputLabel, MenuItem, Paper, Select, TextField, Typography } from '@mui/material';
+import { Alert, Autocomplete, Box, Button, CircularProgress, Container, FormControl, Grid, InputLabel, MenuItem, Paper, Select, TextField, Typography, createFilterOptions } from '@mui/material';
 import { Download as DownloadIcon, PictureAsPdf as PdfIcon, TableChart as CsvIcon } from '@mui/icons-material';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
@@ -15,9 +15,11 @@ const reportOptions = [
   { value: 'residents', label: 'Resident account directory', hint: 'Account and contact records for the selected resident or lot.' }
 ];
 
+const searchOptions = createFilterOptions({ limit: 50, stringify: (option) => option.label || option });
+
 export default function AdminCustomReports() {
   const [residents, setResidents] = useState([]);
-  const [reportType, setReportType] = useState('activity');
+  const [reportType, setReportType] = useState('');
   const [residentId, setResidentId] = useState('');
   const [lot, setLot] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -25,7 +27,7 @@ export default function AdminCustomReports() {
   const [exporting, setExporting] = useState('');
   const [loadingResidents, setLoadingResidents] = useState(true);
   const [pdfPreview, setPdfPreview] = useState(null);
-  const [previewLoading, setPreviewLoading] = useState(true);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [previewVersion, setPreviewVersion] = useState(0);
 
   useEffect(() => {
@@ -36,6 +38,10 @@ export default function AdminCustomReports() {
   }, []);
 
   const exportReport = async (format) => {
+    if (!reportType) {
+      toast.error('Choose report content before exporting.');
+      return;
+    }
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
       toast.error('Start date and time must be before the end date and time.');
       return;
@@ -78,7 +84,16 @@ export default function AdminCustomReports() {
 
   // The selected custom report is shown in-page as soon as its filters change.
   useEffect(() => {
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) return undefined;
+    if (!reportType) {
+      setPdfPreview(null);
+      setPreviewLoading(false);
+      return undefined;
+    }
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      setPdfPreview(null);
+      setPreviewLoading(false);
+      return undefined;
+    }
 
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
@@ -113,6 +128,18 @@ export default function AdminCustomReports() {
   }, [reportType, residentId, lot, startDate, endDate, previewVersion]);
 
   const selectedOption = reportOptions.find((option) => option.value === reportType);
+  const residentOptions = residents.map((resident) => ({
+    id: resident._id,
+    label: `${resident.firstName} ${resident.lastName} — ${resident.houseBlock ? `Block ${resident.houseBlock}, ` : ''}Lot ${resident.houseLot || resident.houseNumber || 'N/A'}`
+  }));
+  const selectedResident = residentOptions.find((resident) => resident.id === residentId) || null;
+  const lotOptions = [...new Map(residents
+    .map((resident) => {
+      const value = String(resident.houseLot || resident.houseNumber || '').trim();
+      return value ? [value, { value, label: `${resident.houseBlock ? `Block ${resident.houseBlock}, ` : ''}Lot ${value}` }] : null;
+    })
+    .filter(Boolean)).values()];
+  const selectedLot = lotOptions.find((option) => option.value === lot) || (lot ? { value: lot, label: lot } : null);
   return (
     <Box sx={{ minHeight: '100%', py: 3, bgcolor: '#f3f5f7' }}>
       <Container maxWidth="lg">
@@ -123,17 +150,17 @@ export default function AdminCustomReports() {
           </Box>
           <Alert severity="info" sx={{ mt: 3, mb: 3 }}>Choose a resident for a single-account report. Leave it empty to report on all residents, or enter a lot to narrow the results. The date and time filter applies to when each record was created.</Alert>
           <Grid container spacing={2.5}>
-            <Grid item xs={12} md={6}><FormControl fullWidth><InputLabel>Report content</InputLabel><Select value={reportType} label="Report content" onChange={(event) => setReportType(event.target.value)}>{reportOptions.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}</Select></FormControl><Typography variant="caption" color="text.secondary">{selectedOption?.hint}</Typography></Grid>
-            <Grid item xs={12} md={6}><FormControl fullWidth disabled={loadingResidents}><InputLabel>Specific resident (optional)</InputLabel><Select value={residentId} label="Specific resident (optional)" onChange={(event) => setResidentId(event.target.value)}><MenuItem value="">All residents</MenuItem>{residents.map((resident) => <MenuItem key={resident._id} value={resident._id}>{resident.firstName} {resident.lastName} — {resident.houseBlock ? `Block ${resident.houseBlock}, ` : ''}Lot {resident.houseLot || resident.houseNumber || 'N/A'}</MenuItem>)}</Select></FormControl></Grid>
-            <Grid item xs={12} md={4}><TextField fullWidth label="Lot or house number (optional)" value={lot} onChange={(event) => setLot(event.target.value)} placeholder="e.g. 12" /></Grid>
+            <Grid item xs={12} md={6}><FormControl fullWidth><InputLabel>Report content</InputLabel><Select value={reportType} label="Report content" onChange={(event) => setReportType(event.target.value)}><MenuItem value="" disabled><em>Choose report content</em></MenuItem>{reportOptions.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}</Select></FormControl><Typography variant="caption" color="text.secondary">{selectedOption?.hint || 'Choose a report to see its preview.'}</Typography></Grid>
+            <Grid item xs={12} md={6}><Autocomplete options={residentOptions} value={selectedResident} loading={loadingResidents} filterOptions={searchOptions} isOptionEqualToValue={(option, value) => option.id === value.id} onChange={(_, resident) => setResidentId(resident?.id || '')} renderInput={(params) => <TextField {...params} label="Specific resident (optional)" placeholder="Type a name, block, or lot" />} /></Grid>
+            <Grid item xs={12} md={4}><Autocomplete freeSolo options={lotOptions} value={selectedLot} filterOptions={searchOptions} getOptionLabel={(option) => typeof option === 'string' ? option : option.label} onChange={(_, option) => setLot(typeof option === 'string' ? option : option?.value || '')} onInputChange={(_, value, reason) => { if (reason === 'input') setLot(value); }} renderInput={(params) => <TextField {...params} label="Lot or house number (optional)" placeholder="Type a lot or house number" />} /></Grid>
             <Grid item xs={12} md={4}><TextField fullWidth label="From date and time" type="datetime-local" value={startDate} onChange={(event) => setStartDate(event.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
             <Grid item xs={12} md={4}><TextField fullWidth label="To date and time" type="datetime-local" value={endDate} onChange={(event) => setEndDate(event.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
           </Grid>
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mt: 4 }}>
-            <Button variant="contained" startIcon={previewLoading ? <CircularProgress size={18} color="inherit" /> : <PdfIcon />} disabled={previewLoading} onClick={() => setPreviewVersion((version) => version + 1)} sx={{ bgcolor: '#007A18', '&:hover': { bgcolor: '#003D07' } }}>{previewLoading ? 'Preparing preview…' : 'Refresh preview'}</Button>
-            <Button variant="outlined" startIcon={exporting === 'csv' ? <CircularProgress size={18} /> : <CsvIcon />} disabled={!!exporting} onClick={() => exportReport('csv')}> {exporting === 'csv' ? 'Preparing CSV…' : 'Export CSV'}</Button>
+            <Button variant="contained" startIcon={previewLoading ? <CircularProgress size={18} color="inherit" /> : <PdfIcon />} disabled={previewLoading || !reportType} onClick={() => setPreviewVersion((version) => version + 1)} sx={{ bgcolor: '#007A18', '&:hover': { bgcolor: '#003D07' } }}>{previewLoading ? 'Preparing preview…' : 'Refresh preview'}</Button>
+            <Button variant="outlined" startIcon={exporting === 'csv' ? <CircularProgress size={18} /> : <CsvIcon />} disabled={!!exporting || !reportType} onClick={() => exportReport('csv')}> {exporting === 'csv' ? 'Preparing CSV…' : 'Export CSV'}</Button>
           </Box>
-          <PdfExportPreviewDialog inline blob={pdfPreview?.blob} filename={pdfPreview?.filename} loading={previewLoading} onClose={() => setPdfPreview(null)} />
+          {reportType && <PdfExportPreviewDialog inline blob={pdfPreview?.blob} filename={pdfPreview?.filename} loading={previewLoading} onClose={() => setPdfPreview(null)} />}
         </Paper>
       </Container>
     </Box>

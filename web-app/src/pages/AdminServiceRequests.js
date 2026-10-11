@@ -62,6 +62,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import ReportToolbar from '../components/ReportToolbar';
 import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 import { getBackendApiUrl } from '../utils/api';
 
 // Dashboard Theme Colors (from Login.js)
@@ -119,6 +120,7 @@ const AdminServiceRequests = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [dateSortOrder, setDateSortOrder] = useState('date-desc');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -286,9 +288,9 @@ useEffect(() => {
       });
     }
     
-    setFilteredRequests(filtered);
+    setFilteredRequests(sortRecords(filtered, dateSortOrder));
   }
-}, [requests, activeTab, categoryFilter, priorityFilter, searchQuery]);
+}, [requests, activeTab, categoryFilter, priorityFilter, searchQuery, dateSortOrder]);
 
 useEffect(() => {
   setPage(0);
@@ -1084,6 +1086,7 @@ const paginatedRequests = useMemo(
               Service Requests Management
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
+              <TableDateSort value={dateSortOrder} onChange={setDateSortOrder} options={SORT_OPTIONS.requests} />
               <ReportToolbar onExportPdf={() => handleExportFile('pdf')} onExportCsv={() => handleExportFile('csv')} />
               <Button
                 startIcon={<BuildIcon />}

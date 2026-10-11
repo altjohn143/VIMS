@@ -38,6 +38,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import ReportToolbar from '../components/ReportToolbar';
 import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 import { getBackendApiUrl } from '../utils/api';
 
 const themeColors = {
@@ -73,6 +74,7 @@ const AdminLotManagement = () => {
   const [blockFilter, setBlockFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [dateSortOrder, setDateSortOrder] = useState('date-desc');
   const [pdfPreview, setPdfPreview] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -145,12 +147,12 @@ const AdminLotManagement = () => {
       filtered = filtered.filter(lot => lot.type === typeFilter);
     }
 
-    setFilteredLots(sortLotsNumerically(filtered));
-  }, [lots, searchQuery, phaseFilter, blockFilter, statusFilter, typeFilter]);
+    setFilteredLots(sortRecords(filtered, dateSortOrder));
+  }, [lots, searchQuery, phaseFilter, blockFilter, statusFilter, typeFilter, dateSortOrder]);
 
   useEffect(() => {
     setPage(0);
-  }, [searchQuery, phaseFilter, blockFilter, statusFilter, typeFilter]);
+  }, [searchQuery, phaseFilter, blockFilter, statusFilter, typeFilter, dateSortOrder]);
 
   const paginatedLots = filteredLots.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
@@ -454,6 +456,9 @@ const AdminLotManagement = () => {
                   <MenuItem value="amenity">Community Amenities</MenuItem>
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <TableDateSort value={dateSortOrder} onChange={setDateSortOrder} options={SORT_OPTIONS.lots} sx={{ width: '100%' }} />
             </Grid>
             <Grid item xs={12} md={3}>
               <Button

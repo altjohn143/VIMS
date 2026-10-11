@@ -62,6 +62,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from '../config/axios';
 import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 import toast from 'react-hot-toast';
 import { getBackendApiUrl } from '../utils/api';
 
@@ -94,6 +95,7 @@ const AdminPayments = () => {
   const [statusFilter, setStatusFilter] = useState('paid_or_action_required');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+  const [dateSortOrder, setDateSortOrder] = useState('date-desc');
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
@@ -152,7 +154,7 @@ const AdminPayments = () => {
       });
       
       if (response.data.success) {
-        setPayments(response.data.data);
+        setPayments(sortRecords(response.data.data, dateSortOrder));
         setTotal(response.data.pagination.total);
         setSummary(prev => ({ ...prev, ...response.data.summary }));
       }
@@ -162,7 +164,7 @@ const AdminPayments = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, statusFilter, paymentTypeFilter, paymentMethodFilter, appliedSearchTerm]);
+  }, [page, rowsPerPage, statusFilter, paymentTypeFilter, paymentMethodFilter, appliedSearchTerm, dateSortOrder]);
 
   // Define fetchStats with useCallback
   const fetchStats = useCallback(async () => {
@@ -805,6 +807,9 @@ const AdminPayments = () => {
                 }}
                 size="small"
               />
+            </Grid>
+            <Grid item xs={6} sm={2}>
+              <TableDateSort value={dateSortOrder} onChange={setDateSortOrder} options={SORT_OPTIONS.payments} sx={{ width: '100%' }} />
             </Grid>
             <Grid item xs={6} sm={2}>
               <FormControl fullWidth size="small">

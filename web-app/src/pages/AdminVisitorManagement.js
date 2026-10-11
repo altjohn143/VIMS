@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 import {
   Container,
   Box,
@@ -85,6 +86,7 @@ const AdminVisitorManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
+  const [dateSortOrder, setDateSortOrder] = useState('date-desc');
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -138,7 +140,7 @@ const AdminVisitorManagement = () => {
       const response = await axios.get('/api/visitors/admin/all', { params });
       
       if (response.data.success) {
-        setVisitors(response.data.data);
+        setVisitors(sortRecords(response.data.data, dateSortOrder));
         setTotal(response.data.count);
       }
     } catch (error) {
@@ -147,7 +149,7 @@ const AdminVisitorManagement = () => {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, dateSortOrder]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -708,6 +710,9 @@ const AdminVisitorManagement = () => {
                     <SelectMenuItem value="completed">Completed</SelectMenuItem>
                   </Select>
                 </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <TableDateSort value={dateSortOrder} onChange={setDateSortOrder} options={SORT_OPTIONS.visitors} sx={{ width: '100%' }} />
               </Grid>
               <Grid item xs={12} sm={3}>
                 <TextField

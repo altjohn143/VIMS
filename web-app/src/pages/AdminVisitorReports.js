@@ -43,6 +43,7 @@ import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tool
 import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import PdfExportPreviewDialog from '../components/PdfExportPreviewDialog';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 import toast from 'react-hot-toast';
 import { getBackendApiUrl } from '../utils/api';
 
@@ -76,6 +77,7 @@ const AdminVisitorReports = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [dateRangeError, setDateRangeError] = useState('');
+  const [dateSortOrder, setDateSortOrder] = useState('date-desc');
 
   const hasInvalidDateRange = useCallback(() => (
     startDate && endDate && new Date(startDate) > new Date(endDate)
@@ -143,7 +145,7 @@ const AdminVisitorReports = () => {
     }
   }, [page, recentVisitors.length, rowsPerPage]);
 
-  const paginatedRecentVisitors = recentVisitors.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const paginatedRecentVisitors = sortRecords(recentVisitors, dateSortOrder).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const handleExport = async (fileFormat = 'pdf') => {
     if (hasInvalidDateRange()) {
@@ -401,6 +403,9 @@ const AdminVisitorReports = () => {
                     <SelectMenuItem value="active">Active</SelectMenuItem>
                   </Select>
                 </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <TableDateSort value={dateSortOrder} onChange={setDateSortOrder} options={SORT_OPTIONS.visitors} sx={{ width: '100%' }} />
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Box sx={{ display: 'flex', gap: 1 }}>

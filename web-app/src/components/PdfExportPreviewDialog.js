@@ -38,6 +38,7 @@ function PdfPages({ blob }) {
           await page.render({ canvasContext: context, viewport }).promise;
         }
       } catch (renderError) {
+        console.error('PDF preview rendering failed:', renderError);
         if (!cancelled) setError('The PDF preview could not be rendered. You can still download the file.');
       } finally {
         if (!cancelled) setRendering(false);

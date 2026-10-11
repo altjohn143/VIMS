@@ -35,6 +35,8 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "https:"],
       // PDF previews are created in the browser and rendered from an object URL.
       frameSrc: ["'self'", "blob:"],
+      // PDF.js renders document pages in an isolated worker.
+      workerSrc: ["'self'", "blob:"],
     },
   },
   crossOriginResourcePolicy: {

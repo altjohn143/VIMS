@@ -33,6 +33,8 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
+      // PDF previews are created in the browser and rendered from an object URL.
+      frameSrc: ["'self'", "blob:"],
     },
   },
   crossOriginResourcePolicy: {

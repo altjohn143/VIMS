@@ -25,6 +25,8 @@ export default function AdminCustomReports() {
   const [exporting, setExporting] = useState('');
   const [loadingResidents, setLoadingResidents] = useState(true);
   const [pdfPreview, setPdfPreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(true);
+  const [previewVersion, setPreviewVersion] = useState(0);
 
   useEffect(() => {
     axios.get('/api/users', { params: { role: 'resident', limit: 1000 } })
@@ -74,6 +76,41 @@ export default function AdminCustomReports() {
     }
   };
 
+  // The selected custom report is shown in-page as soon as its filters change.
+  useEffect(() => {
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) return undefined;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setPreviewLoading(true);
+      try {
+        const params = new URLSearchParams({ format: 'pdf', reportType, timezoneOffset: String(new Date().getTimezoneOffset()) });
+        if (residentId) params.set('residentId', residentId);
+        if (lot.trim()) params.set('lot', lot.trim());
+        if (startDate) params.set('startDate', new Date(startDate).toISOString());
+        if (endDate) params.set('endDate', new Date(endDate).toISOString());
+        const response = await fetch(getBackendApiUrl(`/api/custom-reports/export?${params}`), {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` },
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error('The report preview could not be prepared.');
+        const blob = await response.blob();
+        if (!controller.signal.aborted) {
+          setPdfPreview({ blob, filename: `VIMS_Custom_${reportType}_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -1)}.pdf` });
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') toast.error(error.message || 'Unable to prepare the report preview.');
+      } finally {
+        if (!controller.signal.aborted) setPreviewLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [reportType, residentId, lot, startDate, endDate, previewVersion]);
+
   const selectedOption = reportOptions.find((option) => option.value === reportType);
   return (
     <Box sx={{ minHeight: '100%', py: 3, bgcolor: '#f3f5f7' }}>
@@ -92,10 +129,10 @@ export default function AdminCustomReports() {
             <Grid item xs={12} md={4}><TextField fullWidth label="To date and time" type="datetime-local" value={endDate} onChange={(event) => setEndDate(event.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
           </Grid>
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mt: 4 }}>
-            <Button variant="contained" startIcon={exporting === 'pdf' ? <CircularProgress size={18} color="inherit" /> : <PdfIcon />} disabled={!!exporting} onClick={() => exportReport('pdf')} sx={{ bgcolor: '#007A18', '&:hover': { bgcolor: '#003D07' } }}>{exporting === 'pdf' ? 'Preparing PDF…' : 'Preview PDF'}</Button>
+            <Button variant="contained" startIcon={previewLoading ? <CircularProgress size={18} color="inherit" /> : <PdfIcon />} disabled={previewLoading} onClick={() => setPreviewVersion((version) => version + 1)} sx={{ bgcolor: '#007A18', '&:hover': { bgcolor: '#003D07' } }}>{previewLoading ? 'Preparing preview…' : 'Refresh preview'}</Button>
             <Button variant="outlined" startIcon={exporting === 'csv' ? <CircularProgress size={18} /> : <CsvIcon />} disabled={!!exporting} onClick={() => exportReport('csv')}> {exporting === 'csv' ? 'Preparing CSV…' : 'Export CSV'}</Button>
           </Box>
-          <PdfExportPreviewDialog blob={pdfPreview?.blob} filename={pdfPreview?.filename} onClose={() => setPdfPreview(null)} />
+          <PdfExportPreviewDialog inline blob={pdfPreview?.blob} filename={pdfPreview?.filename} loading={previewLoading} onClose={() => setPdfPreview(null)} />
         </Paper>
       </Container>
     </Box>

@@ -32,6 +32,9 @@ const textValue = (record, key) => {
   if (key === 'name') return record?.visitorName || record?.name || `${record?.firstName || resident?.firstName || ''} ${record?.lastName || resident?.lastName || ''}`.trim();
   if (key === 'lot') return record?.lotId || record?.houseNumber || record?.houseLot || record?.lotNumber || '';
   if (key === 'amount') return Number(record?.amount ?? record?.totalAmount ?? record?.paymentAmount ?? 0);
+  // User records expose account status as isActive, while operational records
+  // expose it as status. Never fall back to a person's name for status sorting.
+  if (key === 'status') return record?.status ?? (record?.isActive === true ? 'active' : record?.isActive === false ? 'inactive' : '');
   return record?.[key] || '';
 };
 
@@ -48,7 +51,11 @@ export const sortRecords = (records, value = 'date-desc') => {
     const comparison = typeof leftValue === 'number' && typeof rightValue === 'number'
       ? leftValue - rightValue
       : String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
-    return direction === 'asc' ? comparison : -comparison;
+    if (comparison !== 0) return direction === 'asc' ? comparison : -comparison;
+    // Keep records with the same status in a useful, deterministic order.
+    const leftDate = new Date(left?.createdAt || left?.dateCreated || left?.updatedAt || 0).getTime();
+    const rightDate = new Date(right?.createdAt || right?.dateCreated || right?.updatedAt || 0).getTime();
+    return rightDate - leftDate;
   });
 };
 

@@ -21,6 +21,8 @@ import api from '../utils/api';
 import useRealtimeRefresh from '../utils/useRealtimeRefresh';
 import { format } from 'date-fns';
 import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
+import TableSortControl from '../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../utils/tableSort';
 
 const ServiceRequestsScreen = ({ navigation }) => {
   const [requests, setRequests] = useState([]);
@@ -39,6 +41,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   
   const [formData, setFormData] = useState({
     category: '',
@@ -259,7 +262,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
   };
 
   const getFilteredRequests = () => {
-    return requests.filter(request => {
+    return sortRecords(requests.filter(request => {
       const tabMatches = activeTab === 'all'
         || (activeTab === 'pending' && ['pending', 'under-review'].includes(request.status))
         || (activeTab === 'in-progress' && ['assigned', 'in-progress'].includes(request.status))
@@ -270,7 +273,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
         && searchMatches
         && (categoryFilter === 'all' || request.category === categoryFilter)
         && (priorityFilter === 'all' || request.priority === priorityFilter);
-    });
+    }), sortOrder);
   };
 
   const getAttachmentUri = (attachment) => {
@@ -291,7 +294,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
 
   useEffect(() => {
     setPage(0);
-  }, [activeTab, searchQuery, categoryFilter, priorityFilter, rowsPerPage]);
+  }, [activeTab, searchQuery, categoryFilter, priorityFilter, rowsPerPage, sortOrder]);
 
   const stats = {
     total: requests.length,
@@ -352,6 +355,7 @@ const ServiceRequestsScreen = ({ navigation }) => {
           <Text style={[styles.directoryFilterText, (categoryFilter !== 'all' || priorityFilter !== 'all') && styles.directoryFilterTextActive]}>Filter</Text>
         </TouchableOpacity>
       </View>
+      <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.requests} />
     </>
   );
 

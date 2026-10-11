@@ -28,6 +28,8 @@ import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
 import { getAuthToken } from '../../utils/secureSession';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const AdminServiceRequestsScreen = ({ navigation }) => {
   const [requests, setRequests] = useState([]);
@@ -45,6 +47,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const [exporting, setExporting] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
@@ -109,7 +112,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
 
   useEffect(() => {
     filterRequests();
-  }, [requests, searchQuery, statusFilter, categoryFilter, priorityFilter]);
+  }, [requests, searchQuery, statusFilter, categoryFilter, priorityFilter, sortOrder]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -179,7 +182,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
       filtered = filtered.filter(req => req.priority === priorityFilter);
     }
 
-    setFilteredRequests(filtered);
+    setFilteredRequests(sortRecords(filtered, sortOrder));
   };
 
   const handleProcessRequest = async () => {
@@ -419,6 +422,7 @@ const AdminServiceRequestsScreen = ({ navigation }) => {
             blurOnSubmit={false}
           />
         </View>
+        <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.requests} />
         <View style={styles.filterMetaRow}>
           <Text style={styles.resultCount}>{filteredRequests.length} results</Text>
           <TouchableOpacity onPress={clearFilters}>

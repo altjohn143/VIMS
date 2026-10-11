@@ -25,6 +25,8 @@ import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { format } from 'date-fns';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
 import { getAuthToken } from '../../utils/secureSession';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const PROTECTED_MAIN_ACCOUNT_EMAILS = ['admin@vims.com', 'security@vims.com'];
 const isProtectedMainAccount = (user) =>
@@ -52,6 +54,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
   const [exportAccountStatus, setExportAccountStatus] = useState('active');
   const [viewFilter, setViewFilter] = useState('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -114,7 +117,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
 
   useEffect(() => {
     filterUsers();
-  }, [users, searchQuery, roleFilter, statusFilter, approvalFilter, viewFilter]);
+  }, [users, searchQuery, roleFilter, statusFilter, approvalFilter, viewFilter, sortOrder]);
 
   const resetCreateForm = () => {
     setNewUserData({
@@ -289,7 +292,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
     if (viewFilter === 'moveout') filtered = filtered.filter((user) => user.role === 'resident' && user.moveOutStatus === 'pending');
     if (viewFilter === 'staff') filtered = filtered.filter((user) => ['admin', 'security'].includes(user.role));
 
-    setFilteredUsers(filtered);
+    setFilteredUsers(sortRecords(filtered, sortOrder));
   };
   useRealtimeRefresh(['users', 'lots'], () => { fetchUsers(); loadLots(); loadSecurityAssignments(); });
 
@@ -809,6 +812,7 @@ const AdminUserManagementScreen = ({ navigation }) => {
             </TouchableOpacity>
           ) : null}
         </View>
+        <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.users} />
 
         <View style={styles.filterMetaRow}>
           <Text style={styles.resultCount}>{filteredUsers.length} shown</Text>

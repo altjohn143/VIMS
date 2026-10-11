@@ -20,6 +20,8 @@ import api from '../../utils/api';
 import { format } from 'date-fns';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 import websocketService from '../../utils/websocket';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const SecurityVisitorApprovalScreen = ({ navigation }) => {
   const [pendingVisitors, setPendingVisitors] = useState([]);
@@ -32,6 +34,7 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectionReasonError, setRejectionReasonError] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [sortOrder, setSortOrder] = useState('date-desc');
 
   useEffect(() => {
     fetchPendingVisitors();
@@ -230,8 +233,12 @@ const SecurityVisitorApprovalScreen = ({ navigation }) => {
         </View>
       </View>
 
+      <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
+        <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.visitors} />
+      </View>
+
       <FlatList
-        data={pendingVisitors}
+        data={sortRecords(pendingVisitors, sortOrder)}
         renderItem={renderVisitorCard}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContainer}

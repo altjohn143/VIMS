@@ -67,6 +67,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { getBackendApiUrl } from '../utils/api';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -118,6 +119,7 @@ const ServiceRequests = () => {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
@@ -401,11 +403,11 @@ const ServiceRequests = () => {
         });
       }
       
-      setFilteredRequests(filtered);
+      setFilteredRequests(sortRecords(filtered, sortOrder));
     } else {
       setFilteredRequests([]);
     }
-  }, [requests, activeTab, categoryFilter, priorityFilter, searchQuery]);
+  }, [requests, activeTab, categoryFilter, priorityFilter, searchQuery, sortOrder]);
 
   useEffect(() => {
     setPage(0);
@@ -1044,7 +1046,7 @@ const ServiceRequests = () => {
 
           {/* Search and Filter Controls */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 placeholder="Search my requests by title, description, location, or category..."
@@ -1139,6 +1141,9 @@ const ServiceRequests = () => {
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <TableDateSort value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={SORT_OPTIONS.requests} sx={{ width: '100%' }} />
             </Grid>
           </Grid>
 

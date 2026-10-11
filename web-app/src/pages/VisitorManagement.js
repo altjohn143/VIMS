@@ -53,6 +53,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import villageLogo from '../assets/village-logo.png';
 import VisitorOverstayChatDialog from '../components/VisitorOverstayChatDialog';
@@ -88,6 +89,7 @@ const VisitorManagement = () => {
   const [confirmError, setConfirmError] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const [cancellingVisitorId, setCancellingVisitorId] = useState(null);
   const [formData, setFormData] = useState({
     visitorFirstName: '',
@@ -704,20 +706,20 @@ const VisitorManagement = () => {
 
   const filteredVisitors = useMemo(() => {
     if (historyMode) {
-      return allVisitors;
+      return sortRecords(allVisitors, sortOrder);
     }
     
     switch(selectedTab) {
       case 0:
-        return visitors.filter(v => ['pending', 'approved', 'active'].includes(v.status));
+        return sortRecords(visitors.filter(v => ['pending', 'approved', 'active'].includes(v.status)), sortOrder);
       case 1:
-        return visitors.filter(v => v.status === 'completed');
+        return sortRecords(visitors.filter(v => v.status === 'completed'), sortOrder);
       case 2:
-        return visitors.filter(v => v.status === 'rejected');
+        return sortRecords(visitors.filter(v => v.status === 'rejected'), sortOrder);
       default:
-        return visitors;
+        return sortRecords(visitors, sortOrder);
     }
-  }, [allVisitors, historyMode, selectedTab, visitors]);
+  }, [allVisitors, historyMode, selectedTab, sortOrder, visitors]);
   const paginatedVisitors = useMemo(
     () => filteredVisitors.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
     [filteredVisitors, page, rowsPerPage]
@@ -1120,10 +1122,11 @@ const VisitorManagement = () => {
           border: `1px solid ${themeColors.border}`,
           backgroundColor: themeColors.cardBackground
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
             <Typography variant="h6" sx={{ color: themeColors.textPrimary, fontWeight: 600 }}>
               {historyMode ? 'All Visitor Passes' : 'My Visitor Passes'} ({filteredVisitors.length})
             </Typography>
+            <TableDateSort value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={SORT_OPTIONS.visitors} sx={{ minWidth: 180 }} />
           </Box>
 
           {filteredVisitors.length === 0 ? (

@@ -20,6 +20,8 @@ import api from '../../utils/api';
 import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const createInitialForm = () => ({ phase: '', area: '', checkpoint: '', notes: '', status: 'completed', loggedAt: new Date() });
 
@@ -36,15 +38,16 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState('all');
   const [phaseFilter, setPhaseFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const rowsPerPage = 5;
 
   const displayedRows = useMemo(
-    () => rows.filter((row) => {
+    () => sortRecords(rows.filter((row) => {
       const statusMatches = statusFilter === 'all' || String(row?.status || 'completed') === statusFilter;
       const phaseMatches = phaseFilter === 'all' || String(row?.phase || '') === String(phaseFilter);
       return statusMatches && phaseMatches;
-    }),
-    [phaseFilter, rows, statusFilter]
+    }), sortOrder),
+    [phaseFilter, rows, sortOrder, statusFilter]
   );
   const paginatedRows = useMemo(
     () => displayedRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
@@ -119,7 +122,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
 
   useEffect(() => {
     setPage(0);
-  }, [phaseFilter, statusFilter]);
+  }, [phaseFilter, sortOrder, statusFilter]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -309,6 +312,7 @@ const SecurityPatrolScheduleScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Patrol Logs</Text>
             <View style={styles.filterPanel}>
               <Text style={styles.filterTitle}>Display Filters</Text>
+              <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.patrols} />
               <Text style={styles.label}>Status</Text>
               <View style={styles.pickerContainer}>
                 <Picker selectedValue={statusFilter} onValueChange={setStatusFilter}>

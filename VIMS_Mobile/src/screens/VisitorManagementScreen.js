@@ -25,6 +25,8 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import ResidentUtilityHeader from '../components/ResidentUtilityHeader';
 import VisitorOverstayChatModal from '../components/VisitorOverstayChatModal';
+import TableSortControl from '../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../utils/tableSort';
 
 const MAX_VISITOR_STAY_MS = 3 * 24 * 60 * 60 * 1000;
 const isCurrentlyOverstaying = (visitor) => String(visitor?.qrStatus || '').toLowerCase() === 'overstayed' || (
@@ -110,6 +112,7 @@ const VisitorManagementScreen = ({ navigation }) => {
   const [residentScanMode, setResidentScanMode] = useState('arrival');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const [cancellingVisitorId, setCancellingVisitorId] = useState(null);
   const [overstayChatVisitor, setOverstayChatVisitor] = useState(null);
 
@@ -510,12 +513,12 @@ const VisitorManagementScreen = ({ navigation }) => {
   };
 
   const getFilteredVisitors = () => {
-    if (historyMode) return allVisitors;
+    if (historyMode) return sortRecords(allVisitors, sortOrder);
     switch (activeTab) {
-      case 0: return visitors.filter(v => ['pending', 'approved', 'active'].includes(v.status));
-      case 1: return visitors.filter(v => v.status === 'completed');
-      case 2: return visitors.filter(v => v.status === 'rejected' || v.status === 'cancelled');
-      default: return visitors;
+      case 0: return sortRecords(visitors.filter(v => ['pending', 'approved', 'active'].includes(v.status)), sortOrder);
+      case 1: return sortRecords(visitors.filter(v => v.status === 'completed'), sortOrder);
+      case 2: return sortRecords(visitors.filter(v => v.status === 'rejected' || v.status === 'cancelled'), sortOrder);
+      default: return sortRecords(visitors, sortOrder);
     }
   };
   const filteredVisitors = getFilteredVisitors();
@@ -523,7 +526,7 @@ const VisitorManagementScreen = ({ navigation }) => {
 
   useEffect(() => {
     setPage(0);
-  }, [historyMode, activeTab, rowsPerPage]);
+  }, [historyMode, activeTab, rowsPerPage, sortOrder]);
 
   const shareVisitorQr = () => {
     if (['rejected', 'cancelled'].includes(selectedVisitor?.status)) {
@@ -591,6 +594,8 @@ const VisitorManagementScreen = ({ navigation }) => {
           </View>
         </View>
       )}
+
+      <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.visitors} />
 
       {!historyMode && (
         <View style={styles.tabContainer}>

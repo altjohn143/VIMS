@@ -19,6 +19,8 @@ import api from '../../utils/api';
 import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const initialForm = { title: '', description: '', phase: '', block: '', lotNumber: '', severity: 'medium' };
 
@@ -32,10 +34,11 @@ const SecurityIncidentsScreen = ({ navigation }) => {
   const [processing, setProcessing] = useState(false);
   const [page, setPage] = useState(0);
   const rowsPerPage = 5;
+  const [sortOrder, setSortOrder] = useState('date-desc');
 
   const paginatedRows = useMemo(
-    () => rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [page, rows]
+    () => sortRecords(rows, sortOrder).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rows, sortOrder]
   );
   const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
 
@@ -295,6 +298,7 @@ const SecurityIncidentsScreen = ({ navigation }) => {
               {processing ? <ActivityIndicator color="white" /> : <><Ionicons name="alert-circle-outline" size={16} color="white" /><Text style={styles.primaryText}>Submit Incident</Text></>}
             </TouchableOpacity>
             <Text style={styles.sectionTitle}>Incident Logs</Text>
+            <TableSortControl value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={MOBILE_SORT_OPTIONS.incidents} />
           </View>
         }
         ListFooterComponent={

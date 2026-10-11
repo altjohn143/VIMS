@@ -22,6 +22,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 import { getAuthToken } from '../../utils/secureSession';
 import VisitorOverstayChatModal from '../../components/VisitorOverstayChatModal';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const isCurrentlyOverstaying = (visitor) => String(visitor?.qrStatus || '').toLowerCase() === 'overstayed' || (
   ['approved', 'active'].includes(visitor?.status) && visitor?.expectedDeparture && !visitor?.actualExit && new Date(visitor.expectedDeparture) < new Date()
@@ -37,6 +39,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
   const [overstayChatVisitor, setOverstayChatVisitor] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const [page, setPage] = useState(0);
   const [showAllRecentActivity, setShowAllRecentActivity] = useState(false);
   const rowsPerPage = 10;
@@ -54,11 +57,11 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
 
   useEffect(() => {
     filterVisitors();
-  }, [visitors, searchQuery, statusFilter]);
+  }, [visitors, searchQuery, statusFilter, sortOrder]);
 
   useEffect(() => {
     setPage(0);
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(filteredVisitors.length / rowsPerPage));
   const paginatedVisitors = useMemo(
@@ -124,7 +127,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
       filtered = filtered.filter(v => v.status === statusFilter);
     }
 
-    setFilteredVisitors(filtered);
+    setFilteredVisitors(sortRecords(filtered, sortOrder));
   };
 
   const handleExportFile = async (fileFormat = 'pdf') => {
@@ -397,6 +400,7 @@ const SecurityVisitorLogsScreen = ({ navigation }) => {
             blurOnSubmit={false}
           />
         </View>
+        <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.visitors} />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <TouchableOpacity

@@ -54,6 +54,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 
 // QRPh QR code image
 import qrphImage from '../assets/qrph.png';
@@ -101,6 +102,7 @@ const Payments = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [expandedTransactions, setExpandedTransactions] = useState({});
+  const [sortOrder, setSortOrder] = useState('date-desc');
 
   const { getCurrentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -434,9 +436,9 @@ const Payments = () => {
     );
   }
 
-  const filteredPayments = activeTab === 0 
+  const filteredPayments = sortRecords(activeTab === 0
     ? payments 
-    : payments.filter(p => activeTab === 1 ? ['pending', 'rejected'].includes(p.status) : p.status === 'paid');
+    : payments.filter(p => activeTab === 1 ? ['pending', 'rejected'].includes(p.status) : p.status === 'paid'), sortOrder);
   const paginatedPayments = filteredPayments.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
@@ -679,8 +681,10 @@ const Payments = () => {
             boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)'
           }}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, gap: 1.5, flexWrap: 'wrap' }}>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>Payment History</Typography>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TableDateSort value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={SORT_OPTIONS.payments} sx={{ minWidth: 180 }} />
             <Button
               variant="outlined"
               size="small"
@@ -690,6 +694,7 @@ const Payments = () => {
             >
               Refresh
             </Button>
+            </Box>
           </Box>
 
           <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ mb: 2 }}>

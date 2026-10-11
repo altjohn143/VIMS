@@ -21,6 +21,8 @@ import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
 import { useAuth } from '../../context/AuthContext';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const SecurityServiceRequestsScreen = ({ navigation }) => {
   const { logout } = useAuth();
@@ -33,6 +35,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
   const [status, setStatus] = useState('all');
   const [priority, setPriority] = useState('all');
   const [category, setCategory] = useState('all');
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const [selected, setSelected] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -205,14 +208,14 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
       nextRows = nextRows.filter((r) => String(r?.priority || '').toLowerCase() === priority);
     }
 
-    if (!query.trim()) return nextRows;
+    if (!query.trim()) return sortRecords(nextRows, sortOrder);
     const q = query.trim().toLowerCase();
-    return nextRows.filter((r) => getSearchText(r).includes(q));
-  }, [rows, query, status, priority, category]);
+    return sortRecords(nextRows.filter((r) => getSearchText(r).includes(q)), sortOrder);
+  }, [rows, query, status, priority, category, sortOrder]);
 
   useEffect(() => {
     setPage(0);
-  }, [query, status, priority, category]);
+  }, [query, status, priority, category, sortOrder]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const paginated = useMemo(
@@ -496,6 +499,7 @@ const SecurityServiceRequestsScreen = ({ navigation }) => {
           blurOnSubmit={false}
         />
       </View>
+      <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.requests} />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
         {[

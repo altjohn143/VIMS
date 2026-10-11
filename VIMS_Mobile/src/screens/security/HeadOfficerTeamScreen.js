@@ -17,6 +17,8 @@ import api from '../../utils/api';
 import useRealtimeRefresh from '../../utils/useRealtimeRefresh';
 import { themeColors, shadows, roleLayouts } from '../../utils/theme';
 import SecurityUtilityHeader from '../../components/SecurityUtilityHeader';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const officerName = (officer) =>
   `${officer?.firstName || ''} ${officer?.lastName || ''}`.trim() || 'Unassigned officer';
@@ -39,6 +41,7 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [routeForm, setRouteForm] = useState({ assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
   const [savingRoute, setSavingRoute] = useState(false);
+  const [sortOrder, setSortOrder] = useState('date-desc');
 
   const load = useCallback(async () => {
     try {
@@ -229,6 +232,7 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
       <Text style={styles.sectionTitle}>
         {view === 'team' ? 'Assigned personnel' : view === 'performance' ? 'Recent patrol activity' : 'Assignment coverage'}
       </Text>
+      <TableSortControl value={sortOrder} onChange={setSortOrder} options={view === 'team' ? MOBILE_SORT_OPTIONS.users : MOBILE_SORT_OPTIONS.patrols} />
       {view === 'analytics' && (
         <View style={[styles.coverageCard, shadows.small]}>
           <Text style={styles.coverageSectionTitle}>Personnel Activity</Text>
@@ -269,10 +273,10 @@ const HeadOfficerTeamScreen = ({ navigation, route }) => {
   }
 
   const data = view === 'team'
-    ? team
+    ? sortRecords(team, sortOrder)
     : view === 'analytics'
-      ? (analytics?.pendingReports || metrics.issueLogs)
-      : logs.slice(0, 12);
+      ? sortRecords(analytics?.pendingReports || metrics.issueLogs, sortOrder)
+      : sortRecords(logs, sortOrder).slice(0, 12);
 
   return (
     <View style={styles.container}>

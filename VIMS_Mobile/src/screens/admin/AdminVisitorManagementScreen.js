@@ -24,6 +24,8 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
 import { getAuthToken } from '../../utils/secureSession';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const AdminVisitorManagementScreen = ({ navigation }) => {
   const [visitors, setVisitors] = useState([]);
@@ -37,6 +39,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const [overrideAction, setOverrideAction] = useState('approve');
   const [overrideReason, setOverrideReason] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -62,7 +65,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
 
   useEffect(() => {
     filterVisitors();
-  }, [visitors, searchQuery, statusFilter, dateFilter]);
+  }, [visitors, searchQuery, statusFilter, dateFilter, sortOrder]);
 
   useEffect(() => {
     if (!showOverrideModal) {
@@ -152,7 +155,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
       });
     }
 
-    setFilteredVisitors(filtered);
+    setFilteredVisitors(sortRecords(filtered, sortOrder));
   };
 
   useEffect(() => websocketService.onDataChanged((change) => {
@@ -412,6 +415,7 @@ const AdminVisitorManagementScreen = ({ navigation }) => {
             </TouchableOpacity>
           ) : null}
         </View>
+        <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.visitors} />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           {['all', 'pending', 'approved', 'active', 'overstayed', 'completed', 'rejected'].map((status) => (

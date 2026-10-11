@@ -26,6 +26,8 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { getAuthToken } from '../../utils/secureSession';
 import UserDropdownMenu from '../../components/UserDropdownMenu';
+import TableSortControl from '../../components/TableSortControl';
+import { MOBILE_SORT_OPTIONS, sortRecords } from '../../utils/tableSort';
 
 const AdminPaymentsScreen = ({ navigation }) => {
   const [payments, setPayments] = useState([]);
@@ -70,6 +72,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
   const [showDuesDialog, setShowDuesDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showFiltersDialog, setShowFiltersDialog] = useState(false);
+  const [sortOrder, setSortOrder] = useState('date-desc');
 
   const { user } = useAuth();
 
@@ -419,7 +422,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
     return { label: 'AI: Needs review', color: themeColors.warning };
   };
 
-  const filteredPayments = payments.filter(payment => {
+  const filteredPayments = sortRecords(payments.filter(payment => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const residentName = `${payment.residentId?.firstName || ''} ${payment.residentId?.lastName || ''}`.toLowerCase();
@@ -431,7 +434,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
       String(payment.receiptNumber || '').toLowerCase().includes(query) ||
       String(payment.description || '').toLowerCase().includes(query)
     );
-  });
+  }), sortOrder);
 
   const renderScreenHeader = () => (
     <View>
@@ -460,6 +463,7 @@ const AdminPaymentsScreen = ({ navigation }) => {
             blurOnSubmit={false}
           />
         </View>
+        <TableSortControl value={sortOrder} onChange={setSortOrder} options={MOBILE_SORT_OPTIONS.payments} />
         <TouchableOpacity
           style={[styles.filterButton, (statusFilter !== 'all' || paymentTypeFilter !== 'all' || paymentMethodFilter !== 'all') && styles.activeFilter]}
           onPress={() => setShowFiltersDialog(true)}

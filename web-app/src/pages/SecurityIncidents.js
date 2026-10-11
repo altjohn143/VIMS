@@ -25,6 +25,7 @@ import { ArrowBack as ArrowBackIcon, Security as SecurityIcon } from '@mui/icons
 import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 
 const initialForm = {
   title: '',
@@ -71,11 +72,12 @@ const SecurityIncidents = () => {
   const [form, setForm] = useState(initialForm);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const navigate = useNavigate();
 
   const paginatedRows = useMemo(
-    () => rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [page, rows, rowsPerPage]
+    () => sortRecords(rows, sortOrder).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rows, rowsPerPage, sortOrder]
   );
 
   const load = useCallback(async () => {
@@ -242,9 +244,12 @@ const SecurityIncidents = () => {
 
           <Grid item xs={12} md={7}>
             <Paper sx={{ borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)', overflow: 'hidden' }}>
-              <Box sx={{ p: 2.5, borderBottom: `1px solid ${themeColors.border}` }}>
-                <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>Incident Logs</Typography>
-                <Typography variant="body2" color="text.secondary">{rows.length} total reports</Typography>
+              <Box sx={{ p: 2.5, borderBottom: `1px solid ${themeColors.border}`, display: 'flex', gap: 1.5, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                <Box>
+                  <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>Incident Logs</Typography>
+                  <Typography variant="body2" color="text.secondary">{rows.length} total reports</Typography>
+                </Box>
+                <TableDateSort value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={SORT_OPTIONS.incidents} sx={{ minWidth: { xs: '100%', sm: 190 } }} />
               </Box>
               <TableContainer>
                 <Table>

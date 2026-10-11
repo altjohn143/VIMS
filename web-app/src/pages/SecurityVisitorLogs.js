@@ -72,6 +72,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import VisitorOverstayChatDialog from '../components/VisitorOverstayChatDialog';
 import websocketService from '../utils/websocket';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 
 // Dashboard Theme Colors (from Login.js)
 const themeColors = {
@@ -97,6 +98,7 @@ const SecurityVisitorLogs = () => {
   const [dateFilter, setDateFilter] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const [total, setTotal] = useState(0);
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
@@ -118,6 +120,8 @@ const SecurityVisitorLogs = () => {
     expired: 0
   });
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+
+  const sortedVisitors = useMemo(() => sortRecords(visitors, sortOrder), [visitors, sortOrder]);
 
   const abortRef = useRef(null);
   const { getCurrentUser, logout: contextLogout } = useAuth();
@@ -1087,7 +1091,7 @@ const SecurityVisitorLogs = () => {
             bgcolor: themeColors.cardBackground
           }}>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
                   label="Search visitors"
@@ -1118,7 +1122,7 @@ const SecurityVisitorLogs = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid item xs={12} sm={2}>
                 <FormControl fullWidth disabled={loading}>
                   <InputLabel sx={{
                     color: themeColors.textSecondary,
@@ -1173,6 +1177,14 @@ const SecurityVisitorLogs = () => {
     }}
   />
 </Grid>
+              <Grid item xs={12} sm={2}>
+                <TableDateSort
+                  value={sortOrder}
+                  onChange={(value) => { setSortOrder(value); setPage(0); }}
+                  options={SORT_OPTIONS.visitors}
+                  sx={{ width: '100%' }}
+                />
+              </Grid>
               <Grid item xs={12} sm={2}>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <Button
@@ -1300,7 +1312,7 @@ const SecurityVisitorLogs = () => {
             fontWeight: 600,
             color: themeColors.textPrimary
           }}>
-            {getTitle()} ({loading ? '...' : visitors.length})
+            {getTitle()} ({loading ? '...' : sortedVisitors.length})
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
@@ -1401,7 +1413,7 @@ const SecurityVisitorLogs = () => {
                     </Typography>
                   </TableCell>
                 </TableRow>
-              ) : visitors.length === 0 ? (
+              ) : sortedVisitors.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                     <ScannerIcon sx={{ 
@@ -1419,7 +1431,7 @@ const SecurityVisitorLogs = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                visitors.map((visitor) => {
+                sortedVisitors.map((visitor) => {
                   const securityProgress = getSecurityProgress(visitor);
                   const canCheckIn = ['approved', 'active'].includes(visitor.status) && securityProgress.entered < securityProgress.total;
                   const canCheckOut = visitor.status === 'active' && securityProgress.exited < securityProgress.total;

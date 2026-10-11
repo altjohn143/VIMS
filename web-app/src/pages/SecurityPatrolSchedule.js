@@ -29,6 +29,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 
 const createInitialForm = () => ({ phase: '', area: '', checkpoint: '', notes: '', status: 'completed', loggedAt: new Date() });
 
@@ -50,11 +51,12 @@ const SecurityPatrolSchedule = () => {
   const [form, setForm] = useState(createInitialForm());
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const navigate = useNavigate();
 
   const paginatedRows = useMemo(
-    () => rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [page, rows, rowsPerPage]
+    () => sortRecords(rows, sortOrder).slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [page, rows, rowsPerPage, sortOrder]
   );
 
   const load = useCallback(async () => {
@@ -300,9 +302,12 @@ const SecurityPatrolSchedule = () => {
 
           <Grid item xs={12} md={7}>
             <Paper sx={{ borderRadius: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)', overflow: 'hidden' }}>
-              <Box sx={{ p: 2.5, borderBottom: `1px solid ${themeColors.border}` }}>
-                <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>Patrol Logs</Typography>
-                <Typography variant="body2" color="text.secondary">{rows.length} total logs</Typography>
+              <Box sx={{ p: 2.5, borderBottom: `1px solid ${themeColors.border}`, display: 'flex', gap: 1.5, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                <Box>
+                  <Typography sx={{ fontWeight: 800, color: themeColors.textPrimary }}>Patrol Logs</Typography>
+                  <Typography variant="body2" color="text.secondary">{rows.length} total logs</Typography>
+                </Box>
+                <TableDateSort value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={SORT_OPTIONS.patrols} sx={{ minWidth: { xs: '100%', sm: 190 } }} />
               </Box>
               <TableContainer>
                 <Table>

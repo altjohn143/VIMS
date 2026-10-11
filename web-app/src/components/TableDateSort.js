@@ -25,16 +25,28 @@ export const SORT_OPTIONS = {
     ['date-desc', 'Newest first'], ['date-asc', 'Oldest first'], ['name-asc', 'Visitor A–Z'], ['name-desc', 'Visitor Z–A'],
     ['status-asc', 'Status A–Z'], ['status-desc', 'Status Z–A'],
   ],
+  patrols: [
+    ['date-desc', 'Newest first'], ['date-asc', 'Oldest first'], ['name-asc', 'Officer A–Z'], ['name-desc', 'Officer Z–A'],
+    ['status-asc', 'Status A–Z'], ['status-desc', 'Status Z–A'],
+  ],
+  incidents: [
+    ['date-desc', 'Newest first'], ['date-asc', 'Oldest first'], ['title-asc', 'Incident A–Z'], ['title-desc', 'Incident Z–A'],
+    ['status-asc', 'Status A–Z'], ['status-desc', 'Status Z–A'],
+  ],
 };
 
 const textValue = (record, key) => {
-  const resident = record?.residentId || record?.resident || {};
+  const resident = record?.residentId || record?.resident || record?.officerId || record?.reportedBy || {};
   if (key === 'name') return record?.visitorName || record?.name || `${record?.firstName || resident?.firstName || ''} ${record?.lastName || resident?.lastName || ''}`.trim();
   if (key === 'lot') return record?.lotId || record?.houseNumber || record?.houseLot || record?.lotNumber || '';
   if (key === 'amount') return Number(record?.amount ?? record?.totalAmount ?? record?.paymentAmount ?? 0);
-  // User records expose account status as isActive, while operational records
-  // expose it as status. Never fall back to a person's name for status sorting.
-  if (key === 'status') return record?.status ?? (record?.isActive === true ? 'active' : record?.isActive === false ? 'inactive' : '');
+  // Match the exact value rendered in each Status column. User records expose
+  // account status as isActive; visitor rows render qrStatus before status.
+  // Never fall back to a person's name for status sorting.
+  if (key === 'status') {
+    if (typeof record?.isActive === 'boolean') return record.isActive ? 'active' : 'inactive';
+    return record?.qrStatus || record?.status || '';
+  }
   return record?.[key] || '';
 };
 
@@ -42,8 +54,8 @@ export const sortRecords = (records, value = 'date-desc') => {
   const [field, direction] = value.split('-');
   return [...records].sort((left, right) => {
     if (field === 'date') {
-      const leftDate = new Date(left?.createdAt || left?.dateCreated || left?.updatedAt || 0).getTime();
-      const rightDate = new Date(right?.createdAt || right?.dateCreated || right?.updatedAt || 0).getTime();
+      const leftDate = new Date(left?.loggedAt || left?.arrivalTime || left?.expectedArrival || left?.createdAt || left?.dateCreated || left?.updatedAt || 0).getTime();
+      const rightDate = new Date(right?.loggedAt || right?.arrivalTime || right?.expectedArrival || right?.createdAt || right?.dateCreated || right?.updatedAt || 0).getTime();
       return direction === 'asc' ? leftDate - rightDate : rightDate - leftDate;
     }
     const leftValue = textValue(left, field);
@@ -53,8 +65,8 @@ export const sortRecords = (records, value = 'date-desc') => {
       : String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
     if (comparison !== 0) return direction === 'asc' ? comparison : -comparison;
     // Keep records with the same status in a useful, deterministic order.
-    const leftDate = new Date(left?.createdAt || left?.dateCreated || left?.updatedAt || 0).getTime();
-    const rightDate = new Date(right?.createdAt || right?.dateCreated || right?.updatedAt || 0).getTime();
+    const leftDate = new Date(left?.loggedAt || left?.arrivalTime || left?.expectedArrival || left?.createdAt || left?.dateCreated || left?.updatedAt || 0).getTime();
+    const rightDate = new Date(right?.loggedAt || right?.arrivalTime || right?.expectedArrival || right?.createdAt || right?.dateCreated || right?.updatedAt || 0).getTime();
     return rightDate - leftDate;
   });
 };

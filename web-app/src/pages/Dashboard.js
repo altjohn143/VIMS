@@ -1015,8 +1015,7 @@ const Dashboard = () => {
         services: [{ title: 'Service Requests', icon: <BuildIcon />, link: '/dashboard/security/service-requests' }],
         incidents: [{ title: 'Incident Reports', icon: <AssignmentIcon />, link: '/dashboard/security/incidents' }],
         settings: [
-          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' },
-          { title: 'Notifications', icon: <NotificationsIcon />, link: '/dashboard/notifications' }
+          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' }
         ]
       },
       stats: [
@@ -1051,8 +1050,7 @@ const Dashboard = () => {
           { title: 'Visitor Logs', icon: <HistoryIcon />, link: '/dashboard/security/visitor-logs' }
         ],
         settings: [
-          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' },
-          { title: 'Notifications', icon: <NotificationsIcon />, link: '/dashboard/notifications' }
+          { title: 'Profile Settings', icon: <SettingsIcon />, link: '/dashboard/profile' }
         ]
       },
       stats: [

@@ -40,6 +40,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { getBackendApiUrl } from '../utils/api';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 
 const themeColors = {
   primary: '#007A18',
@@ -83,6 +84,7 @@ const SecurityServiceRequests = () => {
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortOrder, setSortOrder] = useState('date-desc');
 
   const isHeadOfficer =
     currentUser?.securityLevel === 'head-officer' ||
@@ -147,10 +149,10 @@ const SecurityServiceRequests = () => {
     }
   };
 
-  const filteredRows = rows.filter((item) => {
+  const filteredRows = sortRecords(rows.filter((item) => {
     const haystack = `${item.title || ''} ${item.description || ''} ${item.residentId?.firstName || ''} ${item.residentId?.lastName || ''}`.toLowerCase();
     return haystack.includes(query.toLowerCase());
-  });
+  }), sortOrder);
   const paginatedRows = filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const extractLocationSignals = (item) => {
@@ -452,6 +454,7 @@ const SecurityServiceRequests = () => {
             <MenuItem value="sanitation">Sanitation</MenuItem>
             <MenuItem value="other">Other</MenuItem>
           </TextField>
+          <TableDateSort value={sortOrder} onChange={(value) => { setSortOrder(value); setPage(0); }} options={SORT_OPTIONS.requests} sx={{ minWidth: 180 }} />
           </Box>
         </Box>
 

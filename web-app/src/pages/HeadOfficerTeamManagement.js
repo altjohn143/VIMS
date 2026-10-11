@@ -26,6 +26,7 @@ import {
   ReportProblemOutlined as ReportProblemOutlinedIcon
 } from '@mui/icons-material';
 import axios from '../config/axios';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 
 const themeColors = {
   primary: '#007A18',
@@ -43,6 +44,7 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [routeForm, setRouteForm] = useState({ assignedPhases: '', assignedAreas: '', patrolSchedule: '' });
   const [savingRoute, setSavingRoute] = useState(false);
+  const [activitySortOrder, setActivitySortOrder] = useState('date-desc');
 
   const load = useCallback(async () => {
     try {
@@ -127,7 +129,7 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
   };
   const issueLogs = logs.filter((log) => log.status === 'issue_found');
   const completedLogs = logs.filter((log) => ['completed', 'nothing_found'].includes(log.status));
-  const recentLogs = logs.slice(0, 12);
+  const recentLogs = sortRecords(logs, activitySortOrder).slice(0, 12);
   const activeTeam = team.filter((member) => member.isActive);
   const unassignedTeam = team.filter((member) => !member.headOfficerId);
 
@@ -196,8 +198,9 @@ const HeadOfficerTeamManagement = ({ view = 'team' }) => {
       </Grid>
       <Grid item xs={12} md={8}>
         <Paper sx={{ borderRadius: '8px', border: `1px solid ${themeColors.border}`, overflow: 'hidden' }}>
-          <Box sx={{ p: 2 }}>
+          <Box sx={{ p: 2, display: 'flex', gap: 1, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
             <Typography sx={{ fontWeight: 900, color: themeColors.textPrimary }}>Recent Team Activity</Typography>
+            <TableDateSort value={activitySortOrder} onChange={setActivitySortOrder} options={SORT_OPTIONS.patrols} sx={{ minWidth: { xs: '100%', sm: 180 } }} />
           </Box>
           <List sx={{ pt: 0 }}>
             {recentLogs.length === 0 ? (

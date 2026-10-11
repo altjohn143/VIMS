@@ -45,6 +45,7 @@ import {
   FilterAlt as FilterIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 
 const AdminReservations = () => {
   const [reservations, setReservations] = useState([]);
@@ -54,6 +55,7 @@ const AdminReservations = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [resourceTypeFilter, setResourceTypeFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('date-desc');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [denyDialogOpen, setDenyDialogOpen] = useState(false);
@@ -86,7 +88,7 @@ const AdminReservations = () => {
     const now = new Date();
     const query = searchQuery.trim().toLowerCase();
 
-    return reservations.filter((reservation) => {
+    return sortRecords(reservations.filter((reservation) => {
       const isOverdue = new Date(reservation.endDate) < now && !['returned', 'checked_out', 'cancelled'].includes(reservation.status);
       if (activeTab === 'overdue' && !isOverdue) return false;
       if (activeTab !== 'all' && activeTab !== 'overdue' && reservation.status !== activeTab) return false;
@@ -101,8 +103,8 @@ const AdminReservations = () => {
       const itemText = (reservation.items || []).map((item) => `${item.resourceName} ${item.resourceType}`).join(' ').toLowerCase();
 
       return [reservedBy, resourceTitle, description, itemText, reservation.status].some((text) => text.includes(query));
-    });
-  }, [activeTab, reservations, resourceTypeFilter, searchQuery]);
+    }), sortOrder);
+  }, [activeTab, reservations, resourceTypeFilter, searchQuery, sortOrder]);
 
   const paginatedReservations = useMemo(
     () => filteredReservations.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
@@ -411,6 +413,7 @@ const AdminReservations = () => {
                 <MenuItem value="mixed">Mixed</MenuItem>
               </Select>
             </FormControl>
+            <TableDateSort value={sortOrder} onChange={setSortOrder} options={SORT_OPTIONS.requests} sx={{ minWidth: 190 }} />
           </Box>
 
           <Tabs

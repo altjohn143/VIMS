@@ -3,37 +3,27 @@ import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 
 export const SORT_OPTIONS = {
   basic: [
-    ['date-desc', 'Recently Added — Newest first'],
-    ['date-asc', 'Date Added — Oldest first'],
-    ['name-asc', 'Name — A to Z'],
-    ['name-desc', 'Name — Z to A'],
+    ['date-desc', 'Newest first'], ['date-asc', 'Oldest first'], ['name-asc', 'Name A–Z'], ['name-desc', 'Name Z–A'],
   ],
   users: [
-    ['date-desc', 'Recently Added — Newest first'], ['date-asc', 'Date Added — Oldest first'],
-    ['name-asc', 'Name — A to Z'], ['name-desc', 'Name — Z to A'],
-    ['status-asc', 'Account Status — A to Z'], ['status-desc', 'Account Status — Z to A'],
+    ['date-desc', 'Newest first'], ['date-asc', 'Oldest first'], ['name-asc', 'Name A–Z'], ['name-desc', 'Name Z–A'],
+    ['status-asc', 'Status A–Z'], ['status-desc', 'Status Z–A'],
   ],
   lots: [
-    ['date-desc', 'Recently Added — Newest first'], ['date-asc', 'Date Added — Oldest first'],
-    ['lot-asc', 'Lot / House Number — Low to High'], ['lot-desc', 'Lot / House Number — High to Low'],
-    ['status-asc', 'Status — A to Z'], ['status-desc', 'Status — Z to A'],
+    ['date-desc', 'Newest first'], ['date-asc', 'Oldest first'], ['lot-asc', 'Lot / House low–high'], ['lot-desc', 'Lot / House high–low'],
+    ['status-asc', 'Status A–Z'], ['status-desc', 'Status Z–A'],
   ],
   payments: [
-    ['date-desc', 'Recently Added — Newest first'], ['date-asc', 'Date Added — Oldest first'],
-    ['name-asc', 'Resident Name — A to Z'], ['name-desc', 'Resident Name — Z to A'],
-    ['amount-desc', 'Amount — Highest first'], ['amount-asc', 'Amount — Lowest first'],
-    ['status-asc', 'Status — A to Z'], ['status-desc', 'Status — Z to A'],
+    ['date-desc', 'Newest first'], ['date-asc', 'Oldest first'], ['name-asc', 'Resident A–Z'], ['name-desc', 'Resident Z–A'],
+    ['amount-desc', 'Amount high–low'], ['amount-asc', 'Amount low–high'], ['status-asc', 'Status A–Z'], ['status-desc', 'Status Z–A'],
   ],
   requests: [
-    ['date-desc', 'Recently Added — Newest first'], ['date-asc', 'Date Added — Oldest first'],
-    ['name-asc', 'Resident Name — A to Z'], ['name-desc', 'Resident Name — Z to A'],
-    ['priority-desc', 'Priority — Highest first'], ['priority-asc', 'Priority — Lowest first'],
-    ['status-asc', 'Status — A to Z'], ['status-desc', 'Status — Z to A'],
+    ['date-desc', 'Newest first'], ['date-asc', 'Oldest first'], ['name-asc', 'Resident A–Z'], ['name-desc', 'Resident Z–A'],
+    ['priority-desc', 'Priority high–low'], ['priority-asc', 'Priority low–high'], ['status-asc', 'Status A–Z'], ['status-desc', 'Status Z–A'],
   ],
   visitors: [
-    ['date-desc', 'Recently Added — Newest first'], ['date-asc', 'Date Added — Oldest first'],
-    ['name-asc', 'Visitor Name — A to Z'], ['name-desc', 'Visitor Name — Z to A'],
-    ['status-asc', 'Status — A to Z'], ['status-desc', 'Status — Z to A'],
+    ['date-desc', 'Newest first'], ['date-asc', 'Oldest first'], ['name-asc', 'Visitor A–Z'], ['name-desc', 'Visitor Z–A'],
+    ['status-asc', 'Status A–Z'], ['status-desc', 'Status Z–A'],
   ],
 };
 
@@ -64,7 +54,7 @@ export const sortRecords = (records, value = 'date-desc') => {
 
 export default function TableDateSort({ value, onChange, options = SORT_OPTIONS.basic, sx }) {
   return (
-    <FormControl size="small" sx={{ minWidth: 245, ...sx }}>
+    <FormControl size="small" sx={{ minWidth: 0, ...sx }}>
       <InputLabel id="table-sort-label">Sort records</InputLabel>
       <Select labelId="table-sort-label" value={value} label="Sort records" onChange={(event) => onChange(event.target.value)}>
         {options.map(([optionValue, label]) => <MenuItem key={optionValue} value={optionValue}>{label}</MenuItem>)}

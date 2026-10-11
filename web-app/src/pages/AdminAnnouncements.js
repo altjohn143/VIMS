@@ -34,6 +34,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../config/axios';
 import toast from 'react-hot-toast';
 import AnnouncementImage from '../components/AnnouncementImage';
+import TableDateSort, { SORT_OPTIONS, sortRecords } from '../components/TableDateSort';
 
 const emptyForm = { title: '', body: '', status: 'published', scheduledAt: null, category: 'general', image: null };
 
@@ -49,6 +50,7 @@ const AdminAnnouncements = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [query, setQuery] = useState('');
   const [viewFilter, setViewFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('date-desc');
 
   const themeColors = {
     primary: '#007A18',
@@ -146,7 +148,7 @@ const AdminAnnouncements = () => {
     }
   };
 
-  const filteredRows = rows.filter((item) => {
+  const filteredRows = sortRecords(rows.filter((item) => {
     const byStatus =
       viewFilter === 'all' ||
       (viewFilter === 'published' && item.status === 'published') ||
@@ -159,7 +161,7 @@ const AdminAnnouncements = () => {
       item.body?.toLowerCase().includes(q) ||
       `${item.createdBy?.firstName || ''} ${item.createdBy?.lastName || ''}`.toLowerCase().includes(q);
     return byStatus && byQuery;
-  });
+  }), sortOrder);
 
   return (
     <Box
@@ -369,7 +371,8 @@ const AdminAnnouncements = () => {
                   startAdornment: <SearchIcon sx={{ color: themeColors.textSecondary, mr: 1, fontSize: 20 }} />
                 }}
               />
-              <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                <TableDateSort value={sortOrder} onChange={setSortOrder} options={SORT_OPTIONS.basic} sx={{ minWidth: 170 }} />
                 <Button size="small" variant={viewFilter === 'all' ? 'contained' : 'outlined'} onClick={() => setViewFilter('all')} sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}>All</Button>
                 <Button size="small" variant={viewFilter === 'published' ? 'contained' : 'outlined'} onClick={() => setViewFilter('published')} sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}>Published</Button>
                 <Button size="small" variant={viewFilter === 'scheduled' ? 'contained' : 'outlined'} onClick={() => setViewFilter('scheduled')} sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700 }}>Scheduled</Button>

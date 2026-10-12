@@ -17,6 +17,17 @@ const reportOptions = [
 
 const searchOptions = createFilterOptions({ limit: 50, stringify: (option) => option.label || option });
 
+// Keep a flipped autocomplete menu clear of its input and avoid letting a long
+// list take over the report form on shorter viewports.
+const autocompleteSlotProps = {
+  popper: {
+    modifiers: [{ name: 'offset', options: { offset: [0, 8] } }]
+  },
+  listbox: {
+    sx: { maxHeight: 280 }
+  }
+};
+
 export default function AdminCustomReports() {
   const [residents, setResidents] = useState([]);
   const [reportType, setReportType] = useState('');
@@ -151,8 +162,8 @@ export default function AdminCustomReports() {
           <Alert severity="info" sx={{ mt: 3, mb: 3 }}>Choose a resident for a single-account report. Leave it empty to report on all residents, or enter a lot to narrow the results. The date and time filter applies to when each record was created.</Alert>
           <Grid container spacing={2.5}>
             <Grid item xs={12} md={6}><FormControl fullWidth><InputLabel>Report content</InputLabel><Select value={reportType} label="Report content" onChange={(event) => setReportType(event.target.value)}><MenuItem value="" disabled><em>Choose report content</em></MenuItem>{reportOptions.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}</Select></FormControl><Typography variant="caption" color="text.secondary">{selectedOption?.hint || 'Choose a report to see its preview.'}</Typography></Grid>
-            <Grid item xs={12} md={6}><Autocomplete options={residentOptions} value={selectedResident} loading={loadingResidents} filterOptions={searchOptions} isOptionEqualToValue={(option, value) => option.id === value.id} onChange={(_, resident) => setResidentId(resident?.id || '')} renderInput={(params) => <TextField {...params} label="Specific resident (optional)" placeholder="Type a name, block, or lot" />} /></Grid>
-            <Grid item xs={12} md={4}><Autocomplete freeSolo options={lotOptions} value={selectedLot} filterOptions={searchOptions} getOptionLabel={(option) => typeof option === 'string' ? option : option.label} onChange={(_, option) => setLot(typeof option === 'string' ? option : option?.value || '')} onInputChange={(_, value, reason) => { if (reason === 'input') setLot(value); }} renderInput={(params) => <TextField {...params} label="Lot or house number (optional)" placeholder="Type a lot or house number" />} /></Grid>
+            <Grid item xs={12} md={6}><Autocomplete options={residentOptions} value={selectedResident} loading={loadingResidents} filterOptions={searchOptions} isOptionEqualToValue={(option, value) => option.id === value.id} onChange={(_, resident) => setResidentId(resident?.id || '')} slotProps={autocompleteSlotProps} renderInput={(params) => <TextField {...params} label="Specific resident (optional)" placeholder="Type a name, block, or lot" />} /></Grid>
+            <Grid item xs={12} md={4}><Autocomplete freeSolo options={lotOptions} value={selectedLot} filterOptions={searchOptions} getOptionLabel={(option) => typeof option === 'string' ? option : option.label} onChange={(_, option) => setLot(typeof option === 'string' ? option : option?.value || '')} onInputChange={(_, value, reason) => { if (reason === 'input') setLot(value); }} slotProps={autocompleteSlotProps} renderInput={(params) => <TextField {...params} label="Lot or house number (optional)" placeholder="Type a lot or house number" />} /></Grid>
             <Grid item xs={12} md={4}><TextField fullWidth label="From date and time" type="datetime-local" value={startDate} onChange={(event) => setStartDate(event.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
             <Grid item xs={12} md={4}><TextField fullWidth label="To date and time" type="datetime-local" value={endDate} onChange={(event) => setEndDate(event.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
           </Grid>
